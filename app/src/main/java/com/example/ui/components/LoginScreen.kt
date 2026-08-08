@@ -101,7 +101,7 @@ fun LoginScreen(
     var verificationEmail by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    val auth = com.example.util.SafeFirebase.getAuth(context)
+    fun getAuth() = com.example.util.SafeFirebase.getAuth(context)
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
@@ -139,6 +139,7 @@ fun LoginScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleIdTokenCredential.idToken
                     val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                    val auth = getAuth()
                     if (auth == null) {
                         isGoogleLoading = false
                         errorMessage = "Firebase Authentication is unavailable on this device."
@@ -498,6 +499,7 @@ fun LoginScreen(
                                 isLoading = true
                                 errorMessage = null
                                 val cleanEmail = email.trim()
+                                val auth = getAuth()
 
                                 if (auth == null) {
                                     isLoading = false
@@ -742,6 +744,7 @@ fun LoginScreen(
                             forgotSuccessMessage = "Please enter an email address"
                             return@Button
                         }
+                        val auth = getAuth()
                         if (auth == null) {
                             forgotSuccessMessage = "Authentication service is unavailable."
                             return@Button

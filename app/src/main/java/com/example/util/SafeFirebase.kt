@@ -24,15 +24,20 @@ object SafeFirebase {
             appContext = ctx
         }
 
-        return try {
-            val apps = if (ctx != null) FirebaseApp.getApps(ctx) else emptyList()
-            if (apps.isNotEmpty()) {
-                FirebaseApp.getInstance()
-            } else if (ctx != null) {
+        // 1. Check if default instance exists already
+        try {
+            return FirebaseApp.getInstance()
+        } catch (_: Throwable) {
+            // Default app not initialized yet
+        }
+
+        // 2. Try standard initializeApp with context
+        if (ctx != null) {
+            try {
+                return FirebaseApp.initializeApp(ctx)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Default initializeApp failed, trying explicit options: ${e.message}")
                 try {
-                    FirebaseApp.initializeApp(ctx)
-                } catch (e: Throwable) {
-                    Log.w(TAG, "Default initializeApp failed, trying explicit options: ${e.message}")
                     val options = FirebaseOptions.Builder()
                         .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
                         .setApplicationId("1:858579936461:android:28f0738bf4352fb5d2f584")
@@ -40,19 +45,14 @@ object SafeFirebase {
                         .setGcmSenderId("858579936461")
                         .setStorageBucket("baagbaan-boi-20.firebasestorage.app")
                         .build()
-                    FirebaseApp.initializeApp(ctx, options)
+                    return FirebaseApp.initializeApp(ctx, options)
+                } catch (e2: Throwable) {
+                    Log.e(TAG, "Explicit initializeApp failed: ${e2.message}", e2)
                 }
-            } else {
-                null
-            }
-        } catch (e: Throwable) {
-            Log.e(TAG, "ensureFirebaseApp error: ${e.message}", e)
-            try {
-                FirebaseApp.getInstance()
-            } catch (_: Throwable) {
-                null
             }
         }
+
+        return null
     }
 
     fun getAuth(context: Context? = null): FirebaseAuth? {
