@@ -55,8 +55,8 @@ fun AgriCropMainScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val db = remember { com.example.data.AppDatabase.getDatabase(context, coroutineScope) }
-    val auth = remember { FirebaseAuth.getInstance() }
-    var currentUser by remember { mutableStateOf(auth.currentUser) }
+    val auth = remember { com.example.util.SafeFirebase.auth }
+    var currentUser by remember { mutableStateOf(auth?.currentUser) }
     var isAttendanceActive by remember { mutableStateOf(false) }
     var isDashboardActive by remember { mutableStateOf(false) }
     var isLoginActive by remember { mutableStateOf(currentUser == null) }
@@ -98,9 +98,9 @@ fun AgriCropMainScreen(
     }
 
     LaunchedEffect(Unit) {
-        val user = auth.currentUser
+        val user = auth?.currentUser
         if (user != null && !user.isEmailVerified) {
-            auth.signOut()
+            auth?.signOut()
             currentUser = null
             isLoginActive = true
         }
@@ -159,7 +159,7 @@ fun AgriCropMainScreen(
     if (isLoginActive) {
         LoginScreen(
             onLoginSuccess = { userEmail ->
-                currentUser = auth.currentUser
+                currentUser = auth?.currentUser
                 userDashboardViewModel.refreshUser()
                 isLoginActive = false
                 coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -260,7 +260,7 @@ fun AgriCropMainScreen(
                         },
                         currentUserEmail = currentUser?.email,
                         onLogout = {
-                            auth.signOut()
+                            auth?.signOut()
                             currentUser = null
                             isLoginActive = true
                         },

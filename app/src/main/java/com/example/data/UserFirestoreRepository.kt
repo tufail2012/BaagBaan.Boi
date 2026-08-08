@@ -11,8 +11,8 @@ import kotlinx.coroutines.tasks.await
 
 class UserFirestoreRepository {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+    private val db get() = com.example.util.SafeFirebase.db
+    private val auth get() = com.example.util.SafeFirebase.auth
 
     companion object {
         private const val TAG = "UserFirestoreRepo"
@@ -22,7 +22,7 @@ class UserFirestoreRepository {
     }
 
     private fun getCurrentUid(): String? {
-        return auth.currentUser?.uid
+        return auth?.currentUser?.uid
     }
 
     // =========================================================================
@@ -31,13 +31,14 @@ class UserFirestoreRepository {
 
     fun getBookingsFlow(targetUid: String? = null): Flow<List<UserBooking>> = callbackFlow {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val listenerRegistration = db.collection(COLLECTION_USERS)
+        val listenerRegistration = firestore.collection(COLLECTION_USERS)
             .document(uid)
             .collection(COLLECTION_BOOKINGS)
             .orderBy("createdAt", Query.Direction.DESCENDING)
@@ -66,12 +67,13 @@ class UserFirestoreRepository {
 
     suspend fun saveBooking(booking: UserBooking, targetUid: String? = null): Result<String> {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            return Result.failure(IllegalStateException("User is not authenticated"))
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            return Result.failure(IllegalStateException("User is not authenticated or Firestore unavailable"))
         }
 
         return try {
-            val collectionRef = db.collection(COLLECTION_USERS)
+            val collectionRef = firestore.collection(COLLECTION_USERS)
                 .document(uid)
                 .collection(COLLECTION_BOOKINGS)
 
@@ -106,12 +108,13 @@ class UserFirestoreRepository {
 
     suspend fun deleteBooking(bookingId: String, targetUid: String? = null): Result<Unit> {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            return Result.failure(IllegalStateException("User is not authenticated"))
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            return Result.failure(IllegalStateException("User is not authenticated or Firestore unavailable"))
         }
 
         return try {
-            db.collection(COLLECTION_USERS)
+            firestore.collection(COLLECTION_USERS)
                 .document(uid)
                 .collection(COLLECTION_BOOKINGS)
                 .document(bookingId)
@@ -131,13 +134,14 @@ class UserFirestoreRepository {
 
     fun getAttendanceFlow(targetUid: String? = null): Flow<List<UserAttendance>> = callbackFlow {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val listenerRegistration = db.collection(COLLECTION_USERS)
+        val listenerRegistration = firestore.collection(COLLECTION_USERS)
             .document(uid)
             .collection(COLLECTION_ATTENDANCE)
             .orderBy("createdAt", Query.Direction.DESCENDING)
@@ -166,12 +170,13 @@ class UserFirestoreRepository {
 
     suspend fun saveAttendance(attendance: UserAttendance, targetUid: String? = null): Result<String> {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            return Result.failure(IllegalStateException("User is not authenticated"))
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            return Result.failure(IllegalStateException("User is not authenticated or Firestore unavailable"))
         }
 
         return try {
-            val collectionRef = db.collection(COLLECTION_USERS)
+            val collectionRef = firestore.collection(COLLECTION_USERS)
                 .document(uid)
                 .collection(COLLECTION_ATTENDANCE)
 
@@ -202,12 +207,13 @@ class UserFirestoreRepository {
 
     suspend fun deleteAttendance(attendanceId: String, targetUid: String? = null): Result<Unit> {
         val uid = targetUid ?: getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            return Result.failure(IllegalStateException("User is not authenticated"))
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            return Result.failure(IllegalStateException("User is not authenticated or Firestore unavailable"))
         }
 
         return try {
-            db.collection(COLLECTION_USERS)
+            firestore.collection(COLLECTION_USERS)
                 .document(uid)
                 .collection(COLLECTION_ATTENDANCE)
                 .document(attendanceId)

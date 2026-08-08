@@ -65,7 +65,7 @@ class GoogleDriveBackupManager {
             // Resolve email from GoogleSignInAccount, SharedPreferences, or FirebaseAuth
             val accountEmail = targetAccount?.email
                 ?: prefs.getString("gdrive_account_email", null)
-                ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+                ?: com.example.util.SafeFirebase.auth?.currentUser?.email
 
             val androidAccount: android.accounts.Account? = when {
                 targetAccount?.account != null -> targetAccount.account

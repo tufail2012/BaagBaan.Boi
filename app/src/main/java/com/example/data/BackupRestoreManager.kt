@@ -32,8 +32,8 @@ data class RestoreSummary(
 
 class BackupRestoreManager {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+    private val db get() = com.example.util.SafeFirebase.db
+    private val auth get() = com.example.util.SafeFirebase.auth
 
     companion object {
         private const val TAG = "BackupRestoreManager"
@@ -47,11 +47,12 @@ class BackupRestoreManager {
     }
 
     private fun getCollectionRef(collectionName: String): CollectionReference? {
-        val uid = auth.currentUser?.uid
-        if (uid.isNullOrEmpty()) {
+        val uid = auth?.currentUser?.uid
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
             return null
         }
-        return db.collection(COLLECTION_USERS).document(uid).collection(collectionName)
+        return firestore.collection(COLLECTION_USERS).document(uid).collection(collectionName)
     }
 
     /**
@@ -59,7 +60,7 @@ class BackupRestoreManager {
      */
     suspend fun exportDataToJson(context: Context, database: AppDatabase): Result<File> = withContext(Dispatchers.IO) {
         try {
-            val uid = auth.currentUser?.uid
+            val uid = auth?.currentUser?.uid
 
             // 1. Fetch Crop Records from Firestore (or Local Room DB fallback)
             val cropRecordsJson = JSONArray()
@@ -253,9 +254,10 @@ class BackupRestoreManager {
             // 5. Fetch User Bookings & User Attendance (if user is authenticated)
             val userBookingsJson = JSONArray()
             val userAttendanceJson = JSONArray()
-            if (!uid.isNullOrEmpty()) {
+            val firestoreDb = db
+            if (!uid.isNullOrEmpty() && firestoreDb != null) {
                 try {
-                    val bookingsSnap = db.collection(COLLECTION_USERS)
+                    val bookingsSnap = firestoreDb.collection(COLLECTION_USERS)
                         .document(uid)
                         .collection(COLLECTION_BOOKINGS)
                         .get().await()
@@ -279,7 +281,7 @@ class BackupRestoreManager {
                 }
 
                 try {
-                    val attendanceSnap = db.collection(COLLECTION_USERS)
+                    val attendanceSnap = firestoreDb.collection(COLLECTION_USERS)
                         .document(uid)
                         .collection(COLLECTION_USER_ATTENDANCE)
                         .get().await()
@@ -360,7 +362,7 @@ class BackupRestoreManager {
                 rootObj // if user provided plain data json
             }
 
-            val uid = auth.currentUser?.uid
+            val uid = auth?.currentUser?.uid
 
             var restoredCrops = 0
             var restoredWorkers = 0
@@ -573,7 +575,8 @@ class BackupRestoreManager {
             }
 
             // 5. Restore User Bookings (if authenticated)
-            if (!uid.isNullOrEmpty() && dataObj.has("user_bookings")) {
+            val firestoreRestoreDb = db
+            if (!uid.isNullOrEmpty() && firestoreRestoreDb != null && dataObj.has("user_bookings")) {
                 val array = dataObj.getJSONArray("user_bookings")
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
@@ -592,7 +595,7 @@ class BackupRestoreManager {
                     )
 
                     try {
-                        db.collection(COLLECTION_USERS)
+                        firestoreRestoreDb.collection(COLLECTION_USERS)
                             .document(uid)
                             .collection(COLLECTION_BOOKINGS)
                             .document(docId)
@@ -606,7 +609,7 @@ class BackupRestoreManager {
             }
 
             // 6. Restore User Attendance (if authenticated)
-            if (!uid.isNullOrEmpty() && dataObj.has("user_attendance")) {
+            if (!uid.isNullOrEmpty() && firestoreRestoreDb != null && dataObj.has("user_attendance")) {
                 val array = dataObj.getJSONArray("user_attendance")
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
@@ -621,7 +624,7 @@ class BackupRestoreManager {
                     )
 
                     try {
-                        db.collection(COLLECTION_USERS)
+                        firestoreRestoreDb.collection(COLLECTION_USERS)
                             .document(uid)
                             .collection(COLLECTION_USER_ATTENDANCE)
                             .document(docId)

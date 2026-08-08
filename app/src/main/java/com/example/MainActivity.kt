@@ -34,6 +34,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        com.example.util.SafeFirebase.init(this)
+
         // Programmatically request maximum display refresh rate (120Hz / 90Hz / 144Hz)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

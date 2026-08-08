@@ -18,8 +18,8 @@ class UserDashboardViewModel(
     private val repository: UserFirestoreRepository = UserFirestoreRepository()
 ) : ViewModel() {
 
-    private val auth = FirebaseAuth.getInstance()
-    private val currentUidState = MutableStateFlow(auth.currentUser?.uid)
+    private val auth get() = com.example.util.SafeFirebase.auth
+    private val currentUidState = MutableStateFlow(auth?.currentUser?.uid)
 
     private val _rawBookings = MutableStateFlow<List<UserBooking>>(emptyList())
     val rawBookings: StateFlow<List<UserBooking>> = _rawBookings.asStateFlow()
@@ -52,13 +52,13 @@ class UserDashboardViewModel(
     }
 
     fun refreshUser() {
-        val uid = auth.currentUser?.uid
+        val uid = auth?.currentUser?.uid
         currentUidState.value = uid
         listenToAuthAndLoadData()
     }
 
     private fun listenToAuthAndLoadData() {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth?.currentUser?.uid ?: return
         
         _isLoadingBookings.value = true
         _isLoadingAttendance.value = true
@@ -83,7 +83,7 @@ class UserDashboardViewModel(
     }
 
     fun saveBooking(booking: UserBooking, onComplete: (Boolean) -> Unit = {}) {
-        val uid = auth.currentUser?.uid
+        val uid = auth?.currentUser?.uid
         if (uid.isNullOrEmpty()) {
             _userMessage.value = "Please sign in to save bookings"
             onComplete(false)
@@ -105,7 +105,7 @@ class UserDashboardViewModel(
     }
 
     fun deleteBooking(bookingId: String) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth?.currentUser?.uid ?: return
         viewModelScope.launch {
             val result = repository.deleteBooking(bookingId, uid)
             if (result.isSuccess) {
@@ -117,7 +117,7 @@ class UserDashboardViewModel(
     }
 
     fun saveAttendance(attendance: UserAttendance, onComplete: (Boolean) -> Unit = {}) {
-        val uid = auth.currentUser?.uid
+        val uid = auth?.currentUser?.uid
         if (uid.isNullOrEmpty()) {
             _userMessage.value = "Please sign in to mark attendance"
             onComplete(false)
@@ -139,7 +139,7 @@ class UserDashboardViewModel(
     }
 
     fun deleteAttendance(attendanceId: String) {
-        val uid = auth.currentUser?.uid ?: return
+        val uid = auth?.currentUser?.uid ?: return
         viewModelScope.launch {
             val result = repository.deleteAttendance(attendanceId, uid)
             if (result.isSuccess) {

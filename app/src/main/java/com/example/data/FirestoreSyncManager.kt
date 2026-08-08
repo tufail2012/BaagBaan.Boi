@@ -18,8 +18,8 @@ enum class SyncState {
 
 class FirestoreSyncManager {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+    private val db get() = com.example.util.SafeFirebase.db
+    private val auth get() = com.example.util.SafeFirebase.auth
 
     companion object {
         private const val TAG = "FirestoreSyncManager"
@@ -47,16 +47,17 @@ class FirestoreSyncManager {
     }
 
     private fun getCurrentUid(): String? {
-        return auth.currentUser?.uid
+        return auth?.currentUser?.uid
     }
 
     private fun getUserCollection(collectionName: String): CollectionReference? {
         val uid = getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            Log.w(TAG, "Unauthenticated access attempt for collection $collectionName")
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            Log.w(TAG, "Unauthenticated access attempt or Firestore unavailable for collection $collectionName")
             return null
         }
-        return db.collection(COLLECTION_USERS).document(uid).collection(collectionName)
+        return firestore.collection(COLLECTION_USERS).document(uid).collection(collectionName)
     }
 
     // =========================================================================
@@ -253,15 +254,16 @@ class FirestoreSyncManager {
     suspend fun syncFromCloudToLocal(cropDao: CropRecordDao, attendanceDao: AttendanceDao) {
         updateSyncState(SyncState.SYNCING)
         val uid = getCurrentUid()
-        if (uid.isNullOrEmpty()) {
-            Log.w(TAG, "Cannot sync from Cloud: User is not authenticated")
+        val firestore = db
+        if (uid.isNullOrEmpty() || firestore == null) {
+            Log.w(TAG, "Cannot sync from Cloud: User is not authenticated or Firestore unavailable")
             updateSyncState(SyncState.OFFLINE)
             return
         }
 
         try {
             // Sync Crop Records
-            val userCollectionCrops = db.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_CROP_RECORDS)
+            val userCollectionCrops = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_CROP_RECORDS)
             val cropSnapshot = userCollectionCrops.get().await()
 
             for (doc in cropSnapshot.documents) {
@@ -314,7 +316,7 @@ class FirestoreSyncManager {
             }
 
             // Sync Workers
-            val userCollectionWorkers = db.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_WORKERS)
+            val userCollectionWorkers = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_WORKERS)
             val workerSnapshot = userCollectionWorkers.get().await()
 
             for (doc in workerSnapshot.documents) {
@@ -337,7 +339,7 @@ class FirestoreSyncManager {
             }
 
             // Sync Attendance Records
-            val userCollectionAttendance = db.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_ATTENDANCE)
+            val userCollectionAttendance = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_ATTENDANCE)
             val attendanceSnapshot = userCollectionAttendance.get().await()
 
             val attendanceList = mutableListOf<AttendanceRecord>()
@@ -369,7 +371,7 @@ class FirestoreSyncManager {
             }
 
             // Sync Advance Payments
-            val userCollectionAdvance = db.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_ADVANCE)
+            val userCollectionAdvance = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_ADVANCE)
             val advanceSnapshot = userCollectionAdvance.get().await()
 
             for (doc in advanceSnapshot.documents) {

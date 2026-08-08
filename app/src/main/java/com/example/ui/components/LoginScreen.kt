@@ -100,7 +100,7 @@ fun LoginScreen(
     var fullName by remember { mutableStateOf("") }
     var verificationEmail by remember { mutableStateOf<String?>(null) }
 
-    val auth = remember { FirebaseAuth.getInstance() }
+    val auth = remember { com.example.util.SafeFirebase.auth }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
@@ -139,16 +139,21 @@ fun LoginScreen(
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleIdTokenCredential.idToken
                     val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
-                    auth.signInWithCredential(firebaseCredential)
-                        .addOnCompleteListener { task ->
-                            isGoogleLoading = false
-                            if (task.isSuccessful) {
-                                val user = task.result?.user ?: auth.currentUser
-                                onLoginSuccess(user?.email ?: "google.user@gmail.com")
-                            } else {
-                                errorMessage = task.exception?.localizedMessage ?: "Google sign-in failed"
+                    if (auth == null) {
+                        isGoogleLoading = false
+                        errorMessage = "Firebase Authentication is unavailable on this device."
+                    } else {
+                        auth.signInWithCredential(firebaseCredential)
+                            .addOnCompleteListener { task ->
+                                isGoogleLoading = false
+                                if (task.isSuccessful) {
+                                    val user = task.result?.user ?: auth.currentUser
+                                    onLoginSuccess(user?.email ?: "google.user@gmail.com")
+                                } else {
+                                    errorMessage = task.exception?.localizedMessage ?: "Google sign-in failed"
+                                }
                             }
-                        }
+                    }
                 } else {
                     isGoogleLoading = false
                     errorMessage = "Unrecognized credential type"
@@ -494,6 +499,12 @@ fun LoginScreen(
                                 errorMessage = null
                                 val cleanEmail = email.trim()
 
+                                if (auth == null) {
+                                    isLoading = false
+                                    errorMessage = "Firebase Authentication is unavailable on this device."
+                                    return@Button
+                                }
+
                                 if (isSignUpMode) {
                                     auth.createUserWithEmailAndPassword(cleanEmail, password)
                                         .addOnCompleteListener { task ->
@@ -729,6 +740,10 @@ fun LoginScreen(
                         val cleanEmail = forgotEmailInput.trim()
                         if (cleanEmail.isBlank()) {
                             forgotSuccessMessage = "Please enter an email address"
+                            return@Button
+                        }
+                        if (auth == null) {
+                            forgotSuccessMessage = "Authentication service is unavailable."
                             return@Button
                         }
                         auth.sendPasswordResetEmail(cleanEmail)

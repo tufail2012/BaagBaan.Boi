@@ -42,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "agri_crop_database"
                 )
                 .addMigrations(MIGRATION_9_10)
+                .fallbackToDestructiveMigration()
                 .addCallback(DatabaseCallback(scope))
                 .build()
                 INSTANCE = instance
