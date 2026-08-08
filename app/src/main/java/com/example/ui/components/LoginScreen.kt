@@ -175,7 +175,8 @@ fun LoginScreen(
                     val auth = getAuth()
                     if (auth == null) {
                         isGoogleLoading = false
-                        errorMessage = "Firebase Authentication is unavailable on this device."
+                        val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
+                        errorMessage = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
                     } else {
                         auth.signInWithCredential(firebaseCredential)
                             .addOnCompleteListener { task ->
@@ -536,7 +537,8 @@ fun LoginScreen(
 
                                 if (auth == null) {
                                     isLoading = false
-                                    errorMessage = "Firebase Authentication is unavailable on this device."
+                                    val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
+                                    errorMessage = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
                                     return@Button
                                 }
 

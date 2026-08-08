@@ -13,6 +13,12 @@ object SafeFirebase {
     @Volatile
     private var appContext: Context? = null
 
+    @Volatile
+    var lastInitError: Throwable? = null
+
+    @Volatile
+    var lastAuthError: Throwable? = null
+
     fun init(context: Context) {
         appContext = context.applicationContext
         ensureFirebaseApp(appContext)
@@ -27,16 +33,21 @@ object SafeFirebase {
         // 1. Check if default instance exists already
         try {
             return FirebaseApp.getInstance()
-        } catch (_: Throwable) {
-            // Default app not initialized yet
+        } catch (e: Throwable) {
+            lastInitError = e
         }
 
         // 2. Try standard initializeApp with context
         if (ctx != null) {
             try {
-                return FirebaseApp.initializeApp(ctx)
+                val app = FirebaseApp.initializeApp(ctx)
+                if (app != null) {
+                    lastInitError = null
+                    return app
+                }
             } catch (e: Throwable) {
-                Log.w(TAG, "Default initializeApp failed, trying explicit options: ${e.message}")
+                lastInitError = e
+                Log.w(TAG, "Default initializeApp failed, trying explicit options: ${e.message}", e)
                 try {
                     val options = FirebaseOptions.Builder()
                         .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
@@ -45,8 +56,11 @@ object SafeFirebase {
                         .setGcmSenderId("858579936461")
                         .setStorageBucket("baagbaan-boi-20.firebasestorage.app")
                         .build()
-                    return FirebaseApp.initializeApp(ctx, options)
+                    val app = FirebaseApp.initializeApp(ctx, options)
+                    lastInitError = null
+                    return app
                 } catch (e2: Throwable) {
+                    lastInitError = e2
                     Log.e(TAG, "Explicit initializeApp failed: ${e2.message}", e2)
                 }
             }
@@ -58,12 +72,15 @@ object SafeFirebase {
     fun getAuth(context: Context? = null): FirebaseAuth? {
         val app = ensureFirebaseApp(context)
         return try {
-            if (app != null) {
+            val authInstance = if (app != null) {
                 FirebaseAuth.getInstance(app)
             } else {
                 FirebaseAuth.getInstance()
             }
+            lastAuthError = null
+            authInstance
         } catch (e: Throwable) {
+            lastAuthError = e
             Log.e(TAG, "FirebaseAuth instance failed: ${e.message}", e)
             null
         }
