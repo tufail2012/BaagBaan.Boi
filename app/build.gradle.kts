@@ -25,14 +25,14 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystoreFilePath = System.getenv("RELEASE_KEYSTORE_FILE") ?: "${rootDir}/release-key.jks"
+      val keystoreFilePath = System.getenv("RELEASE_KEYSTORE_FILE").takeIf { !it.isNullOrBlank() } ?: "${rootDir}/release-key.jks"
       val keystoreFile = file(keystoreFilePath)
       val debugKeystoreFile = file("${rootDir}/debug.keystore")
       if (keystoreFile.exists()) {
         storeFile = keystoreFile
-        storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "AgriCropReleasePass2026"
-        keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "agricrop-release"
-        keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "AgriCropReleasePass2026"
+        storePassword = System.getenv("RELEASE_STORE_PASSWORD").takeIf { !it.isNullOrBlank() } ?: "AgriCropReleasePass2026"
+        keyAlias = System.getenv("RELEASE_KEY_ALIAS").takeIf { !it.isNullOrBlank() } ?: "agricrop-release"
+        keyPassword = System.getenv("RELEASE_KEY_PASSWORD").takeIf { !it.isNullOrBlank() } ?: "AgriCropReleasePass2026"
       } else if (debugKeystoreFile.exists()) {
         storeFile = debugKeystoreFile
         storePassword = "android"
