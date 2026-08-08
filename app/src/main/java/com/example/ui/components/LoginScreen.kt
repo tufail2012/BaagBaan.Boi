@@ -72,6 +72,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
@@ -111,29 +112,61 @@ fun LoginScreen(
 
         val credentialManager = CredentialManager.create(context)
 
+        val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
         val webClientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         val serverClientId = if (webClientIdResId != 0) {
-            context.getString(webClientIdResId)
+            val resValue = context.getString(webClientIdResId)
+            if (resValue.isNotBlank()) resValue else webClientId
         } else {
-            "858579936461-server.apps.googleusercontent.com"
+            webClientId
         }
 
-        val googleIdOption = GetGoogleIdOption.Builder()
+        // Option 1: Try with setFilterByAuthorizedAccounts(true) first
+        val filterAuthorizedOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(true)
+            .setServerClientId(serverClientId)
+            .setAutoSelectEnabled(false)
+            .build()
+
+        val filterAuthorizedRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(filterAuthorizedOption)
+            .build()
+
+        // Option 2: Fallback option with setFilterByAuthorizedAccounts(false)
+        val allAccountsOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(serverClientId)
             .setAutoSelectEnabled(false)
             .build()
 
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
+        val allAccountsRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(allAccountsOption)
             .build()
 
         coroutineScope.launch {
             try {
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = context
-                )
+                val result = try {
+                    credentialManager.getCredential(
+                        request = filterAuthorizedRequest,
+                        context = context
+                    )
+                } catch (e: NoCredentialException) {
+                    // First-time sign-in fallback: zero authorized accounts yet, retry showing all Google accounts
+                    credentialManager.getCredential(
+                        request = allAccountsRequest,
+                        context = context
+                    )
+                } catch (e: GetCredentialException) {
+                    if (e is NoCredentialException || e.message?.contains("No credentials available", ignoreCase = true) == true) {
+                        credentialManager.getCredential(
+                            request = allAccountsRequest,
+                            context = context
+                        )
+                    } else {
+                        throw e
+                    }
+                }
+
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
