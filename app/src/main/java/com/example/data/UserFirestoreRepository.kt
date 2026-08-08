@@ -3,6 +3,7 @@ package com.example.data
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -44,7 +45,11 @@ class UserFirestoreRepository {
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "Error fetching user bookings for $uid: ${error.message}")
+                    if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        Log.w(TAG, "Permission denied fetching user bookings for $uid: ${error.message}")
+                    } else {
+                        Log.e(TAG, "Error fetching user bookings for $uid: ${error.message}")
+                    }
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
@@ -147,7 +152,11 @@ class UserFirestoreRepository {
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "Error fetching user attendance for $uid: ${error.message}")
+                    if (error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                        Log.w(TAG, "Permission denied fetching user attendance for $uid: ${error.message}")
+                    } else {
+                        Log.e(TAG, "Error fetching user attendance for $uid: ${error.message}")
+                    }
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
