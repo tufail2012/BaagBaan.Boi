@@ -3,6 +3,10 @@
 -keep class com.google.android.gms.common.** { *; }
 -dontwarn com.google.android.gms.**
 
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
 # OkHttp & Coroutines
 -dontwarn okhttp3.**
 -dontwarn okio.**
