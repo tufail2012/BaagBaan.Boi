@@ -1,0 +1,6 @@
+{
+  "name": "BAAGBAAN BOI",
+  "description": "Mobile agricultural crop management app for recording farmer details and plant specifications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

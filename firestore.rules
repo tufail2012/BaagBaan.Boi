@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for security checks
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ------------------------------------------------------------------------
+    // User-Owned Private Collections
+    // users/{uid}/bookings/{bookingId}
+    // users/{uid}/attendance/{attendanceId}
+    // Only the logged-in user can read/write their own data
+    // ------------------------------------------------------------------------
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // Shared / Legacy Collections
+    // ------------------------------------------------------------------------
+    match /crop_records/{recordId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /workers/{workerId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /attendance_records/{attendanceId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /advance_payments/{paymentId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
