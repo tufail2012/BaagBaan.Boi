@@ -36,27 +36,33 @@ jobs:
           fi
           echo "Active Java version ($JAVA_VER) is 17 or newer."
 
-      - name: Create temporary debug keystore
+      - name: Set up Release Keystore
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          if [ -f "./debug.keystore" ]; then
-            echo "./debug.keystore already exists."
-          else
-            echo "Generating temporary debug keystore..."
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Decoding RELEASE_KEYSTORE_BASE64 secret..."
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ./release-key.jks
+          fi
+
+          if [ ! -f "./release-key.jks" ]; then
+            echo "Generating release-key.jks for workflow build..."
             keytool -genkeypair -v \
-              -keystore ./debug.keystore \
-              -alias androiddebugkey \
+              -keystore ./release-key.jks \
+              -alias agricrop-release \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -storepass android \
-              -keypass android \
-              -dname "CN=Android Debug,O=Android,C=US"
+              -storepass AgriCropReleasePass2026 \
+              -keypass AgriCropReleasePass2026 \
+              -dname "CN=AgriCrop, OU=Dev, O=AgriCrop, L=City, ST=State, C=US"
           fi
-          if [ ! -f "./debug.keystore" ]; then
-            echo "Error: ./debug.keystore could not be generated or found."
+
+          if [ ! -f "./release-key.jks" ]; then
+            echo "Error: ./release-key.jks could not be generated."
             exit 1
           fi
-          echo "./debug.keystore is present."
+          echo "release-key.jks is ready."
 
       - name: Build Release APK
         env:
