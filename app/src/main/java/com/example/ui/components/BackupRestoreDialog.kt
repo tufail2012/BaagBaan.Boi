@@ -116,7 +116,7 @@ fun BackupRestoreDialog(
     val database = remember { AppDatabase.getDatabase(context, scope) }
     val backupManager = remember { BackupRestoreManager() }
     val driveManager = remember { GoogleDriveBackupManager() }
-    val auth = com.example.util.SafeFirebase.auth
+    val auth = com.example.util.SafeFirebase.getAuth(context)
     val currentUserEmail = auth?.currentUser?.email
 
     var googleAccount by remember { mutableStateOf<GoogleSignInAccount?>(GoogleSignIn.getLastSignedInAccount(context)) }
