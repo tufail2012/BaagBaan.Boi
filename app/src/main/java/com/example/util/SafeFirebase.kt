@@ -9,10 +9,21 @@ import com.google.firebase.firestore.FirebaseFirestore
 object SafeFirebase {
     private const val TAG = "SafeFirebase"
 
+    @Volatile
+    private var appContext: Context? = null
+
     fun init(context: Context) {
+        appContext = context.applicationContext
+        ensureFirebaseApp()
+    }
+
+    private fun ensureFirebaseApp() {
         try {
-            if (FirebaseApp.getApps(context).isEmpty()) {
-                FirebaseApp.initializeApp(context)
+            val ctx = appContext
+            if (ctx != null) {
+                if (FirebaseApp.getApps(ctx).isEmpty()) {
+                    FirebaseApp.initializeApp(ctx)
+                }
             }
         } catch (e: Throwable) {
             Log.e(TAG, "FirebaseApp initialization failed: ${e.message}")
@@ -20,18 +31,24 @@ object SafeFirebase {
     }
 
     val auth: FirebaseAuth?
-        get() = try {
-            FirebaseAuth.getInstance()
-        } catch (e: Throwable) {
-            Log.e(TAG, "FirebaseAuth.getInstance() failed: ${e.message}")
-            null
+        get() {
+            ensureFirebaseApp()
+            return try {
+                FirebaseAuth.getInstance()
+            } catch (e: Throwable) {
+                Log.e(TAG, "FirebaseAuth.getInstance() failed: ${e.message}")
+                null
+            }
         }
 
     val db: FirebaseFirestore?
-        get() = try {
-            FirebaseFirestore.getInstance()
-        } catch (e: Throwable) {
-            Log.e(TAG, "FirebaseFirestore.getInstance() failed: ${e.message}")
-            null
+        get() {
+            ensureFirebaseApp()
+            return try {
+                FirebaseFirestore.getInstance()
+            } catch (e: Throwable) {
+                Log.e(TAG, "FirebaseFirestore.getInstance() failed: ${e.message}")
+                null
+            }
         }
 }

@@ -100,7 +100,7 @@ fun LoginScreen(
     var fullName by remember { mutableStateOf("") }
     var verificationEmail by remember { mutableStateOf<String?>(null) }
 
-    val auth = remember { com.example.util.SafeFirebase.auth }
+    val auth = com.example.util.SafeFirebase.auth
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()

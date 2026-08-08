@@ -55,7 +55,7 @@ fun AgriCropMainScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val db = remember { com.example.data.AppDatabase.getDatabase(context, coroutineScope) }
-    val auth = remember { com.example.util.SafeFirebase.auth }
+    val auth = com.example.util.SafeFirebase.auth
     var currentUser by remember { mutableStateOf(auth?.currentUser) }
     var isAttendanceActive by remember { mutableStateOf(false) }
     var isDashboardActive by remember { mutableStateOf(false) }
