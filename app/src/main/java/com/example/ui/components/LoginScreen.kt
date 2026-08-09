@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -181,7 +182,8 @@ fun LoginScreen(
                     if (auth == null) {
                         isGoogleLoading = false
                         val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
-                        errorMessage = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
+                        val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
+                        errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
                     } else {
                         auth.signInWithCredential(firebaseCredential)
                             .addOnCompleteListener { task ->
@@ -415,7 +417,10 @@ fun LoginScreen(
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = MaterialTheme.colorScheme.errorContainer,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 250.dp)
+                                    .verticalScroll(rememberScrollState())
                             ) {
                                 Text(
                                     text = errorMessage ?: "",
@@ -543,7 +548,8 @@ fun LoginScreen(
                                 if (auth == null) {
                                     isLoading = false
                                     val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
-                                    errorMessage = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
+                                    val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
+                                    errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
                                     return@Button
                                 }
 

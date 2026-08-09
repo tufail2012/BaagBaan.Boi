@@ -19,6 +19,18 @@ object SafeFirebase {
     @Volatile
     var lastAuthError: Throwable? = null
 
+    val trace = mutableListOf<String>()
+
+    fun getTraceString(): String = synchronized(trace) {
+        trace.joinToString("\n")
+    }
+
+    private fun logTrace(msg: String) {
+        synchronized(trace) {
+            trace.add(msg)
+        }
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         ensureFirebaseApp(appContext)
@@ -33,30 +45,44 @@ object SafeFirebase {
         // 1. Check if default instance exists already
         try {
             val existingApp = FirebaseApp.getInstance()
-            Log.d(TAG, "Step 1 Success: Found existing default FirebaseApp: ${existingApp.name}")
+            val msg = "Step 1 Success: Found existing default FirebaseApp: ${existingApp.name}"
+            Log.d(TAG, msg)
+            logTrace(msg)
             return existingApp
         } catch (e: Throwable) {
             lastInitError = e
-            Log.d(TAG, "Step 1 Exception: FirebaseApp.getInstance() failed: ${e.javaClass.simpleName} - ${e.message}")
+            val msg = "Step 1 Exception: FirebaseApp.getInstance() failed: ${e.javaClass.simpleName} - ${e.message}"
+            Log.d(TAG, msg)
+            logTrace(msg)
         }
 
         // 2. Try standard initializeApp with context
         if (ctx != null) {
             try {
-                Log.d(TAG, "Step 2 Attempt: Calling FirebaseApp.initializeApp(ctx) with context package ${ctx.packageName}")
+                val msg2 = "Step 2 Attempt: Calling FirebaseApp.initializeApp(ctx) with context package ${ctx.packageName}"
+                Log.d(TAG, msg2)
+                logTrace(msg2)
                 val app = FirebaseApp.initializeApp(ctx)
                 if (app != null) {
                     lastInitError = null
-                    Log.d(TAG, "Step 2 Success: Standard initializeApp succeeded: ${app.name}")
+                    val msg2s = "Step 2 Success: Standard initializeApp succeeded: ${app.name}"
+                    Log.d(TAG, msg2s)
+                    logTrace(msg2s)
                     return app
                 } else {
-                    Log.d(TAG, "Step 2 Result: FirebaseApp.initializeApp(ctx) returned null")
+                    val msg2r = "Step 2 Result: FirebaseApp.initializeApp(ctx) returned null"
+                    Log.d(TAG, msg2r)
+                    logTrace(msg2r)
                 }
             } catch (e: Throwable) {
                 lastInitError = e
-                Log.w(TAG, "Step 2 Exception: Standard initializeApp failed: ${e.javaClass.simpleName} - ${e.message}", e)
+                val msg2e = "Step 2 Exception: Standard initializeApp failed: ${e.javaClass.simpleName} - ${e.message}"
+                Log.w(TAG, msg2e, e)
+                logTrace(msg2e)
                 try {
-                    Log.d(TAG, "Step 3 Attempt: Calling FirebaseApp.initializeApp(ctx, options) with explicit FirebaseOptions")
+                    val msg3 = "Step 3 Attempt: Calling FirebaseApp.initializeApp(ctx, options) with explicit FirebaseOptions"
+                    Log.d(TAG, msg3)
+                    logTrace(msg3)
                     val options = FirebaseOptions.Builder()
                         .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
                         .setApplicationId("1:858579936461:android:28f0738bf4352fb5d2f584")
@@ -66,37 +92,57 @@ object SafeFirebase {
                         .build()
                     val app = FirebaseApp.initializeApp(ctx, options)
                     lastInitError = null
-                    Log.d(TAG, "Step 3 Success: Explicit initializeApp succeeded: ${app.name}")
+                    val msg3s = "Step 3 Success: Explicit initializeApp succeeded: ${app.name}"
+                    Log.d(TAG, msg3s)
+                    logTrace(msg3s)
                     return app
                 } catch (e2: Throwable) {
                     lastInitError = e2
-                    Log.e(TAG, "Step 3 Exception: Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}", e2)
+                    val msg3e = "Step 3 Exception: Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}"
+                    Log.e(TAG, msg3e, e2)
+                    logTrace(msg3e)
                 }
             }
         } else {
-            Log.d(TAG, "Step 2/3 Skipped: Context is null")
+            val msgSkip = "Step 2/3 Skipped: Context is null"
+            Log.d(TAG, msgSkip)
+            logTrace(msgSkip)
         }
 
         return null
     }
 
     fun getAuth(context: Context? = null): FirebaseAuth? {
-        Log.d(TAG, "getAuth called with context=${context?.javaClass?.simpleName ?: "null"}")
+        synchronized(trace) {
+            trace.clear()
+        }
+        val msgInit = "getAuth called with context=${context?.javaClass?.simpleName ?: "null"}"
+        Log.d(TAG, msgInit)
+        logTrace(msgInit)
+
         val app = ensureFirebaseApp(context)
         return try {
             val authInstance = if (app != null) {
-                Log.d(TAG, "getAuth Path A: Getting FirebaseAuth.getInstance(app) with app instance ${app.name}")
+                val msgA = "getAuth Path A: Getting FirebaseAuth.getInstance(app) with app instance ${app.name}"
+                Log.d(TAG, msgA)
+                logTrace(msgA)
                 FirebaseAuth.getInstance(app)
             } else {
-                Log.d(TAG, "getAuth Path B: app is null, falling back to raw FirebaseAuth.getInstance()")
+                val msgB = "getAuth Path B: app is null, falling back to raw FirebaseAuth.getInstance()"
+                Log.d(TAG, msgB)
+                logTrace(msgB)
                 FirebaseAuth.getInstance()
             }
             lastAuthError = null
-            Log.d(TAG, "getAuth Success: FirebaseAuth instance retrieved successfully")
+            val msgSuccess = "getAuth Success: FirebaseAuth instance retrieved successfully"
+            Log.d(TAG, msgSuccess)
+            logTrace(msgSuccess)
             authInstance
         } catch (e: Throwable) {
             lastAuthError = e
-            Log.e(TAG, "getAuth Exception: FirebaseAuth.getInstance failed: ${e.javaClass.simpleName} - ${e.message}", e)
+            val msgErr = "getAuth Exception: FirebaseAuth.getInstance failed: ${e.javaClass.simpleName} - ${e.message}"
+            Log.e(TAG, msgErr, e)
+            logTrace(msgErr)
             null
         }
     }
