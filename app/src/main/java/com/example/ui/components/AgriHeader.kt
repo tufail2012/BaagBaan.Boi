@@ -58,6 +58,7 @@ import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -254,6 +255,7 @@ fun AgriHeader(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
+                        // --- Group 1: Main ---
                         DropdownMenuItem(
                             text = {
                                 Row(
@@ -315,6 +317,75 @@ fun AgriHeader(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(
+                                        imageVector = Icons.Default.EventAvailable,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Attendance",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToAttendance()
+                            },
+                            modifier = Modifier.testTag("attendance_menu_item")
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Contacts,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Contact Directory",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToContactDirectory()
+                            },
+                            modifier = Modifier.testTag("contact_directory_menu_item")
+                        )
+
+                        // --- Group 2: Data ---
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        Text(
+                            text = "DATA",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
@@ -333,6 +404,48 @@ fun AgriHeader(
                                 onOpenRecycleBin()
                             },
                             modifier = Modifier.testTag("recycle_bin_menu_item")
+                        )
+
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(
+                                        text = "Data Backup & Restore",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onNavigateToBackupRestore()
+                            },
+                            modifier = Modifier.testTag("backup_restore_menu_item")
+                        )
+
+                        // --- Group 3: Account ---
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        Text(
+                            text = "ACCOUNT",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.2.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
                         )
 
                         val currentModeLabel = when (themeMode) {
@@ -450,87 +563,6 @@ fun AgriHeader(
                                 modifier = Modifier.testTag("login_menu_item")
                             )
                         }
-
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.EventAvailable,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Attendance",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onNavigateToAttendance()
-                            },
-                            modifier = Modifier.testTag("attendance_menu_item")
-                        )
-
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudSync,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Data Backup & Restore",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onNavigateToBackupRestore()
-                            },
-                            modifier = Modifier.testTag("backup_restore_menu_item")
-                        )
-
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Contacts,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Contact Directory",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onNavigateToContactDirectory()
-                            },
-                            modifier = Modifier.testTag("contact_directory_menu_item")
-                        )
                     }
                 }
             }
@@ -650,6 +682,7 @@ fun AgriHeader(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            // --- Group 1: Main ---
                             DropdownMenuItem(
                                 text = {
                                     Row(
@@ -711,6 +744,75 @@ fun AgriHeader(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Icon(
+                                            imageVector = Icons.Default.EventAvailable,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Attendance",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onNavigateToAttendance()
+                                },
+                                modifier = Modifier.testTag("attendance_menu_item_2")
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Contacts,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Contact Directory",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onNavigateToContactDirectory()
+                                },
+                                modifier = Modifier.testTag("contact_directory_menu_item_2")
+                            )
+
+                            // --- Group 2: Data ---
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            Text(
+                                text = "DATA",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                letterSpacing = 1.2.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
@@ -729,6 +831,48 @@ fun AgriHeader(
                                     onOpenRecycleBin()
                                 },
                                 modifier = Modifier.testTag("recycle_bin_menu_item_2")
+                            )
+
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudSync,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Data Backup & Restore",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    onNavigateToBackupRestore()
+                                },
+                                modifier = Modifier.testTag("backup_restore_menu_item_2")
+                            )
+
+                            // --- Group 3: Account ---
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            Text(
+                                text = "ACCOUNT",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                letterSpacing = 1.2.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
                             )
 
                             val currentModeLabel = when (themeMode) {
@@ -846,87 +990,6 @@ fun AgriHeader(
                                     modifier = Modifier.testTag("login_menu_item_2")
                                 )
                             }
-
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.EventAvailable,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "Attendance",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    onNavigateToAttendance()
-                                },
-                                modifier = Modifier.testTag("attendance_menu_item_2")
-                            )
-
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CloudSync,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "Data Backup & Restore",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    onNavigateToBackupRestore()
-                                },
-                                modifier = Modifier.testTag("backup_restore_menu_item_2")
-                            )
-
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Contacts,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "Contact Directory",
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp
-                                        )
-                                    }
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    onNavigateToContactDirectory()
-                                },
-                                modifier = Modifier.testTag("contact_directory_menu_item_2")
-                            )
                         }
                     }
                 }

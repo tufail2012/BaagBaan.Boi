@@ -30,8 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import android.os.Build
 import kotlinx.coroutines.launch
 
-import com.example.ui.navigation.AppNavigation
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -104,14 +102,22 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val themeMode by cropViewModel.themeMode.collectAsState()
-            val accentColorArgb by cropViewModel.accentColorArgb.collectAsState()
+            val accentHex by cropViewModel.accentColorHex.collectAsState()
+
+            val accentColor = androidx.compose.runtime.remember(accentHex) {
+                try {
+                    androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(accentHex))
+                } catch (e: Exception) {
+                    com.example.ui.theme.AgriRedPrimary
+                }
+            }
 
             MyApplicationTheme(
                 themeMode = themeMode,
-                seedColorArgb = accentColorArgb
+                accentColor = accentColor
             ) {
-                AppNavigation(
-                    cropViewModel = cropViewModel,
+                AgriCropMainScreen(
+                    viewModel = cropViewModel,
                     attendanceViewModel = attendanceViewModel,
                     notificationViewModel = notificationViewModel
                 )

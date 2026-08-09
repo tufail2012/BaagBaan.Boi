@@ -5,14 +5,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.CropRecord
 import com.example.data.CropRecordRepository
-import com.example.data.ThemePreferencesManager
 import com.example.data.isPaymentCleared
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -22,86 +20,49 @@ import java.util.Locale
 
 class CropViewModel(private val repository: CropRecordRepository) : ViewModel() {
 
-    private var themePreferencesManager: ThemePreferencesManager? = null
-
     // Theme mode state: SYSTEM, LIGHT, DARK, AMOLED
     private val _themeMode = MutableStateFlow(AppThemeMode.SYSTEM)
     val themeMode: StateFlow<AppThemeMode> = _themeMode.asStateFlow()
 
-    private val _accentColorArgb = MutableStateFlow(ThemePreferencesManager.DEFAULT_ACCENT_COLOR_ARGB)
-    val accentColorArgb: StateFlow<Long> = _accentColorArgb.asStateFlow()
-
-    val accentColorHex: StateFlow<String> = _accentColorArgb.map { argb ->
-        val hexInt = (argb.toInt() and 0xFFFFFF)
-        String.format("#%06X", hexInt)
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, "#D32F2F")
+    private val _accentColorHex = MutableStateFlow("#D32F2F")
+    val accentColorHex: StateFlow<String> = _accentColorHex.asStateFlow()
 
     fun loadThemeSettings(context: android.content.Context) {
-        val manager = themePreferencesManager ?: ThemePreferencesManager(context.applicationContext).also {
-            themePreferencesManager = it
+        val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
+        val savedModeName = prefs.getString("agri_theme_mode", AppThemeMode.SYSTEM.name) ?: AppThemeMode.SYSTEM.name
+        val mode = try {
+            AppThemeMode.valueOf(savedModeName)
+        } catch (e: Exception) {
+            AppThemeMode.SYSTEM
         }
-        viewModelScope.launch {
-            manager.accentColorArgbFlow.collect { argb ->
-                _accentColorArgb.value = argb
-            }
-        }
-        viewModelScope.launch {
-            manager.themeModeFlow.collect { modeStr ->
-                _themeMode.value = try {
-                    AppThemeMode.valueOf(modeStr)
-                } catch (_: Exception) {
-                    AppThemeMode.SYSTEM
-                }
-            }
-        }
+        _themeMode.value = mode
+
+        val savedHex = prefs.getString("agri_accent_color_hex", "#D32F2F") ?: "#D32F2F"
+        _accentColorHex.value = savedHex
     }
 
     fun setThemeMode(mode: AppThemeMode) {
         _themeMode.value = mode
-        viewModelScope.launch {
-            themePreferencesManager?.setThemeMode(mode.name)
-        }
     }
 
     fun setThemeMode(context: android.content.Context, mode: AppThemeMode) {
-        val manager = themePreferencesManager ?: ThemePreferencesManager(context.applicationContext).also {
-            themePreferencesManager = it
-        }
         _themeMode.value = mode
-        viewModelScope.launch {
-            manager.setThemeMode(mode.name)
-        }
-    }
-
-    fun setAccentColorArgb(context: android.content.Context, argb: Long) {
-        val manager = themePreferencesManager ?: ThemePreferencesManager(context.applicationContext).also {
-            themePreferencesManager = it
-        }
-        _accentColorArgb.value = argb
-        viewModelScope.launch {
-            manager.setAccentColor(argb)
-        }
+        val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString("agri_theme_mode", mode.name).apply()
     }
 
     fun setAccentColorHex(context: android.content.Context, hex: String) {
-        val argb = try {
-            android.graphics.Color.parseColor(hex).toLong() and 0xFFFFFFFFL
-        } catch (e: Exception) {
-            ThemePreferencesManager.DEFAULT_ACCENT_COLOR_ARGB
-        }
-        setAccentColorArgb(context, argb)
+        _accentColorHex.value = hex
+        val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString("agri_accent_color_hex", hex).apply()
     }
 
     fun cycleThemeMode() {
-        val nextMode = when (_themeMode.value) {
+        _themeMode.value = when (_themeMode.value) {
             AppThemeMode.SYSTEM -> AppThemeMode.LIGHT
             AppThemeMode.LIGHT -> AppThemeMode.DARK
             AppThemeMode.DARK -> AppThemeMode.AMOLED
             AppThemeMode.AMOLED -> AppThemeMode.SYSTEM
-        }
-        _themeMode.value = nextMode
-        viewModelScope.launch {
-            themePreferencesManager?.setThemeMode(nextMode.name)
         }
     }
 

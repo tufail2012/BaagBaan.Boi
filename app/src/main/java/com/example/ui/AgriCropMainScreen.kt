@@ -56,12 +56,6 @@ fun AgriCropMainScreen(
     viewModel: CropViewModel,
     attendanceViewModel: AttendanceViewModel,
     notificationViewModel: NotificationViewModel? = null,
-    userDashboardViewModel: UserDashboardViewModel = remember { UserDashboardViewModel() },
-    onNavigateToLogin: (() -> Unit)? = null,
-    onNavigateToDashboard: (() -> Unit)? = null,
-    onNavigateToAttendance: (() -> Unit)? = null,
-    onNavigateToGlobalSearch: (() -> Unit)? = null,
-    onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -95,6 +89,7 @@ fun AgriCropMainScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val userDashboardViewModel = remember { UserDashboardViewModel() }
     val dashboardUserMsg by userDashboardViewModel.userMessage.collectAsState()
 
     LaunchedEffect(currentUser) {
@@ -167,195 +162,217 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (onNavigateToLogin == null && isLoginActive) {
-        LoginScreen(
-            onLoginSuccess = { userEmail ->
-                currentUser = auth?.currentUser
-                userDashboardViewModel.refreshUser()
-                isLoginActive = false
-                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                    try {
-                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao())
-                    } catch (e: Exception) {
-                        // Silent fail pattern matching onCreate / manual sync
-                    }
-                }
-            },
-            onContinueAsGuest = {
-                isLoginActive = false
-            },
-            modifier = modifier
-        )
-    } else if (onNavigateToDashboard == null && isDashboardActive) {
-        AgriDashboardScreen(
-            viewModel = viewModel,
-            userDashboardViewModel = userDashboardViewModel,
-            currentUserEmail = currentUser?.email,
-            onBack = { isDashboardActive = false },
-            onNavigateToCategory = { category ->
-                viewModel.selectServiceCategory(category)
-                isDashboardActive = false
-            },
-            modifier = modifier
-        )
-    } else if (onNavigateToAttendance == null && isAttendanceActive) {
-        AttendanceMainScreen(
-            viewModel = attendanceViewModel,
-            onNavigateBackToMain = { isAttendanceActive = false },
-            modifier = modifier
-        )
-    } else if (onNavigateToGlobalSearch == null && isGlobalSearchActive) {
-        GlobalSearchResultsScreen(
-            viewModel = viewModel,
-            onBack = { viewModel.closeGlobalSearch() },
-            modifier = modifier
-        )
-    } else {
-        val displayHeaderTitle = when {
-            selectedService.equals("Imported", ignoreCase = true) -> "Imported Plants"
-            selectedService.equals("Rootstocks", ignoreCase = true) -> "Imported Rootstocks"
-            selectedService.equals("Bookings", ignoreCase = true) -> "Bookings"
-            selectedService.equals("Attendance", ignoreCase = true) -> "Worker Attendance"
-            else -> selectedService
-        }
+    val currentRootScreen = when {
+        isLoginActive -> "LOGIN"
+        isDashboardActive -> "DASHBOARD"
+        isAttendanceActive -> "ATTENDANCE"
+        isGlobalSearchActive -> "SEARCH"
+        else -> "MAIN"
+    }
 
-        Scaffold(
-            modifier = modifier.fillMaxSize(),
-            containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                Column {
-                    AgriHeader(
-                        title = displayHeaderTitle,
-                        themeMode = themeMode,
-                        selectedColorHex = accentColorHex,
-                        onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-                        onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { newQuery ->
-                            viewModel.setSearchQuery(newQuery)
-                        },
-                        isSearchActive = isGlobalSearchActive,
-                        onSearchActiveChange = { active ->
-                            if (active) {
-                                if (onNavigateToGlobalSearch != null) onNavigateToGlobalSearch() else viewModel.openGlobalSearch()
-                            } else {
-                                viewModel.closeGlobalSearch()
-                            }
-                        },
-                        onToggleSearch = {
-                            if (onNavigateToGlobalSearch != null) onNavigateToGlobalSearch() else viewModel.openGlobalSearch()
-                        },
-                        onNavigateToAttendance = {
-                            if (onNavigateToAttendance != null) onNavigateToAttendance() else isAttendanceActive = true
-                        },
-                        onNavigateToBookings = {
-                            viewModel.selectServiceCategory("Bookings")
-                        },
-                        onNavigateToBackupRestore = {
-                            showBackupRestoreDialog = true
-                        },
-                        onNavigateToContactDirectory = {
-                            showContactDirectoryDialog = true
-                        },
-                        onNavigateToInventory = {
-                            showInventoryDialog = true
-                        },
-                        onOpenRecycleBin = {
-                            showRecycleBinDialog = true
-                        },
-                        onNavigateToDashboard = {
-                            if (onNavigateToDashboard != null) onNavigateToDashboard() else isDashboardActive = true
-                        },
-                        onNavigateToLogin = {
-                            if (onNavigateToLogin != null) onNavigateToLogin() else isLoginActive = true
-                        },
-                        unreadNotificationCount = unreadCount,
-                        onOpenNotifications = {
-                            showNotificationCenter = true
-                        },
-                        currentUserEmail = currentUser?.email,
-                        onLogout = {
-                            if (onLogout != null) {
-                                onLogout()
-                            } else {
-                                auth?.signOut()
-                                currentUser = null
-                                isLoginActive = true
-                            }
-                        },
-                        onManualSync = {
-                            coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+    AnimatedContent(
+        targetState = currentRootScreen,
+        transitionSpec = {
+            if (initialState == "LOGIN") {
+                (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.95f, animationSpec = tween(450)))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            } else if (targetState == "LOGIN") {
+                fadeIn(animationSpec = tween(300))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            } else {
+                (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.97f, animationSpec = tween(300)))
+                    .togetherWith(fadeOut(animationSpec = tween(150)))
+            }
+        },
+        label = "RootScreenTransition",
+        modifier = modifier.fillMaxSize()
+    ) { targetScreen ->
+        when (targetScreen) {
+            "LOGIN" -> {
+                LoginScreen(
+                    onLoginSuccess = { userEmail ->
+                        currentUser = auth?.currentUser
+                        userDashboardViewModel.refreshUser()
+                        isLoginActive = false
+                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
                                 com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao())
+                            } catch (e: Exception) {
+                                // Silent fail pattern matching onCreate / manual sync
                             }
                         }
-                    )
-
-                    // Segmented toggle header (New Entry / Records) - shown only for Crop Services
-                    if (!selectedService.equals("Bookings", ignoreCase = true) && !selectedService.equals("Attendance", ignoreCase = true)) {
-                        AgriSegmentedControl(
-                            selectedMode = viewMode,
-                            onModeSelected = { viewModel.setViewMode(it) }
-                        )
-                    }
-
-                    // Dedicated Sub-Tabs for Pruning & Rootstocks
-                    if (selectedService.equals("Pruning", ignoreCase = true)) {
-                        PruningSubTabs(
-                            selectedSubTab = selectedPruningSubTab,
-                            onSelectSubTab = { viewModel.selectPruningSubTab(it) }
-                        )
-                    } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                        RootstockSubTabs(
-                            selectedSubTab = selectedRootstockSubTab,
-                            selectedGenevaOption = selectedGenevaOption,
-                            onSelectSubTab = { subTab, genevaOpt ->
-                                viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                            }
-                        )
-                    }
-                }
-            },
-            snackbarHost = { SnackbarHost(snackbarHostState) }
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = innerPadding.calculateTopPadding())
-            ) {
-                AnimatedContent(
-                    targetState = Pair(selectedService, viewMode),
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(durationMillis = 220, delayMillis = 90)) +
-                                scaleIn(initialScale = 0.92f, animationSpec = tween(durationMillis = 220, delayMillis = 90)))
-                            .togetherWith(fadeOut(animationSpec = tween(durationMillis = 90)))
                     },
-                    label = "TabFadeThroughTransition",
-                    modifier = Modifier.fillMaxSize()
-                ) { (service, mode) ->
-                    when {
-                        service.equals("Bookings", ignoreCase = true) -> {
-                            UserBookingsSection(viewModel = userDashboardViewModel)
-                        }
-                        service.equals("Attendance", ignoreCase = true) -> {
-                            UserAttendanceSection(viewModel = userDashboardViewModel)
-                        }
-                        else -> {
-                            when (mode) {
-                                0 -> FarmerFormScreen(viewModel = viewModel)
-                                else -> FarmerRecordsScreen(viewModel = viewModel)
-                            }
-                        }
-                    }
-                }
-
-                // Standalone floating pill navigation bar hovering above the bottom edge
-                AgriBottomNav(
-                    selectedCategory = selectedService,
-                    onCategorySelected = { category ->
-                        viewModel.selectServiceCategory(category)
+                    onContinueAsGuest = {
+                        isLoginActive = false
                     },
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                    modifier = modifier
                 )
+            }
+            "DASHBOARD" -> {
+                AgriDashboardScreen(
+                    viewModel = viewModel,
+                    userDashboardViewModel = userDashboardViewModel,
+                    currentUserEmail = currentUser?.email,
+                    onBack = { isDashboardActive = false },
+                    onNavigateToCategory = { category ->
+                        viewModel.selectServiceCategory(category)
+                        isDashboardActive = false
+                    },
+                    modifier = modifier
+                )
+            }
+            "ATTENDANCE" -> {
+                AttendanceMainScreen(
+                    viewModel = attendanceViewModel,
+                    onNavigateBackToMain = { isAttendanceActive = false },
+                    modifier = modifier
+                )
+            }
+            "SEARCH" -> {
+                GlobalSearchResultsScreen(
+                    viewModel = viewModel,
+                    onBack = { viewModel.closeGlobalSearch() },
+                    modifier = modifier
+                )
+            }
+            else -> {
+                val displayHeaderTitle = when {
+                    selectedService.equals("Imported", ignoreCase = true) -> "Imported Plants"
+                    selectedService.equals("Rootstocks", ignoreCase = true) -> "Imported Rootstocks"
+                    selectedService.equals("Bookings", ignoreCase = true) -> "Bookings"
+                    selectedService.equals("Attendance", ignoreCase = true) -> "Worker Attendance"
+                    else -> selectedService
+                }
+
+                Scaffold(
+                    modifier = modifier.fillMaxSize(),
+                    containerColor = MaterialTheme.colorScheme.background,
+                    topBar = {
+                        Column {
+                            AgriHeader(
+                                title = displayHeaderTitle,
+                                themeMode = themeMode,
+                                selectedColorHex = accentColorHex,
+                                onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                                onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { newQuery ->
+                                    viewModel.setSearchQuery(newQuery)
+                                },
+                                isSearchActive = isGlobalSearchActive,
+                                onSearchActiveChange = { active ->
+                                    if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch()
+                                },
+                                onToggleSearch = {
+                                    viewModel.openGlobalSearch()
+                                },
+                                onNavigateToAttendance = {
+                                    isAttendanceActive = true
+                                },
+                                onNavigateToBookings = {
+                                    viewModel.selectServiceCategory("Bookings")
+                                },
+                                onNavigateToBackupRestore = {
+                                    showBackupRestoreDialog = true
+                                },
+                                onNavigateToContactDirectory = {
+                                    showContactDirectoryDialog = true
+                                },
+                                onNavigateToInventory = {
+                                    showInventoryDialog = true
+                                },
+                                onOpenRecycleBin = {
+                                    showRecycleBinDialog = true
+                                },
+                                onNavigateToDashboard = {
+                                    isDashboardActive = true
+                                },
+                                onNavigateToLogin = {
+                                    isLoginActive = true
+                                },
+                                unreadNotificationCount = unreadCount,
+                                onOpenNotifications = {
+                                    showNotificationCenter = true
+                                },
+                                currentUserEmail = currentUser?.email,
+                                onLogout = {
+                                    auth?.signOut()
+                                    currentUser = null
+                                    isLoginActive = true
+                                },
+                                onManualSync = {
+                                    coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao())
+                                    }
+                                }
+                            )
+
+                            // Segmented toggle header (New Entry / Records) - shown only for Crop Services
+                            if (!selectedService.equals("Bookings", ignoreCase = true) && !selectedService.equals("Attendance", ignoreCase = true)) {
+                                AgriSegmentedControl(
+                                    selectedMode = viewMode,
+                                    onModeSelected = { viewModel.setViewMode(it) }
+                                )
+                            }
+
+                            // Dedicated Sub-Tabs for Pruning & Rootstocks
+                            if (selectedService.equals("Pruning", ignoreCase = true)) {
+                                PruningSubTabs(
+                                    selectedSubTab = selectedPruningSubTab,
+                                    onSelectSubTab = { viewModel.selectPruningSubTab(it) }
+                                )
+                            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                                RootstockSubTabs(
+                                    selectedSubTab = selectedRootstockSubTab,
+                                    selectedGenevaOption = selectedGenevaOption,
+                                    onSelectSubTab = { subTab, genevaOpt ->
+                                        viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(top = innerPadding.calculateTopPadding())
+                    ) {
+                        AnimatedContent(
+                            targetState = selectedService,
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
+                                    .togetherWith(fadeOut(animationSpec = tween(90)))
+                            },
+                            label = "BottomTabFadeThrough"
+                        ) { targetService ->
+                            when {
+                                targetService.equals("Bookings", ignoreCase = true) -> {
+                                    UserBookingsSection(viewModel = userDashboardViewModel)
+                                }
+                                targetService.equals("Attendance", ignoreCase = true) -> {
+                                    UserAttendanceSection(viewModel = userDashboardViewModel)
+                                }
+                                else -> {
+                                    when (viewMode) {
+                                        0 -> FarmerFormScreen(viewModel = viewModel)
+                                        else -> FarmerRecordsScreen(viewModel = viewModel)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Standalone floating pill navigation bar hovering above the bottom edge
+                        AgriBottomNav(
+                            selectedCategory = selectedService,
+                            onCategorySelected = { category ->
+                                viewModel.selectServiceCategory(category)
+                            },
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
+                }
             }
         }
     }
