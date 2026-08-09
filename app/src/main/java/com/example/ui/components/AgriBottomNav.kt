@@ -186,6 +186,12 @@ fun AgriBottomNav(
                     label = "IconColor"
                 )
 
+                val animatedLabelColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else inactiveColor,
+                    animationSpec = tween(durationMillis = 280),
+                    label = "LabelColor"
+                )
+
                 val animatedPillWidth by animateDpAsState(
                     targetValue = if (isSelected) 68.dp else 50.dp,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -199,8 +205,11 @@ fun AgriBottomNav(
                 )
 
                 val animatedIconScale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.15f else 1.0f,
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    targetValue = if (isSelected) 1.18f else 1.0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
                     label = "IconScale"
                 )
 

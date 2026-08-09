@@ -1,5 +1,11 @@
 package com.example.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +56,12 @@ fun AgriCropMainScreen(
     viewModel: CropViewModel,
     attendanceViewModel: AttendanceViewModel,
     notificationViewModel: NotificationViewModel? = null,
+    userDashboardViewModel: UserDashboardViewModel = remember { UserDashboardViewModel() },
+    onNavigateToLogin: (() -> Unit)? = null,
+    onNavigateToDashboard: (() -> Unit)? = null,
+    onNavigateToAttendance: (() -> Unit)? = null,
+    onNavigateToGlobalSearch: (() -> Unit)? = null,
+    onLogout: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -83,7 +95,6 @@ fun AgriCropMainScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val userDashboardViewModel = remember { UserDashboardViewModel() }
     val dashboardUserMsg by userDashboardViewModel.userMessage.collectAsState()
 
     LaunchedEffect(currentUser) {
@@ -156,7 +167,7 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (isLoginActive) {
+    if (onNavigateToLogin == null && isLoginActive) {
         LoginScreen(
             onLoginSuccess = { userEmail ->
                 currentUser = auth?.currentUser
@@ -175,7 +186,7 @@ fun AgriCropMainScreen(
             },
             modifier = modifier
         )
-    } else if (isDashboardActive) {
+    } else if (onNavigateToDashboard == null && isDashboardActive) {
         AgriDashboardScreen(
             viewModel = viewModel,
             userDashboardViewModel = userDashboardViewModel,
@@ -187,13 +198,13 @@ fun AgriCropMainScreen(
             },
             modifier = modifier
         )
-    } else if (isAttendanceActive) {
+    } else if (onNavigateToAttendance == null && isAttendanceActive) {
         AttendanceMainScreen(
             viewModel = attendanceViewModel,
             onNavigateBackToMain = { isAttendanceActive = false },
             modifier = modifier
         )
-    } else if (isGlobalSearchActive) {
+    } else if (onNavigateToGlobalSearch == null && isGlobalSearchActive) {
         GlobalSearchResultsScreen(
             viewModel = viewModel,
             onBack = { viewModel.closeGlobalSearch() },
@@ -225,13 +236,17 @@ fun AgriCropMainScreen(
                         },
                         isSearchActive = isGlobalSearchActive,
                         onSearchActiveChange = { active ->
-                            if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch()
+                            if (active) {
+                                if (onNavigateToGlobalSearch != null) onNavigateToGlobalSearch() else viewModel.openGlobalSearch()
+                            } else {
+                                viewModel.closeGlobalSearch()
+                            }
                         },
                         onToggleSearch = {
-                            viewModel.openGlobalSearch()
+                            if (onNavigateToGlobalSearch != null) onNavigateToGlobalSearch() else viewModel.openGlobalSearch()
                         },
                         onNavigateToAttendance = {
-                            isAttendanceActive = true
+                            if (onNavigateToAttendance != null) onNavigateToAttendance() else isAttendanceActive = true
                         },
                         onNavigateToBookings = {
                             viewModel.selectServiceCategory("Bookings")
@@ -249,10 +264,10 @@ fun AgriCropMainScreen(
                             showRecycleBinDialog = true
                         },
                         onNavigateToDashboard = {
-                            isDashboardActive = true
+                            if (onNavigateToDashboard != null) onNavigateToDashboard() else isDashboardActive = true
                         },
                         onNavigateToLogin = {
-                            isLoginActive = true
+                            if (onNavigateToLogin != null) onNavigateToLogin() else isLoginActive = true
                         },
                         unreadNotificationCount = unreadCount,
                         onOpenNotifications = {
@@ -260,9 +275,13 @@ fun AgriCropMainScreen(
                         },
                         currentUserEmail = currentUser?.email,
                         onLogout = {
-                            auth?.signOut()
-                            currentUser = null
-                            isLoginActive = true
+                            if (onLogout != null) {
+                                onLogout()
+                            } else {
+                                auth?.signOut()
+                                currentUser = null
+                                isLoginActive = true
+                            }
                         },
                         onManualSync = {
                             coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -303,17 +322,28 @@ fun AgriCropMainScreen(
                     .fillMaxSize()
                     .padding(top = innerPadding.calculateTopPadding())
             ) {
-                when {
-                    selectedService.equals("Bookings", ignoreCase = true) -> {
-                        UserBookingsSection(viewModel = userDashboardViewModel)
-                    }
-                    selectedService.equals("Attendance", ignoreCase = true) -> {
-                        UserAttendanceSection(viewModel = userDashboardViewModel)
-                    }
-                    else -> {
-                        when (viewMode) {
-                            0 -> FarmerFormScreen(viewModel = viewModel)
-                            else -> FarmerRecordsScreen(viewModel = viewModel)
+                AnimatedContent(
+                    targetState = Pair(selectedService, viewMode),
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(durationMillis = 220, delayMillis = 90)) +
+                                scaleIn(initialScale = 0.92f, animationSpec = tween(durationMillis = 220, delayMillis = 90)))
+                            .togetherWith(fadeOut(animationSpec = tween(durationMillis = 90)))
+                    },
+                    label = "TabFadeThroughTransition",
+                    modifier = Modifier.fillMaxSize()
+                ) { (service, mode) ->
+                    when {
+                        service.equals("Bookings", ignoreCase = true) -> {
+                            UserBookingsSection(viewModel = userDashboardViewModel)
+                        }
+                        service.equals("Attendance", ignoreCase = true) -> {
+                            UserAttendanceSection(viewModel = userDashboardViewModel)
+                        }
+                        else -> {
+                            when (mode) {
+                                0 -> FarmerFormScreen(viewModel = viewModel)
+                                else -> FarmerRecordsScreen(viewModel = viewModel)
+                            }
                         }
                     }
                 }

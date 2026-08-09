@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -57,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
@@ -74,10 +75,8 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
@@ -103,6 +102,12 @@ fun LoginScreen(
     var fullName by remember { mutableStateOf("") }
     var verificationEmail by remember { mutableStateOf<String?>(null) }
 
+    var animateCard by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        animateCard = true
+    }
+
     LaunchedEffect(isSignUpMode) {
         errorMessage = null
     }
@@ -127,51 +132,22 @@ fun LoginScreen(
             webClientId
         }
 
-        // Option 1: Try with setFilterByAuthorizedAccounts(true) first
-        val filterAuthorizedOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(true)
-            .setServerClientId(serverClientId)
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val filterAuthorizedRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(filterAuthorizedOption)
-            .build()
-
-        // Option 2: Fallback option with setFilterByAuthorizedAccounts(false)
-        val allAccountsOption = GetGoogleIdOption.Builder()
+        val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(serverClientId)
             .setAutoSelectEnabled(false)
             .build()
 
-        val allAccountsRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(allAccountsOption)
+        val credentialRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
             .build()
 
         coroutineScope.launch {
             try {
-                val result = try {
-                    credentialManager.getCredential(
-                        request = filterAuthorizedRequest,
-                        context = context
-                    )
-                } catch (e: NoCredentialException) {
-                    // First-time sign-in fallback: zero authorized accounts yet, retry showing all Google accounts
-                    credentialManager.getCredential(
-                        request = allAccountsRequest,
-                        context = context
-                    )
-                } catch (e: GetCredentialException) {
-                    if (e is NoCredentialException || e.message?.contains("No credentials available", ignoreCase = true) == true) {
-                        credentialManager.getCredential(
-                            request = allAccountsRequest,
-                            context = context
-                        )
-                    } else {
-                        throw e
-                    }
-                }
+                val result = credentialManager.getCredential(
+                    request = credentialRequest,
+                    context = context
+                )
 
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
@@ -288,7 +264,7 @@ fun LoginScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Text(
@@ -301,428 +277,449 @@ fun LoginScreen(
             }
         } else {
             Box(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                // Top Header Row with Guest Back option
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onContinueAsGuest,
-                        modifier = Modifier.testTag("login_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back to Main",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                // Subtle organic background accents (soft leaf/blob silhouettes at low opacity)
+                Box(
+                    modifier = Modifier
+                        .size(280.dp)
+                        .offset(x = (-80).dp, y = (-60).dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f))
+                )
+                Box(
+                    modifier = Modifier
+                        .size(320.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 100.dp, y = 120.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.30f))
+                )
 
-                    TextButton(
-                        onClick = onContinueAsGuest,
-                        modifier = Modifier.testTag("skip_login_button")
-                    ) {
-                        Text(
-                            text = "Skip • Guest Mode",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // App Logo & Title Section
                 Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
+                    // Top Header Row with Guest Back option
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.LocalFlorist,
-                            contentDescription = "Baagbaan Boi Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(44.dp)
+                        IconButton(
+                            onClick = onContinueAsGuest,
+                            modifier = Modifier.testTag("login_back_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back to Main",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        TextButton(
+                            onClick = onContinueAsGuest,
+                            modifier = Modifier.testTag("skip_login_button")
+                        ) {
+                            Text(
+                                text = "Skip • Guest Mode",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // App Logo & Title Hero Section
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.LocalFlorist,
+                                contentDescription = "Baagbaan Boi Logo",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(44.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "Baagbaan Boi",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("app_logo_title")
+                        )
+
+                        Text(
+                            text = "Orchard & Horticulture Management System",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
 
-                    Text(
-                        text = "Baagbaan Boi",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 28.sp,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("app_logo_title")
-                    )
+                    Spacer(modifier = Modifier.height(28.dp))
 
-                    Text(
-                        text = "Orchard & Horticulture Management System",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        fontSize = 13.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Main Login Card Form
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    // Animated Main Login Form Card
+                    AnimatedVisibility(
+                        visible = animateCard,
+                        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(
+                            initialOffsetY = { it / 3 },
+                            animationSpec = tween(500)
+                        )
                     ) {
-                        Text(
-                            text = if (isSignUpMode) "Create Account" else "Welcome Back",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        if (errorMessage != null) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.errorContainer,
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        ) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = 250.dp)
-                                    .verticalScroll(rememberScrollState())
+                                    .padding(24.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 Text(
-                                    text = errorMessage ?: "",
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.padding(10.dp)
+                                    text = if (isSignUpMode) "Create Account" else "Welcome Back",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                            }
-                        }
 
-                        if (isSignUpMode) {
-                            OutlinedTextField(
-                                value = fullName,
-                                onValueChange = { fullName = it },
-                                label = { Text("Full Name") },
-                                placeholder = { Text("Enter your name") },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("signup_name_input"),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-
-                        // Email Field
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = {
-                                email = it
-                                errorMessage = null
-                            },
-                            label = { Text("Email Address") },
-                            placeholder = { Text("e.g. farmer@baagbaan.com") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = "Email Icon",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("login_email_input"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-
-                        // Password Field
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it
-                                errorMessage = null
-                            },
-                            label = { Text("Password") },
-                            placeholder = { Text("Enter password") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Lock Icon",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            singleLine = true,
-                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("login_password_input"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-
-                        // Forgot Password Link
-                        if (!isSignUpMode) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                Text(
-                                    text = "Forgot Password?",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    modifier = Modifier
-                                        .clickable {
-                                            forgotEmailInput = email
-                                            showForgotPasswordDialog = true
-                                        }
-                                        .testTag("forgot_password_button")
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Primary Login / Sign Up Button
-                        Button(
-                            onClick = {
-                                if (email.isBlank() || password.isBlank()) {
-                                    errorMessage = "Please enter email and password"
-                                    return@Button
-                                }
-                                isLoading = true
-                                errorMessage = null
-                                val cleanEmail = email.trim()
-                                val auth = getAuth()
-
-                                if (auth == null) {
-                                    isLoading = false
-                                    val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
-                                    val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
-                                    errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
-                                    return@Button
+                                if (errorMessage != null) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(max = 250.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        Text(
+                                            text = errorMessage ?: "",
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
                                 }
 
                                 if (isSignUpMode) {
-                                    auth.createUserWithEmailAndPassword(cleanEmail, password)
-                                        .addOnCompleteListener { task ->
+                                    OutlinedTextField(
+                                        value = fullName,
+                                        onValueChange = { fullName = it },
+                                        label = { Text("Full Name") },
+                                        placeholder = { Text("Enter your name") },
+                                        singleLine = true,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("signup_name_input"),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    )
+                                }
+
+                                // Email Field
+                                OutlinedTextField(
+                                    value = email,
+                                    onValueChange = {
+                                        email = it
+                                        errorMessage = null
+                                    },
+                                    label = { Text("Email Address") },
+                                    placeholder = { Text("e.g. farmer@baagbaan.com") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Email,
+                                            contentDescription = "Email Icon",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("login_email_input"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                )
+
+                                // Password Field
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = {
+                                        password = it
+                                        errorMessage = null
+                                    },
+                                    label = { Text("Password") },
+                                    placeholder = { Text("Enter password") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Lock Icon",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                            Icon(
+                                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    singleLine = true,
+                                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("login_password_input"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                    )
+                                )
+
+                                // Forgot Password Link
+                                if (!isSignUpMode) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        Text(
+                                            text = "Forgot Password?",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier
+                                                .clickable {
+                                                    forgotEmailInput = email
+                                                    showForgotPasswordDialog = true
+                                                }
+                                                .testTag("forgot_password_button")
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                // Primary Login / Sign Up Button
+                                Button(
+                                    onClick = {
+                                        if (email.isBlank() || password.isBlank()) {
+                                            errorMessage = "Please enter email and password"
+                                            return@Button
+                                        }
+                                        isLoading = true
+                                        errorMessage = null
+                                        val cleanEmail = email.trim()
+                                        val auth = getAuth()
+
+                                        if (auth == null) {
                                             isLoading = false
-                                            if (task.isSuccessful) {
-                                                val user = task.result?.user ?: auth.currentUser
-                                                user?.sendEmailVerification()
-                                                auth.signOut()
-                                                verificationEmail = cleanEmail
-                                            } else {
-                                                val exception = task.exception
-                                                if (exception is FirebaseAuthUserCollisionException) {
-                                                    errorMessage = "User already exists. Please sign in"
-                                                } else {
-                                                    val msg = exception?.message ?: ""
-                                                    if (msg.contains("already in use", ignoreCase = true) || msg.contains("exists", ignoreCase = true)) {
-                                                        errorMessage = "User already exists. Please sign in"
-                                                    } else if (password.length < 6) {
-                                                        errorMessage = "Password should be at least 6 characters"
+                                            val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
+                                            val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
+                                            errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
+                                            return@Button
+                                        }
+
+                                        if (isSignUpMode) {
+                                            auth.createUserWithEmailAndPassword(cleanEmail, password)
+                                                .addOnCompleteListener { task ->
+                                                    isLoading = false
+                                                    if (task.isSuccessful) {
+                                                        val user = task.result?.user ?: auth.currentUser
+                                                        user?.sendEmailVerification()
+                                                        auth.signOut()
+                                                        verificationEmail = cleanEmail
                                                     } else {
-                                                        errorMessage = exception?.localizedMessage ?: "Sign up failed"
+                                                        val exception = task.exception
+                                                        if (exception is FirebaseAuthUserCollisionException) {
+                                                            errorMessage = "User already exists. Please sign in"
+                                                        } else {
+                                                            val msg = exception?.message ?: ""
+                                                            if (msg.contains("already in use", ignoreCase = true) || msg.contains("exists", ignoreCase = true)) {
+                                                                errorMessage = "User already exists. Please sign in"
+                                                            } else if (password.length < 6) {
+                                                                errorMessage = "Password should be at least 6 characters"
+                                                            } else {
+                                                                errorMessage = exception?.localizedMessage ?: "Sign up failed"
+                                                            }
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        }
-                                } else {
-                                    auth.signInWithEmailAndPassword(cleanEmail, password)
-                                        .addOnCompleteListener { task ->
-                                            isLoading = false
-                                            if (task.isSuccessful) {
-                                                val user = task.result?.user ?: auth.currentUser
-                                                if (user != null && !user.isEmailVerified) {
-                                                    user.sendEmailVerification()
-                                                    auth.signOut()
-                                                    verificationEmail = user.email ?: cleanEmail
-                                                } else {
-                                                    onLoginSuccess(user?.email ?: cleanEmail)
+                                        } else {
+                                            auth.signInWithEmailAndPassword(cleanEmail, password)
+                                                .addOnCompleteListener { task ->
+                                                    isLoading = false
+                                                    if (task.isSuccessful) {
+                                                        val user = task.result?.user ?: auth.currentUser
+                                                        if (user != null && !user.isEmailVerified) {
+                                                            user.sendEmailVerification()
+                                                            auth.signOut()
+                                                            verificationEmail = user.email ?: cleanEmail
+                                                        } else {
+                                                            onLoginSuccess(user?.email ?: cleanEmail)
+                                                        }
+                                                    } else {
+                                                        errorMessage = "Email or password is incorrect"
+                                                    }
                                                 }
-                                            } else {
-                                                errorMessage = "Email or password is incorrect"
-                                            }
                                         }
-                                }
-                            },
-                            enabled = !isLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .testTag("login_primary_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
-                            )
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(22.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.5.dp
-                                )
-                            } else {
-                                Text(
-                                    text = if (isSignUpMode) "Create Account" else "Login",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        // Divider OR
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                            Text(
-                                text = "OR",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
-                        }
-
-                        // Sign in with Google Button
-                        OutlinedButton(
-                            onClick = { performGoogleSignIn() },
-                            enabled = !isGoogleLoading,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .testTag("google_sign_in_button"),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        ) {
-                            if (isGoogleLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                    },
+                                    enabled = !isLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .testTag("login_primary_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 ) {
-                                    // Custom Google "G" Badge Icon
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color.White,
-                                        shadowElevation = 1.dp,
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(22.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.5.dp
+                                        )
+                                    } else {
+                                        Text(
+                                            text = if (isSignUpMode) "Create Account" else "Login",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                // Divider OR
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                                    Text(
+                                        text = "OR",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outlineVariant)
+                                }
+
+                                // Sign in with Google Button (Neutral/White per Google guidelines)
+                                OutlinedButton(
+                                    onClick = { performGoogleSignIn() },
+                                    enabled = !isGoogleLoading,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .testTag("google_sign_in_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color(0xFF1F1F1F)
+                                    )
+                                ) {
+                                    if (isGoogleLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            // Custom Google "G" Badge Icon
+                                            Surface(
+                                                shape = CircleShape,
+                                                color = Color.White,
+                                                shadowElevation = 1.dp,
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = "G",
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        fontSize = 15.sp,
+                                                        color = Color(0xFF4285F4)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
                                             Text(
-                                                text = "G",
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 15.sp,
-                                                color = Color(0xFF4285F4)
+                                                text = "Sign in with Google",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF1F1F1F)
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Sign in with Google",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Bottom Toggle mode
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = if (isSignUpMode) "Already have an account? " else "Don't have an account? ",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = if (isSignUpMode) "Log In" else "Sign Up",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable {
+                                    isSignUpMode = !isSignUpMode
+                                    errorMessage = null
+                                }
+                                .testTag("toggle_signup_login_button")
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Bottom Toggle mode
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = if (isSignUpMode) "Already have an account? " else "Don't have an account? ",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = if (isSignUpMode) "Log In" else "Sign Up",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable {
-                                isSignUpMode = !isSignUpMode
-                                errorMessage = null
-                            }
-                            .testTag("toggle_signup_login_button")
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
-    }
     }
 
     // Forgot Password Dialog
@@ -751,7 +748,12 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("forgot_email_input")
+                            .testTag("forgot_email_input"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
                     )
 
                     if (forgotSuccessMessage != null) {
@@ -804,7 +806,10 @@ fun LoginScreen(
                                 }
                             }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
                     modifier = Modifier.testTag("send_reset_link_button")
                 ) {
                     Text("Send Reset Link")
@@ -823,3 +828,4 @@ fun LoginScreen(
         )
     }
 }
+
