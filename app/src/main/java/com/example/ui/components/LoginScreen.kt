@@ -80,6 +80,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun LoginScreen(
@@ -121,29 +122,29 @@ fun LoginScreen(
         isGoogleLoading = true
         errorMessage = null
 
-        val credentialManager = CredentialManager.create(context)
-
-        val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
-        val webClientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
-        val serverClientId = if (webClientIdResId != 0) {
-            val resValue = context.getString(webClientIdResId)
-            if (resValue.isNotBlank()) resValue else webClientId
-        } else {
-            webClientId
-        }
-
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(serverClientId)
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val credentialRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
         coroutineScope.launch {
             try {
+                val credentialManager = CredentialManager.create(context)
+
+                val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
+                val webClientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+                val serverClientId = if (webClientIdResId != 0) {
+                    val resValue = context.getString(webClientIdResId)
+                    if (resValue.isNotBlank()) resValue else webClientId
+                } else {
+                    webClientId
+                }
+
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(serverClientId)
+                    .setAutoSelectEnabled(false)
+                    .build()
+
+                val credentialRequest = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
                 val result = credentialManager.getCredential(
                     request = credentialRequest,
                     context = context
@@ -156,34 +157,25 @@ fun LoginScreen(
                     val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
                     val auth = getAuth()
                     if (auth == null) {
-                        isGoogleLoading = false
                         val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
                         val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
                         errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
                     } else {
-                        auth.signInWithCredential(firebaseCredential)
-                            .addOnCompleteListener { task ->
-                                isGoogleLoading = false
-                                if (task.isSuccessful) {
-                                    val user = task.result?.user ?: auth.currentUser
-                                    onLoginSuccess(user?.email ?: "google.user@gmail.com")
-                                } else {
-                                    errorMessage = task.exception?.localizedMessage ?: "Google sign-in failed"
-                                }
-                            }
+                        val authResult = auth.signInWithCredential(firebaseCredential).await()
+                        val user = authResult.user ?: auth.currentUser
+                        onLoginSuccess(user?.email ?: "google.user@gmail.com")
                     }
                 } else {
-                    isGoogleLoading = false
                     errorMessage = "Unrecognized credential type"
                 }
             } catch (e: GetCredentialCancellationException) {
-                isGoogleLoading = false
+                // User cancelled sign-in flow intentionally
             } catch (e: GetCredentialException) {
+                errorMessage = "${e.javaClass.simpleName}: ${e.message ?: e.localizedMessage ?: "Google sign-in failed"}"
+            } catch (e: Throwable) {
+                errorMessage = "${e.javaClass.simpleName}: ${e.message ?: e.localizedMessage ?: "Google sign-in error"}"
+            } finally {
                 isGoogleLoading = false
-                errorMessage = e.localizedMessage ?: "Google sign-in failed"
-            } catch (e: Exception) {
-                isGoogleLoading = false
-                errorMessage = e.localizedMessage ?: "Google sign-in failed"
             }
         }
     }
