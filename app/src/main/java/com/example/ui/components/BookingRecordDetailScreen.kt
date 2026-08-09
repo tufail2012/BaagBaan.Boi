@@ -53,6 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -179,6 +180,10 @@ fun BookingRecordDetailDialog(
 
     var installments by remember(record.paymentHistoryJson, record.amountPaid) {
         mutableStateOf(parsePaymentHistory(record.paymentHistoryJson, record.amountPaid, record.bookingDate))
+    }
+
+    LaunchedEffect(record.id, record.paymentHistoryJson, record.amountPaid) {
+        installments = parsePaymentHistory(record.paymentHistoryJson, record.amountPaid, record.bookingDate)
     }
 
     var newAmountText by remember { mutableStateOf("") }
