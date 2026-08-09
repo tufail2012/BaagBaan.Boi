@@ -262,12 +262,17 @@ class FirestoreSyncManager {
         }
 
         try {
-            // Sync Crop Records
+            // Sync Crop Records with timestamp-aware bidirectional reconciliation
+            val localCropRecords = cropDao.getAllRecordsList()
+            val localCropMap = localCropRecords.associateBy { it.id }
+
             val userCollectionCrops = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_CROP_RECORDS)
             val cropSnapshot = userCollectionCrops.get().await()
+            val cloudCropIds = mutableSetOf<Long>()
 
             for (doc in cropSnapshot.documents) {
                 val id = doc.getLong("id") ?: continue
+                cloudCropIds.add(id)
                 val serialNumber = doc.getString("serialNumber") ?: ""
                 val farmerName = doc.getString("farmerName") ?: ""
                 val farmerAddress = doc.getString("farmerAddress") ?: ""
@@ -289,7 +294,7 @@ class FirestoreSyncManager {
                 val paymentHistoryJson = doc.getString("paymentHistoryJson") ?: ""
                 val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
-                val record = CropRecord(
+                val cloudRecord = CropRecord(
                     id = id,
                     serialNumber = serialNumber,
                     farmerName = farmerName,
@@ -312,7 +317,22 @@ class FirestoreSyncManager {
                     paymentHistoryJson = paymentHistoryJson,
                     timestamp = timestamp
                 )
-                cropDao.insertRecord(record)
+
+                val localRecord = localCropMap[id]
+                if (localRecord != null && localRecord.timestamp > timestamp) {
+                    // Local record has newer edits (such as newly added payment installments)
+                    // Push local record to Cloud Firestore
+                    saveCropRecord(localRecord)
+                } else {
+                    cropDao.insertRecord(cloudRecord)
+                }
+            }
+
+            // Push any newly created local records that do not exist on Cloud yet
+            for (localRecord in localCropRecords) {
+                if (localRecord.id !in cloudCropIds && localRecord.id != 0L) {
+                    saveCropRecord(localRecord)
+                }
             }
 
             // Sync Workers
@@ -370,19 +390,24 @@ class FirestoreSyncManager {
                 attendanceDao.insertOrUpdateAttendanceList(attendanceList)
             }
 
-            // Sync Advance Payments
+            // Sync Advance Payments with timestamp-aware reconciliation
+            val localAdvancePayments = attendanceDao.getAllAdvancePaymentsSync()
+            val localAdvanceMap = localAdvancePayments.associateBy { it.paymentId }
+
             val userCollectionAdvance = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_ADVANCE)
             val advanceSnapshot = userCollectionAdvance.get().await()
+            val cloudAdvanceIds = mutableSetOf<Long>()
 
             for (doc in advanceSnapshot.documents) {
                 val paymentId = doc.getLong("paymentId") ?: continue
+                cloudAdvanceIds.add(paymentId)
                 val workerId = doc.getLong("workerId") ?: continue
                 val amount = doc.getDouble("amount") ?: 0.0
                 val date = doc.getString("date") ?: ""
                 val note = doc.getString("note") ?: doc.getString("notes") ?: ""
                 val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
-                val payment = AdvancePayment(
+                val cloudPayment = AdvancePayment(
                     paymentId = paymentId,
                     workerId = workerId,
                     amount = amount,
@@ -390,7 +415,19 @@ class FirestoreSyncManager {
                     note = note,
                     timestamp = timestamp
                 )
-                attendanceDao.insertAdvancePayment(payment)
+
+                val localPayment = localAdvanceMap[paymentId]
+                if (localPayment != null && localPayment.timestamp > timestamp) {
+                    saveAdvancePayment(localPayment)
+                } else {
+                    attendanceDao.insertAdvancePayment(cloudPayment)
+                }
+            }
+
+            for (localPayment in localAdvancePayments) {
+                if (localPayment.paymentId !in cloudAdvanceIds && localPayment.paymentId != 0L) {
+                    saveAdvancePayment(localPayment)
+                }
             }
 
             updateSyncState(SyncState.SYNCED)
@@ -510,6 +547,30 @@ class FirestoreSyncManager {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error syncing inventory from Firestore: ${e.message}")
+        }
+    }
+
+    suspend fun deleteAdvancePayment(paymentId: Long) {
+        updateSyncState(SyncState.SYNCING)
+        val collectionRef = getUserCollection(COLLECTION_ADVANCE) ?: return
+        try {
+            collectionRef.document(paymentId.toString()).delete().await()
+            updateSyncState(SyncState.SYNCED)
+        } catch (e: Exception) {
+            updateSyncState(SyncState.OFFLINE)
+            Log.e(TAG, "Error deleting advance payment $paymentId: ${e.message}")
+        }
+    }
+
+    suspend fun deleteWorker(workerId: Long) {
+        updateSyncState(SyncState.SYNCING)
+        val collectionRef = getUserCollection(COLLECTION_WORKERS) ?: return
+        try {
+            collectionRef.document(workerId.toString()).delete().await()
+            updateSyncState(SyncState.SYNCED)
+        } catch (e: Exception) {
+            updateSyncState(SyncState.OFFLINE)
+            Log.e(TAG, "Error deleting worker $workerId: ${e.message}")
         }
     }
 }

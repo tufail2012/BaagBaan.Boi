@@ -572,7 +572,8 @@ fun BookingRecordDetailDialog(
                                         val updatedRecord = record.copy(
                                             amountPaid = newPaidSum,
                                             paymentStatus = newStatus,
-                                            paymentHistoryJson = jsonStr
+                                            paymentHistoryJson = jsonStr,
+                                            timestamp = System.currentTimeMillis()
                                         )
                                         onUpdateRecord(updatedRecord)
 
@@ -936,7 +937,8 @@ fun BookingRecordDetailDialog(
                             val updatedRecord = record.copy(
                                 amountPaid = newPaidSum,
                                 paymentStatus = newStatus,
-                                paymentHistoryJson = jsonStr
+                                paymentHistoryJson = jsonStr,
+                                timestamp = System.currentTimeMillis()
                             )
                             onUpdateRecord(updatedRecord)
                         }

@@ -85,5 +85,6 @@ class AttendanceRepository(
 
     suspend fun deleteAdvancePayment(paymentId: Long) {
         dao.deleteAdvancePayment(paymentId)
+        firestoreSyncManager.deleteAdvancePayment(paymentId)
     }
 }
