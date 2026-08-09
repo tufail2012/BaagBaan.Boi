@@ -82,7 +82,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 @Composable
 fun LoginScreen(
@@ -118,6 +120,8 @@ fun LoginScreen(
         isGoogleLoading = true
         errorMessage = null
 
+        com.example.util.SafeFirebase.logTrace("performGoogleSignIn started")
+
         val credentialManager = CredentialManager.create(context)
 
         val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
@@ -141,10 +145,14 @@ fun LoginScreen(
 
         coroutineScope.launch {
             try {
-                val result = credentialManager.getCredential(
-                    request = getCredentialRequest,
-                    context = context
-                )
+                com.example.util.SafeFirebase.logTrace("Calling credentialManager.getCredential...")
+                val result = withTimeout(15000) {
+                    credentialManager.getCredential(
+                        request = getCredentialRequest,
+                        context = context
+                    )
+                }
+                com.example.util.SafeFirebase.logTrace("credentialManager.getCredential returned successfully")
 
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
@@ -158,29 +166,39 @@ fun LoginScreen(
                         val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
                         errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
                     } else {
+                        com.example.util.SafeFirebase.logTrace("Calling signInWithCredential...")
                         auth.signInWithCredential(firebaseCredential)
                             .addOnCompleteListener { task ->
                                 isGoogleLoading = false
                                 if (task.isSuccessful) {
+                                    com.example.util.SafeFirebase.logTrace("signInWithCredential succeeded")
                                     val user = task.result?.user ?: auth.currentUser
                                     onLoginSuccess(user?.email ?: "google.user@gmail.com")
                                 } else {
-                                    errorMessage = task.exception?.localizedMessage ?: "Google sign-in failed"
+                                    com.example.util.SafeFirebase.logTrace("signInWithCredential failed: ${task.exception?.message}")
+                                    errorMessage = "${task.exception?.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
                                 }
                             }
                     }
                 } else {
                     isGoogleLoading = false
-                    errorMessage = "Unrecognized credential type"
+                    errorMessage = "Unrecognized credential type\n\n${com.example.util.SafeFirebase.getTraceString()}"
                 }
+            } catch (e: TimeoutCancellationException) {
+                isGoogleLoading = false
+                com.example.util.SafeFirebase.logTrace("getCredential timed out after 15 seconds")
+                errorMessage = "Sign-in timed out — check Google Play Services\n\n${com.example.util.SafeFirebase.getTraceString()}"
             } catch (e: GetCredentialCancellationException) {
                 isGoogleLoading = false
+                com.example.util.SafeFirebase.logTrace("getCredential cancelled by user")
             } catch (e: GetCredentialException) {
                 isGoogleLoading = false
-                errorMessage = e.localizedMessage ?: "Google sign-in failed"
+                com.example.util.SafeFirebase.logTrace("getCredential exception: ${e.javaClass.simpleName}: ${e.message}")
+                errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
             } catch (e: Exception) {
                 isGoogleLoading = false
-                errorMessage = e.localizedMessage ?: "Google sign-in failed"
+                com.example.util.SafeFirebase.logTrace("Google sign-in exception: ${e.javaClass.simpleName}: ${e.message}")
+                errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
             }
         }
     }

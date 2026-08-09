@@ -25,9 +25,15 @@ object SafeFirebase {
         trace.joinToString("\n")
     }
 
-    private fun logTrace(msg: String) {
+    fun logTrace(msg: String) {
         synchronized(trace) {
             trace.add(msg)
+        }
+    }
+
+    fun clearTrace() {
+        synchronized(trace) {
+            trace.clear()
         }
     }
 
@@ -115,9 +121,6 @@ object SafeFirebase {
     }
 
     fun getAuth(context: Context? = null): FirebaseAuth? {
-        synchronized(trace) {
-            trace.clear()
-        }
         val msgInit = "getAuth called with context=${context?.javaClass?.simpleName ?: "null"}"
         Log.d(TAG, msgInit)
         logTrace(msgInit)
