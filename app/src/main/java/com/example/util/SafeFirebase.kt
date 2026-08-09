@@ -79,29 +79,31 @@ object SafeFirebase {
                 val msg2e = "Step 2 Exception: Standard initializeApp failed: ${e.javaClass.simpleName} - ${e.message}"
                 Log.w(TAG, msg2e, e)
                 logTrace(msg2e)
-                try {
-                    val msg3 = "Step 3 Attempt: Calling FirebaseApp.initializeApp(ctx, options) with explicit FirebaseOptions"
-                    Log.d(TAG, msg3)
-                    logTrace(msg3)
-                    val options = FirebaseOptions.Builder()
-                        .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
-                        .setApplicationId("1:858579936461:android:28f0738bf4352fb5d2f584")
-                        .setProjectId("baagbaan-boi-20")
-                        .setGcmSenderId("858579936461")
-                        .setStorageBucket("baagbaan-boi-20.firebasestorage.app")
-                        .build()
-                    val app = FirebaseApp.initializeApp(ctx, options)
-                    lastInitError = null
-                    val msg3s = "Step 3 Success: Explicit initializeApp succeeded: ${app.name}"
-                    Log.d(TAG, msg3s)
-                    logTrace(msg3s)
-                    return app
-                } catch (e2: Throwable) {
-                    lastInitError = e2
-                    val msg3e = "Step 3 Exception: Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}"
-                    Log.e(TAG, msg3e, e2)
-                    logTrace(msg3e)
-                }
+            }
+
+            // 3. Step 3 fallback (executes if Step 2 returned null OR threw an exception)
+            try {
+                val msg3 = "Step 3 Attempt: Calling FirebaseApp.initializeApp(ctx, options) with explicit FirebaseOptions"
+                Log.d(TAG, msg3)
+                logTrace(msg3)
+                val options = FirebaseOptions.Builder()
+                    .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
+                    .setApplicationId("1:858579936461:android:28f0738bf4352fb5d2f584")
+                    .setProjectId("baagbaan-boi-20")
+                    .setGcmSenderId("858579936461")
+                    .setStorageBucket("baagbaan-boi-20.firebasestorage.app")
+                    .build()
+                val app = FirebaseApp.initializeApp(ctx, options)
+                lastInitError = null
+                val msg3s = "Step 3 Success: Explicit initializeApp succeeded: ${app.name}"
+                Log.d(TAG, msg3s)
+                logTrace(msg3s)
+                return app
+            } catch (e2: Throwable) {
+                lastInitError = e2
+                val msg3e = "Step 3 Exception: Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}"
+                Log.e(TAG, msg3e, e2)
+                logTrace(msg3e)
             }
         } else {
             val msgSkip = "Step 2/3 Skipped: Context is null"
