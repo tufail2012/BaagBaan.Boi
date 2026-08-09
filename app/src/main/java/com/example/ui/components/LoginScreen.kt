@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -80,6 +81,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -127,51 +129,22 @@ fun LoginScreen(
             webClientId
         }
 
-        // Option 1: Try with setFilterByAuthorizedAccounts(true) first
-        val filterAuthorizedOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(true)
-            .setServerClientId(serverClientId)
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val filterAuthorizedRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(filterAuthorizedOption)
-            .build()
-
-        // Option 2: Fallback option with setFilterByAuthorizedAccounts(false)
-        val allAccountsOption = GetGoogleIdOption.Builder()
+        val googleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(false)
             .setServerClientId(serverClientId)
             .setAutoSelectEnabled(false)
             .build()
 
-        val allAccountsRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(allAccountsOption)
+        val getCredentialRequest = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
             .build()
 
         coroutineScope.launch {
             try {
-                val result = try {
-                    credentialManager.getCredential(
-                        request = filterAuthorizedRequest,
-                        context = context
-                    )
-                } catch (e: NoCredentialException) {
-                    // First-time sign-in fallback: zero authorized accounts yet, retry showing all Google accounts
-                    credentialManager.getCredential(
-                        request = allAccountsRequest,
-                        context = context
-                    )
-                } catch (e: GetCredentialException) {
-                    if (e is NoCredentialException || e.message?.contains("No credentials available", ignoreCase = true) == true) {
-                        credentialManager.getCredential(
-                            request = allAccountsRequest,
-                            context = context
-                        )
-                    } else {
-                        throw e
-                    }
-                }
+                val result = credentialManager.getCredential(
+                    request = getCredentialRequest,
+                    context = context
+                )
 
                 val credential = result.credential
                 if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
@@ -303,6 +276,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
+                    .imePadding()
             ) {
             Column(
                 modifier = Modifier
@@ -557,11 +531,18 @@ fun LoginScreen(
                                 }
 
                                 if (isSignUpMode) {
+                                    val nameToSave = fullName.trim()
                                     auth.createUserWithEmailAndPassword(cleanEmail, password)
                                         .addOnCompleteListener { task ->
                                             isLoading = false
                                             if (task.isSuccessful) {
                                                 val user = task.result?.user ?: auth.currentUser
+                                                if (user != null && nameToSave.isNotEmpty()) {
+                                                    val profileUpdates = UserProfileChangeRequest.Builder()
+                                                        .setDisplayName(nameToSave)
+                                                        .build()
+                                                    user.updateProfile(profileUpdates)
+                                                }
                                                 user?.sendEmailVerification()
                                                 auth.signOut()
                                                 verificationEmail = cleanEmail

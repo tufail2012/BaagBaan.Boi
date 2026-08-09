@@ -55,6 +55,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,7 +66,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,7 +97,31 @@ fun AgriDashboardScreen(
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
     val isDark = isAppInDarkMode()
 
-    val accountEmail = currentUserEmail ?: "thokertufail20@gmail.com"
+    val context = LocalContext.current
+    var currentUser by remember {
+        mutableStateOf(
+            try {
+                com.example.util.SafeFirebase.getAuth(context)?.currentUser
+            } catch (e: Throwable) {
+                null
+            }
+        )
+    }
+
+    DisposableEffect(context) {
+        val auth = try {
+            com.example.util.SafeFirebase.getAuth(context)
+        } catch (e: Throwable) {
+            null
+        }
+        val listener = FirebaseAuth.AuthStateListener { a ->
+            currentUser = a.currentUser
+        }
+        auth?.addAuthStateListener(listener)
+        onDispose {
+            auth?.removeAuthStateListener(listener)
+        }
+    }
 
     var selectedFilterTab by remember { mutableStateOf("All") }
 
@@ -238,7 +268,7 @@ fun AgriDashboardScreen(
                 // 1. Account & System Banner Card
                 item {
                     AccountBannerCard(
-                        email = accountEmail,
+                        currentUser = currentUser,
                         totalEntriesCount = allRecords.size + rawBookings.size,
                         totalVolume = totalRevenue,
                         isDark = isDark
@@ -459,11 +489,25 @@ fun AgriDashboardScreen(
 
 @Composable
 private fun AccountBannerCard(
-    email: String,
+    currentUser: FirebaseUser?,
     totalEntriesCount: Int,
     totalVolume: Double,
     isDark: Boolean
 ) {
+    val primaryText = currentUser?.displayName?.takeIf { it.isNotBlank() }
+        ?: currentUser?.email?.takeIf { it.isNotBlank() }
+        ?: "Guest"
+
+    val secondaryText = if (!currentUser?.displayName.isNullOrBlank() && !currentUser?.email.isNullOrBlank()) {
+        currentUser!!.email!!
+    } else if (currentUser != null) {
+        "AgriCrop Cloud Sync Enabled"
+    } else {
+        "Local Guest Session"
+    }
+
+    val photoUrl = currentUser?.photoUrl
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -484,25 +528,36 @@ private fun AccountBannerCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = "User Account",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                if (photoUrl != null) {
+                    AsyncImage(
+                        model = photoUrl,
+                        contentDescription = "User Avatar",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "User Account",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
 
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Operations Account",
+                            text = primaryText,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -511,10 +566,10 @@ private fun AccountBannerCard(
                         )
                         Surface(
                             shape = CircleShape,
-                            color = Color(0xFF2E7D32)
+                            color = if (currentUser != null) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outline
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text = if (currentUser != null) "ACTIVE" else "GUEST",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
@@ -525,7 +580,7 @@ private fun AccountBannerCard(
 
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "AgriCrop Cloud Sync Enabled",
+                        text = secondaryText,
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
