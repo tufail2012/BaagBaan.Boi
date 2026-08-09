@@ -40,26 +40,19 @@ jobs:
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
-            echo "Decoding RELEASE_KEYSTORE_BASE64 secret..."
-            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ./release-key.jks
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Error: RELEASE_KEYSTORE_BASE64 secret is missing or empty."
+            exit 1
           fi
 
-          if [ ! -f "./release-key.jks" ]; then
-            echo "Generating release-key.jks for workflow build..."
-            keytool -genkeypair -v \
-              -keystore ./release-key.jks \
-              -alias agricrop-release \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass AgriCropReleasePass2026 \
-              -keypass AgriCropReleasePass2026 \
-              -dname "CN=AgriCrop, OU=Dev, O=AgriCrop, L=City, ST=State, C=US"
-          fi
+          echo "Decoding RELEASE_KEYSTORE_BASE64 secret..."
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ./release-key.jks || {
+            echo "Error: Failed to decode RELEASE_KEYSTORE_BASE64 secret."
+            exit 1
+          }
 
-          if [ ! -f "./release-key.jks" ]; then
-            echo "Error: ./release-key.jks could not be generated."
+          if [ ! -s "./release-key.jks" ]; then
+            echo "Error: release-key.jks was not created or is empty after decoding."
             exit 1
           fi
           echo "release-key.jks is ready."
