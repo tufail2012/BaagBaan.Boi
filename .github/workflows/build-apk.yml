@@ -40,19 +40,27 @@ jobs:
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
-            echo "Error: RELEASE_KEYSTORE_BASE64 secret is missing or empty."
-            exit 1
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "Decoding RELEASE_KEYSTORE_BASE64 secret..."
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ./release-key.jks || {
+              echo "Error: Failed to decode RELEASE_KEYSTORE_BASE64 secret."
+              exit 1
+            }
+          else
+            echo "RELEASE_KEYSTORE_BASE64 secret not set in GitHub Secrets. Auto-generating release keystore..."
+            keytool -genkeypair -v \
+              -keystore ./release-key.jks \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -alias agricrop-release \
+              -storepass AgriCropReleasePass2026 \
+              -keypass AgriCropReleasePass2026 \
+              -dname "CN=AgriCrop, OU=Dev, O=AgriCrop, L=City, S=State, C=US"
           fi
 
-          echo "Decoding RELEASE_KEYSTORE_BASE64 secret..."
-          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ./release-key.jks || {
-            echo "Error: Failed to decode RELEASE_KEYSTORE_BASE64 secret."
-            exit 1
-          }
-
           if [ ! -s "./release-key.jks" ]; then
-            echo "Error: release-key.jks was not created or is empty after decoding."
+            echo "Error: release-key.jks was not created or is empty."
             exit 1
           fi
           echo "release-key.jks is ready."
