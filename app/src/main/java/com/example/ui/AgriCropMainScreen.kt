@@ -295,6 +295,7 @@ fun AgriCropMainScreen(
                                     showNotificationCenter = true
                                 },
                                 currentUserEmail = currentUser?.email,
+                                currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
                                 onLogout = {
                                     auth?.signOut()
                                     currentUser = null
