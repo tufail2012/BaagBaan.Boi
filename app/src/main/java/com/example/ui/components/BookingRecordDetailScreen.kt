@@ -388,18 +388,6 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // DEBUG LINE: Raw unparsed paymentHistoryJson
-                        Text(
-                            text = "DEBUG record.paymentHistoryJson: \"${record.paymentHistoryJson}\"",
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace,
-                            color = Color(0xFFDC2626),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFFEF08A))
-                                .padding(8.dp)
-                        )
-
                         // Header Title + Fully Paid Badge
                         Row(
                             modifier = Modifier.fillMaxWidth(),
