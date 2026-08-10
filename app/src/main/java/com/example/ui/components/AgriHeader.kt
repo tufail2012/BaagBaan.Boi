@@ -85,6 +85,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.border
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 import com.example.ui.AppThemeMode
 
 import androidx.compose.material.icons.filled.Notifications
@@ -116,10 +120,15 @@ fun AgriHeader(
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
+    currentUserPhotoUrl: String? = null,
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val authUser = remember(currentUserEmail) { com.example.util.SafeFirebase.getAuth(context)?.currentUser }
+    val effectivePhotoUrl = currentUserPhotoUrl ?: authUser?.photoUrl?.toString()
+
     var menuExpanded by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showSyncDetailsDialog by remember { mutableStateOf(false) }
@@ -235,21 +244,14 @@ fun AgriHeader(
                         .testTag("global_header_search_input")
                 )
 
-                // Overflow menu button inside search bar header
+                // Profile Avatar menu button inside search bar header
                 Box {
-                    IconButton(
-                        onClick = { menuExpanded = true },
-                        modifier = Modifier
-                            .size(38.dp)
-                            .testTag("overflow_menu_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Theme & Options",
-                            tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    HeaderProfileAvatar(
+                        photoUrl = effectivePhotoUrl,
+                        currentUserEmail = currentUserEmail,
+                        isDark = isDark,
+                        onClick = { menuExpanded = true }
+                    )
 
                     DropdownMenu(
                         expanded = menuExpanded,
@@ -372,18 +374,14 @@ fun AgriHeader(
                         )
                     }
 
-                    // Three-dot Overflow Menu containing Theme Preference option
+                    // Profile Avatar Menu containing Theme & Account options
                     Box {
-                        IconButton(
-                            onClick = { menuExpanded = true },
-                            modifier = Modifier.testTag("overflow_menu_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Theme & Options",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        HeaderProfileAvatar(
+                            photoUrl = effectivePhotoUrl,
+                            currentUserEmail = currentUserEmail,
+                            isDark = isDark,
+                            onClick = { menuExpanded = true }
+                        )
 
                         DropdownMenu(
                             expanded = menuExpanded,
@@ -946,6 +944,69 @@ private fun OverflowMenuContent(
             },
             modifier = Modifier.testTag("logout_menu_item$tagSuffix")
         )
+    }
+}
+
+@Composable
+private fun HeaderProfileAvatar(
+    photoUrl: String?,
+    currentUserEmail: String?,
+    isDark: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(38.dp)
+            .testTag("overflow_menu_button")
+    ) {
+        if (!photoUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = photoUrl,
+                contentDescription = "Profile Options",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .border(
+                        width = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
+            )
+        } else if (!currentUserEmail.isNullOrBlank()) {
+            val initial = currentUserEmail.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = initial,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Profile Options",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
     }
 }
 
