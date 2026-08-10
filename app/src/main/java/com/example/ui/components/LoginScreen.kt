@@ -129,6 +129,7 @@ fun LoginScreen(
         isGoogleLoading = true
         errorMessage = null
 
+        com.example.util.SafeFirebase.clearTrace()
         com.example.util.SafeFirebase.logTrace("performGoogleSignIn started")
 
         val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
@@ -153,12 +154,10 @@ fun LoginScreen(
         coroutineScope.launch {
             try {
                 com.example.util.SafeFirebase.logTrace("Calling credentialManager.getCredential...")
-                val result = withTimeout(15000) {
-                    credentialManager.getCredential(
-                        request = getCredentialRequest,
-                        context = context
-                    )
-                }
+                val result = credentialManager.getCredential(
+                    request = getCredentialRequest,
+                    context = context
+                )
                 com.example.util.SafeFirebase.logTrace("credentialManager.getCredential returned successfully")
 
                 val credential = result.credential

@@ -51,47 +51,31 @@ object SafeFirebase {
         // 1. Check if default instance exists already
         try {
             val existingApp = FirebaseApp.getInstance()
-            val msg = "Step 1 Success: Found existing default FirebaseApp: ${existingApp.name}"
-            Log.d(TAG, msg)
-            logTrace(msg)
+            Log.d(TAG, "Found existing default FirebaseApp: ${existingApp.name}")
             return existingApp
         } catch (e: Throwable) {
-            lastInitError = e
-            val msg = "Step 1 Exception: FirebaseApp.getInstance() failed: ${e.javaClass.simpleName} - ${e.message}"
-            Log.d(TAG, msg)
-            logTrace(msg)
+            // Default instance not created yet, proceed to Step 2
+            Log.d(TAG, "No existing default FirebaseApp instance, initializing...")
         }
 
         // 2. Try standard initializeApp with context
         if (ctx != null) {
             try {
-                val msg2 = "Step 2 Attempt: Calling FirebaseApp.initializeApp(ctx) with context package ${ctx.packageName}"
-                Log.d(TAG, msg2)
-                logTrace(msg2)
                 val app = FirebaseApp.initializeApp(ctx)
                 if (app != null) {
                     lastInitError = null
-                    val msg2s = "Step 2 Success: Standard initializeApp succeeded: ${app.name}"
-                    Log.d(TAG, msg2s)
-                    logTrace(msg2s)
+                    Log.d(TAG, "Standard initializeApp succeeded: ${app.name}")
                     return app
-                } else {
-                    val msg2r = "Step 2 Result: FirebaseApp.initializeApp(ctx) returned null"
-                    Log.d(TAG, msg2r)
-                    logTrace(msg2r)
                 }
             } catch (e: Throwable) {
                 lastInitError = e
-                val msg2e = "Step 2 Exception: Standard initializeApp failed: ${e.javaClass.simpleName} - ${e.message}"
+                val msg2e = "Standard initializeApp failed: ${e.javaClass.simpleName} - ${e.message}"
                 Log.w(TAG, msg2e, e)
                 logTrace(msg2e)
             }
 
             // 3. Step 3 fallback (executes if Step 2 returned null OR threw an exception)
             try {
-                val msg3 = "Step 3 Attempt: Calling FirebaseApp.initializeApp(ctx, options) with explicit FirebaseOptions"
-                Log.d(TAG, msg3)
-                logTrace(msg3)
                 val options = FirebaseOptions.Builder()
                     .setApiKey("AIzaSyCUqscvq8alYrON5if374wQeUUzAHwzDGI")
                     .setApplicationId("1:858579936461:android:28f0738bf4352fb5d2f584")
@@ -101,18 +85,16 @@ object SafeFirebase {
                     .build()
                 val app = FirebaseApp.initializeApp(ctx, options)
                 lastInitError = null
-                val msg3s = "Step 3 Success: Explicit initializeApp succeeded: ${app.name}"
-                Log.d(TAG, msg3s)
-                logTrace(msg3s)
+                Log.d(TAG, "Explicit initializeApp succeeded: ${app.name}")
                 return app
             } catch (e2: Throwable) {
                 lastInitError = e2
-                val msg3e = "Step 3 Exception: Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}"
+                val msg3e = "Explicit initializeApp failed: ${e2.javaClass.simpleName} - ${e2.message}"
                 Log.e(TAG, msg3e, e2)
                 logTrace(msg3e)
             }
         } else {
-            val msgSkip = "Step 2/3 Skipped: Context is null"
+            val msgSkip = "Initialization Skipped: Context is null"
             Log.d(TAG, msgSkip)
             logTrace(msgSkip)
         }
