@@ -154,10 +154,12 @@ fun LoginScreen(
         coroutineScope.launch {
             try {
                 com.example.util.SafeFirebase.logTrace("Calling credentialManager.getCredential...")
-                val result = credentialManager.getCredential(
-                    request = getCredentialRequest,
-                    context = context
-                )
+                val result = withTimeout(15000) {
+                    credentialManager.getCredential(
+                        request = getCredentialRequest,
+                        context = context
+                    )
+                }
                 com.example.util.SafeFirebase.logTrace("credentialManager.getCredential returned successfully")
 
                 val credential = result.credential
@@ -204,6 +206,10 @@ fun LoginScreen(
             } catch (e: Exception) {
                 isGoogleLoading = false
                 com.example.util.SafeFirebase.logTrace("Google sign-in exception: ${e.javaClass.simpleName}: ${e.message}")
+                errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
+            } catch (e: Throwable) {
+                isGoogleLoading = false
+                com.example.util.SafeFirebase.logTrace("Google sign-in error: ${e.javaClass.simpleName}: ${e.message}")
                 errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
             }
         }
