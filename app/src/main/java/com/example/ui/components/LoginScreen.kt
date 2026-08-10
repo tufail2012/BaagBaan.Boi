@@ -112,17 +112,17 @@ fun LoginScreen(
     }
 
     val context = LocalContext.current
+    val credentialManager = remember(context) { CredentialManager.create(context) }
     fun getAuth() = com.example.util.SafeFirebase.getAuth(context)
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    val performGoogleSignIn: () -> Unit = {
+    val performGoogleSignIn: () -> Unit = performGoogleSignIn@ {
+        if (isGoogleLoading) return@performGoogleSignIn
         isGoogleLoading = true
         errorMessage = null
 
         com.example.util.SafeFirebase.logTrace("performGoogleSignIn started")
-
-        val credentialManager = CredentialManager.create(context)
 
         val webClientId = "858579936461-usbgrgcsf6tlko3ga91nnlaud874dp1g.apps.googleusercontent.com"
         val webClientIdResId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)

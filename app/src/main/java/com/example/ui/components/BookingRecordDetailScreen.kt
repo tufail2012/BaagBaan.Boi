@@ -84,7 +84,9 @@ import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -577,34 +579,47 @@ fun BookingRecordDetailDialog(
                                     if (canSave && !isSavingInstallment) {
                                         coroutineScope.launch {
                                             isSavingInstallment = true
-                                            val newInst = PaymentInstallment(
-                                                amount = amtVal,
-                                                date = dateTFV.text.ifBlank { todayStr },
-                                                modeNote = modeNoteText.ifBlank { "Cash" },
-                                                typeLabel = if (installments.isEmpty()) "Initial Advance Payment" else "Payment Addition"
-                                            )
-                                            val updatedList = installments + newInst
+                                            try {
+                                                val newInst = PaymentInstallment(
+                                                    amount = amtVal,
+                                                    date = dateTFV.text.ifBlank { todayStr },
+                                                    modeNote = modeNoteText.ifBlank { "Cash" },
+                                                    typeLabel = if (installments.isEmpty()) "Initial Advance Payment" else "Payment Addition"
+                                                )
+                                                val updatedList = installments + newInst
 
-                                            val newPaidSum = updatedList.sumOf { it.amount }
-                                            val newStatus = when {
-                                                newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
-                                                newPaidSum > 0 -> "Advance Paid"
-                                                else -> "Pending"
+                                                val newPaidSum = updatedList.sumOf { it.amount }
+                                                val newStatus = when {
+                                                    newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
+                                                    newPaidSum > 0 -> "Advance Paid"
+                                                    else -> "Pending"
+                                                }
+                                                val jsonStr = serializePaymentHistory(updatedList)
+
+                                                val updatedRecord = record.copy(
+                                                    amountPaid = newPaidSum,
+                                                    paymentStatus = newStatus,
+                                                    paymentHistoryJson = jsonStr,
+                                                    timestamp = System.currentTimeMillis()
+                                                )
+
+                                                try {
+                                                    withTimeout(15000) {
+                                                        onUpdateRecord(updatedRecord)
+                                                    }
+                                                    installments = updatedList
+                                                    Toast.makeText(context, "Installment recorded successfully!", Toast.LENGTH_SHORT).show()
+                                                    newAmountText = ""
+                                                } catch (e: TimeoutCancellationException) {
+                                                    Toast.makeText(context, "Save timed out — check connection", Toast.LENGTH_LONG).show()
+                                                } catch (e: Throwable) {
+                                                    Toast.makeText(context, "Failed to save installment: ${e.localizedMessage ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                                                }
+                                            } catch (e: Throwable) {
+                                                Toast.makeText(context, "Error: ${e.localizedMessage ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                                            } finally {
+                                                isSavingInstallment = false
                                             }
-                                            val jsonStr = serializePaymentHistory(updatedList)
-
-                                            val updatedRecord = record.copy(
-                                                amountPaid = newPaidSum,
-                                                paymentStatus = newStatus,
-                                                paymentHistoryJson = jsonStr,
-                                                timestamp = System.currentTimeMillis()
-                                            )
-                                            onUpdateRecord(updatedRecord)
-                                            installments = updatedList
-
-                                            isSavingInstallment = false
-                                            Toast.makeText(context, "Installment recorded successfully!", Toast.LENGTH_SHORT).show()
-                                            newAmountText = ""
                                         }
                                     }
                                 },
