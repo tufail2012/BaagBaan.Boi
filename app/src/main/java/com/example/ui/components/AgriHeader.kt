@@ -635,6 +635,7 @@ private fun OverflowMenuContent(
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
 ) {
+    // === GROUP 1: Main (no header) ===
     // 1. Dashboard
     DropdownMenuItem(
         text = {
@@ -719,6 +720,22 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("attendance_menu_item$tagSuffix")
     )
 
+    // === DIVIDER 1 ===
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    )
+
+    // === GROUP 2: PROFILE & DATA ===
+    Text(
+        text = "PROFILE & DATA",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        letterSpacing = 1.2.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
+    )
+
     // 4. Contact Directory
     DropdownMenuItem(
         text = {
@@ -747,22 +764,35 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("contact_directory_menu_item$tagSuffix")
     )
 
-    // --- Section: Data and Account ---
-    HorizontalDivider(
-        modifier = Modifier.padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    // 5. Data Backup & Restore
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudSync,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Data Backup & Restore",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToBackupRestore()
+        },
+        modifier = Modifier.testTag("backup_restore_menu_item$tagSuffix")
     )
 
-    Text(
-        text = "DATA AND ACCOUNT",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.2.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
-    )
-
-    // Accounts
+    // 6. Accounts
     DropdownMenuItem(
         text = {
             Row(
@@ -799,7 +829,14 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("accounts_menu_item$tagSuffix")
     )
 
-    // Data Backup Restore
+    // === DIVIDER 2 ===
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    )
+
+    // === GROUP 3: Bottom group (no header) ===
+    // 7. Recycle Bin
     DropdownMenuItem(
         text = {
             Row(
@@ -807,58 +844,27 @@ private fun OverflowMenuContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.Default.CloudSync,
+                    imageVector = Icons.Default.Delete,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Data Backup & Restore",
-                    fontWeight = FontWeight.SemiBold,
+                    text = "Recycle Bin",
+                    fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
             }
         },
         onClick = {
             onDismiss()
-            onNavigateToBackupRestore()
+            onOpenRecycleBin()
         },
-        modifier = Modifier.testTag("backup_restore_menu_item$tagSuffix")
+        modifier = Modifier.testTag("recycle_bin_menu_item$tagSuffix")
     )
 
-    // Logout option
-    if (currentUserEmail != null) {
-        DropdownMenuItem(
-            text = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Logout",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            onClick = {
-                onDismiss()
-                onLogout()
-            },
-            modifier = Modifier.testTag("logout_menu_item$tagSuffix")
-        )
-    }
-
-    // Theme Preferences
+    // 8. Theme Preferences
     val currentModeLabel = when (themeMode) {
         AppThemeMode.SYSTEM -> "System"
         AppThemeMode.LIGHT -> "Light"
@@ -911,32 +917,35 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("theme_preference_menu_item$tagSuffix")
     )
 
-    // Recycle Bin
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Recycle Bin",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-        },
-        onClick = {
-            onDismiss()
-            onOpenRecycleBin()
-        },
-        modifier = Modifier.testTag("recycle_bin_menu_item$tagSuffix")
-    )
+    // 9. Logout
+    if (currentUserEmail != null) {
+        DropdownMenuItem(
+            text = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ExitToApp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Logout",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            onClick = {
+                onDismiss()
+                onLogout()
+            },
+            modifier = Modifier.testTag("logout_menu_item$tagSuffix")
+        )
+    }
 }
 
