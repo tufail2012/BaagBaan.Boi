@@ -126,17 +126,17 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    val legacyGoogleSignInLauncher = rememberLauncherForActivityResult(
+    val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        com.example.util.SafeFirebase.logTrace("legacyGoogleSignInLauncher result code: ${result.resultCode}")
+        com.example.util.SafeFirebase.logTrace("googleSignInLauncher result code: ${result.resultCode}")
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
             try {
                 val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
                 val account = task.getResult(ApiException::class.java)
                 val idToken = account?.idToken
                 if (idToken != null) {
-                    com.example.util.SafeFirebase.logTrace("legacyGoogleSignIn idToken received, signing into Firebase...")
+                    com.example.util.SafeFirebase.logTrace("GoogleSignIn idToken received, signing into Firebase...")
                     val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
                     val auth = getAuth()
                     if (auth != null) {
@@ -144,11 +144,11 @@ fun LoginScreen(
                             .addOnCompleteListener { signInTask ->
                                 isGoogleLoading = false
                                 if (signInTask.isSuccessful) {
-                                    com.example.util.SafeFirebase.logTrace("legacyGoogleSignIn Firebase sign-in succeeded")
+                                    com.example.util.SafeFirebase.logTrace("Firebase sign-in succeeded")
                                     val user = signInTask.result?.user ?: auth.currentUser
                                     onLoginSuccess(user?.email ?: "google.user@gmail.com")
                                 } else {
-                                    com.example.util.SafeFirebase.logTrace("legacyGoogleSignIn Firebase sign-in failed: ${signInTask.exception?.message}")
+                                    com.example.util.SafeFirebase.logTrace("Firebase sign-in failed: ${signInTask.exception?.message}")
                                     errorMessage = "${signInTask.exception?.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
                                 }
                             }
@@ -162,41 +162,27 @@ fun LoginScreen(
                     isGoogleLoading = false
                     errorMessage = "Failed to retrieve Google ID token from sign-in result.\n\n${com.example.util.SafeFirebase.getTraceString()}"
                 }
+            } catch (e: ApiException) {
+                isGoogleLoading = false
+                com.example.util.SafeFirebase.logTrace("GoogleSignIn ApiException code: ${e.statusCode}, message: ${e.message}")
+                if (e.statusCode == 12501) { // Sign-in cancelled by user
+                    com.example.util.SafeFirebase.logTrace("Google sign-in cancelled by user")
+                } else {
+                    errorMessage = "Google sign-in error (code ${e.statusCode}): ${e.localizedMessage ?: "Sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
+                }
             } catch (e: Exception) {
                 isGoogleLoading = false
-                com.example.util.SafeFirebase.logTrace("legacyGoogleSignIn Exception: ${e.javaClass.simpleName}: ${e.message}")
+                com.example.util.SafeFirebase.logTrace("GoogleSignIn Exception: ${e.javaClass.simpleName}: ${e.message}")
                 errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
             }
         } else {
             isGoogleLoading = false
-            com.example.util.SafeFirebase.logTrace("legacyGoogleSignIn cancelled or failed result")
-        }
-    }
-
-    val triggerLegacyGoogleSignIn = { serverClientId: String ->
-        try {
-            com.example.util.SafeFirebase.logTrace("Launching legacy GoogleSignIn intent fallback...")
-            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(serverClientId)
-                .requestEmail()
-                .build()
-            val client = GoogleSignIn.getClient(context, gso)
-            client.signOut().addOnCompleteListener {
-                legacyGoogleSignInLauncher.launch(client.signInIntent)
-            }
-        } catch (e: Exception) {
-            isGoogleLoading = false
-            com.example.util.SafeFirebase.logTrace("Failed to launch legacy GoogleSignIn: ${e.message}")
-            errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
+            com.example.util.SafeFirebase.logTrace("Google sign-in cancelled or failed result code: ${result.resultCode}")
         }
     }
 
     // ============================================================
-    // CRITICAL: DO NOT MODIFY THIS FUNCTION FOR UI-ONLY CHANGES.
-    // Google Sign-In config (setFilterByAuthorizedAccounts(false),
-    // CredentialManager instance, timeout, error handling) is
-    // verified working. Any unrelated UI/navigation/theming prompt
-    // must NOT touch this function.
+    // CRITICAL: Google Sign-In trigger function
     // ============================================================
     val performGoogleSignIn: () -> Unit = performGoogleSignIn@ {
         if (isGoogleLoading) return@performGoogleSignIn
@@ -215,65 +201,18 @@ fun LoginScreen(
             webClientId
         }
 
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(false)
-            .setServerClientId(serverClientId)
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val getCredentialRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        coroutineScope.launch {
-            try {
-                com.example.util.SafeFirebase.logTrace("Calling credentialManager.getCredential with hostActivity...")
-                val result = credentialManager.getCredential(
-                    request = getCredentialRequest,
-                    context = hostActivity
-                )
-                com.example.util.SafeFirebase.logTrace("credentialManager.getCredential returned successfully")
-
-                val credential = result.credential
-                if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    val idToken = googleIdTokenCredential.idToken
-                    val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
-                    val auth = getAuth()
-                    if (auth == null) {
-                        isGoogleLoading = false
-                        val err = com.example.util.SafeFirebase.lastAuthError ?: com.example.util.SafeFirebase.lastInitError
-                        val baseErr = if (err != null) "Firebase Auth Error: ${err.javaClass.simpleName}: ${err.message}" else "Firebase Authentication is unavailable on this device."
-                        errorMessage = "$baseErr\n\n${com.example.util.SafeFirebase.getTraceString()}"
-                    } else {
-                        com.example.util.SafeFirebase.logTrace("Calling signInWithCredential...")
-                        auth.signInWithCredential(firebaseCredential)
-                            .addOnCompleteListener { task ->
-                                isGoogleLoading = false
-                                if (task.isSuccessful) {
-                                    com.example.util.SafeFirebase.logTrace("signInWithCredential succeeded")
-                                    val user = task.result?.user ?: auth.currentUser
-                                    onLoginSuccess(user?.email ?: "google.user@gmail.com")
-                                } else {
-                                    com.example.util.SafeFirebase.logTrace("signInWithCredential failed: ${task.exception?.message}")
-                                    errorMessage = "${task.exception?.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
-                                }
-                            }
-                    }
-                } else {
-                    com.example.util.SafeFirebase.logTrace("Unrecognized credential type, falling back to legacy GoogleSignIn...")
-                    triggerLegacyGoogleSignIn(serverClientId)
-                }
-            } catch (e: GetCredentialCancellationException) {
-                isGoogleLoading = false
-                com.example.util.SafeFirebase.logTrace("getCredential cancelled by user")
-            } catch (e: Exception) {
-                com.example.util.SafeFirebase.logTrace("CredentialManager exception: ${e.javaClass.simpleName}: ${e.message}. Falling back to legacy GoogleSignIn...")
-                triggerLegacyGoogleSignIn(serverClientId)
-            } catch (e: Throwable) {
-                com.example.util.SafeFirebase.logTrace("CredentialManager error: ${e.javaClass.simpleName}: ${e.message}. Falling back to legacy GoogleSignIn...")
-                triggerLegacyGoogleSignIn(serverClientId)
-            }
+        try {
+            com.example.util.SafeFirebase.logTrace("Launching GoogleSignIn intent with serverClientId: $serverClientId")
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(serverClientId)
+                .requestEmail()
+                .build()
+            val client = GoogleSignIn.getClient(context, gso)
+            googleSignInLauncher.launch(client.signInIntent)
+        } catch (e: Exception) {
+            isGoogleLoading = false
+            com.example.util.SafeFirebase.logTrace("Failed to launch GoogleSignIn intent: ${e.message}")
+            errorMessage = "${e.localizedMessage ?: "Google sign-in failed"}\n\n${com.example.util.SafeFirebase.getTraceString()}"
         }
     }
 
