@@ -117,6 +117,13 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    // ============================================================
+    // CRITICAL: DO NOT MODIFY THIS FUNCTION FOR UI-ONLY CHANGES.
+    // Google Sign-In config (setFilterByAuthorizedAccounts(false),
+    // CredentialManager instance, timeout, error handling) is
+    // verified working. Any unrelated UI/navigation/theming prompt
+    // must NOT touch this function.
+    // ============================================================
     val performGoogleSignIn: () -> Unit = performGoogleSignIn@ {
         if (isGoogleLoading) return@performGoogleSignIn
         isGoogleLoading = true
