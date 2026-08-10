@@ -613,10 +613,10 @@ fun BookingRecordDetailDialog(
                                                 } catch (e: TimeoutCancellationException) {
                                                     Toast.makeText(context, "Save timed out — check connection", Toast.LENGTH_LONG).show()
                                                 } catch (e: Throwable) {
-                                                    Toast.makeText(context, "Failed to save installment: ${e.localizedMessage ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(context, "Failed to save installment: ${e.javaClass.simpleName}: ${e.message ?: e.toString()}", Toast.LENGTH_LONG).show()
                                                 }
                                             } catch (e: Throwable) {
-                                                Toast.makeText(context, "Error: ${e.localizedMessage ?: "Unknown error"}", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, "Error: ${e.javaClass.simpleName}: ${e.message ?: e.toString()}", Toast.LENGTH_LONG).show()
                                             } finally {
                                                 isSavingInstallment = false
                                             }

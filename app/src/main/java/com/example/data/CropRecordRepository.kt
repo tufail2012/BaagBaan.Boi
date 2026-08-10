@@ -1,6 +1,7 @@
 package com.example.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 
 class CropRecordRepository(
     private val dao: CropRecordDao,
@@ -34,16 +35,8 @@ class CropRecordRepository(
     }
 
     suspend fun update(record: CropRecord, oldRecord: CropRecord? = null) {
-        val previousRecord = oldRecord ?: dao.getRecordById(record.id).let { flow ->
-            // Fetch single existing record synchronously or fallback
-            var fetched: CropRecord? = null
-            kotlinx.coroutines.withTimeoutOrNull(1000) {
-                flow.collect { item ->
-                    fetched = item
-                    throw kotlinx.coroutines.CancellationException()
-                }
-            }
-            fetched
+        val previousRecord = oldRecord ?: kotlinx.coroutines.withTimeoutOrNull(1000) {
+            dao.getRecordById(record.id).firstOrNull()
         }
 
         dao.updateRecord(record)

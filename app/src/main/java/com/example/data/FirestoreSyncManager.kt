@@ -108,6 +108,7 @@ class FirestoreSyncManager {
         } catch (e: Exception) {
             updateSyncState(SyncState.OFFLINE)
             Log.e(TAG, "Error syncing Crop Record ${record.id} to Firestore: ${e.message}")
+            throw e
         }
     }
 
