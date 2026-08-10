@@ -173,7 +173,8 @@ fun FarmerRecordsScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
                         Icon(
                             imageVector = Icons.Default.MenuBook,
@@ -183,9 +184,11 @@ fun FarmerRecordsScreen(
                         )
                         Text(
                             text = bookTitle,
-                            fontSize = 15.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -374,7 +377,7 @@ fun FarmerRecordsScreen(
             },
             onUpdateRecord = { updatedRec ->
                 selectedDetailRecord = updatedRec
-                viewModel.updateRecord(updatedRec)
+                viewModel.updateRecordSync(updatedRec)
             }
         )
     }

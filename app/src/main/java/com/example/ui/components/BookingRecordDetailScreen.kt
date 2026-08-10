@@ -42,6 +42,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -81,6 +84,7 @@ import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
+import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -163,9 +167,11 @@ fun BookingRecordDetailDialog(
     onDismiss: () -> Unit,
     onEdit: (CropRecord) -> Unit,
     onDelete: (CropRecord) -> Unit,
-    onUpdateRecord: (CropRecord) -> Unit
+    onUpdateRecord: suspend (CropRecord) -> Unit
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isSavingInstallment by remember { mutableStateOf(false) }
     val isDark = isAppInDarkMode()
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var receiptPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -380,6 +386,18 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
+                        // DEBUG LINE: Raw unparsed paymentHistoryJson
+                        Text(
+                            text = "DEBUG record.paymentHistoryJson: \"${record.paymentHistoryJson}\"",
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = Color(0xFFDC2626),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFFEF08A))
+                                .padding(8.dp)
+                        )
+
                         // Header Title + Fully Paid Badge
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -556,49 +574,63 @@ fun BookingRecordDetailDialog(
 
                             Button(
                                 onClick = {
-                                    if (canSave) {
-                                        val newInst = PaymentInstallment(
-                                            amount = amtVal,
-                                            date = dateTFV.text.ifBlank { todayStr },
-                                            modeNote = modeNoteText.ifBlank { "Cash" },
-                                            typeLabel = if (installments.isEmpty()) "Initial Advance Payment" else "Payment Addition"
-                                        )
-                                        val updatedList = installments + newInst
-                                        installments = updatedList
+                                    if (canSave && !isSavingInstallment) {
+                                        coroutineScope.launch {
+                                            isSavingInstallment = true
+                                            val newInst = PaymentInstallment(
+                                                amount = amtVal,
+                                                date = dateTFV.text.ifBlank { todayStr },
+                                                modeNote = modeNoteText.ifBlank { "Cash" },
+                                                typeLabel = if (installments.isEmpty()) "Initial Advance Payment" else "Payment Addition"
+                                            )
+                                            val updatedList = installments + newInst
 
-                                        val newPaidSum = updatedList.sumOf { it.amount }
-                                        val newStatus = when {
-                                            newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
-                                            newPaidSum > 0 -> "Advance Paid"
-                                            else -> "Pending"
+                                            val newPaidSum = updatedList.sumOf { it.amount }
+                                            val newStatus = when {
+                                                newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
+                                                newPaidSum > 0 -> "Advance Paid"
+                                                else -> "Pending"
+                                            }
+                                            val jsonStr = serializePaymentHistory(updatedList)
+
+                                            val updatedRecord = record.copy(
+                                                amountPaid = newPaidSum,
+                                                paymentStatus = newStatus,
+                                                paymentHistoryJson = jsonStr,
+                                                timestamp = System.currentTimeMillis()
+                                            )
+                                            onUpdateRecord(updatedRecord)
+                                            installments = updatedList
+
+                                            isSavingInstallment = false
+                                            Toast.makeText(context, "Installment recorded successfully!", Toast.LENGTH_SHORT).show()
+                                            newAmountText = ""
                                         }
-                                        val jsonStr = serializePaymentHistory(updatedList)
-
-                                        val updatedRecord = record.copy(
-                                            amountPaid = newPaidSum,
-                                            paymentStatus = newStatus,
-                                            paymentHistoryJson = jsonStr,
-                                            timestamp = System.currentTimeMillis()
-                                        )
-                                        onUpdateRecord(updatedRecord)
-
-                                        Toast.makeText(context, "Installment recorded successfully!", Toast.LENGTH_SHORT).show()
-                                        newAmountText = ""
                                     }
                                 },
-                                enabled = canSave,
+                                enabled = canSave && !isSavingInstallment,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (canSave) Color(0xFFDC2626) else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                                    containerColor = if (canSave && !isSavingInstallment) Color(0xFFDC2626) else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
                                     disabledContainerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
                                 )
                             ) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Record Installment Payment", fontWeight = FontWeight.Bold, color = if (canSave) Color.White else Color(0xFF94A3B8))
+                                if (isSavingInstallment) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = Color.White,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Saving Installment...", fontWeight = FontWeight.Bold, color = Color.White)
+                                } else {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Record Installment Payment", fontWeight = FontWeight.Bold, color = if (canSave) Color.White else Color(0xFF94A3B8))
+                                }
                             }
                         }
 
@@ -927,25 +959,28 @@ fun BookingRecordDetailDialog(
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            val idxToDelete = idx
                             installmentToDeleteIndex = null
-                            val updatedList = installments.filterIndexed { i, _ -> i != idx }
-                            installments = updatedList
+                            coroutineScope.launch {
+                                val updatedList = installments.filterIndexed { i, _ -> i != idxToDelete }
 
-                            val newPaidSum = updatedList.sumOf { it.amount }
-                            val newStatus = when {
-                                newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
-                                newPaidSum > 0 -> "Advance Paid"
-                                else -> "Pending"
+                                val newPaidSum = updatedList.sumOf { it.amount }
+                                val newStatus = when {
+                                    newPaidSum >= totalRecordValue - 0.01 -> "Fully Paid"
+                                    newPaidSum > 0 -> "Advance Paid"
+                                    else -> "Pending"
+                                }
+                                val jsonStr = serializePaymentHistory(updatedList)
+
+                                val updatedRecord = record.copy(
+                                    amountPaid = newPaidSum,
+                                    paymentStatus = newStatus,
+                                    paymentHistoryJson = jsonStr,
+                                    timestamp = System.currentTimeMillis()
+                                )
+                                onUpdateRecord(updatedRecord)
+                                installments = updatedList
                             }
-                            val jsonStr = serializePaymentHistory(updatedList)
-
-                            val updatedRecord = record.copy(
-                                amountPaid = newPaidSum,
-                                paymentStatus = newStatus,
-                                paymentHistoryJson = jsonStr,
-                                timestamp = System.currentTimeMillis()
-                            )
-                            onUpdateRecord(updatedRecord)
                         }
                     ) {
                         Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)

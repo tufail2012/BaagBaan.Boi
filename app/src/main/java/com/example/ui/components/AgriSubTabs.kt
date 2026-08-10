@@ -274,7 +274,7 @@ private fun SubTabItem(
             }
             Text(
                 text = title,
-                fontSize = 12.5.sp,
+                fontSize = 11.5.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 color = textColor,
                 maxLines = 1

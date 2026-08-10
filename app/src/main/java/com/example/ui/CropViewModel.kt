@@ -664,10 +664,14 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
         }
     }
 
+    suspend fun updateRecordSync(record: CropRecord) {
+        repository.update(record)
+        _userMessage.value = "Record updated"
+    }
+
     fun updateRecord(record: CropRecord) {
         viewModelScope.launch {
-            repository.update(record)
-            _userMessage.value = "Record updated"
+            updateRecordSync(record)
         }
     }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -213,25 +214,21 @@ fun ThemeColoursContent(
             ThemeModeOption(
                 mode = AppThemeMode.SYSTEM,
                 title = "Follow system",
-                subtitle = "Match system theme",
                 icon = Icons.Default.PhoneAndroid
             ),
             ThemeModeOption(
                 mode = AppThemeMode.LIGHT,
                 title = "Light",
-                subtitle = "Clean bright style",
                 icon = Icons.Default.LightMode
             ),
             ThemeModeOption(
                 mode = AppThemeMode.DARK,
                 title = "Dark",
-                subtitle = "Eye safe dark style",
                 icon = Icons.Default.NightsStay
             ),
             ThemeModeOption(
                 mode = AppThemeMode.AMOLED,
                 title = "AMOLED",
-                subtitle = "Pitch black background",
                 icon = Icons.Default.Contrast
             )
         )
@@ -338,7 +335,6 @@ fun ThemeColoursContent(
 private data class ThemeModeOption(
     val mode: AppThemeMode,
     val title: String,
-    val subtitle: String,
     val icon: ImageVector
 )
 
@@ -357,7 +353,7 @@ private fun LargeThemeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(86.dp)
+            .height(72.dp)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) activeBorderColor else inactiveBorderColor,
@@ -370,7 +366,7 @@ private fun LargeThemeCard(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(12.dp)
         ) {
             Column(
@@ -389,11 +385,6 @@ private fun LargeThemeCard(
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = option.subtitle,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

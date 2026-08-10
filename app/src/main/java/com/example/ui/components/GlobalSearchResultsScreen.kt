@@ -421,7 +421,7 @@ fun GlobalSearchResultsScreen(
             },
             onUpdateRecord = { updatedRec ->
                 selectedDetailRecord = updatedRec
-                viewModel.updateRecord(updatedRec)
+                viewModel.updateRecordSync(updatedRec)
             }
         )
     }

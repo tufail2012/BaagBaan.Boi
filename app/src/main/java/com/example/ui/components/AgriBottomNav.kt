@@ -187,7 +187,7 @@ fun AgriBottomNav(
                 )
 
                 val animatedPillWidth by animateDpAsState(
-                    targetValue = if (isSelected) 68.dp else 50.dp,
+                    targetValue = if (isSelected) 56.dp else 50.dp,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                     label = "PillWidth"
                 )
