@@ -235,6 +235,10 @@ fun RecycleBinDialog(
                                                         } else if (item.itemType == "CONTACT") {
                                                             val restoredContact = RecycleBinConverter.jsonToContact(item.jsonPayload)
                                                             db.farmerContactDao().insertContact(restoredContact)
+                                                        } else if (item.itemType == "GARDEN_PLANNING") {
+                                                            val restoredEntry = RecycleBinConverter.jsonToGardenPlanning(item.jsonPayload)
+                                                            db.gardenPlanningDao().insertEntry(restoredEntry)
+                                                            firestoreSyncManager.saveGardenPlanningEntry(restoredEntry)
                                                         }
                                                         db.recycleBinDao().delete(item)
                                                         firestoreSyncManager.deleteRecycleBinItem(item.id)

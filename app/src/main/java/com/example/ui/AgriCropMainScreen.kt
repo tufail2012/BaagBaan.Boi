@@ -64,7 +64,17 @@ fun AgriCropMainScreen(
     val auth = com.example.util.SafeFirebase.getAuth(context)
     var currentUser by remember { mutableStateOf(auth?.currentUser) }
     var isAttendanceActive by remember { mutableStateOf(false) }
+    var isGardenPlanningActive by remember { mutableStateOf(false) }
     var isDashboardActive by remember { mutableStateOf(false) }
+
+    val gardenPlanningViewModel: GardenPlanningViewModel = remember {
+        val repository = com.example.data.GardenPlanningRepository(
+            dao = db.gardenPlanningDao(),
+            farmerContactDao = db.farmerContactDao(),
+            recycleBinDao = db.recycleBinDao()
+        )
+        GardenPlanningViewModel(repository)
+    }
     var isLoginActive by remember { mutableStateOf(currentUser == null) }
     var showNotificationCenter by remember { mutableStateOf(false) }
     var showBackupRestoreDialog by remember { mutableStateOf(false) }
@@ -164,6 +174,7 @@ fun AgriCropMainScreen(
 
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
+        isGardenPlanningActive -> "GARDEN_PLANNING"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         isGlobalSearchActive -> "SEARCH"
@@ -196,7 +207,7 @@ fun AgriCropMainScreen(
                         isLoginActive = false
                         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                             try {
-                                com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao())
+                                com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                             } catch (e: Exception) {
                                 // Silent fail pattern matching onCreate / manual sync
                             }
@@ -205,6 +216,14 @@ fun AgriCropMainScreen(
                     onContinueAsGuest = {
                         isLoginActive = false
                     },
+                    modifier = modifier
+                )
+            }
+            "GARDEN_PLANNING" -> {
+                com.example.ui.components.GardenPlanningScreen(
+                    viewModel = gardenPlanningViewModel,
+                    onBack = { isGardenPlanningActive = false },
+                    isDark = themeMode == com.example.ui.AppThemeMode.DARK || themeMode == com.example.ui.AppThemeMode.AMOLED,
                     modifier = modifier
                 )
             }
@@ -290,6 +309,9 @@ fun AgriCropMainScreen(
                                 onNavigateToLogin = {
                                     isLoginActive = true
                                 },
+                                onNavigateToGardenPlanning = {
+                                    isGardenPlanningActive = true
+                                },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {
                                     showNotificationCenter = true
@@ -303,7 +325,7 @@ fun AgriCropMainScreen(
                                 },
                                 onManualSync = {
                                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao())
+                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                                     }
                                 }
                             )

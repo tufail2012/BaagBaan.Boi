@@ -31,6 +31,7 @@ class FirestoreSyncManager {
         const val COLLECTION_RECYCLE_BIN = "recycle_bin"
         const val COLLECTION_CONTACTS = "farmer_contacts"
         const val COLLECTION_INVENTORY = "inventory"
+        const val COLLECTION_GARDEN_PLANNING = "garden_planning_entries"
 
         private val _syncState = MutableStateFlow(SyncState.SYNCED)
         val syncState: StateFlow<SyncState> = _syncState.asStateFlow()
@@ -131,6 +132,74 @@ class FirestoreSyncManager {
         } catch (e: Exception) {
             updateSyncState(SyncState.OFFLINE)
             Log.e(TAG, "Error deleting Crop Record $recordId from Firestore: ${e.message}")
+        }
+    }
+
+    // =========================================================================
+    // 1B. GARDEN PLANNING ENTRIES
+    // =========================================================================
+
+    suspend fun saveGardenPlanningEntry(entry: GardenPlanningEntry) {
+        updateSyncState(SyncState.SYNCING)
+        val collectionRef = getUserCollection(COLLECTION_GARDEN_PLANNING)
+        if (collectionRef == null) {
+            Log.w(TAG, "Skipping saveGardenPlanningEntry: User is not authenticated")
+            updateSyncState(SyncState.OFFLINE)
+            return
+        }
+
+        try {
+            val entryMap = hashMapOf(
+                "id" to entry.id,
+                "serialNumber" to entry.serialNumber,
+                "farmerName" to entry.farmerName,
+                "farmerAddress" to entry.farmerAddress,
+                "contactNumber" to entry.contactNumber,
+                "totalKanalArea" to entry.totalKanalArea,
+                "plantsPerKanal" to entry.plantsPerKanal,
+                "costPerPlant" to entry.costPerPlant,
+                "totalCost" to entry.totalCost,
+                "paymentStatus" to entry.paymentStatus,
+                "bookingDate" to entry.bookingDate,
+                "expectedDelivery" to entry.expectedDelivery,
+                "notes" to entry.notes,
+                "timestamp" to entry.timestamp
+            )
+
+            collectionRef
+                .document(entry.id.toString())
+                .set(entryMap, SetOptions.merge())
+                .await()
+
+            updateSyncState(SyncState.SYNCED)
+            Log.d(TAG, "Successfully synced Garden Planning Entry ${entry.id} to Firestore")
+        } catch (e: Exception) {
+            updateSyncState(SyncState.OFFLINE)
+            Log.e(TAG, "Error syncing Garden Planning Entry ${entry.id} to Firestore: ${e.message}")
+            throw e
+        }
+    }
+
+    suspend fun deleteGardenPlanningEntry(entryId: Long) {
+        updateSyncState(SyncState.SYNCING)
+        val collectionRef = getUserCollection(COLLECTION_GARDEN_PLANNING)
+        if (collectionRef == null) {
+            Log.w(TAG, "Skipping deleteGardenPlanningEntry: User is not authenticated")
+            updateSyncState(SyncState.OFFLINE)
+            return
+        }
+
+        try {
+            collectionRef
+                .document(entryId.toString())
+                .delete()
+                .await()
+
+            updateSyncState(SyncState.SYNCED)
+            Log.d(TAG, "Successfully deleted Garden Planning Entry $entryId from Firestore")
+        } catch (e: Exception) {
+            updateSyncState(SyncState.OFFLINE)
+            Log.e(TAG, "Error deleting Garden Planning Entry $entryId from Firestore: ${e.message}")
         }
     }
 
@@ -252,7 +321,11 @@ class FirestoreSyncManager {
     // 5. FULL SYNC FROM FIRESTORE TO LOCAL ROOM DATABASE
     // =========================================================================
 
-    suspend fun syncFromCloudToLocal(cropDao: CropRecordDao, attendanceDao: AttendanceDao) {
+    suspend fun syncFromCloudToLocal(
+        cropDao: CropRecordDao, 
+        attendanceDao: AttendanceDao,
+        gardenPlanningDao: GardenPlanningDao? = null
+    ) {
         updateSyncState(SyncState.SYNCING)
         val uid = getCurrentUid()
         val firestore = db
@@ -263,6 +336,67 @@ class FirestoreSyncManager {
         }
 
         try {
+            // Sync Garden Planning Entries if DAO provided
+            if (gardenPlanningDao != null) {
+                try {
+                    val localGardenEntries = gardenPlanningDao.getAllEntriesList()
+                    val localGardenMap = localGardenEntries.associateBy { it.id }
+
+                    val userCollectionGarden = firestore.collection(COLLECTION_USERS).document(uid).collection(COLLECTION_GARDEN_PLANNING)
+                    val gardenSnapshot = userCollectionGarden.get().await()
+                    val cloudGardenIds = mutableSetOf<Long>()
+
+                    for (doc in gardenSnapshot.documents) {
+                        val id = doc.getLong("id") ?: continue
+                        cloudGardenIds.add(id)
+                        val serialNumber = doc.getString("serialNumber") ?: ""
+                        val farmerName = doc.getString("farmerName") ?: ""
+                        val farmerAddress = doc.getString("farmerAddress") ?: ""
+                        val contactNumber = doc.getString("contactNumber") ?: ""
+                        val totalKanalArea = doc.getDouble("totalKanalArea") ?: 0.0
+                        val plantsPerKanal = (doc.getLong("plantsPerKanal") ?: 0L).toInt()
+                        val costPerPlant = doc.getDouble("costPerPlant") ?: 0.0
+                        val totalCost = doc.getDouble("totalCost") ?: (totalKanalArea * plantsPerKanal * costPerPlant)
+                        val paymentStatus = doc.getString("paymentStatus") ?: "Pending"
+                        val bookingDate = doc.getString("bookingDate") ?: ""
+                        val expectedDelivery = doc.getString("expectedDelivery") ?: ""
+                        val notes = doc.getString("notes") ?: ""
+                        val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
+
+                        val cloudEntry = GardenPlanningEntry(
+                            id = id,
+                            serialNumber = serialNumber,
+                            farmerName = farmerName,
+                            farmerAddress = farmerAddress,
+                            contactNumber = contactNumber,
+                            totalKanalArea = totalKanalArea,
+                            plantsPerKanal = plantsPerKanal,
+                            costPerPlant = costPerPlant,
+                            totalCost = totalCost,
+                            paymentStatus = paymentStatus,
+                            bookingDate = bookingDate,
+                            expectedDelivery = expectedDelivery,
+                            notes = notes,
+                            timestamp = timestamp
+                        )
+
+                        val localEntry = localGardenMap[id]
+                        if (localEntry != null && localEntry.timestamp > timestamp) {
+                            saveGardenPlanningEntry(localEntry)
+                        } else {
+                            gardenPlanningDao.insertEntry(cloudEntry)
+                        }
+                    }
+
+                    for (localEntry in localGardenEntries) {
+                        if (localEntry.id !in cloudGardenIds && localEntry.id != 0L) {
+                            saveGardenPlanningEntry(localEntry)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error syncing Garden Planning entries from Firestore: ${e.message}")
+                }
+            }
             // Sync Crop Records with timestamp-aware bidirectional reconciliation
             val localCropRecords = cropDao.getAllRecordsList()
             val localCropMap = localCropRecords.associateBy { it.id }

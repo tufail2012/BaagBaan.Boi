@@ -81,4 +81,43 @@ object RecycleBinConverter {
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }
+
+    fun gardenPlanningToJson(entry: GardenPlanningEntry): String {
+        val json = JSONObject()
+        json.put("id", entry.id)
+        json.put("serialNumber", entry.serialNumber)
+        json.put("farmerName", entry.farmerName)
+        json.put("farmerAddress", entry.farmerAddress)
+        json.put("contactNumber", entry.contactNumber)
+        json.put("totalKanalArea", entry.totalKanalArea)
+        json.put("plantsPerKanal", entry.plantsPerKanal)
+        json.put("costPerPlant", entry.costPerPlant)
+        json.put("totalCost", entry.totalCost)
+        json.put("paymentStatus", entry.paymentStatus)
+        json.put("bookingDate", entry.bookingDate)
+        json.put("expectedDelivery", entry.expectedDelivery)
+        json.put("notes", entry.notes)
+        json.put("timestamp", entry.timestamp)
+        return json.toString()
+    }
+
+    fun jsonToGardenPlanning(jsonStr: String): GardenPlanningEntry {
+        val json = JSONObject(jsonStr)
+        return GardenPlanningEntry(
+            id = json.optLong("id", 0L),
+            serialNumber = json.optString("serialNumber", ""),
+            farmerName = json.optString("farmerName", ""),
+            farmerAddress = json.optString("farmerAddress", ""),
+            contactNumber = json.optString("contactNumber", ""),
+            totalKanalArea = json.optDouble("totalKanalArea", 0.0),
+            plantsPerKanal = json.optInt("plantsPerKanal", 0),
+            costPerPlant = json.optDouble("costPerPlant", 0.0),
+            totalCost = json.optDouble("totalCost", 0.0),
+            paymentStatus = json.optString("paymentStatus", "Pending"),
+            bookingDate = json.optString("bookingDate", ""),
+            expectedDelivery = json.optString("expectedDelivery", ""),
+            notes = json.optString("notes", ""),
+            timestamp = json.optLong("timestamp", System.currentTimeMillis())
+        )
+    }
 }

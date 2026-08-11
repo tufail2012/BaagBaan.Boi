@@ -1,0 +1,23 @@
+package com.example.data
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "garden_planning_entries")
+data class GardenPlanningEntry(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val serialNumber: String = "",
+    val farmerName: String = "",
+    val farmerAddress: String = "",
+    val contactNumber: String = "",
+    val totalKanalArea: Double = 0.0,
+    val plantsPerKanal: Int = 0,
+    val costPerPlant: Double = 0.0,
+    val totalCost: Double = 0.0,
+    val paymentStatus: String = "Pending",
+    val bookingDate: String = "",
+    val expectedDelivery: String = "",
+    val notes: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)

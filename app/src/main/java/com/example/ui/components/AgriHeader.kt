@@ -117,6 +117,7 @@ fun AgriHeader(
     onNavigateToInventory: () -> Unit = {},
     onOpenRecycleBin: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToGardenPlanning: () -> Unit = {},
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -268,6 +269,7 @@ fun AgriHeader(
                             onNavigateToContactDirectory = onNavigateToContactDirectory,
                             onNavigateToBackupRestore = onNavigateToBackupRestore,
                             onNavigateToLogin = onNavigateToLogin,
+                            onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                             onLogout = onLogout,
                             onOpenThemeDialog = { showThemeDialog = true },
                             onOpenRecycleBin = onOpenRecycleBin
@@ -629,6 +631,7 @@ private fun OverflowMenuContent(
     onNavigateToContactDirectory: () -> Unit,
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToGardenPlanning: () -> Unit = {},
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -825,6 +828,41 @@ private fun OverflowMenuContent(
             onNavigateToLogin()
         },
         modifier = Modifier.testTag("accounts_menu_item$tagSuffix")
+    )
+
+    // 6B. Garden Planning
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Park,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Garden Planning",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Area & Cost Calculation",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToGardenPlanning()
+        },
+        modifier = Modifier.testTag("garden_planning_menu_item$tagSuffix")
     )
 
     // === DIVIDER 2 ===

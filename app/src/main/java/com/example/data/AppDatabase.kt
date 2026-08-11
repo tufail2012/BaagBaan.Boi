@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 import androidx.room.migration.Migration
 
-@Database(entities = [CropRecord::class, Worker::class, AttendanceRecord::class, AppNotification::class, AdvancePayment::class, FarmerContact::class, RecycleBinEntity::class, InventoryItem::class], version = 10, exportSchema = false)
+@Database(entities = [CropRecord::class, Worker::class, AttendanceRecord::class, AppNotification::class, AdvancePayment::class, FarmerContact::class, RecycleBinEntity::class, InventoryItem::class, GardenPlanningEntry::class], version = 11, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cropRecordDao(): CropRecordDao
     abstract fun attendanceDao(): AttendanceDao
@@ -19,6 +19,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun farmerContactDao(): FarmerContactDao
     abstract fun recycleBinDao(): RecycleBinDao
     abstract fun inventoryDao(): InventoryDao
+    abstract fun gardenPlanningDao(): GardenPlanningDao
 
     companion object {
         @Volatile
