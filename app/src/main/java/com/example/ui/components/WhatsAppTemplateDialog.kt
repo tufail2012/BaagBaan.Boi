@@ -142,7 +142,7 @@ fun WhatsAppTemplateDialog(
                 paymentStatus = paymentStatus,
                 expectedDelivery = "Scheduled As Agreed"
             )
-            val bmp = ReceiptGenerator.generateReceiptBitmap(rData)
+            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)
             receiptBitmap = bmp
             receiptUri = uri

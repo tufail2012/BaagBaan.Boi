@@ -1761,7 +1761,7 @@ fun FarmerFormScreen(
                 paymentStatus = paymentStatus,
                 expectedDelivery = if (expectedDelivery.isBlank()) "TBD" else expectedDelivery
             )
-            val bmp = ReceiptGenerator.generateReceiptBitmap(rData)
+            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)
             generatedReceiptBitmap = bmp
             generatedReceiptUri = uri

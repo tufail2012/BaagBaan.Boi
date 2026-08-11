@@ -29,19 +29,30 @@ class GardenPlanningViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    val filteredEntries: StateFlow<List<GardenPlanningEntry>> = combine(allEntries, _searchQuery) { entries, query ->
-        if (query.isBlank()) {
-            entries
-        } else {
+    private val _selectedPaymentFilter = MutableStateFlow("All Records")
+    val selectedPaymentFilter: StateFlow<String> = _selectedPaymentFilter.asStateFlow()
+
+    val filteredEntries: StateFlow<List<GardenPlanningEntry>> = combine(allEntries, _searchQuery, _selectedPaymentFilter) { entries, query, paymentFilter ->
+        var result = entries
+        if (query.isNotBlank()) {
             val q = query.lowercase(Locale.getDefault())
-            entries.filter {
+            result = result.filter {
                 it.farmerName.lowercase(Locale.getDefault()).contains(q) ||
                         it.serialNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.contactNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.farmerAddress.lowercase(Locale.getDefault()).contains(q)
             }
         }
+        when (paymentFilter) {
+            "Payments Cleared" -> result.filter { it.paymentStatus == "Fully Paid" }
+            "Payments Pending" -> result.filter { it.paymentStatus != "Fully Paid" }
+            else -> result
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setPaymentFilter(filter: String) {
+        _selectedPaymentFilter.value = filter
+    }
 
     val editingEntryId = MutableStateFlow<Long?>(null)
 

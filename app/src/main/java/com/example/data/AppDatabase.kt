@@ -35,6 +35,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("""
+                        CREATE TABLE IF NOT EXISTS `garden_planning_entries` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `serialNumber` TEXT NOT NULL,
+                            `farmerName` TEXT NOT NULL,
+                            `farmerAddress` TEXT NOT NULL,
+                            `contactNumber` TEXT NOT NULL,
+                            `totalKanalArea` REAL NOT NULL,
+                            `plantsPerKanal` INTEGER NOT NULL,
+                            `costPerPlant` REAL NOT NULL,
+                            `totalCost` REAL NOT NULL,
+                            `paymentStatus` TEXT NOT NULL,
+                            `bookingDate` TEXT NOT NULL,
+                            `expectedDelivery` TEXT NOT NULL,
+                            `notes` TEXT NOT NULL,
+                            `timestamp` INTEGER NOT NULL
+                        )
+                    """.trimIndent())
+                } catch (e: Exception) {
+                    // Table may already exist
+                }
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -42,7 +69,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "agri_crop_database"
                 )
-                .addMigrations(MIGRATION_9_10)
+                .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
                 .fallbackToDestructiveMigration()
                 .addCallback(DatabaseCallback(scope))
                 .build()

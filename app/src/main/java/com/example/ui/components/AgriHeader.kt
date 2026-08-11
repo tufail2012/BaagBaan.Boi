@@ -400,6 +400,7 @@ fun AgriHeader(
                                 onNavigateToContactDirectory = onNavigateToContactDirectory,
                                 onNavigateToBackupRestore = onNavigateToBackupRestore,
                                 onNavigateToLogin = onNavigateToLogin,
+                                onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                                 onLogout = onLogout,
                                 onOpenThemeDialog = { showThemeDialog = true },
                                 onOpenRecycleBin = onOpenRecycleBin

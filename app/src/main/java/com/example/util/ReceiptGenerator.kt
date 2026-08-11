@@ -33,7 +33,7 @@ data class ReceiptData(
 
 object ReceiptGenerator {
 
-    fun generateReceiptBitmap(data: ReceiptData): Bitmap {
+    fun generateReceiptBitmap(data: ReceiptData, context: Context? = null): Bitmap {
         val width = 1080
         val height = 1680
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -216,7 +216,9 @@ object ReceiptGenerator {
                 "Total Amount" to currencyFmt.format(data.totalAmount),
                 "Advance Paid" to currencyFmt.format(data.amountPaid),
                 "Balance Due" to currencyFmt.format(data.remainingBalance),
-                "Payment Status" to data.paymentStatus
+                "Payment Status" to data.paymentStatus,
+                "Account No" to "0018010100007537",
+                "Account Holder" to "Aamir Manzoor Ganaie"
             ),
             extraBadge = data.paymentStatus to (statusBg to statusText)
         )
@@ -238,7 +240,77 @@ object ReceiptGenerator {
         paint.color = goldAccent
         canvas.drawText("Ramnagri 192303, Shopian, Jammu & Kashmir", width / 2f, height - 70f, paint)
 
+        // 5. Stamp Overlay
+        drawStampOverlay(canvas, width.toFloat(), height.toFloat(), context)
+
         return bitmap
+    }
+
+    private fun drawStampOverlay(canvas: Canvas, width: Float, height: Float, context: Context?) {
+        val stampCx = width - 230f
+        val stampCy = height - 175f
+        val stampSize = 290f
+        val stampRadius = stampSize / 2f
+
+        var stampBitmap: Bitmap? = null
+        if (context != null) {
+            try {
+                val resId = context.resources.getIdentifier("stamp_streets_of_kashmir", "drawable", context.packageName)
+                if (resId != 0) {
+                    val original = android.graphics.BitmapFactory.decodeResource(context.resources, resId)
+                    if (original != null) {
+                        stampBitmap = Bitmap.createScaledBitmap(original, stampSize.toInt(), stampSize.toInt(), true)
+                    }
+                }
+            } catch (e: Exception) {
+                stampBitmap = null
+            }
+        }
+
+        canvas.save()
+        canvas.rotate(-15f, stampCx, stampCy)
+
+        val stampPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        stampPaint.alpha = 160
+
+        if (stampBitmap != null) {
+            canvas.drawBitmap(stampBitmap, stampCx - stampRadius, stampCy - stampRadius, stampPaint)
+        } else {
+            val stampColor = Color.parseColor("#381E72")
+
+            stampPaint.color = stampColor
+            stampPaint.style = Paint.Style.STROKE
+            stampPaint.strokeWidth = 6f
+            canvas.drawCircle(stampCx, stampCy, stampRadius, stampPaint)
+
+            stampPaint.strokeWidth = 2.5f
+            canvas.drawCircle(stampCx, stampCy, stampRadius - 8f, stampPaint)
+            canvas.drawCircle(stampCx, stampCy, stampRadius - 16f, stampPaint)
+
+            stampPaint.style = Paint.Style.FILL
+            stampPaint.textAlign = Paint.Align.CENTER
+
+            stampPaint.textSize = 18f
+            stampPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("THE STREETS OF", stampCx, stampCy - 50f, stampPaint)
+
+            stampPaint.textSize = 34f
+            stampPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("KASHMIR", stampCx, stampCy - 5f, stampPaint)
+
+            stampPaint.textSize = 12f
+            stampPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            canvas.drawText("Pioneering Kashmir's Orchard Future", stampCx, stampCy + 32f, stampPaint)
+
+            stampPaint.strokeWidth = 2f
+            stampPaint.style = Paint.Style.STROKE
+            canvas.drawLine(stampCx - 75f, stampCy + 55f, stampCx - 14f, stampCy + 55f, stampPaint)
+            canvas.drawLine(stampCx + 14f, stampCy + 55f, stampCx + 75f, stampCy + 55f, stampPaint)
+            stampPaint.style = Paint.Style.FILL
+            canvas.drawCircle(stampCx, stampCy + 55f, 4f, stampPaint)
+        }
+
+        canvas.restore()
     }
 
     fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {

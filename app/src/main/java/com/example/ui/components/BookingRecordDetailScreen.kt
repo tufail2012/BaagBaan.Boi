@@ -794,7 +794,7 @@ fun BookingRecordDetailDialog(
                                 paymentStatus = record.paymentStatus,
                                 expectedDelivery = record.expectedDelivery.ifBlank { "Not set" }
                             )
-                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData)
+                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp
                         },
                         modifier = Modifier

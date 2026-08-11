@@ -105,6 +105,7 @@ class GoogleDriveBackupManager {
     /**
      * Invalidates a stale or expired OAuth token if a 401 is encountered.
      */
+    @android.annotation.SuppressLint("MissingPermission")
     fun invalidateToken(context: Context, token: String) {
         try {
             GoogleAuthUtil.invalidateToken(context, token)
