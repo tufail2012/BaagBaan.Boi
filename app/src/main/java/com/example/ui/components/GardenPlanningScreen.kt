@@ -802,7 +802,7 @@ fun GardenPlanningFormTab(
         OutlinedTextField(
             value = costPerPlant,
             onValueChange = { viewModel.costPerPlant.value = it },
-            label = { Text("Unit Price per Plant (₹) *") },
+            label = { Text("Unit Price per Plant *") },
             placeholder = { Text("e.g. 150") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = textFieldShape,

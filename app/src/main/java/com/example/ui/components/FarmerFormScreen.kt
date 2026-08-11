@@ -315,6 +315,7 @@ fun FarmerFormScreen(
     val plantVariety by viewModel.plantVariety.collectAsState()
     val rootstock by viewModel.rootstock.collectAsState()
     val importCountry by viewModel.importCountry.collectAsState()
+    val rootDiameter by viewModel.rootDiameter.collectAsState()
     val quantity by viewModel.quantity.collectAsState()
     val landAreaAcres by viewModel.landAreaAcres.collectAsState()
     val soilType by viewModel.soilType.collectAsState()
@@ -950,6 +951,24 @@ fun FarmerFormScreen(
                         .boundedFormFieldRipple(shape = textFieldShape)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("import_country_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            }
+
+            // 4. Root Diameter ('mm') (Manual Text Input for Imported Rootstocks)
+            if (isImportedRootstocks) {
+                OutlinedTextField(
+                    value = rootDiameter,
+                    onValueChange = { viewModel.rootDiameter.value = it },
+                    label = { Text("Root Diameter ('mm') *") },
+                    placeholder = { Text("e.g. 9 to 12 mm") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("root_diameter_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
             }

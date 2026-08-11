@@ -167,6 +167,7 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
     val plantVariety = MutableStateFlow("")
     val rootstock = MutableStateFlow("")
     val importCountry = MutableStateFlow("Italy")
+    val rootDiameter = MutableStateFlow("9 to 12 mm")
     val quantity = MutableStateFlow("100")
     val landAreaAcres = MutableStateFlow("250")
     val soilType = MutableStateFlow("Clay Loam")
@@ -448,6 +449,7 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
         plantVariety.value = ""
         rootstock.value = ""
         importCountry.value = "Italy"
+        rootDiameter.value = "9 to 12 mm"
         quantity.value = "100"
         landAreaAcres.value = "250"
         soilType.value = "Clay Loam"
@@ -522,6 +524,8 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
             plantHealthObservations.value = ""
         }
         if (record.serviceType.equals("Rootstocks", ignoreCase = true)) {
+            val diamMatch = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)
+            rootDiameter.value = diamMatch?.groupValues?.get(1)?.trim() ?: "9 to 12 mm"
             val graftMatch = Regex("Grafting Charges:\\s*₹?\\s*([0-9.]+)").find(record.notes)
             val totalGraft = graftMatch?.groupValues?.get(1) ?: ""
             graftingCharges.value = totalGraft
@@ -585,7 +589,11 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
                 }
             } else if (serviceType.value.equals("Rootstocks", ignoreCase = true)) {
                 val graftDetails = buildString {
-                    if (scionVariety.value.isNotBlank()) append("Scion: ${scionVariety.value}")
+                    if (rootDiameter.value.isNotBlank()) append("Root Diameter: ${rootDiameter.value}")
+                    if (scionVariety.value.isNotBlank()) {
+                        if (isNotEmpty()) append(" | ")
+                        append("Scion: ${scionVariety.value}")
+                    }
                     if (graftType.value.isNotBlank()) {
                         if (isNotEmpty()) append(" | ")
                         append("Graft Type: ${graftType.value}")
@@ -595,7 +603,7 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
                         append("Grafting Charges: ₹${graftingCharges.value}")
                     }
                 }
-                if (graftDetails.isNotBlank() && !notes.value.contains("Graft Type") && !notes.value.contains("Scion:")) {
+                if (graftDetails.isNotBlank() && !notes.value.contains("Graft Type") && !notes.value.contains("Scion:") && !notes.value.contains("Root Diameter:")) {
                     if (notes.value.isBlank()) graftDetails else "${notes.value.trim()}\n[$graftDetails]"
                 } else {
                     notes.value.trim()
