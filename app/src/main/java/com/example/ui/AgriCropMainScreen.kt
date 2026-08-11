@@ -231,11 +231,17 @@ fun AgriCropMainScreen(
                 AgriDashboardScreen(
                     viewModel = viewModel,
                     userDashboardViewModel = userDashboardViewModel,
+                    gardenPlanningViewModel = gardenPlanningViewModel,
                     currentUserEmail = currentUser?.email,
                     onBack = { isDashboardActive = false },
                     onNavigateToCategory = { category ->
-                        viewModel.selectServiceCategory(category)
-                        isDashboardActive = false
+                        if (category.equals("Garden Planning", ignoreCase = true) || category.equals("Garden", ignoreCase = true)) {
+                            isDashboardActive = false
+                            isGardenPlanningActive = true
+                        } else {
+                            viewModel.selectServiceCategory(category)
+                            isDashboardActive = false
+                        }
                     },
                     modifier = modifier
                 )

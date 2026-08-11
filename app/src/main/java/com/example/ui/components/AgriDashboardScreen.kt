@@ -78,23 +78,27 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.CropRecord
+import com.example.data.GardenPlanningEntry
 import com.example.data.UserBooking
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
 import com.example.ui.CropViewModel
+import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 
 @Composable
 fun AgriDashboardScreen(
     viewModel: CropViewModel,
     userDashboardViewModel: UserDashboardViewModel,
+    gardenPlanningViewModel: GardenPlanningViewModel? = null,
     currentUserEmail: String? = null,
     onBack: () -> Unit,
     onNavigateToCategory: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
+    val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
     val isDark = isAppInDarkMode()
 
@@ -152,25 +156,37 @@ fun AgriDashboardScreen(
         allRecords.filter { it.serviceType.equals("Pruning", ignoreCase = true) }
     }
 
-    // Financial Metrics
-    val totalRevenue = remember(allRecords) {
-        allRecords.sumOf { it.calculateTotalAmount() }
+    // Garden Planning Financial Metrics
+    val gardenRevenue = remember(gardenEntries) { gardenEntries.sumOf { it.totalCost } }
+    val gardenPaid = remember(gardenEntries) { gardenEntries.sumOf { it.amountPaid } }
+    val gardenRemaining = remember(gardenEntries) { gardenEntries.sumOf { it.remainingBalance } }
+
+    val gardenFullyPaidCount = remember(gardenEntries) { gardenEntries.count { it.paymentStatus == "Fully Paid" } }
+    val gardenAdvancePaidCount = remember(gardenEntries) { gardenEntries.count { it.paymentStatus == "Advance Paid" } }
+    val gardenPendingCount = remember(gardenEntries) { gardenEntries.count { it.paymentStatus == "Pending" || it.paymentStatus == "Unpaid" } }
+
+    // Aggregate Financial Metrics
+    val totalRevenue = remember(allRecords, gardenEntries) {
+        allRecords.sumOf { it.calculateTotalAmount() } + gardenRevenue
     }
-    val totalPaid = remember(allRecords) {
-        allRecords.sumOf { it.amountPaid }
+    val totalPaid = remember(allRecords, gardenEntries) {
+        allRecords.sumOf { it.amountPaid } + gardenPaid
     }
-    val totalRemaining = remember(allRecords) {
-        allRecords.sumOf { it.calculateRemainingBalance() }
+    val totalRemaining = remember(allRecords, gardenEntries) {
+        allRecords.sumOf { it.calculateRemainingBalance() } + gardenRemaining
     }
 
-    val fullyPaidCount = remember(allRecords) {
-        allRecords.count { it.isPaymentCleared() }
+    val fullyPaidCount = remember(allRecords, gardenEntries) {
+        allRecords.count { it.isPaymentCleared() } + gardenFullyPaidCount
     }
-    val advancePaidCount = remember(allRecords) {
-        allRecords.count { !it.isPaymentCleared() && it.amountPaid > 0 }
+    val advancePaidCount = remember(allRecords, gardenEntries) {
+        allRecords.count { !it.isPaymentCleared() && it.amountPaid > 0 } + gardenAdvancePaidCount
     }
-    val pendingCount = remember(allRecords) {
-        allRecords.count { !it.isPaymentCleared() && it.amountPaid <= 0 }
+    val pendingCount = remember(allRecords, gardenEntries) {
+        allRecords.count { !it.isPaymentCleared() && it.amountPaid <= 0 } + gardenPendingCount
+    }
+    val totalRecordsCount = remember(allRecords, gardenEntries) {
+        allRecords.size + gardenEntries.size
     }
 
     val paidRatio = if (totalRevenue > 0) (totalPaid / totalRevenue).toFloat().coerceIn(0f, 1f) else 0f
@@ -270,7 +286,7 @@ fun AgriDashboardScreen(
                 item {
                     AccountBannerCard(
                         currentUser = currentUser,
-                        totalEntriesCount = allRecords.size + rawBookings.size,
+                        totalEntriesCount = totalRecordsCount,
                         totalVolume = totalRevenue,
                         isDark = isDark
                     )
@@ -286,7 +302,7 @@ fun AgriDashboardScreen(
                         fullyPaidCount = fullyPaidCount,
                         advancePaidCount = advancePaidCount,
                         pendingCount = pendingCount,
-                        totalRecordsCount = allRecords.size,
+                        totalRecordsCount = totalRecordsCount,
                         isDark = isDark
                     )
                 }
@@ -405,18 +421,18 @@ fun AgriDashboardScreen(
                             isDark = isDark
                         )
 
-                        // Farmer Bookings
+                        // Garden Planning
                         CategorySummaryCard(
-                            title = "Farmer Bookings",
-                            icon = Icons.Default.PlaylistAddCheck,
+                            title = "Garden Planning",
+                            icon = Icons.Default.Park,
                             badgeColor = Color(0xFF00897B),
-                            recordsCount = rawBookings.size,
-                            totalQuantity = rawBookings.sumOf { it.quantity ?: 1 },
-                            unitLabel = "Booked Items",
-                            totalValue = 0.0,
-                            remainingBalance = 0.0,
-                            paidCount = rawBookings.size,
-                            onClick = { onNavigateToCategory?.invoke("Bookings") },
+                            recordsCount = gardenEntries.size,
+                            totalQuantity = gardenEntries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() },
+                            unitLabel = "Plants (Calculated)",
+                            totalValue = gardenRevenue,
+                            remainingBalance = gardenRemaining,
+                            paidCount = gardenFullyPaidCount,
+                            onClick = { onNavigateToCategory?.invoke("Garden Planning") },
                             isDark = isDark
                         )
                     }
@@ -444,7 +460,7 @@ fun AgriDashboardScreen(
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            val tabs = listOf("All", "Pending", "Paid", "Bookings")
+                            val tabs = listOf("All", "Pending", "Paid", "Garden Planning")
                             items(tabs) { tab ->
                                 FilterChip(
                                     selected = selectedFilterTab == tab,
@@ -460,14 +476,14 @@ fun AgriDashboardScreen(
                     }
                 }
 
-                if (selectedFilterTab == "Bookings") {
-                    if (rawBookings.isEmpty()) {
+                if (selectedFilterTab == "Garden Planning") {
+                    if (gardenEntries.isEmpty()) {
                         item {
-                            EmptyStateCard(message = "No farmer bookings registered yet.")
+                            EmptyStateCard(message = "No Garden Planning entries registered yet.")
                         }
                     } else {
-                        items(rawBookings.take(8)) { booking ->
-                            BookingLogItemCard(booking = booking, isDark = isDark)
+                        items(gardenEntries.take(8)) { entry ->
+                            GardenLogItemCard(entry = entry, isDark = isDark)
                         }
                     }
                 } else {
@@ -1115,6 +1131,93 @@ private fun RecordLogItemCard(
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isCleared) Color(0xFF2E7D32) else Color(0xFFD32F2F),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GardenLogItemCard(
+    entry: GardenPlanningEntry,
+    isDark: Boolean
+) {
+    val currencyFormat = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("en", "IN"))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF2A2A2A) else Color(0xFFF0F0F0))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Garden Planning",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00897B)
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFF00897B).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = "#${entry.serialNumber}",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF00897B),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = entry.farmerName.ifBlank { "Garden Entry" },
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                val infoText = buildString {
+                    if (entry.plantVariety.isNotBlank()) append(entry.plantVariety).append(" • ")
+                    append("${entry.totalKanalArea} Kanals (${entry.plantsPerKanal}/Kanal)")
+                }
+                Text(
+                    text = infoText,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = currencyFormat.format(entry.totalCost),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                val isCleared = entry.paymentStatus == "Fully Paid"
+                val isAdvance = entry.paymentStatus == "Advance Paid"
+                Surface(
+                    shape = CircleShape,
+                    color = if (isCleared) Color(0xFF2E7D32).copy(alpha = 0.15f) else if (isAdvance) Color(0xFFED6C02).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = if (isCleared) "PAID" else if (isAdvance) "ADVANCE" else "DUE ${currencyFormat.format(entry.remainingBalance.toLong())}",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCleared) Color(0xFF2E7D32) else if (isAdvance) Color(0xFFED6C02) else Color(0xFFD32F2F),
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }

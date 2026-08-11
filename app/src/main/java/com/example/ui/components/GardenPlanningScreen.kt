@@ -58,6 +58,16 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
@@ -193,6 +203,9 @@ fun GardenPlanningScreen(
     val allEntries by viewModel.allEntries.collectAsState()
     val filteredEntries by viewModel.filteredEntries.collectAsState()
 
+    var showProfileDialog by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(userMessage) {
         userMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -200,12 +213,60 @@ fun GardenPlanningScreen(
         }
     }
 
+    if (showProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfileDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("User Profile")
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Baagbaan Horticulturist Profile", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Garden Planning Module Active", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Status: Connected & Verified", fontSize = 12.sp, color = Color(0xFF2E7D32))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showProfileDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showNotificationDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Notifications")
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Garden Planning System Alerts", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("• All garden planning entries are saved locally & backed up.", fontSize = 12.sp)
+                    Text("• Generate digital receipts & share via WhatsApp or SMS anytime.", fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotificationDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header with status bar padding
+            // Header with status bar padding, page title, logo, notification bell, search, and profile icons
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -216,7 +277,7 @@ fun GardenPlanningScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -230,50 +291,157 @@ fun GardenPlanningScreen(
                         )
                     }
 
-                    Icon(
-                        imageVector = Icons.Default.Park,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp, end = 8.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Park,
+                                contentDescription = "Logo",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Garden Planning",
-                            fontSize = 18.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "Area & Cost Calculation • ${allEntries.size} Records",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Baagbaan Hub • ${allEntries.size} Records",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+
+                    // Search icon
+                    IconButton(
+                        onClick = { selectedTabIndex = 1 },
+                        modifier = Modifier.testTag("garden_header_search")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Notification Bell
+                    IconButton(
+                        onClick = { showNotificationDialog = true },
+                        modifier = Modifier.testTag("garden_header_notifications")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notifications",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Profile Icon
+                    IconButton(
+                        onClick = { showProfileDialog = true },
+                        modifier = Modifier.testTag("garden_header_profile")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
 
-            // Tab Bar
-            TabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.primary
+            // Tab layout with pill-shaped indicator sliding between 'New Entry' and 'Records'
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(CircleShape)
+                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                    .padding(4.dp)
             ) {
-                Tab(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
-                    text = {
-                        Text(
-                            if (viewModel.editingEntryId.collectAsState().value != null) "EDIT ENTRY" else "NEW ENTRY",
-                            fontWeight = FontWeight.Bold
-                        )
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val segmentWidth = maxWidth / 2
+                    val activePillOffset by animateDpAsState(
+                        targetValue = if (selectedTabIndex == 0) 0.dp else segmentWidth,
+                        label = "ActivePillOffset"
+                    )
+
+                    // Sliding pill background indicator
+                    Box(
+                        modifier = Modifier
+                            .width(segmentWidth)
+                            .height(40.dp)
+                            .offset(x = activePillOffset)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clickable { selectedTabIndex = 0 },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = if (viewModel.editingEntryId.collectAsState().value != null) "Edit Entry" else "New Entry",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (selectedTabIndex == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clickable { selectedTabIndex = 1 },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MenuBook,
+                                    contentDescription = null,
+                                    tint = if (selectedTabIndex == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Records (${allEntries.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (selectedTabIndex == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
-                )
-                Tab(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1 },
-                    text = { Text("RECORDS (${allEntries.size})", fontWeight = FontWeight.Bold) }
-                )
+                }
             }
 
             when (selectedTabIndex) {
@@ -319,6 +487,9 @@ fun GardenPlanningFormTab(
     val totalKanalArea by viewModel.totalKanalArea.collectAsState()
     val plantsPerKanal by viewModel.plantsPerKanal.collectAsState()
     val costPerPlant by viewModel.costPerPlant.collectAsState()
+    val plantVariety by viewModel.plantVariety.collectAsState()
+    val rootStock by viewModel.rootStock.collectAsState()
+    val saplingAge by viewModel.saplingAge.collectAsState()
     val amountPaid by viewModel.amountPaid.collectAsState()
     val paymentStatus by viewModel.paymentStatus.collectAsState()
     val bookingDate by viewModel.bookingDate.collectAsState()
@@ -466,22 +637,12 @@ fun GardenPlanningFormTab(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Section Header: SERIAL & FARMER DETAILS
-        Text(
-            text = "SERIAL & FARMER DETAILS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-
-        // Serial Number Field Pattern
+        // Serial Number field with NO label on top
         OutlinedTextField(
             value = serialNumber,
             onValueChange = { viewModel.serialNumber.value = it },
-            label = { Text("Serial No. (Garden Planning) *") },
-            placeholder = { Text("e.g. GP-01") },
+            label = null,
+            placeholder = { Text("Serial Number (e.g. GP-01)") },
             shape = textFieldShape,
             singleLine = true,
             modifier = Modifier
@@ -505,6 +666,16 @@ fun GardenPlanningFormTab(
                     }
                 }
             }
+        )
+
+        // Section Header: FARMER DETAILS
+        Text(
+            text = "FARMER DETAILS",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         // Farmer Name
@@ -606,9 +777,92 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Section Header: GARDEN SPECIFICATION
+        // Section Header: PLANTS SPECIFICATION
         Text(
-            text = "GARDEN SPECIFICATION",
+            text = "PLANTS SPECIFICATION",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        // Plant Variety
+        OutlinedTextField(
+            value = plantVariety,
+            onValueChange = { viewModel.plantVariety.value = it },
+            label = { Text("Plant Variety") },
+            placeholder = { Text("e.g. M9 / Gala / Red Delicious") },
+            shape = textFieldShape,
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .boundedFormFieldRipple(shape = textFieldShape)
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("garden_plant_variety_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
+        )
+
+        // Root Stock
+        OutlinedTextField(
+            value = rootStock,
+            onValueChange = { viewModel.rootStock.value = it },
+            label = { Text("Rootstock") },
+            placeholder = { Text("e.g. M9 / MM106 / Seedling") },
+            shape = textFieldShape,
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .boundedFormFieldRipple(shape = textFieldShape)
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("garden_root_stock_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
+        )
+
+        // Sapling Age Dropdown
+        var ageDropdownExpanded by remember { mutableStateOf(false) }
+        val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "Grafted / Budded")
+
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = saplingAge,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Sapling Age") },
+                placeholder = { Text("Select Sapling Age") },
+                trailingIcon = {
+                    IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
+                    }
+                },
+                shape = textFieldShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { ageDropdownExpanded = true }
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_sapling_age_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+            DropdownMenu(
+                expanded = ageDropdownExpanded,
+                onDismissRequest = { ageDropdownExpanded = false }
+            ) {
+                saplingAgeOptions.forEach { age ->
+                    DropdownMenuItem(
+                        text = { Text(age) },
+                        onClick = {
+                            viewModel.saplingAge.value = age
+                            ageDropdownExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        // Section Header: PRICING & QUANTITY
+        Text(
+            text = "PRICING & QUANTITY",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -620,8 +874,8 @@ fun GardenPlanningFormTab(
         OutlinedTextField(
             value = totalKanalArea,
             onValueChange = { viewModel.totalKanalArea.value = it },
-            label = { Text("Total Kanal Area (Kanals) *") },
-            placeholder = { Text("e.g. 5.5") },
+            label = { Text("Quantity (Total Kanal Area) *") },
+            placeholder = { Text("e.g. 5.5 Kanals") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = textFieldShape,
             singleLine = true,
@@ -650,11 +904,11 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Cost per Plant
+        // Unit Price / Cost per Plant
         OutlinedTextField(
             value = costPerPlant,
             onValueChange = { viewModel.costPerPlant.value = it },
-            label = { Text("Cost per Plant (₹) *") },
+            label = { Text("Unit Price / Cost per Plant (₹) *") },
             placeholder = { Text("e.g. 150") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = textFieldShape,
@@ -706,7 +960,7 @@ fun GardenPlanningFormTab(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
+                        text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -722,16 +976,6 @@ fun GardenPlanningFormTab(
                 )
             }
         }
-
-        // Section Header: PAYMENT & DATES
-        Text(
-            text = "PAYMENT & DATES",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 8.dp)
-        )
 
         // Amount Paid Input Field
         OutlinedTextField(
@@ -750,7 +994,7 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Dynamic Payment Status Buttons
+        // Dynamic Payment Status Buttons styled as pills
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Payment Status",
@@ -769,7 +1013,8 @@ fun GardenPlanningFormTab(
                     FilterChip(
                         selected = isSelected,
                         onClick = { viewModel.onPaymentStatusSelected(status) },
-                        label = { Text(status, fontSize = 12.sp) },
+                        label = { Text(status, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        shape = pillShape,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -780,7 +1025,7 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Summary Box: Total Amount, Amount Paid, and Remaining Balance
+        // Payment Summary Box
         val amountPaidDouble = viewModel.calculateAmountPaid()
         val remainingBalance = viewModel.calculateRemainingBalance()
 
@@ -810,7 +1055,6 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Total Amount
                     Column(horizontalAlignment = Alignment.Start) {
                         Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
@@ -820,7 +1064,6 @@ fun GardenPlanningFormTab(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    // Amount Paid
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
@@ -830,7 +1073,6 @@ fun GardenPlanningFormTab(
                             color = Color(0xFF2E7D32)
                         )
                     }
-                    // Remaining Balance
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
@@ -844,7 +1086,7 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Booking Date & Expected Delivery
+        // Booking Date & Expected Delivery Date
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -871,7 +1113,7 @@ fun GardenPlanningFormTab(
                 value = expectedDelivery,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Expected Delivery *") },
+                label = { Text("Expected Delivery Date *") },
                 shape = textFieldShape,
                 trailingIcon = {
                     IconButton(onClick = { openDatePicker(false) }) {
@@ -922,13 +1164,15 @@ fun GardenPlanningFormTab(
             isDark = isDark
         )
 
-        // Action Buttons Row
+        // Action Buttons
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // 1. SAVE BOOKING ENTRY (Prominent RED button)
             Button(
                 onClick = {
                     if (!isSaving) {
@@ -944,25 +1188,31 @@ fun GardenPlanningFormTab(
                 },
                 shape = pillShape,
                 enabled = !isSaving,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFD32F2F),
+                    contentColor = Color.White
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(52.dp)
                     .testTag("garden_save_button")
             ) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = null)
+                Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = if (editingEntryId != null) "UPDATE GARDEN PLAN" else "SAVE BOOKING ENTRY",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    color = Color.White
                 )
             }
 
+            // 2. Share via WhatsApp (Green) & Share via SMS (Blue)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Share WhatsApp
-                OutlinedButton(
+                Button(
                     onClick = {
                         val cleanPhone = contactNumber.replace("[^0-9]".toRegex(), "")
                         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -975,15 +1225,20 @@ fun GardenPlanningFormTab(
                         }
                     },
                     shape = pillShape,
-                    modifier = Modifier.weight(1f)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E7D32),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("WhatsApp", fontSize = 12.sp)
+                    Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share via WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
 
-                // Share SMS
-                OutlinedButton(
+                Button(
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW).apply {
                             data = Uri.parse("smsto:${contactNumber}")
@@ -996,87 +1251,97 @@ fun GardenPlanningFormTab(
                         }
                     },
                     shape = pillShape,
-                    modifier = Modifier.weight(1f)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1976D2),
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("SMS", fontSize = 12.sp)
+                    Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Share via SMS", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Receipt Image Button
-                OutlinedButton(
-                    onClick = {
-                        val area = totalKanalArea.toDoubleOrNull() ?: 0.0
-                        val plants = plantsPerKanal.toDoubleOrNull()?.toInt() ?: plantsPerKanal.toIntOrNull() ?: 0
-                        val totalPlants = Math.round(area * plants).toInt()
-                        val totalAmount = calculatedCost
+            // 3. Send Digital Receipt Image (White button with RED border)
+            OutlinedButton(
+                onClick = {
+                    val area = totalKanalArea.toDoubleOrNull() ?: 0.0
+                    val plants = plantsPerKanal.toDoubleOrNull()?.toInt() ?: plantsPerKanal.toIntOrNull() ?: 0
+                    val totalPlants = Math.round(area * plants).toInt()
+                    val totalAmount = calculatedCost
 
-                        val receiptData = ReceiptData(
-                            serialNumber = serialNumber,
-                            bookingDate = bookingDate,
-                            farmerName = farmerName,
-                            contactNumber = contactNumber,
-                            address = farmerAddress,
-                            orchardLocation = farmerAddress,
-                            serviceCategory = "Garden Planning",
-                            plantVariety = "$area Kanals ($plants Plants/Kanal)",
-                            quantity = totalPlants.toString(),
-                            totalAmount = totalAmount,
-                            amountPaid = amountPaidDouble,
-                            remainingBalance = remainingBalance,
-                            paymentStatus = paymentStatus,
-                            expectedDelivery = expectedDelivery
-                        )
+                    val receiptData = ReceiptData(
+                        serialNumber = serialNumber,
+                        bookingDate = bookingDate,
+                        farmerName = farmerName,
+                        contactNumber = contactNumber,
+                        address = farmerAddress,
+                        orchardLocation = farmerAddress,
+                        serviceCategory = "Garden Planning",
+                        plantVariety = "$area Kanals ($plants Plants/Kanal)",
+                        quantity = totalPlants.toString(),
+                        totalAmount = totalAmount,
+                        amountPaid = amountPaidDouble,
+                        remainingBalance = remainingBalance,
+                        paymentStatus = paymentStatus,
+                        expectedDelivery = expectedDelivery
+                    )
 
-                        val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
-                        val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
-                        if (uri != null) {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
+                    val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
+                    if (uri != null) {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "image/*"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            putExtra(Intent.EXTRA_TEXT, "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber).")
+                            setPackage("com.whatsapp")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        try {
+                            context.startActivity(shareIntent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
                                 type = "image/*"
                                 putExtra(Intent.EXTRA_STREAM, uri)
                                 putExtra(Intent.EXTRA_TEXT, "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber).")
-                                setPackage("com.whatsapp")
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            try {
-                                context.startActivity(shareIntent)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-                                val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/*"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    putExtra(Intent.EXTRA_TEXT, "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber).")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(Intent.createChooser(fallbackIntent, "Share Digital Receipt"))
-                            }
-                        } else {
-                            Toast.makeText(context, "Failed to generate receipt image", Toast.LENGTH_SHORT).show()
+                            context.startActivity(Intent.createChooser(fallbackIntent, "Share Digital Receipt"))
                         }
-                    },
-                    shape = pillShape,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(imageVector = Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Receipt Image", fontSize = 12.sp)
-                }
+                    } else {
+                        Toast.makeText(context, "Failed to generate receipt image", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                shape = pillShape,
+                border = BorderStroke(1.5.dp, Color(0xFFD32F2F)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White,
+                    contentColor = Color(0xFFD32F2F)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFD32F2F))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Send Digital Receipt Image", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+            }
 
-                // Clear Form
-                OutlinedButton(
-                    onClick = { viewModel.clearForm() },
-                    shape = pillShape,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(imageVector = Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Clear Form", fontSize = 12.sp)
-                }
+            // 4. Clear Form (Text link)
+            TextButton(
+                onClick = { viewModel.clearForm() },
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Clear Form",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -1588,13 +1853,13 @@ fun GardenBookingRecordDetailDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.92f)
-                .clip(RoundedCornerShape(24.dp)),
+            modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -1608,17 +1873,17 @@ fun GardenBookingRecordDetailDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(42.dp)
                                     .clip(CircleShape)
                                     .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center
@@ -1634,13 +1899,13 @@ fun GardenBookingRecordDetailDialog(
                             Column {
                                 Text(
                                     text = currentEntry.farmerName.ifBlank { "Booking Details" },
-                                    fontSize = 16.sp,
+                                    fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
                                     text = "Serial No: #${currentEntry.serialNumber} • ${currentEntry.bookingDate}",
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )
                             }
@@ -1689,6 +1954,12 @@ fun GardenBookingRecordDetailDialog(
                         DetailInfoRow("Plants per Kanal", "${currentEntry.plantsPerKanal} Plants/Kanal")
                         DetailInfoRow("Total Calculated Plants", "${currencyFormat.format(totalPlants).replace("₹", "")} Plants")
                         DetailInfoRow("Cost per Plant", currencyFormat.format(currentEntry.costPerPlant))
+                        if (currentEntry.plantVariety.isNotBlank()) {
+                            DetailInfoRow("Plant Variety", currentEntry.plantVariety)
+                        }
+                        if (currentEntry.rootStock.isNotBlank()) {
+                            DetailInfoRow("Root Stock", currentEntry.rootStock)
+                        }
                         DetailInfoRow("Total Estimated Cost", currencyFormat.format(currentEntry.totalCost), highlight = true)
                         DetailInfoRow("Expected Delivery", currentEntry.expectedDelivery.ifBlank { "N/A" })
                         if (currentEntry.notes.isNotBlank()) {
@@ -1698,25 +1969,73 @@ fun GardenBookingRecordDetailDialog(
 
                     // SECTION 3: PAYMENT BREAKDOWN & BANK ACCOUNT INFO
                     DetailSectionCard(title = "PAYMENT BREAKDOWN & ACCOUNT INFO", icon = Icons.Default.AccountBalance) {
+                        // 2x2 Grid for Payment Totals to prevent text overlaps
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column {
-                                Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(currencyFormat.format(currentEntry.totalCost), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(currencyFormat.format(currentEntry.totalCost), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                }
                             }
-                            Column {
-                                Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(currencyFormat.format(currentEntry.amountPaid), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(currencyFormat.format(currentEntry.amountPaid), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                                }
                             }
-                            Column {
-                                Text("Remaining", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(currencyFormat.format(currentEntry.remainingBalance), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (currentEntry.remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32))
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        currencyFormat.format(currentEntry.remainingBalance),
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (currentEntry.remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+                                    )
+                                }
                             }
-                            Column {
-                                Text("Status", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(currentEntry.paymentStatus, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text("Payment Status", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(currentEntry.paymentStatus, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
 
@@ -1732,28 +2051,40 @@ fun GardenBookingRecordDetailDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
                                     text = "OFFICIAL BANK & UPI DETAILS",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 0.5.sp
                                 )
-                                Text("Account Name: Aamir Manzoor Ganaie", fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                                Text("Business Name: The Streets of Kashmir", fontSize = 12.sp)
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Account Name", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("Aamir Manzoor Ganaie", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text("Business Name", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("The Streets of Kashmir", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Account No: 0018010100007537", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Account Number", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("0018010100007537", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
                                     IconButton(
                                         onClick = { copyToClipboard("Account Number", "0018010100007537") },
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(28.dp)
                                     ) {
-                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     }
                                 }
 
@@ -1762,12 +2093,15 @@ fun GardenBookingRecordDetailDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("IFSC Code: JAKA0MAINSR", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("IFSC Code", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("JAKA0MAINSR", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
                                     IconButton(
                                         onClick = { copyToClipboard("IFSC Code", "JAKA0MAINSR") },
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(28.dp)
                                     ) {
-                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     }
                                 }
 
@@ -1776,12 +2110,15 @@ fun GardenBookingRecordDetailDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("UPI ID: streetsofkashmir@upi", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("UPI ID", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("streetsofkashmir@upi", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
                                     IconButton(
                                         onClick = { copyToClipboard("UPI ID", "streetsofkashmir@upi") },
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(28.dp)
                                     ) {
-                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }
@@ -1952,9 +2289,10 @@ fun GardenBookingRecordDetailDialog(
                             Button(
                                 onClick = {
                                     val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
+                                    val formattedPhone = if (cleanPhone.length == 10) "91$cleanPhone" else cleanPhone
                                     val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
                                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(msg)}")
+                                        data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encode(msg)}")
                                     }
                                     try { context.startActivity(intent) } catch (e: Exception) {
                                         Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
@@ -1983,9 +2321,12 @@ fun GardenBookingRecordDetailDialog(
                                 Text("Copy Text", fontSize = 12.sp)
                             }
 
-                            // Print / Download Digital Receipt
+                            // Directly open WhatsApp chat with linked farmer number and attach digital receipt
                             OutlinedButton(
                                 onClick = {
+                                    val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
+                                    val formattedPhone = if (cleanPhone.length == 10) "91$cleanPhone" else cleanPhone
+
                                     val receiptData = ReceiptData(
                                         serialNumber = currentEntry.serialNumber,
                                         bookingDate = currentEntry.bookingDate,
@@ -1994,7 +2335,7 @@ fun GardenBookingRecordDetailDialog(
                                         address = currentEntry.farmerAddress,
                                         orchardLocation = currentEntry.farmerAddress,
                                         serviceCategory = "Garden Planning",
-                                        plantVariety = "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                        plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
                                         quantity = totalPlants.toString(),
                                         totalAmount = currentEntry.totalCost,
                                         amountPaid = currentEntry.amountPaid,
@@ -2005,14 +2346,42 @@ fun GardenBookingRecordDetailDialog(
 
                                     val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
                                     val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, currentEntry.serialNumber)
-                                    if (uri != null) {
-                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/*"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            putExtra(Intent.EXTRA_TEXT, "Digital Receipt for Garden Planning (${currentEntry.serialNumber})")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    val msgText = "Dear ${currentEntry.farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning (${currentEntry.serialNumber})."
+
+                                    if (formattedPhone.isNotBlank()) {
+                                        if (uri != null) {
+                                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "image/*"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                putExtra(Intent.EXTRA_TEXT, msgText)
+                                                setPackage("com.whatsapp")
+                                                putExtra("jid", "$formattedPhone@s.whatsapp.net")
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            try {
+                                                context.startActivity(shareIntent)
+                                            } catch (e: Exception) {
+                                                val directChatIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                    data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encode(msgText)}")
+                                                }
+                                                try {
+                                                    context.startActivity(directChatIntent)
+                                                } catch (ex: Exception) {
+                                                    Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        } else {
+                                            val directChatIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                data = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=${Uri.encode(msgText)}")
+                                            }
+                                            try {
+                                                context.startActivity(directChatIntent)
+                                            } catch (ex: Exception) {
+                                                Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
-                                        context.startActivity(Intent.createChooser(shareIntent, "Share or Download Receipt"))
+                                    } else {
+                                        Toast.makeText(context, "No contact number linked to this farmer", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
