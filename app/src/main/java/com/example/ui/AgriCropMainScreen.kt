@@ -224,6 +224,43 @@ fun AgriCropMainScreen(
                     viewModel = gardenPlanningViewModel,
                     onBack = { isGardenPlanningActive = false },
                     isDark = themeMode == com.example.ui.AppThemeMode.DARK || themeMode == com.example.ui.AppThemeMode.AMOLED,
+                    themeMode = themeMode,
+                    selectedColorHex = accentColorHex,
+                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
+                    isSearchActive = isGlobalSearchActive,
+                    onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
+                    onToggleSearch = { viewModel.openGlobalSearch() },
+                    onNavigateToAttendance = { isAttendanceActive = true },
+                    onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
+                    onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                    onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                    onNavigateToInventory = { showInventoryDialog = true },
+                    onOpenRecycleBin = { showRecycleBinDialog = true },
+                    onNavigateToDashboard = { isDashboardActive = true },
+                    onNavigateToLogin = { isLoginActive = true },
+                    onNavigateToGardenPlanning = {
+                        viewModel.selectServiceCategory("Garden Planning")
+                        isGardenPlanningActive = false
+                        isDashboardActive = false
+                        isAttendanceActive = false
+                    },
+                    unreadNotificationCount = unreadCount,
+                    onOpenNotifications = { showNotificationCenter = true },
+                    currentUserEmail = currentUser?.email,
+                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                    onLogout = {
+                        auth?.signOut()
+                        currentUser = null
+                        isLoginActive = true
+                    },
+                    onManualSync = {
+                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
+                        }
+                    },
                     modifier = modifier
                 )
             }
@@ -250,6 +287,38 @@ fun AgriCropMainScreen(
                 AttendanceMainScreen(
                     viewModel = attendanceViewModel,
                     onNavigateBackToMain = { isAttendanceActive = false },
+                    themeMode = themeMode,
+                    selectedColorHex = accentColorHex,
+                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
+                    isSearchActive = isGlobalSearchActive,
+                    onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
+                    onToggleSearch = { viewModel.openGlobalSearch() },
+                    onNavigateToAttendance = { isAttendanceActive = true },
+                    onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
+                    onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                    onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                    onNavigateToInventory = { showInventoryDialog = true },
+                    onOpenRecycleBin = { showRecycleBinDialog = true },
+                    onNavigateToDashboard = { isDashboardActive = true },
+                    onNavigateToLogin = { isLoginActive = true },
+                    onNavigateToGardenPlanning = { isGardenPlanningActive = true },
+                    unreadNotificationCount = unreadCount,
+                    onOpenNotifications = { showNotificationCenter = true },
+                    currentUserEmail = currentUser?.email,
+                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                    onLogout = {
+                        auth?.signOut()
+                        currentUser = null
+                        isLoginActive = true
+                    },
+                    onManualSync = {
+                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
+                        }
+                    },
                     modifier = modifier
                 )
             }

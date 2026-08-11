@@ -32,6 +32,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.example.util.rememberScrollHapticFeedback
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -194,6 +197,31 @@ fun GardenPlanningScreen(
     viewModel: GardenPlanningViewModel,
     onBack: () -> Unit,
     isDark: Boolean = isAppInDarkMode(),
+    showHeader: Boolean = true,
+    themeMode: com.example.ui.AppThemeMode = com.example.ui.AppThemeMode.SYSTEM,
+    selectedColorHex: String = "#D32F2F",
+    onSelectThemeMode: (com.example.ui.AppThemeMode) -> Unit = {},
+    onSelectColorHex: (String) -> Unit = {},
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    isSearchActive: Boolean = false,
+    onSearchActiveChange: (Boolean) -> Unit = {},
+    onToggleSearch: () -> Unit = {},
+    onNavigateToAttendance: () -> Unit = {},
+    onNavigateToBookings: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {},
+    onNavigateToContactDirectory: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {},
+    onNavigateToInventory: () -> Unit = {},
+    onOpenRecycleBin: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToGardenPlanning: () -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    currentUserEmail: String? = null,
+    currentUserPhotoUrl: String? = null,
+    onLogout: () -> Unit = {},
+    onManualSync: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -266,183 +294,46 @@ fun GardenPlanningScreen(
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header with status bar padding, page title, logo, notification bell, search, and profile icons
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("garden_planning_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(34.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Park,
-                                contentDescription = "Logo",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Garden Planning",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Baagbaan Hub • ${allEntries.size} Records",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-
-                    // Search icon
-                    IconButton(
-                        onClick = { selectedTabIndex = 1 },
-                        modifier = Modifier.testTag("garden_header_search")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    // Notification Bell
-                    IconButton(
-                        onClick = { showNotificationDialog = true },
-                        modifier = Modifier.testTag("garden_header_notifications")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notifications",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    // Profile Icon
-                    IconButton(
-                        onClick = { showProfileDialog = true },
-                        modifier = Modifier.testTag("garden_header_profile")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Profile",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
+            // Consistent Main App Header
+            if (showHeader) {
+                AgriHeader(
+                title = "Garden Planning",
+                themeMode = themeMode,
+                onSelectThemeMode = onSelectThemeMode,
+                selectedColorHex = selectedColorHex,
+                onSelectColorHex = onSelectColorHex,
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                isSearchActive = isSearchActive,
+                onSearchActiveChange = onSearchActiveChange,
+                onToggleSearch = onToggleSearch,
+                onNavigateToAttendance = onNavigateToAttendance,
+                onNavigateToBookings = onNavigateToBookings,
+                onNavigateToBackupRestore = onNavigateToBackupRestore,
+                onNavigateToContactDirectory = onNavigateToContactDirectory,
+                onNavigateToDashboard = onNavigateToDashboard,
+                onNavigateToInventory = onNavigateToInventory,
+                onOpenRecycleBin = onOpenRecycleBin,
+                onNavigateToLogin = onNavigateToLogin,
+                onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                unreadNotificationCount = unreadNotificationCount,
+                onOpenNotifications = onOpenNotifications,
+                currentUserEmail = currentUserEmail,
+                currentUserPhotoUrl = currentUserPhotoUrl,
+                onLogout = onLogout,
+                onManualSync = onManualSync,
+                onBack = onBack
+            )
             }
 
-            // Tab layout with pill-shaped indicator sliding between 'New Entry' and 'Records'
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clip(CircleShape)
-                    .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                    .padding(4.dp)
-            ) {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val segmentWidth = maxWidth / 2
-                    val activePillOffset by animateDpAsState(
-                        targetValue = if (selectedTabIndex == 0) 0.dp else segmentWidth,
-                        label = "ActivePillOffset"
-                    )
-
-                    // Sliding pill background indicator
-                    Box(
-                        modifier = Modifier
-                            .width(segmentWidth)
-                            .height(40.dp)
-                            .offset(x = activePillOffset)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clickable { selectedTabIndex = 0 },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = if (selectedTabIndex == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = if (viewModel.editingEntryId.collectAsState().value != null) "Edit Entry" else "New Entry",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (selectedTabIndex == 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clickable { selectedTabIndex = 1 },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MenuBook,
-                                    contentDescription = null,
-                                    tint = if (selectedTabIndex == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "Records (${allEntries.size})",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (selectedTabIndex == 1) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            // Unified Segmented Control matching the app design system
+            val isEditing = viewModel.editingEntryId.collectAsState().value != null
+            AgriSegmentedControl(
+                selectedMode = selectedTabIndex,
+                onModeSelected = { selectedTabIndex = it },
+                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                recordsLabel = "Records (${allEntries.size})"
+            )
 
             when (selectedTabIndex) {
                 0 -> {
@@ -630,10 +521,13 @@ fun GardenPlanningFormTab(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     val totalCostFormatted = currencyFormat.format(calculatedCost)
 
+    val scrollState = rememberScrollState()
+    scrollState.rememberScrollHapticFeedback()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -1343,10 +1237,13 @@ fun GardenPlanningFormTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GardenPlanningRecordsTab(
     viewModel: GardenPlanningViewModel,
@@ -1359,6 +1256,9 @@ fun GardenPlanningRecordsTab(
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     val searchShape = RoundedCornerShape(24.dp)
+
+    val lazyListState = rememberLazyListState()
+    lazyListState.rememberScrollHapticFeedback()
 
     var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
 
@@ -1389,11 +1289,89 @@ fun GardenPlanningRecordsTab(
     val totalQuantity = entries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() }
 
     LazyColumn(
+        state = lazyListState,
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // Sticky Search Bar & Filter Chips (positioned ABOVE summary cards & sticky on scroll)
+        stickyHeader {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.setSearchQuery(it) },
+                        placeholder = { Text("Search by farmer name, phone, serial or address...", fontSize = 13.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear Search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        shape = searchShape,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(elevation = 2.dp, shape = searchShape)
+                            .testTag("garden_search_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    // Payment Status Filter Chips Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        listOf("All Records", "Pending", "Advance Paid", "Fully Paid").forEach { filter ->
+                            val isSelected = selectedPaymentFilter == filter
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { viewModel.setPaymentFilter(filter) },
+                                label = { Text(filter, fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Summary Statistics Cards Grid (Total Payment, Received Payment, Pending Payment, Total Quantity)
+        item {
+            GardenRecordSummaryCards(
+                totalPayment = totalPayment,
+                receivedPayment = receivedPayment,
+                pendingPayment = pendingPayment,
+                totalQuantity = totalQuantity,
+                isDark = isDark
+            )
+        }
+
         // Active Recording Book Header Banner
         item {
             Surface(
@@ -1438,76 +1416,6 @@ fun GardenPlanningRecordsTab(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Summary Statistics Cards Grid (Total Payment, Received Payment, Pending Payment, Total Quantity)
-        item {
-            GardenRecordSummaryCards(
-                totalPayment = totalPayment,
-                receivedPayment = receivedPayment,
-                pendingPayment = pendingPayment,
-                totalQuantity = totalQuantity,
-                isDark = isDark
-            )
-        }
-
-        // Search Bar & Filter Chips
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search by farmer name, phone, serial or address...", fontSize = 13.sp) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear Search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    },
-                    shape = searchShape,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 2.dp, shape = searchShape)
-                        .testTag("garden_search_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // Payment Status Filter Chips Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    listOf("All Records", "Pending", "Advance Paid", "Fully Paid").forEach { filter ->
-                        val isSelected = selectedPaymentFilter == filter
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.setPaymentFilter(filter) },
-                            label = { Text(filter, fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            )
                         )
                     }
                 }
@@ -1560,6 +1468,10 @@ fun GardenPlanningRecordsTab(
                     context = context
                 )
             }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
@@ -2285,7 +2197,7 @@ fun GardenBookingRecordDetailDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // WhatsApp Share
+                            // WhatsApp Share button
                             Button(
                                 onClick = {
                                     val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
@@ -2307,21 +2219,7 @@ fun GardenBookingRecordDetailDialog(
                                 Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
 
-                            // Copy Message
-                            OutlinedButton(
-                                onClick = {
-                                    val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
-                                    copyToClipboard("Booking Message", msg)
-                                },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Copy Text", fontSize = 12.sp)
-                            }
-
-                            // Directly open WhatsApp chat with linked farmer number and attach digital receipt
+                            // Receipt button next to WhatsApp button
                             OutlinedButton(
                                 onClick = {
                                     val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
@@ -2389,29 +2287,31 @@ fun GardenBookingRecordDetailDialog(
                             ) {
                                 Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Receipt", fontSize = 12.sp)
+                                Text("Receipt", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedButton(
                                 onClick = { onEdit(currentEntry) },
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Booking", fontSize = 12.sp)
+                                Text("Edit Booking", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
 
                             Button(
                                 onClick = onDismiss,
+                                modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text("Close", fontSize = 12.sp)
+                                Text("Close", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

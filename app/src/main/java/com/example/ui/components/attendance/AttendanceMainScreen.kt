@@ -26,6 +26,30 @@ enum class AttendanceViewScreen {
 fun AttendanceMainScreen(
     viewModel: AttendanceViewModel,
     onNavigateBackToMain: () -> Unit,
+    themeMode: com.example.ui.AppThemeMode = com.example.ui.AppThemeMode.SYSTEM,
+    selectedColorHex: String = "#D32F2F",
+    onSelectThemeMode: (com.example.ui.AppThemeMode) -> Unit = {},
+    onSelectColorHex: (String) -> Unit = {},
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    isSearchActive: Boolean = false,
+    onSearchActiveChange: (Boolean) -> Unit = {},
+    onToggleSearch: () -> Unit = {},
+    onNavigateToAttendance: () -> Unit = {},
+    onNavigateToBookings: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {},
+    onNavigateToContactDirectory: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {},
+    onNavigateToInventory: () -> Unit = {},
+    onOpenRecycleBin: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToGardenPlanning: () -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    currentUserEmail: String? = null,
+    currentUserPhotoUrl: String? = null,
+    onLogout: () -> Unit = {},
+    onManualSync: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf(AttendanceViewScreen.HOME) }
@@ -53,7 +77,31 @@ fun AttendanceMainScreen(
                     onSelectWorker = { worker ->
                         viewModel.setSelectedWorker(worker)
                         currentScreen = AttendanceViewScreen.WORKER_DETAIL
-                    }
+                    },
+                    themeMode = themeMode,
+                    selectedColorHex = selectedColorHex,
+                    onSelectThemeMode = onSelectThemeMode,
+                    onSelectColorHex = onSelectColorHex,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    isSearchActive = isSearchActive,
+                    onSearchActiveChange = onSearchActiveChange,
+                    onToggleSearch = onToggleSearch,
+                    onNavigateToAttendance = onNavigateToAttendance,
+                    onNavigateToBookings = onNavigateToBookings,
+                    onNavigateToBackupRestore = onNavigateToBackupRestore,
+                    onNavigateToContactDirectory = onNavigateToContactDirectory,
+                    onNavigateToDashboard = onNavigateToDashboard,
+                    onNavigateToInventory = onNavigateToInventory,
+                    onOpenRecycleBin = onOpenRecycleBin,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                    unreadNotificationCount = unreadNotificationCount,
+                    onOpenNotifications = onOpenNotifications,
+                    currentUserEmail = currentUserEmail,
+                    currentUserPhotoUrl = currentUserPhotoUrl,
+                    onLogout = onLogout,
+                    onManualSync = onManualSync
                 )
             }
             AttendanceViewScreen.DAILY_MARKING -> {

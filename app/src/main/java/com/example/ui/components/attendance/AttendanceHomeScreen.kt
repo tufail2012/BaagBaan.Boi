@@ -76,12 +76,38 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+import com.example.ui.components.AgriHeader
+
 @Composable
 fun AttendanceHomeScreen(
     viewModel: AttendanceViewModel,
     onNavigateBack: () -> Unit,
     onOpenDailyMarking: () -> Unit,
-    onSelectWorker: (Worker) -> Unit
+    onSelectWorker: (Worker) -> Unit,
+    themeMode: com.example.ui.AppThemeMode = com.example.ui.AppThemeMode.SYSTEM,
+    selectedColorHex: String = "#D32F2F",
+    onSelectThemeMode: (com.example.ui.AppThemeMode) -> Unit = {},
+    onSelectColorHex: (String) -> Unit = {},
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    isSearchActive: Boolean = false,
+    onSearchActiveChange: (Boolean) -> Unit = {},
+    onToggleSearch: () -> Unit = {},
+    onNavigateToAttendance: () -> Unit = {},
+    onNavigateToBookings: () -> Unit = {},
+    onNavigateToBackupRestore: () -> Unit = {},
+    onNavigateToContactDirectory: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {},
+    onNavigateToInventory: () -> Unit = {},
+    onOpenRecycleBin: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToGardenPlanning: () -> Unit = {},
+    unreadNotificationCount: Int = 0,
+    onOpenNotifications: () -> Unit = {},
+    currentUserEmail: String? = null,
+    currentUserPhotoUrl: String? = null,
+    onLogout: () -> Unit = {},
+    onManualSync: (() -> Unit)? = null
 ) {
     val activeWorkers by viewModel.activeWorkers.collectAsState()
     val selectedMonthYear by viewModel.selectedMonthYear.collectAsState()
@@ -103,85 +129,71 @@ fun AttendanceHomeScreen(
 
     Scaffold(
         topBar = {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+            Column {
+                AgriHeader(
+                    title = "Worker Attendance",
+                    themeMode = themeMode,
+                    onSelectThemeMode = onSelectThemeMode,
+                    selectedColorHex = selectedColorHex,
+                    onSelectColorHex = onSelectColorHex,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    isSearchActive = isSearchActive,
+                    onSearchActiveChange = onSearchActiveChange,
+                    onToggleSearch = onToggleSearch,
+                    onNavigateToAttendance = onNavigateToAttendance,
+                    onNavigateToBookings = onNavigateToBookings,
+                    onNavigateToBackupRestore = onNavigateToBackupRestore,
+                    onNavigateToContactDirectory = onNavigateToContactDirectory,
+                    onNavigateToDashboard = onNavigateToDashboard,
+                    onNavigateToInventory = onNavigateToInventory,
+                    onOpenRecycleBin = onOpenRecycleBin,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                    unreadNotificationCount = unreadNotificationCount,
+                    onOpenNotifications = onOpenNotifications,
+                    currentUserEmail = currentUserEmail,
+                    currentUserPhotoUrl = currentUserPhotoUrl,
+                    onLogout = onLogout,
+                    onManualSync = onManualSync,
+                    onBack = onNavigateBack
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        IconButton(
-                            onClick = onNavigateBack,
-                            modifier = Modifier.testTag("attendance_back_button")
+                        Text(
+                            text = "Worker Roster & Summary",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Button(
+                            onClick = onOpenDailyMarking,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.testTag("daily_marking_button")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                imageVector = Icons.Default.Event,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Mark Today", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.EventAvailable,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "Attendance",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 19.sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Worker Roster & Summary",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-
-                    Button(
-                        onClick = onOpenDailyMarking,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier.testTag("daily_marking_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Mark Today", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

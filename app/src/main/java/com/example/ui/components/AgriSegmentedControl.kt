@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.sp
 fun AgriSegmentedControl(
     selectedMode: Int, // 0 = New Entry, 1 = Records, 2 = Analytics
     onModeSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    newEntryLabel: String = "New Entry",
+    recordsLabel: String = "Records"
 ) {
     val containerShape = RoundedCornerShape(32.dp)
     val isDark = isAppInDarkMode()
@@ -61,7 +63,7 @@ fun AgriSegmentedControl(
 
             // New Entry Tab
             SegmentedTabItem(
-                text = "New Entry",
+                text = newEntryLabel,
                 isSelected = isNewEntry,
                 isDark = isDark,
                 onClick = { onModeSelected(0) },
@@ -72,7 +74,7 @@ fun AgriSegmentedControl(
 
             // Records Tab
             SegmentedTabItem(
-                text = "Records",
+                text = recordsLabel,
                 isSelected = isRecords,
                 isDark = isDark,
                 onClick = { onModeSelected(1) },

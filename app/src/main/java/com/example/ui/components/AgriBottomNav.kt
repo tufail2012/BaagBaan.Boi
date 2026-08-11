@@ -73,7 +73,8 @@ fun AgriBottomNav(
         AgriNavItem("Imported", "Imported", Icons.Default.LocalShipping, "nav_imported"),
         AgriNavItem("Rootstocks", "Rootstocks", Icons.Default.Park, "nav_rootstocks"),
         AgriNavItem("Site Visit", "Site Visit", Icons.Outlined.Assignment, "nav_site_visit"),
-        AgriNavItem("Pruning", "Pruning", Icons.Default.ContentCut, "nav_pruning")
+        AgriNavItem("Pruning", "Pruning", Icons.Default.ContentCut, "nav_pruning"),
+        AgriNavItem("Garden", "Garden Planning", Icons.Default.Park, "nav_garden_planning")
     )
 
     val isDark = isAppInDarkMode()
@@ -122,7 +123,7 @@ fun AgriBottomNav(
         modifier = modifier
             .navigationBarsPadding()
             .fillMaxWidth()
-            .padding(start = 18.dp, end = 18.dp, top = 6.dp, bottom = 18.dp)
+            .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 18.dp)
             .shadow(
                 elevation = 16.dp,
                 shape = CircleShape,
@@ -142,13 +143,14 @@ fun AgriBottomNav(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(68.dp)
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             navItems.forEach { item ->
                 val isSelected = selectedCategory.equals(item.serviceCategory, ignoreCase = true) ||
-                        (selectedCategory.equals("Local", ignoreCase = true) && item.serviceCategory.equals("Local Plants", ignoreCase = true))
+                        (selectedCategory.equals("Local", ignoreCase = true) && item.serviceCategory.equals("Local Plants", ignoreCase = true)) ||
+                        (selectedCategory.equals("Garden", ignoreCase = true) && item.serviceCategory.equals("Garden Planning", ignoreCase = true))
 
                 val inactiveColor = if (!isDark) {
                     Color(0xFF455A64) // Crisp dark slate for light theme
@@ -187,13 +189,13 @@ fun AgriBottomNav(
                 )
 
                 val animatedPillWidth by animateDpAsState(
-                    targetValue = if (isSelected) 56.dp else 50.dp,
+                    targetValue = if (isSelected) 48.dp else 42.dp,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                     label = "PillWidth"
                 )
 
                 val animatedPillHeight by animateDpAsState(
-                    targetValue = if (isSelected) 56.dp else 50.dp,
+                    targetValue = if (isSelected) 48.dp else 42.dp,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                     label = "PillHeight"
                 )

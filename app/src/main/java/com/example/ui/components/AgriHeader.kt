@@ -124,6 +124,7 @@ fun AgriHeader(
     currentUserPhotoUrl: String? = null,
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -292,12 +293,28 @@ fun AgriHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (onBack != null) {
+                        IconButton(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("header_back_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+
                     val headerBadgeIcon = when (title.lowercase()) {
                         "imported", "imported plants" -> Icons.Default.LocalShipping
                         "rootstocks", "imported rootstocks" -> Icons.Default.Park
                         "site visit" -> Icons.Outlined.Assignment
                         "pruning" -> Icons.Default.ContentCut
                         "bookings" -> Icons.Default.PlaylistAddCheck
+                        "garden planning", "garden" -> Icons.Default.Park
                         "attendance", "worker attendance" -> Icons.Default.EventAvailable
                         else -> Icons.Outlined.LocalFlorist
                     }
@@ -829,41 +846,6 @@ private fun OverflowMenuContent(
             onNavigateToLogin()
         },
         modifier = Modifier.testTag("accounts_menu_item$tagSuffix")
-    )
-
-    // 6B. Garden Planning
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Park,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Garden Planning",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "Area & Cost Calculation",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        onClick = {
-            onDismiss()
-            onNavigateToGardenPlanning()
-        },
-        modifier = Modifier.testTag("garden_planning_menu_item$tagSuffix")
     )
 
     // === DIVIDER 2 ===
