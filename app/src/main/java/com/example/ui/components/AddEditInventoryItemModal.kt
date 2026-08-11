@@ -61,7 +61,7 @@ fun AddEditInventoryItemModal(
     var isSaving by remember { mutableStateOf(false) }
 
     var categoryExpanded by remember { mutableStateOf(false) }
-    val categories = listOf("Local Plants", "Imported Plants", "Imported Rootstock")
+    val categories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
 
     var varietyExpanded by remember { mutableStateOf(false) }
     val rootstockVarieties = listOf(

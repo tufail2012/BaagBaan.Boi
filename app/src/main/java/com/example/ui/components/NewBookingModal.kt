@@ -63,7 +63,7 @@ fun NewBookingModal(
     isSaving: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val bookingTypes = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Pruning", "Site Visit")
+    val bookingTypes = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Pruning", "Site Visit", "Garden Planning")
     val rootstockVarieties = listOf("M9T337", "MM111", "Geneva G-41", "Geneva G-11", "Geneva G-214", "Geneva G-969", "Geneva G-35", "Geneva G-979", "Geneva G-890")
     val pruningSeasons = listOf("Summer", "Winter")
 

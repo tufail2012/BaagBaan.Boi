@@ -402,7 +402,8 @@ fun AgriCropMainScreen(
                                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                         com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                                     }
-                                }
+                                },
+                                onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null
                             )
 
                             // Segmented toggle header (New Entry / Records) - shown only for Crop Services

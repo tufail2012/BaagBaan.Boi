@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
@@ -106,7 +107,8 @@ fun GlobalSearchResultsScreen(
         "Imported Plants",
         "Imported Rootstocks",
         "Site Visit",
-        "Pruning"
+        "Pruning",
+        "Garden Planning"
     )
 
     val finalFilteredResults = remember(searchResults, selectedCategoryFilter) {
@@ -120,6 +122,7 @@ fun GlobalSearchResultsScreen(
                     "Imported Rootstocks" -> record.serviceType.contains("Rootstock", ignoreCase = true)
                     "Site Visit" -> record.serviceType.contains("Site Visit", ignoreCase = true)
                     "Pruning" -> record.serviceType.contains("Pruning", ignoreCase = true)
+                    "Garden Planning" -> record.serviceType.contains("Garden", ignoreCase = true)
                     else -> record.serviceType.equals(selectedCategoryFilter, ignoreCase = true)
                 }
             }
@@ -453,7 +456,7 @@ private fun GlobalSearchResultCard(
         "rootstocks", "rootstock" -> Triple(
             if (isDark) Color(0xFF451A03) else Color(0xFFFFEDD5),
             if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C),
-            Icons.Default.Park
+            Icons.Default.Spa
         )
         "site visit" -> Triple(
             if (isDark) Color(0xFF134E4A) else Color(0xFFCCFBF1),

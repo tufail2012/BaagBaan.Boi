@@ -754,9 +754,9 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Section Header: PRICING & QUANTITY
+        // Section Header: COST & QUANTITY DETAILS
         Text(
-            text = "PRICING & QUANTITY",
+            text = "COST & QUANTITY DETAILS",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -764,13 +764,13 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Total Kanal Area
+        // Field 1: Total Kanals Area (accepts decimals e.g. 1.2)
         OutlinedTextField(
             value = totalKanalArea,
             onValueChange = { viewModel.totalKanalArea.value = it },
-            label = { Text("Quantity (Total Kanal Area) *") },
-            placeholder = { Text("e.g. 5.5 Kanals") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            label = { Text("Total Kanals Area *") },
+            placeholder = { Text("e.g. 1.2") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = textFieldShape,
             singleLine = true,
             modifier = Modifier
@@ -781,7 +781,7 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Plants per Kanal
+        // Field 2: Plants per Kanal
         OutlinedTextField(
             value = plantsPerKanal,
             onValueChange = { viewModel.plantsPerKanal.value = it },
@@ -798,13 +798,13 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Unit Price / Cost per Plant
+        // Field 3: Unit Price per Plant
         OutlinedTextField(
             value = costPerPlant,
             onValueChange = { viewModel.costPerPlant.value = it },
-            label = { Text("Unit Price / Cost per Plant (₹) *") },
+            label = { Text("Unit Price per Plant (₹) *") },
             placeholder = { Text("e.g. 150") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = textFieldShape,
             singleLine = true,
             modifier = Modifier
@@ -815,59 +815,66 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Computed Total Plants & Calculation String
-        val areaVal = totalKanalArea.toDoubleOrNull() ?: 0.0
-        val plantsVal = plantsPerKanal.toDoubleOrNull() ?: 0.0
-        val calculatedTotalPlants = Math.round(areaVal * plantsVal).toInt()
-        val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
+        // Computed Total Cost & Summary Box (displayed when all 3 fields are filled)
+        val areaVal = totalKanalArea.toDoubleOrNull()
+        val plantsVal = plantsPerKanal.toDoubleOrNull()
+        val costVal = costPerPlant.toDoubleOrNull()
+        val isAllCostFieldsFilled = totalKanalArea.isNotBlank() && plantsPerKanal.isNotBlank() && costPerPlant.isNotBlank() && areaVal != null && plantsVal != null && costVal != null
 
-        val areaDisplay = if (areaVal > 0 && areaVal % 1.0 == 0.0) areaVal.toLong().toString() else if (areaVal > 0) areaVal.toString() else "0"
-        val plantsDisplay = if (plantsVal > 0 && plantsVal % 1.0 == 0.0) plantsVal.toLong().toString() else if (plantsVal > 0) plantsVal.toString() else "0"
+        if (isAllCostFieldsFilled) {
+            val calcTotalCost = areaVal!! * plantsVal!! * costVal!!
+            val calculatedTotalPlants = Math.round(areaVal * plantsVal).toInt()
+            val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
+            val formattedTotalCost = currencyFormat.format(calcTotalCost)
 
-        // Total Cost Summary Box
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        ) {
-            Row(
+            val areaDisplay = if (areaVal % 1.0 == 0.0) areaVal.toLong().toString() else areaVal.toString()
+            val plantsDisplay = if (plantsVal % 1.0 == 0.0) plantsVal.toLong().toString() else plantsVal.toString()
+
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
+                    .testTag("garden_total_cost_card"),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
             ) {
-                Column(
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 12.dp)
+                    ) {
+                        Text(
+                            text = "TOTAL COST",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
                     Text(
-                        text = "TOTAL COST (AUTO-CALCULATED)",
-                        fontSize = 11.sp,
+                        text = formattedTotalCost,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
                     )
                 }
-
-                Text(
-                    text = totalCostFormatted,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1
-                )
             }
         }
 

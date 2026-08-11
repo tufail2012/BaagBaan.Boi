@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.HowToReg
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
@@ -71,7 +72,7 @@ fun AgriBottomNav(
     val navItems = listOf(
         AgriNavItem("Local", "Local Plants", Icons.Outlined.LocalFlorist, "nav_local"),
         AgriNavItem("Imported", "Imported", Icons.Default.LocalShipping, "nav_imported"),
-        AgriNavItem("Rootstocks", "Rootstocks", Icons.Default.Park, "nav_rootstocks"),
+        AgriNavItem("Rootstocks", "Rootstocks", Icons.Default.Spa, "nav_rootstocks"),
         AgriNavItem("Site Visit", "Site Visit", Icons.Outlined.Assignment, "nav_site_visit"),
         AgriNavItem("Pruning", "Pruning", Icons.Default.ContentCut, "nav_pruning"),
         AgriNavItem("Garden", "Garden Planning", Icons.Default.Park, "nav_garden_planning")

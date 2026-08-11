@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.outlined.Assignment
@@ -79,7 +80,7 @@ fun UserBookingsSection(
     var showNewBookingModal by remember { mutableStateOf(false) }
     var bookingToDelete by remember { mutableStateOf<UserBooking?>(null) }
 
-    val filterOptions = listOf("All", "Local Plants", "Imported Plants", "Imported Rootstock", "Pruning", "Site Visit")
+    val filterOptions = listOf("All", "Local Plants", "Imported Plants", "Imported Rootstock", "Pruning", "Site Visit", "Garden Planning")
 
     if (showNewBookingModal) {
         NewBookingModal(
@@ -308,7 +309,8 @@ fun BookingCardItem(
 ) {
     val (typeColor, typeIcon) = when (booking.type) {
         "Imported Plants" -> Pair(Color(0xFF1976D2), Icons.Default.LocalShipping)
-        "Imported Rootstock" -> Pair(Color(0xFF388E3C), Icons.Default.Park)
+        "Imported Rootstock" -> Pair(Color(0xFF388E3C), Icons.Default.Spa)
+        "Garden Planning" -> Pair(Color(0xFF2E7D32), Icons.Default.Park)
         "Pruning" -> Pair(Color(0xFFD32F2F), Icons.Default.EventNote)
         "Site Visit" -> Pair(Color(0xFF7B1FA2), Icons.Outlined.Assignment)
         else -> Pair(Color(0xFFE65100), Icons.Outlined.LocalFlorist)

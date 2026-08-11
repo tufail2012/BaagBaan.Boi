@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -152,10 +154,11 @@ fun AgriHeader(
     val isDark = isAppInDarkMode()
     val focusRequester = remember { FocusRequester() }
 
-    val activeSearchMode = isSearchActive || searchQuery.isNotEmpty()
+    val isAttendanceScreen = title.equals("Worker Attendance", ignoreCase = true) || title.equals("Attendance", ignoreCase = true)
+    val activeSearchMode = (isSearchActive || searchQuery.isNotEmpty()) && !isAttendanceScreen
 
     LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
+        if (isSearchActive && !isAttendanceScreen) {
             try {
                 focusRequester.requestFocus()
             } catch (_: Exception) {}
@@ -166,14 +169,17 @@ fun AgriHeader(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(
+                horizontal = if (isAttendanceScreen) 12.dp else 16.dp,
+                vertical = 6.dp
+            ),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             width = 1.dp,
             color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.35f) else Color.Transparent
         ),
         tonalElevation = 2.dp,
-        shape = CircleShape
+        shape = if (isAttendanceScreen) RoundedCornerShape(12.dp) else CircleShape
     ) {
         if (activeSearchMode) {
             // Global Search Bar active in Header
@@ -293,9 +299,9 @@ fun AgriHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (onBack != null) {
+                    if (onBack != null || isAttendanceScreen) {
                         IconButton(
-                            onClick = onBack,
+                            onClick = { onBack?.invoke() },
                             modifier = Modifier
                                 .size(36.dp)
                                 .testTag("header_back_button")
@@ -310,12 +316,12 @@ fun AgriHeader(
 
                     val headerBadgeIcon = when (title.lowercase()) {
                         "imported", "imported plants" -> Icons.Default.LocalShipping
-                        "rootstocks", "imported rootstocks" -> Icons.Default.Park
+                        "rootstocks", "imported rootstocks" -> Icons.Default.Spa
                         "site visit" -> Icons.Outlined.Assignment
                         "pruning" -> Icons.Default.ContentCut
                         "bookings" -> Icons.Default.PlaylistAddCheck
                         "garden planning", "garden" -> Icons.Default.Park
-                        "attendance", "worker attendance" -> Icons.Default.EventAvailable
+                        "attendance", "worker attendance" -> Icons.Default.CalendarToday
                         else -> Icons.Outlined.LocalFlorist
                     }
 
@@ -346,82 +352,84 @@ fun AgriHeader(
                     )
                 }
 
-                // Right Action Buttons
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    IconButton(
-                        onClick = onOpenNotifications,
-                        modifier = Modifier.testTag("header_notifications_button")
+                if (!isAttendanceScreen) {
+                    // Right Action Buttons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        BadgedBox(
-                            badge = {
-                                if (unreadNotificationCount > 0) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = Color.White
-                                    ) {
-                                        Text(
-                                            text = if (unreadNotificationCount > 99) "99+" else "$unreadNotificationCount",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                        IconButton(
+                            onClick = onOpenNotifications,
+                            modifier = Modifier.testTag("header_notifications_button")
+                        ) {
+                            BadgedBox(
+                                badge = {
+                                    if (unreadNotificationCount > 0) {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = Color.White
+                                        ) {
+                                            Text(
+                                                text = if (unreadNotificationCount > 99) "99+" else "$unreadNotificationCount",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
                                 }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "Notification Center",
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
                             }
+                        }
+
+                        IconButton(
+                            onClick = {
+                                onSearchActiveChange(true)
+                                onToggleSearch()
+                            },
+                            modifier = Modifier.testTag("header_search_button")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notification Center",
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search Records",
                                 tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
-                    }
 
-                    IconButton(
-                        onClick = {
-                            onSearchActiveChange(true)
-                            onToggleSearch()
-                        },
-                        modifier = Modifier.testTag("header_search_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Records",
-                            tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    // Profile Avatar Menu containing Theme & Account options
-                    Box {
-                        HeaderProfileAvatar(
-                            photoUrl = effectivePhotoUrl,
-                            currentUserEmail = currentUserEmail,
-                            isDark = isDark,
-                            onClick = { menuExpanded = true }
-                        )
-
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            OverflowMenuContent(
-                                themeMode = themeMode,
+                        // Profile Avatar Menu containing Theme & Account options
+                        Box {
+                            HeaderProfileAvatar(
+                                photoUrl = effectivePhotoUrl,
                                 currentUserEmail = currentUserEmail,
-                                tagSuffix = "_2",
-                                onDismiss = { menuExpanded = false },
-                                onNavigateToDashboard = onNavigateToDashboard,
-                                onNavigateToInventory = onNavigateToInventory,
-                                onNavigateToAttendance = onNavigateToAttendance,
-                                onNavigateToContactDirectory = onNavigateToContactDirectory,
-                                onNavigateToBackupRestore = onNavigateToBackupRestore,
-                                onNavigateToLogin = onNavigateToLogin,
-                                onNavigateToGardenPlanning = onNavigateToGardenPlanning,
-                                onLogout = onLogout,
-                                onOpenThemeDialog = { showThemeDialog = true },
-                                onOpenRecycleBin = onOpenRecycleBin
+                                isDark = isDark,
+                                onClick = { menuExpanded = true }
                             )
+
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                OverflowMenuContent(
+                                    themeMode = themeMode,
+                                    currentUserEmail = currentUserEmail,
+                                    tagSuffix = "_2",
+                                    onDismiss = { menuExpanded = false },
+                                    onNavigateToDashboard = onNavigateToDashboard,
+                                    onNavigateToInventory = onNavigateToInventory,
+                                    onNavigateToAttendance = onNavigateToAttendance,
+                                    onNavigateToContactDirectory = onNavigateToContactDirectory,
+                                    onNavigateToBackupRestore = onNavigateToBackupRestore,
+                                    onNavigateToLogin = onNavigateToLogin,
+                                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                                    onLogout = onLogout,
+                                    onOpenThemeDialog = { showThemeDialog = true },
+                                    onOpenRecycleBin = onOpenRecycleBin
+                                )
+                            }
                         }
                     }
                 }

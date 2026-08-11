@@ -322,7 +322,7 @@ fun InventoryManagementDialog(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Category Filter Chips
-                val filterChips = listOf("All", "Low Stock", "Local Plants", "Imported Plants", "Imported Rootstock")
+                val filterChips = listOf("All", "Low Stock", "Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)

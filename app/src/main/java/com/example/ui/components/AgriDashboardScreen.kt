@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -379,7 +380,7 @@ fun AgriDashboardScreen(
                         // Rootstock Inventories
                         CategorySummaryCard(
                             title = "Rootstock Inventories",
-                            icon = Icons.Default.Park,
+                            icon = Icons.Default.Spa,
                             badgeColor = Color(0xFFED6C02),
                             recordsCount = rootstockRecords.size,
                             totalQuantity = rootstockRecords.sumOf { it.quantity },

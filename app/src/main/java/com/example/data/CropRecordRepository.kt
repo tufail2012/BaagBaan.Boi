@@ -71,7 +71,7 @@ class CropRecordRepository(
 
     private suspend fun adjustInventoryOnBookingSave(record: CropRecord) {
         if (inventoryDao == null) return
-        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock")
+        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
         val categoryMatch = validCategories.firstOrNull { record.serviceType.contains(it, ignoreCase = true) }
         if (categoryMatch != null) {
             val varietyToMatch = if (record.rootstock.isNotBlank()) record.rootstock else record.plantVariety
@@ -88,7 +88,7 @@ class CropRecordRepository(
 
     private suspend fun adjustInventoryOnBookingDelete(record: CropRecord) {
         if (inventoryDao == null) return
-        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock")
+        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
         val categoryMatch = validCategories.firstOrNull { record.serviceType.contains(it, ignoreCase = true) }
         if (categoryMatch != null) {
             val varietyToMatch = if (record.rootstock.isNotBlank()) record.rootstock else record.plantVariety

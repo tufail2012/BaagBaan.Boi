@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -309,7 +310,7 @@ fun FarmerRecordsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Park,
+                            imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = Color.Gray

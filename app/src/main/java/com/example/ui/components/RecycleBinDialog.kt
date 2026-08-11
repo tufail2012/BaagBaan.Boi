@@ -218,7 +218,7 @@ fun RecycleBinDialog(
                                                             val restoredRecord = RecycleBinConverter.jsonToCropRecord(item.jsonPayload)
                                                             db.cropRecordDao().insertRecord(restoredRecord)
                                                             firestoreSyncManager.saveCropRecord(restoredRecord)
-                                                            val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock")
+                                                            val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
                                                             val categoryMatch = validCategories.firstOrNull { restoredRecord.serviceType.contains(it, ignoreCase = true) }
                                                             if (categoryMatch != null) {
                                                                 val varietyToMatch = if (restoredRecord.rootstock.isNotBlank()) restoredRecord.rootstock else restoredRecord.plantVariety
