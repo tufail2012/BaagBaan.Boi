@@ -97,6 +97,7 @@ object RecycleBinConverter {
         json.put("bookingDate", entry.bookingDate)
         json.put("expectedDelivery", entry.expectedDelivery)
         json.put("notes", entry.notes)
+        json.put("installmentHistoryJson", entry.installmentHistoryJson)
         json.put("timestamp", entry.timestamp)
         return json.toString()
     }
@@ -113,10 +114,13 @@ object RecycleBinConverter {
             plantsPerKanal = json.optInt("plantsPerKanal", 0),
             costPerPlant = json.optDouble("costPerPlant", 0.0),
             totalCost = json.optDouble("totalCost", 0.0),
+            amountPaid = json.optDouble("amountPaid", 0.0),
+            remainingBalance = json.optDouble("remainingBalance", 0.0),
             paymentStatus = json.optString("paymentStatus", "Pending"),
             bookingDate = json.optString("bookingDate", ""),
             expectedDelivery = json.optString("expectedDelivery", ""),
             notes = json.optString("notes", ""),
+            installmentHistoryJson = json.optString("installmentHistoryJson", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }

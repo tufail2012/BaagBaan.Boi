@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 import androidx.room.migration.Migration
 
-@Database(entities = [CropRecord::class, Worker::class, AttendanceRecord::class, AppNotification::class, AdvancePayment::class, FarmerContact::class, RecycleBinEntity::class, InventoryItem::class, GardenPlanningEntry::class], version = 11, exportSchema = false)
+@Database(entities = [CropRecord::class, Worker::class, AttendanceRecord::class, AppNotification::class, AdvancePayment::class, FarmerContact::class, RecycleBinEntity::class, InventoryItem::class, GardenPlanningEntry::class], version = 13, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun cropRecordDao(): CropRecordDao
     abstract fun attendanceDao(): AttendanceDao
@@ -49,6 +49,8 @@ abstract class AppDatabase : RoomDatabase() {
                             `plantsPerKanal` INTEGER NOT NULL,
                             `costPerPlant` REAL NOT NULL,
                             `totalCost` REAL NOT NULL,
+                            `amountPaid` REAL NOT NULL DEFAULT 0.0,
+                            `remainingBalance` REAL NOT NULL DEFAULT 0.0,
                             `paymentStatus` TEXT NOT NULL,
                             `bookingDate` TEXT NOT NULL,
                             `expectedDelivery` TEXT NOT NULL,
@@ -62,6 +64,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE garden_planning_entries ADD COLUMN amountPaid REAL NOT NULL DEFAULT 0.0")
+                    db.execSQL("ALTER TABLE garden_planning_entries ADD COLUMN remainingBalance REAL NOT NULL DEFAULT 0.0")
+                } catch (e: Exception) {
+                    // Columns may already exist
+                }
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE garden_planning_entries ADD COLUMN installmentHistoryJson TEXT NOT NULL DEFAULT ''")
+                } catch (e: Exception) {
+                    // Column may already exist
+                }
+            }
+        }
+
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -69,7 +92,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "agri_crop_database"
                 )
-                .addMigrations(MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .fallbackToDestructiveMigration()
                 .addCallback(DatabaseCallback(scope))
                 .build()

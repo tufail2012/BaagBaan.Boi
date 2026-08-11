@@ -15,9 +15,12 @@ data class GardenPlanningEntry(
     val plantsPerKanal: Int = 0,
     val costPerPlant: Double = 0.0,
     val totalCost: Double = 0.0,
+    val amountPaid: Double = 0.0,
+    val remainingBalance: Double = 0.0,
     val paymentStatus: String = "Pending",
     val bookingDate: String = "",
     val expectedDelivery: String = "",
     val notes: String = "",
+    val installmentHistoryJson: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )

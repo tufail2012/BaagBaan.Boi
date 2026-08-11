@@ -63,6 +63,7 @@ class GardenPlanningViewModel(
     val totalKanalArea = MutableStateFlow("")
     val plantsPerKanal = MutableStateFlow("")
     val costPerPlant = MutableStateFlow("")
+    val amountPaid = MutableStateFlow("0")
     val paymentStatus = MutableStateFlow("Pending")
     val bookingDate = MutableStateFlow(dateFormatter.format(Date()))
     val expectedDelivery = MutableStateFlow(dateFormatter.format(Date()))
@@ -87,9 +88,46 @@ class GardenPlanningViewModel(
 
     fun calculateTotalCost(): Double {
         val area = totalKanalArea.value.toDoubleOrNull() ?: 0.0
-        val plants = plantsPerKanal.value.toIntOrNull() ?: 0
+        val plants = plantsPerKanal.value.toDoubleOrNull() ?: 0.0
         val cost = costPerPlant.value.toDoubleOrNull() ?: 0.0
         return area * plants * cost
+    }
+
+    fun calculateAmountPaid(): Double {
+        return amountPaid.value.toDoubleOrNull() ?: 0.0
+    }
+
+    fun calculateRemainingBalance(): Double {
+        return (calculateTotalCost() - calculateAmountPaid()).coerceAtLeast(0.0)
+    }
+
+    fun onAmountPaidChanged(newAmount: String) {
+        amountPaid.value = newAmount
+        val paid = newAmount.toDoubleOrNull() ?: 0.0
+        val total = calculateTotalCost()
+        if (paid <= 0.0) {
+            paymentStatus.value = "Pending"
+        } else if (total > 0.0 && paid >= total) {
+            paymentStatus.value = "Fully Paid"
+        } else {
+            paymentStatus.value = "Advance Paid"
+        }
+    }
+
+    fun onPaymentStatusSelected(status: String) {
+        paymentStatus.value = status
+        val total = calculateTotalCost()
+        when (status) {
+            "Pending" -> amountPaid.value = "0"
+            "Fully Paid" -> amountPaid.value = if (total > 0 && total % 1.0 == 0.0) total.toLong().toString() else if (total > 0) total.toString() else "0"
+            "Advance Paid" -> {
+                val currentPaid = amountPaid.value.toDoubleOrNull() ?: 0.0
+                if (currentPaid <= 0.0 || (total > 0 && currentPaid >= total)) {
+                    val half = total / 2.0
+                    amountPaid.value = if (half > 0 && half % 1.0 == 0.0) half.toLong().toString() else if (half > 0) half.toString() else "0"
+                }
+            }
+        }
     }
 
     fun generateNextSerialNumber(currentSerial: String, existingEntries: List<GardenPlanningEntry>): String {
@@ -169,6 +207,10 @@ class GardenPlanningViewModel(
         totalKanalArea.value = if (entry.totalKanalArea > 0) entry.totalKanalArea.toString() else ""
         plantsPerKanal.value = if (entry.plantsPerKanal > 0) entry.plantsPerKanal.toString() else ""
         costPerPlant.value = if (entry.costPerPlant > 0) entry.costPerPlant.toString() else ""
+        val paidVal = if (entry.amountPaid > 0) entry.amountPaid else if (entry.paymentStatus == "Fully Paid") entry.totalCost else 0.0
+        amountPaid.value = if (paidVal > 0) {
+            if (paidVal % 1.0 == 0.0) paidVal.toLong().toString() else paidVal.toString()
+        } else "0"
         paymentStatus.value = entry.paymentStatus
         bookingDate.value = entry.bookingDate.ifBlank { dateFormatter.format(Date()) }
         expectedDelivery.value = entry.expectedDelivery.ifBlank { dateFormatter.format(Date()) }
@@ -183,6 +225,7 @@ class GardenPlanningViewModel(
         totalKanalArea.value = ""
         plantsPerKanal.value = ""
         costPerPlant.value = ""
+        amountPaid.value = "0"
         paymentStatus.value = "Pending"
         bookingDate.value = dateFormatter.format(Date())
         expectedDelivery.value = dateFormatter.format(Date())
@@ -197,9 +240,11 @@ class GardenPlanningViewModel(
         }
 
         val area = totalKanalArea.value.toDoubleOrNull() ?: 0.0
-        val plants = plantsPerKanal.value.toIntOrNull() ?: 0
+        val plants = plantsPerKanal.value.toDoubleOrNull()?.toInt() ?: plantsPerKanal.value.toIntOrNull() ?: 0
         val cost = costPerPlant.value.toDoubleOrNull() ?: 0.0
         val calcTotalCost = area * plants * cost
+        val paid = amountPaid.value.toDoubleOrNull() ?: 0.0
+        val rem = (calcTotalCost - paid).coerceAtLeast(0.0)
 
         val sn = serialNumber.value.ifBlank { generateNextSerialNumber("GP-01", allEntries.value) }
 
@@ -213,6 +258,8 @@ class GardenPlanningViewModel(
             plantsPerKanal = plants,
             costPerPlant = cost,
             totalCost = calcTotalCost,
+            amountPaid = paid,
+            remainingBalance = rem,
             paymentStatus = paymentStatus.value,
             bookingDate = bookingDate.value,
             expectedDelivery = expectedDelivery.value,
@@ -236,6 +283,17 @@ class GardenPlanningViewModel(
         }
     }
 
+    fun updateEntrySync(entry: GardenPlanningEntry) {
+        viewModelScope.launch {
+            try {
+                repository.update(entry)
+                userMessage.value = "Entry updated successfully"
+            } catch (e: Exception) {
+                userMessage.value = "Error updating entry: ${e.message}"
+            }
+        }
+    }
+
     fun deleteEntry(entry: GardenPlanningEntry) {
         viewModelScope.launch {
             try {
@@ -252,6 +310,8 @@ class GardenPlanningViewModel(
         val plants = plantsPerKanal.value.toIntOrNull() ?: 0
         val totalPlants = (area * plants).toInt()
         val totalAmount = calculateTotalCost()
+        val paid = calculateAmountPaid()
+        val rem = calculateRemainingBalance()
 
         return MessageTemplateHelper.generateMessage(
             template = selectedTemplate.value,
@@ -263,8 +323,8 @@ class GardenPlanningViewModel(
             plantVariety = "$area Kanals ($plants Plants/Kanal)",
             quantity = totalPlants.toString(),
             totalAmount = totalAmount,
-            amountPaid = if (paymentStatus.value == "Fully Paid") totalAmount else 0.0,
-            remainingBalance = if (paymentStatus.value == "Fully Paid") 0.0 else totalAmount,
+            amountPaid = paid,
+            remainingBalance = rem,
             paymentStatus = paymentStatus.value,
             bookingDate = bookingDate.value,
             expectedDelivery = expectedDelivery.value,

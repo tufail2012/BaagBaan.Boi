@@ -159,10 +159,13 @@ class FirestoreSyncManager {
                 "plantsPerKanal" to entry.plantsPerKanal,
                 "costPerPlant" to entry.costPerPlant,
                 "totalCost" to entry.totalCost,
+                "amountPaid" to entry.amountPaid,
+                "remainingBalance" to entry.remainingBalance,
                 "paymentStatus" to entry.paymentStatus,
                 "bookingDate" to entry.bookingDate,
                 "expectedDelivery" to entry.expectedDelivery,
                 "notes" to entry.notes,
+                "installmentHistoryJson" to entry.installmentHistoryJson,
                 "timestamp" to entry.timestamp
             )
 
@@ -357,10 +360,13 @@ class FirestoreSyncManager {
                         val plantsPerKanal = (doc.getLong("plantsPerKanal") ?: 0L).toInt()
                         val costPerPlant = doc.getDouble("costPerPlant") ?: 0.0
                         val totalCost = doc.getDouble("totalCost") ?: (totalKanalArea * plantsPerKanal * costPerPlant)
+                        val amountPaid = doc.getDouble("amountPaid") ?: 0.0
+                        val remainingBalance = doc.getDouble("remainingBalance") ?: (totalCost - amountPaid).coerceAtLeast(0.0)
                         val paymentStatus = doc.getString("paymentStatus") ?: "Pending"
                         val bookingDate = doc.getString("bookingDate") ?: ""
                         val expectedDelivery = doc.getString("expectedDelivery") ?: ""
                         val notes = doc.getString("notes") ?: ""
+                        val installmentHistoryJson = doc.getString("installmentHistoryJson") ?: ""
                         val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                         val cloudEntry = GardenPlanningEntry(
@@ -373,10 +379,13 @@ class FirestoreSyncManager {
                             plantsPerKanal = plantsPerKanal,
                             costPerPlant = costPerPlant,
                             totalCost = totalCost,
+                            amountPaid = amountPaid,
+                            remainingBalance = remainingBalance,
                             paymentStatus = paymentStatus,
                             bookingDate = bookingDate,
                             expectedDelivery = expectedDelivery,
                             notes = notes,
+                            installmentHistoryJson = installmentHistoryJson,
                             timestamp = timestamp
                         )
 

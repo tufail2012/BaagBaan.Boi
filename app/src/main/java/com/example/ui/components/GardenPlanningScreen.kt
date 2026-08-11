@@ -1,8 +1,12 @@
 package com.example.ui.components
 
+import kotlin.math.roundToInt
 import android.Manifest
 import android.app.DatePickerDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ContentUris
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -17,8 +21,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,32 +41,45 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPhone
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -85,14 +104,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.data.GardenPlanningEntry
 import com.example.ui.GardenPlanningViewModel
@@ -100,9 +123,60 @@ import com.example.util.MessagePreviewComponent
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import java.util.UUID
+
+// Data model for installment payment records
+data class GardenInstallment(
+    val id: String = UUID.randomUUID().toString(),
+    val amount: Double,
+    val paymentMode: String = "Cash",
+    val date: String = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()),
+    val note: String = ""
+)
+
+fun parseGardenInstallments(jsonStr: String): List<GardenInstallment> {
+    if (jsonStr.isBlank()) return emptyList()
+    val list = mutableListOf<GardenInstallment>()
+    try {
+        val array = JSONArray(jsonStr)
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            list.add(
+                GardenInstallment(
+                    id = obj.optString("id", UUID.randomUUID().toString()),
+                    amount = obj.optDouble("amount", 0.0),
+                    paymentMode = obj.optString("paymentMode", "Cash"),
+                    date = obj.optString("date", ""),
+                    note = obj.optString("note", "")
+                )
+            )
+        }
+    } catch (e: Exception) {
+        Log.e("GardenPlanning", "Error parsing installment json", e)
+    }
+    return list
+}
+
+fun serializeGardenInstallments(list: List<GardenInstallment>): String {
+    val array = JSONArray()
+    for (item in list) {
+        val obj = JSONObject()
+        obj.put("id", item.id)
+        obj.put("amount", item.amount)
+        obj.put("paymentMode", item.paymentMode)
+        obj.put("date", item.date)
+        obj.put("note", item.note)
+        array.put(obj)
+    }
+    return array.toString()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,6 +319,7 @@ fun GardenPlanningFormTab(
     val totalKanalArea by viewModel.totalKanalArea.collectAsState()
     val plantsPerKanal by viewModel.plantsPerKanal.collectAsState()
     val costPerPlant by viewModel.costPerPlant.collectAsState()
+    val amountPaid by viewModel.amountPaid.collectAsState()
     val paymentStatus by viewModel.paymentStatus.collectAsState()
     val bookingDate by viewModel.bookingDate.collectAsState()
     val expectedDelivery by viewModel.expectedDelivery.collectAsState()
@@ -592,6 +667,15 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
+        // Computed Total Plants & Calculation String
+        val areaVal = totalKanalArea.toDoubleOrNull() ?: 0.0
+        val plantsVal = plantsPerKanal.toDoubleOrNull() ?: 0.0
+        val calculatedTotalPlants = Math.round(areaVal * plantsVal).toInt()
+        val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
+
+        val areaDisplay = if (areaVal > 0 && areaVal % 1.0 == 0.0) areaVal.toLong().toString() else if (areaVal > 0) areaVal.toString() else "0"
+        val plantsDisplay = if (plantsVal > 0 && plantsVal % 1.0 == 0.0) plantsVal.toLong().toString() else if (plantsVal > 0) plantsVal.toString() else "0"
+
         // Total Cost Summary Box
         Surface(
             modifier = Modifier
@@ -608,7 +692,11 @@ fun GardenPlanningFormTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Text(
                         text = "TOTAL COST (AUTO-CALCULATED)",
                         fontSize = 11.sp,
@@ -616,18 +704,21 @@ fun GardenPlanningFormTab(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         letterSpacing = 0.5.sp
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "${totalKanalArea.ifBlank { "0" }} Kanals × ${plantsPerKanal.ifBlank { "0" }}/Kanal = ${((totalKanalArea.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.toIntOrNull() ?: 0)).toInt()} Total Plants",
+                        text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
 
                 Text(
                     text = totalCostFormatted,
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
                 )
             }
         }
@@ -642,7 +733,24 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Payment Status
+        // Amount Paid Input Field
+        OutlinedTextField(
+            value = amountPaid,
+            onValueChange = { viewModel.onAmountPaidChanged(it) },
+            label = { Text("Amount Paid (₹) *") },
+            placeholder = { Text("0") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = textFieldShape,
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .boundedFormFieldRipple(shape = textFieldShape)
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("garden_amount_paid_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
+        )
+
+        // Dynamic Payment Status Buttons
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Payment Status",
@@ -660,7 +768,7 @@ fun GardenPlanningFormTab(
                     val isSelected = paymentStatus == status
                     FilterChip(
                         selected = isSelected,
-                        onClick = { viewModel.paymentStatus.value = status },
+                        onClick = { viewModel.onPaymentStatusSelected(status) },
                         label = { Text(status, fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -668,6 +776,70 @@ fun GardenPlanningFormTab(
                         ),
                         modifier = Modifier.weight(1f)
                     )
+                }
+            }
+        }
+
+        // Summary Box: Total Amount, Amount Paid, and Remaining Balance
+        val amountPaidDouble = viewModel.calculateAmountPaid()
+        val remainingBalance = viewModel.calculateRemainingBalance()
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
+            shape = RoundedCornerShape(16.dp),
+            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "PAYMENT SUMMARY",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 0.5.sp
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Total Amount
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            currencyFormat.format(calculatedCost),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    // Amount Paid
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            currencyFormat.format(amountPaidDouble),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                    // Remaining Balance
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            currencyFormat.format(remainingBalance),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+                        )
+                    }
                 }
             }
         }
@@ -840,8 +1012,8 @@ fun GardenPlanningFormTab(
                 OutlinedButton(
                     onClick = {
                         val area = totalKanalArea.toDoubleOrNull() ?: 0.0
-                        val plants = plantsPerKanal.toIntOrNull() ?: 0
-                        val totalPlants = (area * plants).toInt()
+                        val plants = plantsPerKanal.toDoubleOrNull()?.toInt() ?: plantsPerKanal.toIntOrNull() ?: 0
+                        val totalPlants = Math.round(area * plants).toInt()
                         val totalAmount = calculatedCost
 
                         val receiptData = ReceiptData(
@@ -855,8 +1027,8 @@ fun GardenPlanningFormTab(
                             plantVariety = "$area Kanals ($plants Plants/Kanal)",
                             quantity = totalPlants.toString(),
                             totalAmount = totalAmount,
-                            amountPaid = if (paymentStatus == "Fully Paid") totalAmount else 0.0,
-                            remainingBalance = if (paymentStatus == "Fully Paid") 0.0 else totalAmount,
+                            amountPaid = amountPaidDouble,
+                            remainingBalance = remainingBalance,
                             paymentStatus = paymentStatus,
                             expectedDelivery = expectedDelivery
                         )
@@ -923,16 +1095,32 @@ fun GardenPlanningRecordsTab(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     val searchShape = RoundedCornerShape(24.dp)
 
+    var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
+
+    if (selectedDetailEntry != null) {
+        GardenBookingRecordDetailDialog(
+            entry = selectedDetailEntry!!,
+            viewModel = viewModel,
+            isDark = isDark,
+            onDismiss = { selectedDetailEntry = null },
+            onEdit = { entry ->
+                selectedDetailEntry = null
+                onEdit(entry)
+            }
+        )
+    }
+
     // Financial & Quantity Summary Metrics
     val totalPayment = entries.sumOf { it.totalCost }
     val receivedPayment = entries.sumOf { entry ->
-        when (entry.paymentStatus) {
+        if (entry.amountPaid > 0) entry.amountPaid
+        else when (entry.paymentStatus) {
             "Fully Paid" -> entry.totalCost
             "Advance Paid" -> entry.totalCost * 0.5
             else -> 0.0
         }
     }
-    val pendingPayment = totalPayment - receivedPayment
+    val pendingPayment = (totalPayment - receivedPayment).coerceAtLeast(0.0)
     val totalQuantity = entries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() }
 
     LazyColumn(
@@ -959,8 +1147,7 @@ fun GardenPlanningRecordsTab(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f, fill = false)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.MenuBook,
@@ -970,100 +1157,29 @@ fun GardenPlanningRecordsTab(
                         )
                         Text(
                             text = "Garden Planning Recording Book",
-                            fontSize = 13.5.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
 
                     Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = "${entries.size} ${if (entries.size == 1) "entry" else "entries"}",
+                            text = "${entries.size} Records",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
         }
 
-        // 1. Search Bar
-        item {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                placeholder = { Text("Search by farmer name, phone, serial no...") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                shape = searchShape,
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp)
-                    .boundedFormFieldRipple(shape = searchShape)
-                    .elevated3dShadow(shape = searchShape, isDark = isDark)
-                    .testTag("garden_records_search_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-        }
-
-        // 2. Filter by Payment Status
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val filterOptions = listOf("All Records", "Payments Cleared", "Payments Pending")
-                filterOptions.forEach { option ->
-                    val isSelected = selectedPaymentFilter == option
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.setPaymentFilter(option) },
-                        label = {
-                            Text(
-                                text = option,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White,
-                            containerColor = if (isDark) Color(0xFF2B2B2B) else Color(0xFFF1F5F9),
-                            labelColor = if (isDark) Color.White else Color(0xFF334155)
-                        ),
-                        modifier = Modifier
-                            .boundedFormFieldRipple(shape = RoundedCornerShape(16.dp))
-                            .testTag("garden_filter_chip_${option.lowercase().replace(" ", "_")}")
-                    )
-                }
-            }
-        }
-
-        // 3. Summary Statistics Cards
+        // Summary Statistics Cards Grid (Total Payment, Received Payment, Pending Payment, Total Quantity)
         item {
             GardenRecordSummaryCards(
                 totalPayment = totalPayment,
@@ -1074,24 +1190,82 @@ fun GardenPlanningRecordsTab(
             )
         }
 
-        // 4. Records List or Empty State
+        // Search Bar & Filter Chips
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.setSearchQuery(it) },
+                    placeholder = { Text("Search by farmer name, phone, serial or address...", fontSize = 13.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear Search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
+                    shape = searchShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(elevation = 2.dp, shape = searchShape)
+                        .testTag("garden_search_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Payment Status Filter Chips Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf("All Records", "Pending", "Advance Paid", "Fully Paid").forEach { filter ->
+                        val isSelected = selectedPaymentFilter == filter
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.setPaymentFilter(filter) },
+                            label = { Text(filter, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
         if (entries.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp),
+                        .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Park,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.Gray
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.outline
                         )
                         Text(
                             text = "No Records Found",
@@ -1112,183 +1286,873 @@ fun GardenPlanningRecordsTab(
             }
         } else {
             items(entries, key = { it.id }) { entry ->
-                Card(
+                GardenPlanningRecordCard(
+                    entry = entry,
+                    currencyFormat = currencyFormat,
+                    onViewDetails = { selectedDetailEntry = entry },
+                    onEdit = { onEdit(entry) },
+                    onDelete = { viewModel.deleteEntry(entry) },
+                    context = context
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GardenPlanningRecordCard(
+    entry: GardenPlanningEntry,
+    currencyFormat: NumberFormat,
+    onViewDetails: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    context: Context
+) {
+    val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
+    val avatarBgColor = when (entry.paymentStatus) {
+        "Fully Paid" -> Color(0xFF2E7D32)
+        "Advance Paid" -> Color(0xFFE65100)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onViewDetails() }
+            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Row 1: Profile Initial Avatar + Farmer Name + Serial Number & Payment Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Profile Avatar with Initial
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(avatarBgColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initialLetter,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Farmer Name & Serial No
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = entry.farmerName.ifBlank { "Farmer Name Not Specified" },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = "#${entry.serialNumber}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        if (entry.bookingDate.isNotBlank()) {
+                            Text(
+                                text = "• ${entry.bookingDate}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Payment Status Badge
+                Surface(
+                    color = when (entry.paymentStatus) {
+                        "Fully Paid" -> Color(0xFF2E7D32)
+                        "Advance Paid" -> Color(0xFFE65100)
+                        else -> MaterialTheme.colorScheme.error
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = entry.paymentStatus,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 2.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            // Address & Contact Info
+            if (entry.farmerAddress.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = entry.farmerAddress,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            if (entry.contactNumber.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.clickable {
+                        val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${entry.contactNumber}"))
+                        try { context.startActivity(dialIntent) } catch (e: Exception) {}
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = entry.contactNumber,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            // Area & Price Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = currencyFormat.format(entry.totalCost),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Action Buttons Row: WhatsApp, Full Details, Edit, Delete
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // WhatsApp Action
+                IconButton(
+                    onClick = {
+                        val cleanPhone = entry.contactNumber.replace("[^0-9]".toRegex(), "")
+                        val msg = "Dear ${entry.farmerName.ifBlank { "Farmer" }}, regarding your Garden Planning booking (#${entry.serialNumber}): Total Cost ${currencyFormat.format(entry.totalCost)}, Payment Status: ${entry.paymentStatus}."
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(msg)}")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Message,
+                        contentDescription = "WhatsApp",
+                        tint = Color(0xFF25D366)
+                    )
+                }
+
+                // Full Details Button
+                OutlinedButton(
+                    onClick = onViewDetails,
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.height(34.dp)
+                ) {
+                    Text("View Details", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GardenBookingRecordDetailDialog(
+    entry: GardenPlanningEntry,
+    viewModel: GardenPlanningViewModel,
+    isDark: Boolean,
+    onDismiss: () -> Unit,
+    onEdit: (GardenPlanningEntry) -> Unit
+) {
+    val context = LocalContext.current
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+
+    var currentEntry by remember { mutableStateOf(entry) }
+    var selectedTemplate by remember { mutableStateOf("Payment Received Receipt") }
+
+    // New Installment Form state
+    var newPaymentAmount by remember { mutableStateOf("") }
+    var newPaymentMode by remember { mutableStateOf("Cash") }
+    var newPaymentDate by remember {
+        mutableStateOf(SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date()))
+    }
+    var newPaymentNote by remember { mutableStateOf("") }
+
+    val initialLetter = currentEntry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
+    val totalPlants = (currentEntry.totalKanalArea * currentEntry.plantsPerKanal).toInt()
+
+    val currentInstallments = remember(currentEntry.installmentHistoryJson) {
+        parseGardenInstallments(currentEntry.installmentHistoryJson)
+    }
+
+    val copyToClipboard: (String, String) -> Unit = { label, text ->
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText(label, text)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.92f)
+                .clip(RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Modal Top Bar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = initialLetter,
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = currentEntry.farmerName.ifBlank { "Booking Details" },
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Serial No: #${currentEntry.serialNumber} • ${currentEntry.bookingDate}",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+
+                // Scrollable Content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // SECTION 1: FARMER DETAILS
+                    DetailSectionCard(title = "FARMER DETAILS", icon = Icons.Default.Person) {
+                        DetailInfoRow("Farmer Name", currentEntry.farmerName.ifBlank { "N/A" })
+                        DetailInfoRow("Contact Number", currentEntry.contactNumber.ifBlank { "N/A" }) {
+                            if (currentEntry.contactNumber.isNotBlank()) {
+                                IconButton(onClick = {
+                                    val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${currentEntry.contactNumber}"))
+                                    try { context.startActivity(dialIntent) } catch (e: Exception) {}
+                                }, modifier = Modifier.size(24.dp)) {
+                                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                        DetailInfoRow("Farmer Address", currentEntry.farmerAddress.ifBlank { "N/A" })
+                        DetailInfoRow("Serial Number", "#${currentEntry.serialNumber}")
+                        DetailInfoRow("Booking Date", currentEntry.bookingDate.ifBlank { "N/A" })
+                    }
+
+                    // SECTION 2: ORDER & SERVICE DETAILS
+                    DetailSectionCard(title = "ORDER & SERVICE DETAILS", icon = Icons.Default.Park) {
+                        DetailInfoRow("Service Category", "Garden Planning")
+                        DetailInfoRow("Total Kanal Area", "${currentEntry.totalKanalArea} Kanals")
+                        DetailInfoRow("Plants per Kanal", "${currentEntry.plantsPerKanal} Plants/Kanal")
+                        DetailInfoRow("Total Calculated Plants", "${currencyFormat.format(totalPlants).replace("₹", "")} Plants")
+                        DetailInfoRow("Cost per Plant", currencyFormat.format(currentEntry.costPerPlant))
+                        DetailInfoRow("Total Estimated Cost", currencyFormat.format(currentEntry.totalCost), highlight = true)
+                        DetailInfoRow("Expected Delivery", currentEntry.expectedDelivery.ifBlank { "N/A" })
+                        if (currentEntry.notes.isNotBlank()) {
+                            DetailInfoRow("Orchard / Notes", currentEntry.notes)
+                        }
+                    }
+
+                    // SECTION 3: PAYMENT BREAKDOWN & BANK ACCOUNT INFO
+                    DetailSectionCard(title = "PAYMENT BREAKDOWN & ACCOUNT INFO", icon = Icons.Default.AccountBalance) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(currencyFormat.format(currentEntry.totalCost), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Column {
+                                Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(currencyFormat.format(currentEntry.amountPaid), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                            }
+                            Column {
+                                Text("Remaining", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(currencyFormat.format(currentEntry.remainingBalance), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (currentEntry.remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32))
+                            }
+                            Column {
+                                Text("Status", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(currentEntry.paymentStatus, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        // Bank Account Info Box
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "OFFICIAL BANK & UPI DETAILS",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text("Account Name: Aamir Manzoor Ganaie", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                Text("Business Name: The Streets of Kashmir", fontSize = 12.sp)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Account No: 0018010100007537", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    IconButton(
+                                        onClick = { copyToClipboard("Account Number", "0018010100007537") },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("IFSC Code: JAKA0MAINSR", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    IconButton(
+                                        onClick = { copyToClipboard("IFSC Code", "JAKA0MAINSR") },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("UPI ID: streetsofkashmir@upi", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    IconButton(
+                                        onClick = { copyToClipboard("UPI ID", "streetsofkashmir@upi") },
+                                        modifier = Modifier.size(20.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Copy", modifier = Modifier.size(14.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // SECTION 4: INSTALLMENT PAYMENT TRACKING AREA
+                    DetailSectionCard(title = "INSTALLMENT PAYMENT TRACKING", icon = Icons.Default.History) {
+                        // History Log
+                        if (currentInstallments.isEmpty()) {
+                            Text(
+                                text = "No installment payments recorded yet.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Payment History Log:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                currentInstallments.forEachIndexed { idx, inst ->
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text("Installment #${idx + 1} • ${inst.date}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                Text("Mode: ${inst.paymentMode}${if (inst.note.isNotBlank()) " (${inst.note})" else ""}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                            Text(
+                                                currencyFormat.format(inst.amount),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF2E7D32)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        // Form to Record New Installment Payment
+                        Text("Record New Installment Payment:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                        OutlinedTextField(
+                            value = newPaymentAmount,
+                            onValueChange = { newPaymentAmount = it },
+                            label = { Text("Payment Amount (₹)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Payment Mode FilterChips
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf("Cash", "UPI", "Bank", "Cheque").forEach { mode ->
+                                FilterChip(
+                                    selected = newPaymentMode == mode,
+                                    onClick = { newPaymentMode = mode },
+                                    label = { Text(mode, fontSize = 10.sp) }
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = newPaymentNote,
+                            onValueChange = { newPaymentNote = it },
+                            label = { Text("Note / Ref ID (Optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Button(
+                            onClick = {
+                                val amt = newPaymentAmount.toDoubleOrNull() ?: 0.0
+                                if (amt <= 0) {
+                                    Toast.makeText(context, "Please enter a valid amount", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+
+                                val newInst = GardenInstallment(
+                                    amount = amt,
+                                    paymentMode = newPaymentMode,
+                                    date = newPaymentDate,
+                                    note = newPaymentNote
+                                )
+
+                                val updatedInstallments = currentInstallments + newInst
+                                val newInstallmentJson = serializeGardenInstallments(updatedInstallments)
+
+                                val newAmountPaid = currentEntry.amountPaid + amt
+                                val newRemainingBalance = (currentEntry.totalCost - newAmountPaid).coerceAtLeast(0.0)
+                                val newPaymentStatus = when {
+                                    newAmountPaid >= currentEntry.totalCost -> "Fully Paid"
+                                    newAmountPaid > 0 -> "Advance Paid"
+                                    else -> "Pending"
+                                }
+
+                                val updatedEntry = currentEntry.copy(
+                                    amountPaid = newAmountPaid,
+                                    remainingBalance = newRemainingBalance,
+                                    paymentStatus = newPaymentStatus,
+                                    installmentHistoryJson = newInstallmentJson
+                                )
+
+                                currentEntry = updatedEntry
+                                viewModel.updateEntrySync(updatedEntry)
+
+                                newPaymentAmount = ""
+                                newPaymentNote = ""
+                                Toast.makeText(context, "Installment of ${currencyFormat.format(amt)} recorded!", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Record Installment Payment", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // SECTION 5: MESSAGE PREVIEW SECTION & TEMPLATE SELECTOR
+                    DetailSectionCard(title = "COMMUNICATION & MESSAGE PREVIEW", icon = Icons.Default.Message) {
+                        val previewMsg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
+
+                        MessagePreviewComponent(
+                            selectedTemplate = selectedTemplate,
+                            onSelectTemplate = { selectedTemplate = it },
+                            generatedMessage = previewMsg,
+                            isDark = isDark
+                        )
+                    }
+                }
+
+                // Modal Bottom Action Bar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // WhatsApp Share
+                            Button(
+                                onClick = {
+                                    val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
+                                    val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(msg)}")
+                                    }
+                                    try { context.startActivity(intent) } catch (e: Exception) {
+                                        Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Message, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Copy Message
+                            OutlinedButton(
+                                onClick = {
+                                    val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
+                                    copyToClipboard("Booking Message", msg)
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Copy Text", fontSize = 12.sp)
+                            }
+
+                            // Print / Download Digital Receipt
+                            OutlinedButton(
+                                onClick = {
+                                    val receiptData = ReceiptData(
+                                        serialNumber = currentEntry.serialNumber,
+                                        bookingDate = currentEntry.bookingDate,
+                                        farmerName = currentEntry.farmerName,
+                                        contactNumber = currentEntry.contactNumber,
+                                        address = currentEntry.farmerAddress,
+                                        orchardLocation = currentEntry.farmerAddress,
+                                        serviceCategory = "Garden Planning",
+                                        plantVariety = "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                        quantity = totalPlants.toString(),
+                                        totalAmount = currentEntry.totalCost,
+                                        amountPaid = currentEntry.amountPaid,
+                                        remainingBalance = currentEntry.remainingBalance,
+                                        paymentStatus = currentEntry.paymentStatus,
+                                        expectedDelivery = currentEntry.expectedDelivery
+                                    )
+
+                                    val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
+                                    val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, currentEntry.serialNumber)
+                                    if (uri != null) {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "image/*"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            putExtra(Intent.EXTRA_TEXT, "Digital Receipt for Garden Planning (${currentEntry.serialNumber})")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Share or Download Receipt"))
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Receipt", fontSize = 12.sp)
+                            }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer
-                            ) {
-                                Text(
-                                    text = "#${entry.serialNumber}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-
-                            Surface(
-                                color = when (entry.paymentStatus) {
-                                    "Fully Paid" -> MaterialTheme.colorScheme.primary
-                                    "Advance Paid" -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.error
-                                },
+                            OutlinedButton(
+                                onClick = { onEdit(currentEntry) },
                                 shape = RoundedCornerShape(12.dp)
                             ) {
-                                Text(
-                                    text = entry.paymentStatus,
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = entry.farmerName.ifBlank { "Farmer Name Not Specified" },
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        if (entry.farmerAddress.isNotBlank()) {
-                            Text(
-                                text = "📍 ${entry.farmerAddress}",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        if (entry.contactNumber.isNotBlank()) {
-                            Text(
-                                text = "📞 ${entry.contactNumber}",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            Text(
-                                text = currencyFormat.format(entry.totalCost),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        if (entry.notes.isNotBlank()) {
-                            Text(
-                                text = "Notes: ${entry.notes}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(onClick = { onEdit(entry) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Edit Booking", fontSize = 12.sp)
                             }
 
-                            IconButton(onClick = {
-                                val totalPlants = (entry.totalKanalArea * entry.plantsPerKanal).toInt()
-                                val receiptData = ReceiptData(
-                                    serialNumber = entry.serialNumber,
-                                    bookingDate = entry.bookingDate,
-                                    farmerName = entry.farmerName,
-                                    contactNumber = entry.contactNumber,
-                                    address = entry.farmerAddress,
-                                    orchardLocation = entry.farmerAddress,
-                                    serviceCategory = "Garden Planning",
-                                    plantVariety = "${entry.totalKanalArea} Kanals (${entry.plantsPerKanal} Plants/Kanal)",
-                                    quantity = totalPlants.toString(),
-                                    totalAmount = entry.totalCost,
-                                    amountPaid = if (entry.paymentStatus == "Fully Paid") entry.totalCost else 0.0,
-                                    remainingBalance = if (entry.paymentStatus == "Fully Paid") 0.0 else entry.totalCost,
-                                    paymentStatus = entry.paymentStatus,
-                                    expectedDelivery = entry.expectedDelivery
-                                )
-
-                                val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
-                                val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, entry.serialNumber)
-                                if (uri != null) {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/*"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        putExtra(Intent.EXTRA_TEXT, "Dear ${entry.farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning (${entry.serialNumber}).")
-                                        setPackage("com.whatsapp")
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    try {
-                                        context.startActivity(shareIntent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-                                        val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/*"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            putExtra(Intent.EXTRA_TEXT, "Dear ${entry.farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning (${entry.serialNumber}).")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(Intent.createChooser(fallbackIntent, "Share Digital Receipt"))
-                                    }
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Share,
-                                    contentDescription = "Share Receipt",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            IconButton(onClick = { viewModel.deleteEntry(entry) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                            Button(
+                                onClick = onDismiss,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Close", fontSize = 12.sp)
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DetailSectionCard(
+    title: String,
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.5.sp)
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun DetailInfoRow(
+    label: String,
+    value: String,
+    highlight: Boolean = false,
+    action: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = value,
+                fontSize = if (highlight) 14.sp else 12.sp,
+                fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium,
+                color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            action?.invoke()
+        }
+    }
+}
+
+private fun generateGardenMessageForEntry(entry: GardenPlanningEntry, template: String): String {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+    val totalPlants = (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+    val farmer = entry.farmerName.ifBlank { "Valued Farmer" }
+
+    return when (template) {
+        "Booking Confirmation" -> {
+            "Dear $farmer,\nThank you for booking Garden Planning with The Streets of Kashmir.\n\n" +
+                    "📋 Booking Serial: #${entry.serialNumber}\n" +
+                    "📅 Date: ${entry.bookingDate}\n" +
+                    "📐 Garden Area: ${entry.totalKanalArea} Kanals ($totalPlants Plants)\n" +
+                    "💰 Total Cost: ${currencyFormat.format(entry.totalCost)}\n" +
+                    "💳 Status: ${entry.paymentStatus}\n" +
+                    "🚚 Expected Delivery: ${entry.expectedDelivery}\n\n" +
+                    "For queries, contact us at +91 9876543210."
+        }
+        "Payment Received Receipt" -> {
+            "OFFICIAL PAYMENT RECEIPT\n\n" +
+                    "Received from: $farmer\n" +
+                    "Serial No: #${entry.serialNumber}\n" +
+                    "Service: Garden Planning (${entry.totalKanalArea} Kanals)\n" +
+                    "Total Cost: ${currencyFormat.format(entry.totalCost)}\n" +
+                    "Amount Paid: ${currencyFormat.format(entry.amountPaid)}\n" +
+                    "Remaining Balance: ${currencyFormat.format(entry.remainingBalance)}\n" +
+                    "Status: ${entry.paymentStatus}\n\n" +
+                    "Bank Account: 0018010100007537 (IFSC: JAKA0MAINSR)\n" +
+                    "UPI ID: streetsofkashmir@upi\n" +
+                    "The Streets of Kashmir"
+        }
+        "Delivery Schedule Reminder" -> {
+            "Dear $farmer,\nYour Garden Planning delivery (#${entry.serialNumber}) is scheduled for ${entry.expectedDelivery}.\n" +
+                    "Total Plants: $totalPlants (${entry.totalKanalArea} Kanals)\n" +
+                    "Remaining Balance: ${currencyFormat.format(entry.remainingBalance)}\n\n" +
+                    "Please ensure site readiness. - The Streets of Kashmir"
+        }
+        "Balance Due Notice" -> {
+            "PAYMENT REMINDER\n\n" +
+                    "Dear $farmer,\nRegarding your Garden Planning booking (#${entry.serialNumber}):\n" +
+                    "Total Cost: ${currencyFormat.format(entry.totalCost)}\n" +
+                    "Amount Paid: ${currencyFormat.format(entry.amountPaid)}\n" +
+                    "Outstanding Balance: ${currencyFormat.format(entry.remainingBalance)}\n\n" +
+                    "Pay via UPI: streetsofkashmir@upi or Bank Account: 0018010100007537 (JAKA0MAINSR).\n" +
+                    "The Streets of Kashmir"
+        }
+        else -> "Dear $farmer, your Garden Planning booking details: Serial #${entry.serialNumber}, Total: ${currencyFormat.format(entry.totalCost)}, Paid: ${currencyFormat.format(entry.amountPaid)}."
     }
 }
 
