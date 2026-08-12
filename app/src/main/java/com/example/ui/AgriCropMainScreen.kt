@@ -49,6 +49,9 @@ import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.components.ContactDirectoryDialog
 import com.example.ui.components.AgriDashboardScreen
 import com.google.firebase.auth.FirebaseAuth
+import androidx.credentials.CredentialManager
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.exceptions.ClearCredentialException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,6 +111,23 @@ fun AgriCropMainScreen(
         userDashboardViewModel.refreshUser()
     }
 
+    val performLogout: () -> Unit = {
+        auth?.signOut()
+        coroutineScope.launch {
+            try {
+                val credentialManager = CredentialManager.create(context)
+                credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            } catch (e: ClearCredentialException) {
+                e.printStackTrace()
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            } finally {
+                currentUser = null
+                isLoginActive = true
+            }
+        }
+    }
+
     LaunchedEffect(dashboardUserMsg) {
         dashboardUserMsg?.let { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -118,9 +138,7 @@ fun AgriCropMainScreen(
     LaunchedEffect(Unit) {
         val user = auth?.currentUser
         if (user != null && !user.isEmailVerified) {
-            auth?.signOut()
-            currentUser = null
-            isLoginActive = true
+            performLogout()
         }
     }
 
@@ -263,11 +281,7 @@ fun AgriCropMainScreen(
                     onOpenNotifications = { showNotificationCenter = true },
                     currentUserEmail = currentUser?.email,
                     currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                    onLogout = {
-                        auth?.signOut()
-                        currentUser = null
-                        isLoginActive = true
-                    },
+                    onLogout = performLogout,
                     onManualSync = {
                         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                             com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
@@ -348,11 +362,7 @@ fun AgriCropMainScreen(
                                 },
                                 currentUserEmail = currentUser?.email,
                                 currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                onLogout = {
-                                    auth?.signOut()
-                                    currentUser = null
-                                    isLoginActive = true
-                                },
+                                onLogout = performLogout,
                                 onManualSync = {
                                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                         com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
@@ -437,11 +447,7 @@ fun AgriCropMainScreen(
                                         onOpenNotifications = { showNotificationCenter = true },
                                         currentUserEmail = currentUser?.email,
                                         currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                        onLogout = {
-                                            auth?.signOut()
-                                            currentUser = null
-                                            isLoginActive = true
-                                        },
+                                        onLogout = performLogout,
                                         onManualSync = {
                                             coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                                 com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())

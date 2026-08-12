@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -2186,6 +2187,7 @@ fun GardenBookingRecordDetailDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
+                    .navigationBarsPadding()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -2791,6 +2793,9 @@ fun GardenBookingRecordDetailDialog(
                         Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF25D366))
                     }
                 }
+
+                // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
+                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
