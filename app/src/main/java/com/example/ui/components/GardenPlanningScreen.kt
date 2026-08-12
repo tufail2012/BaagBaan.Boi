@@ -22,12 +22,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -48,6 +51,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -58,8 +62,10 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -75,6 +81,9 @@ import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.outlined.LocalFlorist
+import androidx.compose.material.icons.filled.Yard
 import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Print
@@ -195,7 +204,7 @@ fun serializeGardenInstallments(list: List<GardenInstallment>): String {
 @Composable
 fun GardenPlanningScreen(
     viewModel: GardenPlanningViewModel,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     isDark: Boolean = isAppInDarkMode(),
     showHeader: Boolean = true,
     themeMode: com.example.ui.AppThemeMode = com.example.ui.AppThemeMode.SYSTEM,
@@ -322,7 +331,7 @@ fun GardenPlanningScreen(
                 currentUserPhotoUrl = currentUserPhotoUrl,
                 onLogout = onLogout,
                 onManualSync = onManualSync,
-                onBack = onBack
+                onBack = null
             )
             }
 
@@ -372,6 +381,7 @@ fun GardenPlanningFormTab(
     val pillShape = RoundedCornerShape(24.dp)
 
     val serialNumber by viewModel.serialNumber.collectAsState()
+    val isSerialLocked by viewModel.isSerialLocked.collectAsState()
     val farmerName by viewModel.farmerName.collectAsState()
     val farmerAddress by viewModel.farmerAddress.collectAsState()
     val contactNumber by viewModel.contactNumber.collectAsState()
@@ -411,6 +421,24 @@ fun GardenPlanningFormTab(
                 text = targetText,
                 selection = TextRange(cursorIndex)
             )
+        }
+    }
+
+    var bookingDateTFV by remember {
+        mutableStateOf(TextFieldValue(text = bookingDate, selection = TextRange(bookingDate.length)))
+    }
+    LaunchedEffect(bookingDate) {
+        if (bookingDate != bookingDateTFV.text) {
+            bookingDateTFV = TextFieldValue(text = bookingDate, selection = TextRange(bookingDate.length))
+        }
+    }
+
+    var expectedDeliveryTFV by remember {
+        mutableStateOf(TextFieldValue(text = expectedDelivery, selection = TextRange(expectedDelivery.length)))
+    }
+    LaunchedEffect(expectedDelivery) {
+        if (expectedDelivery != expectedDeliveryTFV.text) {
+            expectedDeliveryTFV = TextFieldValue(text = expectedDelivery, selection = TextRange(expectedDelivery.length))
         }
     }
 
@@ -496,24 +524,23 @@ fun GardenPlanningFormTab(
         }
     }
 
-    // Date Pickers
+    // Date Pickers state & handler
+    var showDatePickerDialog by remember { mutableStateOf(false) }
+    var datePickerInitialStr by remember { mutableStateOf("") }
+    var datePickerOnSelected by remember { mutableStateOf<(String) -> Unit>({}) }
+
     val openDatePicker = { isBookingDate: Boolean ->
-        val calendar = Calendar.getInstance()
-        val dpd = DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val formatted = "%02d/%02d/%04d".format(dayOfMonth, month + 1, year)
-                if (isBookingDate) {
-                    viewModel.bookingDate.value = formatted
-                } else {
-                    viewModel.expectedDelivery.value = formatted
-                }
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        )
-        dpd.show()
+        datePickerInitialStr = if (isBookingDate) bookingDate else expectedDelivery
+        datePickerOnSelected = { selected ->
+            if (isBookingDate) {
+                bookingDateTFV = TextFieldValue(text = selected, selection = TextRange(selected.length))
+                viewModel.bookingDate.value = selected
+            } else {
+                expectedDeliveryTFV = TextFieldValue(text = selected, selection = TextRange(selected.length))
+                viewModel.expectedDelivery.value = selected
+            }
+        }
+        showDatePickerDialog = true
     }
 
     // Computed total cost
@@ -531,12 +558,17 @@ fun GardenPlanningFormTab(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Serial Number field with NO label on top
+        // Serial Number field with Lock / Save / Refresh icons matching FarmerFormScreen
         OutlinedTextField(
             value = serialNumber,
-            onValueChange = { viewModel.serialNumber.value = it },
-            label = null,
-            placeholder = { Text("Serial Number (e.g. GP-01)") },
+            onValueChange = { 
+                if (!isSerialLocked) {
+                    viewModel.updateSerialNumber(it)
+                }
+            },
+            readOnly = isSerialLocked,
+            label = { Text("Serial No. (Garden Planning) *") },
+            placeholder = { Text("Type serial number (e.g. GP-1001)") },
             shape = textFieldShape,
             singleLine = true,
             modifier = Modifier
@@ -545,15 +577,38 @@ fun GardenPlanningFormTab(
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("garden_serial_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark),
+            leadingIcon = if (isSerialLocked) {
+                {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Locked",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            } else null,
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isSerialLocked) {
+                        IconButton(
+                            onClick = { viewModel.lockSerialNumber() },
+                            modifier = Modifier.testTag("save_serial_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Save Serial Number",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = { viewModel.resetSerialNumber() },
                         modifier = Modifier.testTag("new_serial_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Reset Serial",
+                            contentDescription = "New Serial",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
@@ -671,9 +726,9 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Section Header: PLANTS SPECIFICATION
+        // Section Header: GARDEN PLANNING SPECIFICATION
         Text(
-            text = "PLANTS SPECIFICATION",
+            text = "GARDEN PLANNING SPECIFICATION",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -689,6 +744,13 @@ fun GardenPlanningFormTab(
             placeholder = { Text("e.g. M9 / Gala / Red Delicious") },
             shape = textFieldShape,
             singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.LocalFlorist,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
@@ -705,6 +767,13 @@ fun GardenPlanningFormTab(
             placeholder = { Text("e.g. M9 / MM106 / Seedling") },
             shape = textFieldShape,
             singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Spa,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
@@ -724,6 +793,13 @@ fun GardenPlanningFormTab(
                 readOnly = true,
                 label = { Text("Sapling Age") },
                 placeholder = { Text("Select Sapling Age") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.HourglassTop,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 trailingIcon = {
                     IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
                         Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
@@ -767,12 +843,22 @@ fun GardenPlanningFormTab(
         // Field 1: Total Kanals Area (accepts decimals e.g. 1.2)
         OutlinedTextField(
             value = totalKanalArea,
-            onValueChange = { viewModel.totalKanalArea.value = it },
+            onValueChange = { 
+                viewModel.totalKanalArea.value = it
+                viewModel.recalculatePaymentStatus()
+            },
             label = { Text("Total Kanals Area *") },
             placeholder = { Text("e.g. 1.2") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = textFieldShape,
             singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Park,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
@@ -781,39 +867,60 @@ fun GardenPlanningFormTab(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Field 2: Plants per Kanal
-        OutlinedTextField(
-            value = plantsPerKanal,
-            onValueChange = { viewModel.plantsPerKanal.value = it },
-            label = { Text("Plants per Kanal *") },
-            placeholder = { Text("e.g. 100") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            shape = textFieldShape,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_plants_per_kanal_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
+        // Side-by-side Row: Plants per Kanal & Unit Price per Plant
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Field 2: Plants per Kanal
+            OutlinedTextField(
+                value = plantsPerKanal,
+                onValueChange = { 
+                    viewModel.plantsPerKanal.value = it
+                    viewModel.recalculatePaymentStatus()
+                },
+                label = { Text("Plants per Kanal *") },
+                placeholder = { Text("e.g. 100") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = textFieldShape,
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_plants_per_kanal_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
 
-        // Field 3: Unit Price per Plant
-        OutlinedTextField(
-            value = costPerPlant,
-            onValueChange = { viewModel.costPerPlant.value = it },
-            label = { Text("Unit Price per Plant *") },
-            placeholder = { Text("e.g. 150") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = textFieldShape,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_cost_per_plant_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
+            // Field 3: Unit Price per Plant
+            OutlinedTextField(
+                value = costPerPlant,
+                onValueChange = { 
+                    viewModel.costPerPlant.value = it
+                    viewModel.recalculatePaymentStatus()
+                },
+                label = { Text("Unit Price per Plant *") },
+                placeholder = { Text("e.g. 150") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = textFieldShape,
+                singleLine = true,
+                leadingIcon = {
+                    Text(
+                        text = "₹",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 10.dp, end = 2.dp)
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_cost_per_plant_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+        }
 
         // Computed Total Cost & Summary Box (displayed when all 3 fields are filled)
         val areaVal = totalKanalArea.toDoubleOrNull()
@@ -833,11 +940,11 @@ fun GardenPlanningFormTab(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
+                    .elevated3dShadow(shape = RoundedCornerShape(16.dp), isDark = isDark)
                     .testTag("garden_total_cost_card"),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
+                border = BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
             ) {
                 Row(
                     modifier = Modifier
@@ -855,7 +962,7 @@ fun GardenPlanningFormTab(
                             text = "TOTAL COST",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.primary,
                             letterSpacing = 0.5.sp
                         )
                         Spacer(modifier = Modifier.height(2.dp))
@@ -863,7 +970,7 @@ fun GardenPlanningFormTab(
                             text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
@@ -878,6 +985,63 @@ fun GardenPlanningFormTab(
             }
         }
 
+        // Section Header: PAYMENT STATUS
+        Text(
+            text = "PAYMENT STATUS",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+
+        // Dynamic Payment Status Option Badges (Non-interactive, auto-calculated)
+        val paymentStatusOptions = listOf("Pending", "Advance Paid", "Fully Paid")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            paymentStatusOptions.forEach { statusOption ->
+                val isSelected = paymentStatus.equals(statusOption, ignoreCase = true)
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    border = BorderStroke(
+                        1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary else if (isDark) Color(0xFF4A4D58) else Color(0xFFD0D0D0)
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .boundedFormFieldRipple(shape = RoundedCornerShape(24.dp))
+                        .testTag("garden_payment_status_$statusOption")
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Auto-calculated & Locked",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                            Text(
+                                text = statusOption,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) Color.White else if (isDark) Color.White else Color(0xFF333333)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Amount Paid Input Field
         OutlinedTextField(
             value = amountPaid,
@@ -885,153 +1049,174 @@ fun GardenPlanningFormTab(
             label = { Text("Amount Paid (₹) *") },
             placeholder = { Text("0") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            shape = textFieldShape,
+            shape = pillShape,
             singleLine = true,
+            leadingIcon = {
+                Text(
+                    text = "₹",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 10.dp, end = 2.dp)
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .boundedFormFieldRipple(shape = pillShape)
+                .elevated3dShadow(shape = pillShape, isDark = isDark)
                 .testTag("garden_amount_paid_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Dynamic Payment Status Buttons styled as pills
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Payment Status",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf("Pending", "Advance Paid", "Fully Paid").forEach { status ->
-                    val isSelected = paymentStatus == status
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.onPaymentStatusSelected(status) },
-                        label = { Text(status, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                        shape = pillShape,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-        }
-
-        // Payment Summary Box
+        // Calculated Payment Summary Box (Matching Local Plants tab)
         val amountPaidDouble = viewModel.calculateAmountPaid()
         val remainingBalance = viewModel.calculateRemainingBalance()
 
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
+                .elevated3dShadow(shape = RoundedCornerShape(16.dp), isDark = isDark),
             shape = RoundedCornerShape(16.dp),
-            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
+            border = BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "PAYMENT SUMMARY",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 0.5.sp
-                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text("Total Amount", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            currencyFormat.format(calculatedCost),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            currencyFormat.format(amountPaidDouble),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32)
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            currencyFormat.format(remainingBalance),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
-                        )
-                    }
+                    Text("Total Amount:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(calculatedCost.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Amount Paid:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+                }
+
+                HorizontalDivider(color = if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Remaining Balance:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
 
-        // Booking Date & Expected Delivery Date
+        // Section Title: SCHEDULE & DATES (Matching Local Plants tab)
+        Text(
+            text = "SCHEDULE & DATES",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 12.dp)
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = bookingDate,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Booking Date *") },
+                value = bookingDateTFV,
+                onValueChange = { newVal ->
+                    val formatted = formatAutoSlashDate(bookingDateTFV.text, newVal.text)
+                    val newPos = if (formatted.length > bookingDateTFV.text.length && formatted.endsWith("/")) {
+                        formatted.length
+                    } else if (newVal.selection.end <= formatted.length) {
+                        newVal.selection.end
+                    } else {
+                        formatted.length
+                    }
+                    bookingDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                    viewModel.bookingDate.value = formatted
+                },
+                label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 trailingIcon = {
-                    IconButton(onClick = { openDatePicker(true) }) {
-                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = "Select Date", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(
+                        onClick = { openDatePicker(true) },
+                        modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Select Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .boundedFormFieldRipple(shape = textFieldShape, onClick = { openDatePicker(true) })
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark),
+                    .fillMaxHeight()
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_booking_date_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
             OutlinedTextField(
-                value = expectedDelivery,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Expected Delivery Date *") },
+                value = expectedDeliveryTFV,
+                onValueChange = { newVal ->
+                    val formatted = formatAutoSlashDate(expectedDeliveryTFV.text, newVal.text)
+                    val newPos = if (formatted.length > expectedDeliveryTFV.text.length && formatted.endsWith("/")) {
+                        formatted.length
+                    } else if (newVal.selection.end <= formatted.length) {
+                        newVal.selection.end
+                    } else {
+                        formatted.length
+                    }
+                    expectedDeliveryTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                    viewModel.expectedDelivery.value = formatted
+                },
+                label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 trailingIcon = {
-                    IconButton(onClick = { openDatePicker(false) }) {
-                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = "Select Date", tint = MaterialTheme.colorScheme.primary)
+                    IconButton(
+                        onClick = { openDatePicker(false) },
+                        modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Select Date",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .boundedFormFieldRipple(shape = textFieldShape, onClick = { openDatePicker(false) })
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark),
+                    .fillMaxHeight()
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_expected_delivery_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
         }
 
-        // Section Header: NOTES & COMMUNICATION
+        // Section Header: SPECIAL INSTRUCTIONS / NOTES
         Text(
-            text = "NOTES & COMMUNICATION",
+            text = "SPECIAL INSTRUCTIONS / NOTES",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -1073,7 +1258,7 @@ fun GardenPlanningFormTab(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. SAVE BOOKING ENTRY (Prominent RED button)
+            // 1. Save Booking Entry
             Button(
                 onClick = {
                     if (!isSaving) {
@@ -1087,10 +1272,10 @@ fun GardenPlanningFormTab(
                         }
                     }
                 },
-                shape = pillShape,
+                shape = RoundedCornerShape(16.dp),
                 enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFD32F2F),
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
                 ),
                 modifier = Modifier
@@ -1098,75 +1283,92 @@ fun GardenPlanningFormTab(
                     .height(52.dp)
                     .testTag("garden_save_button")
             ) {
-                Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.White)
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (editingEntryId != null) "UPDATE GARDEN PLAN" else "SAVE BOOKING ENTRY",
+                    text = if (editingEntryId != null) "Update Booking Entry" else "Save Booking Entry",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     color = Color.White
                 )
             }
 
-            // 2. Share via WhatsApp (Green) & Share via SMS (Blue)
+            // 2 & 3. Share via WhatsApp & Share via SMS
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = {
-                        val cleanPhone = contactNumber.replace("[^0-9]".toRegex(), "")
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(previewMsg)}")
-                        }
-                        try {
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                        if (contactNumber.isBlank()) {
+                            Toast.makeText(context, "Please enter farmer's contact phone number first", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val cleanPhone = contactNumber.replace("[^0-9]".toRegex(), "")
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(previewMsg)}")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
-                    shape = pillShape,
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E7D32),
+                        containerColor = Color(0xFF25D366),
                         contentColor = Color.White
                     ),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .heightIn(min = 48.dp)
+                        .testTag("send_text_via_whatsapp_button")
                 ) {
-                    Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Share via WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Share via WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
 
                 Button(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("smsto:${contactNumber}")
-                            putExtra("sms_body", previewMsg)
-                        }
-                        try {
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Messaging app not found", Toast.LENGTH_SHORT).show()
+                        if (contactNumber.isBlank()) {
+                            Toast.makeText(context, "Please enter farmer's contact phone number first", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("smsto:${contactNumber}")
+                                putExtra("sms_body", previewMsg)
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Messaging app not found", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
-                    shape = pillShape,
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2),
+                        containerColor = Color(0xFF0288D1),
                         contentColor = Color.White
                     ),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                     modifier = Modifier
                         .weight(1f)
-                        .height(46.dp)
+                        .heightIn(min = 48.dp)
+                        .testTag("send_text_via_sms_button")
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Share via SMS", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Share via SMS", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
-            // 3. Send Digital Receipt Image (White button with RED border)
+            // 4. Send Digital Receipt Image
             OutlinedButton(
                 onClick = {
                     val area = totalKanalArea.toDoubleOrNull() ?: 0.0
@@ -1217,29 +1419,39 @@ fun GardenPlanningFormTab(
                         Toast.makeText(context, "Failed to generate receipt image", Toast.LENGTH_SHORT).show()
                     }
                 },
-                shape = pillShape,
-                border = BorderStroke(1.5.dp, Color(0xFFD32F2F)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFFD32F2F)
-                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                    .testTag("send_digital_receipt_button"),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
             ) {
-                Icon(imageVector = Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFFD32F2F))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Send Digital Receipt Image", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD32F2F))
+                Icon(
+                    imageVector = Icons.Default.ReceiptLong,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Send Digital Receipt Image",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
-            // 4. Clear Form (Text link)
-            TextButton(
+            // 5. Clear Form Button
+            OutlinedButton(
                 onClick = { viewModel.clearForm() },
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Clear Form",
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1247,6 +1459,17 @@ fun GardenPlanningFormTab(
 
             Spacer(modifier = Modifier.height(100.dp))
         }
+    }
+
+    if (showDatePickerDialog) {
+        AppDatePickerDialog(
+            initialDateStr = datePickerInitialStr,
+            onDateSelected = { selected ->
+                datePickerOnSelected(selected)
+                showDatePickerDialog = false
+            },
+            onDismissRequest = { showDatePickerDialog = false }
+        )
     }
 }
 
@@ -1472,7 +1695,8 @@ fun GardenPlanningRecordsTab(
                     onViewDetails = { selectedDetailEntry = entry },
                     onEdit = { onEdit(entry) },
                     onDelete = { viewModel.deleteEntry(entry) },
-                    context = context
+                    context = context,
+                    isDark = isDark
                 )
             }
         }
@@ -1490,12 +1714,13 @@ private fun GardenPlanningRecordCard(
     onViewDetails: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    context: Context
+    context: Context,
+    isDark: Boolean = isAppInDarkMode()
 ) {
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
     val avatarBgColor = when (entry.paymentStatus) {
-        "Fully Paid" -> Color(0xFF2E7D32)
-        "Advance Paid" -> Color(0xFFE65100)
+        "Fully Paid" -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
+        "Advance Paid" -> if (isDark) Color(0xFFF57C00) else Color(0xFFE65100)
         else -> MaterialTheme.colorScheme.primary
     }
 
@@ -1915,7 +2140,7 @@ fun GardenBookingRecordDetailDialog(
                                 Column(modifier = Modifier.padding(10.dp)) {
                                     Text("Amount Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    Text(currencyFormat.format(currentEntry.amountPaid), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                                    Text(currencyFormat.format(currentEntry.amountPaid), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
                                 }
                             }
                         }
@@ -1939,7 +2164,7 @@ fun GardenBookingRecordDetailDialog(
                                         currencyFormat.format(currentEntry.remainingBalance),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (currentEntry.remainingBalance > 0) Color(0xFFC62828) else Color(0xFF2E7D32)
+                                        color = if (currentEntry.remainingBalance > 0) (if (isDark) Color(0xFFE57373) else Color(0xFFC62828)) else (if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
                                     )
                                 }
                             }
@@ -2078,7 +2303,7 @@ fun GardenBookingRecordDetailDialog(
                                                 currencyFormat.format(inst.amount),
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = Color(0xFF2E7D32)
+                                                color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
                                             )
                                         }
                                     }
@@ -2332,13 +2557,14 @@ fun GardenBookingRecordDetailDialog(
 private fun DetailSectionCard(
     title: String,
     icon: ImageVector,
+    isDark: Boolean = isAppInDarkMode(),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        color = if (isDark) Color(0xFF1E2430) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF333A48) else MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -2465,7 +2691,7 @@ private fun GardenRecordSummaryCards(
                 title = "Received Payment",
                 value = "₹${numberFmt.format(receivedPayment.toLong())}",
                 icon = Icons.Default.CheckCircle,
-                accentColor = Color(0xFF2E7D32),
+                accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
                 bgColor = if (isDark) Color(0xFF1B2E1B) else Color(0xFFE8F5E9),
                 modifier = Modifier.weight(1f)
             )
@@ -2480,7 +2706,7 @@ private fun GardenRecordSummaryCards(
                 title = "Pending Payment",
                 value = "₹${numberFmt.format(pendingPayment.toLong())}",
                 icon = Icons.Default.HourglassTop,
-                accentColor = Color(0xFFC62828),
+                accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
                 bgColor = if (isDark) Color(0xFF331C1C) else Color(0xFFFFEBEE),
                 modifier = Modifier.weight(1f)
             )
@@ -2490,7 +2716,7 @@ private fun GardenRecordSummaryCards(
                 title = "Total Quantity",
                 value = "${numberFmt.format(totalQuantity)} Plants",
                 icon = Icons.Default.Inventory2,
-                accentColor = Color(0xFF0288D1),
+                accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                 bgColor = if (isDark) Color(0xFF1A2A38) else Color(0xFFE1F5FE),
                 modifier = Modifier.weight(1f)
             )

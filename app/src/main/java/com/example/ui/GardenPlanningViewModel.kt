@@ -60,6 +60,17 @@ class GardenPlanningViewModel(
     val editingEntryId = MutableStateFlow<Long?>(null)
 
     val serialNumber = MutableStateFlow("")
+    val isSerialLocked = MutableStateFlow(false)
+
+    fun lockSerialNumber() {
+        isSerialLocked.value = true
+    }
+
+    fun updateSerialNumber(newSerial: String) {
+        if (!isSerialLocked.value) {
+            serialNumber.value = newSerial
+        }
+    }
     val farmerName = MutableStateFlow("")
     val farmerAddress = MutableStateFlow("")
     val contactNumber = MutableStateFlow("")
@@ -107,17 +118,23 @@ class GardenPlanningViewModel(
         return (calculateTotalCost() - calculateAmountPaid()).coerceAtLeast(0.0)
     }
 
-    fun onAmountPaidChanged(newAmount: String) {
-        amountPaid.value = newAmount
-        val paid = newAmount.toDoubleOrNull() ?: 0.0
+    fun recalculatePaymentStatus() {
+        val paid = amountPaid.value.toDoubleOrNull() ?: 0.0
         val total = calculateTotalCost()
         if (paid <= 0.0) {
             paymentStatus.value = "Pending"
         } else if (total > 0.0 && paid >= total) {
             paymentStatus.value = "Fully Paid"
+        } else if (total <= 0.0 && paid > 0.0) {
+            paymentStatus.value = "Fully Paid"
         } else {
             paymentStatus.value = "Advance Paid"
         }
+    }
+
+    fun onAmountPaidChanged(newAmount: String) {
+        amountPaid.value = newAmount
+        recalculatePaymentStatus()
     }
 
     fun onPaymentStatusSelected(status: String) {
@@ -201,11 +218,13 @@ class GardenPlanningViewModel(
     }
 
     fun resetSerialNumber() {
+        isSerialLocked.value = false
         serialNumber.value = generateNextSerialNumber("GP-01", allEntries.value)
     }
 
     fun loadEntryForEdit(entry: GardenPlanningEntry) {
         editingEntryId.value = entry.id
+        isSerialLocked.value = true
         serialNumber.value = entry.serialNumber
         farmerName.value = entry.farmerName
         farmerAddress.value = entry.farmerAddress
