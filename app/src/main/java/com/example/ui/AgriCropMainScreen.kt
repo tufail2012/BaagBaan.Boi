@@ -96,6 +96,8 @@ fun AgriCropMainScreen(
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
+    val filteredCropRecords by viewModel.filteredRecords.collectAsState()
+    val cropRecordsCount = filteredCropRecords.size
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -363,7 +365,8 @@ fun AgriCropMainScreen(
                             if (!selectedService.equals("Bookings", ignoreCase = true) && !selectedService.equals("Attendance", ignoreCase = true) && !selectedService.equals("Garden Planning", ignoreCase = true) && !selectedService.equals("Garden", ignoreCase = true)) {
                                 AgriSegmentedControl(
                                     selectedMode = viewMode,
-                                    onModeSelected = { viewModel.setViewMode(it) }
+                                    onModeSelected = { viewModel.setViewMode(it) },
+                                    recordsLabel = "Records ($cropRecordsCount)"
                                 )
                             }
 

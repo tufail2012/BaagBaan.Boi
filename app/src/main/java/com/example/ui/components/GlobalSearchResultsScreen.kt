@@ -3,6 +3,7 @@ package com.example.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,6 +51,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -709,89 +711,50 @@ private fun GlobalSearchResultCard(
                     }
                 }
 
-                // Action Bar: Call, WhatsApp, Edit, Delete, View Details
+                HorizontalDivider(
+                    color = (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)).copy(alpha = 0.6f),
+                    thickness = 1.dp
+                )
+
+                // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 4.dp),
+                        .padding(top = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // 1. WhatsApp Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
+                            .clickable {
+                                if (record.contactNumber.isNotBlank()) {
+                                    showWhatsAppConfirm = true
+                                } else {
+                                    Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (record.contactNumber.isNotBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isDark) Color(0xFF1E3A5F) else Color(0xFFE0F2FE))
-                                    .clickable { onCall() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Call,
-                                    contentDescription = "Call",
-                                    tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                                    .clickable { showWhatsAppConfirm = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Chat,
-                                    contentDescription = "WhatsApp",
-                                    tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9))
-                                .clickable { onEdit() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit",
-                                tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                                .clickable { showDeleteConfirm = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Delete",
-                                tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFE11D48),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "WhatsApp",
+                            tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
+                    // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        modifier = Modifier.clickable { onOpenDetail() }
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onOpenDetail() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "View Details",
@@ -801,8 +764,42 @@ private fun GlobalSearchResultCard(
                         )
                         Icon(
                             imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
-                            contentDescription = null,
+                            contentDescription = "View Details",
                             tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // 4. Edit Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                            .clickable { onEdit() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Record",
+                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // 5. Delete Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
+                            .clickable { showDeleteConfirm = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Delete Record",
+                            tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFE11D48),
                             modifier = Modifier.size(18.dp)
                         )
                     }

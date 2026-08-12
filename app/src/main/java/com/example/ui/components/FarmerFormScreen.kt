@@ -50,6 +50,28 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.FormatListNumbered
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Nature
+import androidx.compose.material.icons.filled.Note
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
@@ -600,16 +622,14 @@ fun FarmerFormScreen(
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("serial_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark),
-            leadingIcon = if (isSerialLocked) {
-                {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Locked",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            } else null,
+            leadingIcon = {
+                Icon(
+                    imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                    contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!isSerialLocked) {
@@ -658,6 +678,13 @@ fun FarmerFormScreen(
             placeholder = { Text("e.g. Mohammad Abdullah") },
             shape = textFieldShape,
             singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
@@ -675,6 +702,13 @@ fun FarmerFormScreen(
             shape = textFieldShape,
             singleLine = false,
             maxLines = 2,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.LocationOn,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
@@ -720,6 +754,13 @@ fun FarmerFormScreen(
             shape = textFieldShape,
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             trailingIcon = {
                 IconButton(
                     onClick = {
@@ -809,6 +850,13 @@ fun FarmerFormScreen(
                 shape = textFieldShape,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Event,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 trailingIcon = {
                     IconButton(
                         onClick = {
@@ -846,6 +894,13 @@ fun FarmerFormScreen(
                 shape = textFieldShape,
                 singleLine = false,
                 maxLines = 3,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Landscape,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -863,6 +918,13 @@ fun FarmerFormScreen(
                 shape = textFieldShape,
                 singleLine = false,
                 maxLines = 3,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.HealthAndSafety,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -879,6 +941,13 @@ fun FarmerFormScreen(
                 placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
                 shape = textFieldShape,
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Place,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -895,6 +964,13 @@ fun FarmerFormScreen(
                 placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
                 shape = textFieldShape,
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Place,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -912,6 +988,13 @@ fun FarmerFormScreen(
                     placeholder = { Text("Type plant variety (e.g. Gala Apple, Cherry, Wheat)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.LocalFlorist,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .boundedFormFieldRipple(shape = textFieldShape)
@@ -929,6 +1012,13 @@ fun FarmerFormScreen(
                 placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
                 shape = textFieldShape,
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Spa,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -946,6 +1036,13 @@ fun FarmerFormScreen(
                     placeholder = { Text("Enter country or source of import (e.g. Italy, Netherlands)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Public,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .boundedFormFieldRipple(shape = textFieldShape)
@@ -964,6 +1061,13 @@ fun FarmerFormScreen(
                     placeholder = { Text("e.g. 9 to 12 mm") },
                     shape = textFieldShape,
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Straighten,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .boundedFormFieldRipple(shape = textFieldShape)
@@ -987,6 +1091,13 @@ fun FarmerFormScreen(
                         readOnly = true,
                         label = { Text("Sapling Age *") },
                         shape = textFieldShape,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.HourglassTop,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
                         trailingIcon = {
                             IconButton(onClick = { saplingAgeMenuExpanded = true }) {
                                 Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
@@ -1038,6 +1149,13 @@ fun FarmerFormScreen(
                 placeholder = { Text("Enter scion variety (e.g. Honeycrisp, Gala)") },
                 shape = textFieldShape,
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Nature,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -1057,6 +1175,13 @@ fun FarmerFormScreen(
                     placeholder = { Text("Type or select graft type (e.g. Bench Grafting)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ContentCut,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     trailingIcon = {
                         IconButton(onClick = { graftTypeMenuExpanded = true }) {
                             Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Graft Type")
@@ -1136,6 +1261,13 @@ fun FarmerFormScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = pillShape,
                 singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.FormatListNumbered,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .boundedFormFieldRipple(shape = pillShape)
@@ -1183,12 +1315,10 @@ fun FarmerFormScreen(
                     shape = pillShape,
                     singleLine = true,
                     leadingIcon = {
-                        Text(
-                            text = "₹",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 10.dp, end = 2.dp)
+                        Icon(
+                            imageVector = Icons.Default.CurrencyRupee,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     },
                     modifier = Modifier
@@ -1231,12 +1361,10 @@ fun FarmerFormScreen(
                     shape = pillShape,
                     singleLine = true,
                     leadingIcon = {
-                        Text(
-                            text = "₹",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 10.dp, end = 2.dp)
+                        Icon(
+                            imageVector = Icons.Default.CurrencyRupee,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     },
                     modifier = Modifier
@@ -1276,6 +1404,13 @@ fun FarmerFormScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = pillShape,
                     singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.FormatListNumbered,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .boundedFormFieldRipple(shape = pillShape)
@@ -1297,12 +1432,10 @@ fun FarmerFormScreen(
                     shape = pillShape,
                     singleLine = true,
                     leadingIcon = {
-                        Text(
-                            text = "₹",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 10.dp, end = 2.dp)
+                        Icon(
+                            imageVector = Icons.Default.CurrencyRupee,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     },
                     modifier = Modifier
@@ -1388,6 +1521,13 @@ fun FarmerFormScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             shape = pillShape,
             singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Payments,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = pillShape)
@@ -1472,6 +1612,13 @@ fun FarmerFormScreen(
                 shape = textFieldShape,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.CalendarMonth,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 trailingIcon = {
                     IconButton(
                         onClick = { showDatePicker(bookingDate) { viewModel.bookingDate.value = it } },
@@ -1514,6 +1661,13 @@ fun FarmerFormScreen(
                 shape = textFieldShape,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 trailingIcon = {
                     IconButton(
                         onClick = { showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) { viewModel.expectedDelivery.value = it } },
@@ -1610,6 +1764,13 @@ fun FarmerFormScreen(
             shape = textFieldShape,
             minLines = 2,
             maxLines = 4,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)

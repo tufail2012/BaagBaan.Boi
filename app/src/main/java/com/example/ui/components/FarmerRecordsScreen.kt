@@ -3,6 +3,7 @@ package com.example.ui.components
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -58,6 +59,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -719,80 +721,120 @@ private fun FarmerRecordCard(
                     )
                 }
 
-                // Bottom Row: Contact info + Address & Action Buttons (WhatsApp + Arrow)
+                // Contact Number & Address
+                val contactAndAddress = buildString {
+                    if (record.contactNumber.isNotBlank()) {
+                        append(record.contactNumber)
+                    }
+                    if (record.farmerAddress.isNotBlank()) {
+                        if (isNotEmpty()) append(" • ")
+                        append(record.farmerAddress)
+                    }
+                }
+
+                if (contactAndAddress.isNotBlank()) {
+                    HighlightedText(
+                        text = contactAndAddress,
+                        query = searchQuery,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        isDark = isDark,
+                        modifier = Modifier.clickable { onCallFarmer() }
+                    )
+                }
+
+                HorizontalDivider(
+                    color = (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)).copy(alpha = 0.6f),
+                    thickness = 1.dp
+                )
+
+                // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Contact Number & Address
-                    val contactAndAddress = buildString {
-                        if (record.contactNumber.isNotBlank()) {
-                            append(record.contactNumber)
-                        }
-                        if (record.farmerAddress.isNotBlank()) {
-                            if (isNotEmpty()) append(" • ")
-                            append(record.farmerAddress)
-                        }
+                    // 1. WhatsApp Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
+                            .clickable {
+                                if (record.contactNumber.isNotBlank()) {
+                                    showCardWhatsAppConfirm = true
+                                } else {
+                                    Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "WhatsApp",
+                            tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
+                    // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
                     Row(
-                        modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onOpenDetail() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
-                        if (contactAndAddress.isNotBlank()) {
-                            HighlightedText(
-                                text = contactAndAddress,
-                                query = searchQuery,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                isDark = isDark,
-                                modifier = Modifier.clickable { onCallFarmer() }
-                            )
-                        }
+                        Text(
+                            text = "View Details",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
+                            contentDescription = "View Details",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
-                    // WhatsApp Action + Expand Chevron
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // 4. Edit Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                            .clickable { onEdit() },
+                        contentAlignment = Alignment.Center
                     ) {
-                        if (record.contactNumber.isNotBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                                    .clickable { showCardWhatsAppConfirm = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Chat,
-                                    contentDescription = "WhatsApp",
-                                    tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Record",
+                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
 
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .clickable { onOpenDetail() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
-                                contentDescription = "Show Details",
-                                tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                    // 5. Delete Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
+                            .clickable { onDelete() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Delete Record",
+                            tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
