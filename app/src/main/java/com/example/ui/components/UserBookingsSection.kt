@@ -371,7 +371,7 @@ fun BookingCardItem(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = booking.bookingDate,
-                        fontSize = 12.sp,
+                        fontSize = 11.5.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )

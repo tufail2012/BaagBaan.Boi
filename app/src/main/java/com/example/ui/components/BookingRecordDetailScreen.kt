@@ -1199,9 +1199,10 @@ private fun SummaryLine(
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
             color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
         )
+        val isDateField = label.contains("Date", ignoreCase = true) || label.contains("Delivery", ignoreCase = true)
         Text(
             text = value,
-            fontSize = 15.sp,
+            fontSize = if (isDateField) 12.5.sp else 15.sp,
             fontWeight = FontWeight.Bold,
             color = valueColor
         )

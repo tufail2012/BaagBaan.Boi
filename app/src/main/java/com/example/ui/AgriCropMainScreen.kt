@@ -92,6 +92,12 @@ fun AgriCropMainScreen(
     val viewMode by viewModel.viewMode.collectAsState()
     val userMessage by viewModel.userMessage.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
+    val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        com.example.ui.AppThemeMode.SYSTEM -> isSystemDark
+        com.example.ui.AppThemeMode.LIGHT -> false
+        com.example.ui.AppThemeMode.DARK, com.example.ui.AppThemeMode.AMOLED -> true
+    }
     val accentColorHex by viewModel.accentColorHex.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isGlobalSearchActive by viewModel.isGlobalSearchActive.collectAsState()
@@ -180,7 +186,7 @@ fun AgriCropMainScreen(
         com.example.ui.components.RecycleBinDialog(
             onDismissRequest = { showRecycleBinDialog = false },
             db = db,
-            isDark = themeMode == com.example.ui.AppThemeMode.DARK || themeMode == com.example.ui.AppThemeMode.AMOLED
+            isDark = isDark
         )
     }
 
@@ -188,7 +194,7 @@ fun AgriCropMainScreen(
         com.example.ui.components.InventoryManagementDialog(
             onDismissRequest = { showInventoryDialog = false },
             db = db,
-            isDark = themeMode == com.example.ui.AppThemeMode.DARK || themeMode == com.example.ui.AppThemeMode.AMOLED
+            isDark = isDark
         )
     }
 
@@ -425,7 +431,7 @@ fun AgriCropMainScreen(
                                         viewModel = gardenPlanningViewModel,
                                         onBack = null,
                                         showHeader = false,
-                                        isDark = themeMode == com.example.ui.AppThemeMode.DARK || themeMode == com.example.ui.AppThemeMode.AMOLED,
+                                        isDark = isDark,
                                         themeMode = themeMode,
                                         selectedColorHex = accentColorHex,
                                         onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },

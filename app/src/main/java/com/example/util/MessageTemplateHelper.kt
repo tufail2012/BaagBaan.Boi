@@ -104,6 +104,7 @@ object MessageTemplateHelper {
 
             else -> """
                 🧾 BAAGBAAN BOI
+                Registration Number: 01EBWPG3946L1Z7
                 Ramnagri 192303
                 Contacts: +916006143037, +917006996169, +917051826858, +916005096439
 
@@ -128,6 +129,9 @@ object MessageTemplateHelper {
                 • Advance Paid: $paidAmtFormatted
                 • Balance Due: $remBalFormatted
                 • Payment Status: $paymentStatus
+                • Account No: 0018010100007537
+                • IFSC Code: JAKA0SHOPAN
+                • Account Holder: Aamir Manzoor Ganaie
                 ----------------------------------
                 Thank you for choosing Baagbaan Boi!
             """.trimIndent()

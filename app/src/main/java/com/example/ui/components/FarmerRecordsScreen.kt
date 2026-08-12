@@ -584,7 +584,7 @@ private fun FarmerRecordCard(
                                     )
                                     Text(
                                         text = record.bookingDate,
-                                        fontSize = 13.sp,
+                                        fontSize = 11.5.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
                                     )

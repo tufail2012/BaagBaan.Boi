@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.material3.LocalTextStyle
+
 import android.Manifest
 import android.app.Activity
 import android.app.DatePickerDialog
@@ -1607,6 +1609,7 @@ fun FarmerFormScreen(
                     bookingDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
                     viewModel.bookingDate.value = formatted
                 },
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                 label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,
@@ -1656,6 +1659,7 @@ fun FarmerFormScreen(
                     expectedDeliveryTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
                     viewModel.expectedDelivery.value = formatted
                 },
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                 label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,

@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.compose.material3.LocalTextStyle
+
 import kotlin.math.roundToInt
 import android.graphics.Bitmap
 import android.Manifest
@@ -1213,6 +1215,7 @@ fun GardenPlanningFormTab(
                     bookingDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
                     viewModel.bookingDate.value = formatted
                 },
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                 label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,
@@ -1261,6 +1264,7 @@ fun GardenPlanningFormTab(
                     expectedDeliveryTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
                     viewModel.expectedDelivery.value = formatted
                 },
+                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                 label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("DD/MM/YYYY") },
                 shape = textFieldShape,
@@ -1816,7 +1820,7 @@ private fun GardenPlanningRecordCard(
                         if (entry.bookingDate.isNotBlank()) {
                             Text(
                                 text = "• ${entry.bookingDate}",
-                                fontSize = 11.sp,
+                                fontSize = 10.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -2036,9 +2040,10 @@ private fun DetailRowItem(
             fontWeight = FontWeight.Medium,
             color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
         )
+        val isDateField = label.contains("Date", ignoreCase = true) || label.contains("Delivery", ignoreCase = true)
         Text(
             text = value.ifBlank { "N/A" },
-            fontSize = 14.sp,
+            fontSize = if (isDateField) 12.5.sp else 14.sp,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.SemiBold,
             color = if (valueColor != Color.Unspecified) valueColor else (if (isDark) Color.White else Color(0xFF0F172A)),
             textAlign = TextAlign.End
@@ -3037,10 +3042,11 @@ private fun DetailInfoRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val isDateField = label.contains("Date", ignoreCase = true) || label.contains("Delivery", ignoreCase = true)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = value,
-                fontSize = if (highlight) 14.sp else 12.sp,
+                fontSize = if (isDateField) 11.sp else (if (highlight) 14.sp else 12.sp),
                 fontWeight = if (highlight) FontWeight.Bold else FontWeight.Medium,
                 color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
@@ -3074,7 +3080,7 @@ private fun generateGardenMessageForEntry(entry: GardenPlanningEntry, template: 
                     "Amount Paid: ${currencyFormat.format(entry.amountPaid)}\n" +
                     "Remaining Balance: ${currencyFormat.format(entry.remainingBalance)}\n" +
                     "Status: ${entry.paymentStatus}\n\n" +
-                    "Bank Account: 0018010100007537 (IFSC: JAKA0MAINSR)\n" +
+                    "Bank Account: 0018010100007537 (IFSC: JAKA0SHOPAN)\n" +
                     "UPI ID: streetsofkashmir@upi\n" +
                     "The Streets of Kashmir"
         }
@@ -3090,7 +3096,7 @@ private fun generateGardenMessageForEntry(entry: GardenPlanningEntry, template: 
                     "Total Cost: ${currencyFormat.format(entry.totalCost)}\n" +
                     "Amount Paid: ${currencyFormat.format(entry.amountPaid)}\n" +
                     "Outstanding Balance: ${currencyFormat.format(entry.remainingBalance)}\n\n" +
-                    "Pay via UPI: streetsofkashmir@upi or Bank Account: 0018010100007537 (JAKA0MAINSR).\n" +
+                    "Pay via UPI: streetsofkashmir@upi or Bank Account: 0018010100007537 (IFSC: JAKA0SHOPAN).\n" +
                     "The Streets of Kashmir"
         }
         else -> "Dear $farmer, your Garden Planning booking details: Serial #${entry.serialNumber}, Total: ${currencyFormat.format(entry.totalCost)}, Paid: ${currencyFormat.format(entry.amountPaid)}."

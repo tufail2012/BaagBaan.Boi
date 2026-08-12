@@ -170,7 +170,8 @@ fun WhatsAppTemplateDialog(
             }
             2 -> {
                 // Digital Receipt Text Summary
-                "🌾 *BAAGBAAN BOI - OFFICIAL DIGITAL RECEIPT* 🌾\n\n" +
+                "🌾 *BAAGBAAN BOI - OFFICIAL DIGITAL RECEIPT* 🌾\n" +
+                        "Registration Number: 01EBWPG3946L1Z7\n\n" +
                         "• Receipt #: $serialNumber\n" +
                         "• Date: $currentDateStr\n" +
                         "• Customer Name: $farmerName\n" +
@@ -178,7 +179,9 @@ fun WhatsAppTemplateDialog(
                         "• Total Amount: ₹${String.format("%.2f", totalAmount)}\n" +
                         "• Amount Paid: ₹${String.format("%.2f", amountPaid)}\n" +
                         "• Balance Due: ₹${String.format("%.2f", calculatedBalance)}\n" +
-                        "• Payment Status: $paymentStatus\n\n" +
+                        "• Payment Status: $paymentStatus\n" +
+                        "• Account No: 0018010100007537\n" +
+                        "• IFSC Code: JAKA0SHOPAN\n\n" +
                         "Thank you for doing business with Baagbaan Boi!"
             }
             else -> ""
@@ -627,6 +630,26 @@ fun WhatsAppTemplateDialog(
                                         fontSize = 13.sp,
                                         color = if (calculatedBalance > 0) MaterialTheme.colorScheme.primary else Color(0xFF2E7D32)
                                     )
+                                }
+
+                                 Spacer(modifier = Modifier.height(4.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Account No:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("0018010100007537", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("IFSC Code:", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("JAKA0SHOPAN", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
 
                                 Spacer(modifier = Modifier.height(4.dp))

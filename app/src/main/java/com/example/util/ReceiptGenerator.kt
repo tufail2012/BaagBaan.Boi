@@ -35,7 +35,7 @@ object ReceiptGenerator {
 
     fun generateReceiptBitmap(data: ReceiptData, context: Context? = null): Bitmap {
         val width = 1080
-        val height = 1680
+        val height = 1720
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -74,41 +74,47 @@ object ReceiptGenerator {
         // 2. Header Box (Dark Green)
         paint.style = Paint.Style.FILL
         paint.color = headerBg
-        val headerRect = RectF(48f, 48f, width - 48f, 290f)
+        val headerRect = RectF(48f, 48f, width - 48f, 320f)
         canvas.drawRoundRect(headerRect, 20f, 20f, paint)
 
         // Header Title: BAAGBAAN BOI
         paint.color = Color.WHITE
-        paint.textSize = 54f
+        paint.textSize = 50f
         paint.typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("BAAGBAAN BOI", width / 2f, 125f, paint)
+        canvas.drawText("BAAGBAAN BOI", width / 2f, 115f, paint)
+
+        // Company Registration Number (GSTIN) directly below company header
+        paint.textSize = 21f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.color = goldAccent
+        canvas.drawText("Registration Number: 01EBWPG3946L1Z7", width / 2f, 155f, paint)
 
         // Subtitle
-        paint.textSize = 24f
+        paint.textSize = 22f
         paint.typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
-        paint.color = goldAccent
-        canvas.drawText("The Streets of Kashmir • Ramnagri 192303", width / 2f, 165f, paint)
+        paint.color = Color.WHITE
+        canvas.drawText("The Streets of Kashmir • Ramnagri 192303", width / 2f, 195f, paint)
 
         // Contacts Row
-        paint.textSize = 20f
+        paint.textSize = 19f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.color = Color.WHITE
-        canvas.drawText("Contacts: +916006143037  |  +917006996169", width / 2f, 215f, paint)
-        canvas.drawText("+91 7051826858  |  +91 6005096439", width / 2f, 250f, paint)
+        canvas.drawText("Contacts: +916006143037  |  +917006996169", width / 2f, 235f, paint)
+        canvas.drawText("+91 7051826858  |  +91 6005096439", width / 2f, 275f, paint)
 
         // 3. Official Digital Receipt Banner
         paint.color = maroonBg
         paint.style = Paint.Style.FILL
-        val bannerRect = RectF(180f, 315f, width - 180f, 385f)
+        val bannerRect = RectF(180f, 340f, width - 180f, 410f)
         canvas.drawRoundRect(bannerRect, 16f, 16f, paint)
 
         paint.color = Color.WHITE
         paint.textSize = 28f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText("OFFICIAL DIGITAL RECEIPT", width / 2f, 360f, paint)
+        canvas.drawText("OFFICIAL DIGITAL RECEIPT", width / 2f, 385f, paint)
 
-        var currentY = 415f
+        var currentY = 435f
 
         // Helper function for drawing a section card
         fun drawSectionCard(
@@ -218,6 +224,7 @@ object ReceiptGenerator {
                 "Balance Due" to currencyFmt.format(data.remainingBalance),
                 "Payment Status" to data.paymentStatus,
                 "Account No" to "0018010100007537",
+                "IFSC Code" to "JAKA0SHOPAN",
                 "Account Holder" to "Aamir Manzoor Ganaie"
             ),
             extraBadge = data.paymentStatus to (statusBg to statusText)

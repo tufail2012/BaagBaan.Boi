@@ -871,7 +871,7 @@ private fun GlobalSearchResultCard(
                                 )
                                 Text(
                                     text = bookingDate,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.5.sp,
                                     color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
                                 )
                             }

@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -373,6 +374,7 @@ fun NewBookingModal(
                 OutlinedTextField(
                     value = bookingDate,
                     onValueChange = { bookingDate = it },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                     label = { Text("Booking Date (YYYY-MM-DD) *") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)

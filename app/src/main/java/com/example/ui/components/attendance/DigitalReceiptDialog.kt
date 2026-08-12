@@ -77,6 +77,7 @@ fun DigitalReceiptDialog(
 
     val formattedReceiptText = buildString {
         append("🧾 *BAAGBAAN BOI - OFFICIAL DIGITAL RECEIPT*\n")
+        append("Registration Number: 01EBWPG3946L1Z7\n")
         append("------------------------------------------\n")
         append("📅 *Date:* $currentDateStr\n")
         append("👤 *Worker Name:* ${worker.name}\n")
@@ -91,6 +92,8 @@ fun DigitalReceiptDialog(
         append("• Gross Earnings: ₹${grossEarnings.toInt()}\n")
         append("• Total Advances Paid: ₹${totalAdvance.toInt()}\n")
         append("• Net Balance Remaining: ₹${if (remainingBalance > 0) remainingBalance.toInt() else 0}\n")
+        append("• Account No: 0018010100007537\n")
+        append("• IFSC Code: JAKA0SHOPAN\n")
         if (advancePayments.isNotEmpty()) {
             append("\n📝 *RECORDED ADVANCE PAYMENTS*\n")
             advancePayments.take(5).forEach { payment ->
@@ -185,10 +188,16 @@ fun DigitalReceiptDialog(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Official Worker Payroll Receipt",
-                                    fontSize = 10.sp,
+                                    text = "Registration Number: 01EBWPG3946L1Z7",
+                                    fontSize = 9.sp,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Official Worker Payroll Receipt",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                         }
@@ -340,6 +349,20 @@ fun DigitalReceiptDialog(
                             ) {
                                 Text("Total Advances Paid", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
                                 Text("₹${totalAdvance.toInt()}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Account No", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("0018010100007537", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("IFSC Code", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("JAKA0SHOPAN", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Row(

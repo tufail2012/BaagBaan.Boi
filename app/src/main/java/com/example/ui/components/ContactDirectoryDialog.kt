@@ -1030,7 +1030,7 @@ fun ContactDetailsDialog(
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = "Booking Date: ${record.bookingDate}",
-                                            fontSize = 12.sp,
+                                            fontSize = 11.5.sp,
                                             color = MaterialTheme.colorScheme.outline
                                         )
                                     }
