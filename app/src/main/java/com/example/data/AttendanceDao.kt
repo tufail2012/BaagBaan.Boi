@@ -40,6 +40,9 @@ interface AttendanceDao {
     @Query("UPDATE workers SET isActive = 0 WHERE workerId = :workerId")
     suspend fun deactivateWorker(workerId: Long)
 
+    @Query("SELECT * FROM workers WHERE workerId = :workerId")
+    suspend fun getWorkerById(workerId: Long): Worker?
+
     @Query("SELECT * FROM attendance_records WHERE date = :date")
     fun getAttendanceForDate(date: String): Flow<List<AttendanceRecord>>
 

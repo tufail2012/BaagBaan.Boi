@@ -24,6 +24,10 @@ class AttendanceRepository(
 
     suspend fun deactivateWorker(workerId: Long) {
         dao.deactivateWorker(workerId)
+        val worker = dao.getWorkerById(workerId)
+        if (worker != null) {
+            firestoreSyncManager.saveWorker(worker)
+        }
     }
 
     suspend fun insertOrUpdateAttendance(record: AttendanceRecord) {
