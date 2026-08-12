@@ -1,5 +1,6 @@
 package com.example.ui.components.attendance
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,7 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -312,12 +315,12 @@ fun WorkerDetailCalendarScreen(
                                 .testTag("indicator_days_absent"),
                             shape = RoundedCornerShape(10.dp),
                             color = if (selectedMarkMode == AttendanceStatus.ABSENT) {
-                                Color(0xFFFFEBEE)
+                                MaterialTheme.colorScheme.errorContainer
                             } else {
-                                Color(0xFFFFEBEE).copy(alpha = 0.5f)
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                             },
                             border = if (selectedMarkMode == AttendanceStatus.ABSENT) {
-                                BorderStroke(2.dp, Color(0xFFD32F2F))
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.error)
                             } else null
                         ) {
                             Column(
@@ -332,13 +335,13 @@ fun WorkerDetailCalendarScreen(
                                         text = "$absentDays",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp,
-                                        color = Color(0xFFC62828)
+                                        color = MaterialTheme.colorScheme.error
                                     )
                                     if (selectedMarkMode == AttendanceStatus.ABSENT) {
                                         Icon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = "Selected",
-                                            tint = Color(0xFFD32F2F),
+                                            tint = MaterialTheme.colorScheme.error,
                                             modifier = Modifier.size(16.dp)
                                         )
                                     }
@@ -347,7 +350,7 @@ fun WorkerDetailCalendarScreen(
                                     text = "Days Absent",
                                     fontSize = 11.sp,
                                     fontWeight = if (selectedMarkMode == AttendanceStatus.ABSENT) FontWeight.Bold else FontWeight.Normal,
-                                    color = Color(0xFFC62828)
+                                    color = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
@@ -365,7 +368,7 @@ fun WorkerDetailCalendarScreen(
                         color = if (selectedMarkMode == AttendanceStatus.PRESENT)
                             Color(0xFF2E7D32)
                         else
-                            Color(0xFFD32F2F),
+                            MaterialTheme.colorScheme.error,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
@@ -415,9 +418,9 @@ fun WorkerDetailCalendarScreen(
                                 val greenText = Color(0xFF1B5E20)
                                 val greenDot = Color(0xFF2E7D32)
 
-                                val redBg = Color(0xFFFFEBEE)
-                                val redText = Color(0xFFC62828)
-                                val redDot = Color(0xFFD32F2F)
+                                val redBg = MaterialTheme.colorScheme.errorContainer
+                                val redText = MaterialTheme.colorScheme.error
+                                val redDot = MaterialTheme.colorScheme.error
 
                                 val cellBgColor = when {
                                     status == AttendanceStatus.PRESENT -> greenBg
@@ -499,7 +502,7 @@ fun WorkerDetailCalendarScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         LegendItem(label = "Present", color = Color(0xFF2E7D32))
-                        LegendItem(label = "Absent", color = Color(0xFFD32F2F))
+                        LegendItem(label = "Absent", color = MaterialTheme.colorScheme.error)
                         LegendItem(label = "Unmarked", color = MaterialTheme.colorScheme.surfaceContainerHigh)
                     }
                 }
@@ -589,6 +592,23 @@ private fun getNextMonth(yearMonth: String): String {
     }
 }
 
+private fun formatDateToDDMMYYYY(dateStr: String): String {
+    if (dateStr.isBlank()) return ""
+    return try {
+        if (dateStr.contains("-")) {
+            val parts = dateStr.split("-")
+            if (parts.size == 3) {
+                val year = parts[0]
+                val month = parts[1]
+                val day = parts[2]
+                "$day/$month/$year"
+            } else dateStr
+        } else dateStr
+    } catch (_: Exception) {
+        dateStr
+    }
+}
+
 @Composable
 fun WorkerPayrollSummarySection(
     worker: Worker,
@@ -601,10 +621,39 @@ fun WorkerPayrollSummarySection(
     onUpdateRate: (newRate: Double) -> Unit,
     onShowDigitalReceipt: () -> Unit
 ) {
+    val context = LocalContext.current
     var advanceInputText by remember { mutableStateOf("") }
-    var advanceDateText by remember { mutableStateOf(todayDateStr) }
+    var advanceDateText by remember { mutableStateOf(formatDateToDDMMYYYY(todayDateStr)) }
     var rateInputText by remember { mutableStateOf(if (worker.dailyRate > 0) worker.dailyRate.toInt().toString() else "") }
     var showEditRateDialog by remember { mutableStateOf(false) }
+    var isSavingAdvance by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    fun showDatePicker() {
+        val cal = Calendar.getInstance()
+        try {
+            if (advanceDateText.contains("/")) {
+                val parts = advanceDateText.split("/")
+                if (parts.size == 3) {
+                    cal.set(Calendar.DAY_OF_MONTH, parts[0].toInt())
+                    cal.set(Calendar.MONTH, parts[1].toInt() - 1)
+                    cal.set(Calendar.YEAR, parts[2].toInt())
+                }
+            }
+        } catch (_: Exception) {}
+
+        android.app.DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val formattedDay = String.format(Locale.US, "%02d", dayOfMonth)
+                val formattedMonth = String.format(Locale.US, "%02d", month + 1)
+                advanceDateText = "$formattedDay/$formattedMonth/$year"
+            },
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH),
+            cal.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
 
     val dailyRate = worker.dailyRate
     val totalEarnings = presentDays * dailyRate
@@ -773,7 +822,7 @@ fun WorkerPayrollSummarySection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Present Days + Daily Wage Rate
+                // Daily Wage Rate
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -798,23 +847,23 @@ fun WorkerPayrollSummarySection(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier.padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text("Total Earnings", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text("Total Earnings", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = "₹${totalEarnings.toInt()}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (dailyRate > 0) "${presentDays} × ₹${dailyRate.toInt()}" else "Rate required",
                             fontSize = 10.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -828,20 +877,20 @@ fun WorkerPayrollSummarySection(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier.padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text("Advances Received", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Text("Advances Received", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = "₹${advancePaid.toInt()}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text("Total Advances", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f))
+                        Text("Total Advances", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -849,23 +898,22 @@ fun WorkerPayrollSummarySection(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = if (remainingBalance > 0) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Column(
                         modifier = Modifier.padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = "₹${if (remainingBalance > 0) remainingBalance.toInt() else 0}",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = if (remainingBalance > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (remainingBalance > 0) "Earnings - Advances" else "Fully Settled",
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -899,16 +947,24 @@ fun WorkerPayrollSummarySection(
                             value = advanceDateText,
                             onValueChange = { advanceDateText = it },
                             label = { Text("Date", fontSize = 10.sp) },
+                            placeholder = { Text("Select Date", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             singleLine = true,
+                            textStyle = TextStyle(fontSize = 12.sp),
                             leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
+                                IconButton(
+                                    onClick = { showDatePicker() },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "Select Date",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             },
                             modifier = Modifier
-                                .weight(1.1f)
+                                .weight(1.2f)
                                 .testTag("record_advance_date_input")
                         )
 
@@ -926,15 +982,33 @@ fun WorkerPayrollSummarySection(
                         Button(
                             onClick = {
                                 val addedAmt = advanceInputText.toDoubleOrNull() ?: 0.0
-                                if (addedAmt > 0 && advanceDateText.isNotBlank()) {
-                                    onRecordAdvance(addedAmt, advanceDateText)
-                                    advanceInputText = ""
+                                if (addedAmt > 0 && advanceDateText.isNotBlank() && !isSavingAdvance) {
+                                    isSavingAdvance = true
+                                    coroutineScope.launch {
+                                        try {
+                                            onRecordAdvance(addedAmt, advanceDateText)
+                                            advanceInputText = ""
+                                        } catch (t: Throwable) {
+                                            android.util.Log.e("WorkerDetail", "Error saving advance", t)
+                                        } finally {
+                                            isSavingAdvance = false
+                                        }
+                                    }
                                 }
                             },
+                            enabled = !isSavingAdvance,
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.testTag("add_advance_button")
                         ) {
-                            Text("+ Add", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            if (isSavingAdvance) {
+                                androidx.compose.material3.CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            } else {
+                                Text("+ Add", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 

@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -1066,6 +1067,8 @@ fun ManualAddContactModal(
     var address by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Farmer") }
     var autoSavePhoneContacts by remember { mutableStateOf(true) }
+    var isSavingContact by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1158,16 +1161,32 @@ fun ManualAddContactModal(
             val phoneDigits = phone.removePrefix("+91").filter { it.isDigit() }
             Button(
                 onClick = {
-                    if (name.trim().isEmpty() || phoneDigits.isEmpty()) {
-                        return@Button
+                    if (name.trim().isNotEmpty() && phoneDigits.isNotEmpty() && !isSavingContact) {
+                        isSavingContact = true
+                        coroutineScope.launch {
+                            try {
+                                onSave(name.trim(), phone.trim(), address.trim(), category.trim(), autoSavePhoneContacts)
+                            } catch (t: Throwable) {
+                                android.util.Log.e("ManualAddContact", "Error saving contact", t)
+                            } finally {
+                                isSavingContact = false
+                            }
+                        }
                     }
-                    onSave(name.trim(), phone.trim(), address.trim(), category.trim(), autoSavePhoneContacts)
                 },
-                enabled = name.trim().isNotEmpty() && phoneDigits.isNotEmpty(),
+                enabled = !isSavingContact && name.trim().isNotEmpty() && phoneDigits.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text(text = "Save Contact", fontWeight = FontWeight.Bold)
+                if (isSavingContact) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(text = "Save Contact", fontWeight = FontWeight.Bold)
+                }
             }
         },
         dismissButton = {

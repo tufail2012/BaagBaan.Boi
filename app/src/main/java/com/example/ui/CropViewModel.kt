@@ -5,12 +5,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.CropRecord
 import com.example.data.CropRecordRepository
+import com.example.data.GardenPlanningEntry
+import com.example.data.GardenPlanningRepository
+import com.example.data.GlobalSearchResult
 import com.example.data.isPaymentCleared
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -18,7 +22,10 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class CropViewModel(private val repository: CropRecordRepository) : ViewModel() {
+class CropViewModel(
+    private val repository: CropRecordRepository,
+    private val gardenPlanningRepository: GardenPlanningRepository? = null
+) : ViewModel() {
 
     // Theme mode state: SYSTEM, LIGHT, DARK, AMOLED
     private val _themeMode = MutableStateFlow(AppThemeMode.SYSTEM)
@@ -280,6 +287,7 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
             val matchesPayment = when (paymentFilter) {
                 "Payments Cleared" -> rec.isPaymentCleared()
                 "Payments Pending" -> !rec.isPaymentCleared()
+                "Advance Paid" -> rec.paymentStatus.equals("Advance Paid", ignoreCase = true)
                 else -> true
             }
 
@@ -288,27 +296,40 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Global Search Flow across all services & sub-categories (Farmer Name, Serial No, Contact No)
-    val globalSearchResults: StateFlow<List<CropRecord>> = combine(
+    val globalSearchResults: StateFlow<List<GlobalSearchResult>> = combine(
         repository.allRecords,
+        gardenPlanningRepository?.allEntries ?: flowOf(emptyList()),
         _searchQuery
-    ) { records, query ->
+    ) { records, gardenEntries, query ->
         val trimmed = query.trim()
         val manualRecords = records.filter { it.serialNumber !in automaticSerials }
+        val combined = mutableListOf<GlobalSearchResult>()
+        manualRecords.mapTo(combined) { GlobalSearchResult.Crop(it) }
+        gardenEntries.mapTo(combined) { GlobalSearchResult.Garden(it) }
+
         if (trimmed.isBlank()) {
-            manualRecords.sortedWith(compareByDescending<CropRecord> { it.timestamp }.thenByDescending { it.id })
+            combined.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
         } else {
             val cleanQuery = trimmed.replace(" ", "").lowercase()
-            manualRecords.filter { rec ->
-                val farmerNameMatch = rec.farmerName.contains(trimmed, ignoreCase = true)
-                val serialMatch = rec.serialNumber.replace(" ", "").lowercase().contains(cleanQuery) || rec.serialNumber.contains(trimmed, ignoreCase = true)
-                val phoneMatch = rec.contactNumber.replace(" ", "").replace("-", "").contains(cleanQuery) || rec.contactNumber.contains(trimmed, ignoreCase = true)
-                val varietyMatch = rec.plantVariety.contains(trimmed, ignoreCase = true)
-                val serviceMatch = rec.serviceType.contains(trimmed, ignoreCase = true)
-                val rootstockMatch = rec.rootstock.contains(trimmed, ignoreCase = true)
-                val addressMatch = rec.farmerAddress.contains(trimmed, ignoreCase = true)
+            combined.filter { item ->
+                val farmerNameMatch = item.farmerName.contains(trimmed, ignoreCase = true)
+                val serialMatch = item.serialNumber.replace(" ", "").lowercase().contains(cleanQuery) || item.serialNumber.contains(trimmed, ignoreCase = true)
+                val phoneMatch = item.contactNumber.replace(" ", "").replace("-", "").contains(cleanQuery) || item.contactNumber.contains(trimmed, ignoreCase = true)
+                val serviceMatch = item.serviceType.contains(trimmed, ignoreCase = true)
+                val addressMatch = item.farmerAddress.contains(trimmed, ignoreCase = true)
+                val extraMatch = when (item) {
+                    is GlobalSearchResult.Crop -> {
+                        val rec = item.record
+                        rec.plantVariety.contains(trimmed, ignoreCase = true) || rec.rootstock.contains(trimmed, ignoreCase = true)
+                    }
+                    is GlobalSearchResult.Garden -> {
+                        val entry = item.entry
+                        entry.plantVariety.contains(trimmed, ignoreCase = true) || entry.rootStock.contains(trimmed, ignoreCase = true)
+                    }
+                }
 
-                farmerNameMatch || serialMatch || phoneMatch || varietyMatch || serviceMatch || rootstockMatch || addressMatch
-            }.sortedWith(compareByDescending<CropRecord> { it.timestamp }.thenByDescending { it.id })
+                farmerNameMatch || serialMatch || phoneMatch || serviceMatch || addressMatch || extraMatch
+            }.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -806,11 +827,14 @@ class CropViewModel(private val repository: CropRecordRepository) : ViewModel() 
     }
 }
 
-class CropViewModelFactory(private val repository: CropRecordRepository) : ViewModelProvider.Factory {
+class CropViewModelFactory(
+    private val repository: CropRecordRepository,
+    private val gardenPlanningRepository: GardenPlanningRepository? = null
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CropViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return CropViewModel(repository) as T
+            return CropViewModel(repository, gardenPlanningRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

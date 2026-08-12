@@ -144,6 +144,16 @@ fun FarmerRecordsScreen(
     val isPruning = selectedService.equals("Pruning", ignoreCase = true)
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
 
+    var isInitialLoading by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(records) {
+        if (records.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
+
     // Financial & Quantity Summary Metrics for current records
     val totalPayment = records.sumOf { it.calculateTotalAmount() }
     val receivedPayment = records.sumOf { it.amountPaid }
@@ -158,130 +168,30 @@ fun FarmerRecordsScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
-        // Active Recording Book Header Banner
+        // 1. Active Recording Book Header Banner
         item {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = bookTitle,
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text(
-                            text = "${records.size} ${if (records.size == 1) "entry" else "entries"}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
+            RecordingBookHeader(
+                title = bookTitle,
+                count = records.size
+            )
         }
 
-        // 1. Search Bar (Sticky at top: remains fixed while filter chips & records scroll underneath)
+        // 2. Search Bar with Payment Status Filter Dropdown
         stickyHeader {
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search by farmer name, phone, serial no...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Icon",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search")
-                            }
-                        }
-                    },
-                    shape = searchShape,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .boundedFormFieldRipple(shape = searchShape)
-                        .elevated3dShadow(shape = searchShape, isDark = isDark)
-                        .testTag("search_records_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
+                SearchBarWithStatusFilter(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                    selectedFilter = selectedPaymentFilter,
+                    onFilterSelected = { viewModel.setPaymentFilter(it) },
+                    placeholderText = "Search by farmer name, phone, serial no...",
+                    isDark = isDark,
+                    testTagPrefix = "crop_search",
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
-            }
-        }
-
-        // 2. Filter by Payment Status ('All Records', 'Payments Cleared', 'Payments Pending')
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val filterOptions = listOf("All Records", "Payments Cleared", "Payments Pending")
-                filterOptions.forEach { option ->
-                    val isSelected = selectedPaymentFilter == option
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.setPaymentFilter(option) },
-                        label = {
-                            Text(
-                                text = option,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = Color.White,
-                            containerColor = if (isDark) Color(0xFF2B2B2B) else Color(0xFFF1F5F9),
-                            labelColor = if (isDark) Color.White else Color(0xFF334155)
-                        ),
-                        modifier = Modifier
-                            .boundedFormFieldRipple(shape = RoundedCornerShape(16.dp))
-                            .testTag("filter_chip_${option.lowercase().replace(" ", "_")}")
-                    )
-                }
             }
         }
 
@@ -307,7 +217,13 @@ fun FarmerRecordsScreen(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
+                    if (isInitialLoading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -338,6 +254,7 @@ fun FarmerRecordsScreen(
                             Text("Add New Entry to $bookTitleName")
                         }
                     }
+                }
                 }
             }
         } else {

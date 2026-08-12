@@ -402,6 +402,10 @@ fun GardenPlanningScreen(
                         onEdit = { entry ->
                             viewModel.loadEntryForEdit(entry)
                             selectedTabIndex = 0
+                        },
+                        onAddNewEntry = {
+                            viewModel.clearForm()
+                            selectedTabIndex = 0
                         }
                     )
                 }
@@ -1564,18 +1568,27 @@ fun GardenPlanningRecordsTab(
     viewModel: GardenPlanningViewModel,
     entries: List<GardenPlanningEntry>,
     isDark: Boolean,
-    onEdit: (GardenPlanningEntry) -> Unit
+    onEdit: (GardenPlanningEntry) -> Unit,
+    onAddNewEntry: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
-    val searchShape = RoundedCornerShape(24.dp)
 
     val lazyListState = rememberLazyListState()
     lazyListState.rememberScrollHapticFeedback()
 
     var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
+    var isInitialLoading by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(entries) {
+        if (entries.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
 
     if (selectedDetailEntry != null) {
         GardenBookingRecordDetailDialog(
@@ -1610,73 +1623,34 @@ fun GardenPlanningRecordsTab(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Sticky Search Bar & Filter Chips (positioned ABOVE summary cards & sticky on scroll)
+        // 1. Active Recording Book Header Banner (positioned directly ABOVE search box)
+        item {
+            RecordingBookHeader(
+                title = "Garden Planning Recording Book",
+                count = entries.size
+            )
+        }
+
+        // 2. Sticky Search Bar & Payment Status Filter Dropdown
         stickyHeader {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { viewModel.setSearchQuery(it) },
-                        placeholder = { Text("Search by farmer name, phone, serial or address...", fontSize = 13.sp) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear Search",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        },
-                        shape = searchShape,
-                        singleLine = true,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(elevation = 2.dp, shape = searchShape)
-                            .testTag("garden_search_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-
-                    // Payment Status Filter Chips Bar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        listOf("All Records", "Pending", "Advance Paid", "Fully Paid").forEach { filter ->
-                            val isSelected = selectedPaymentFilter == filter
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { viewModel.setPaymentFilter(filter) },
-                                label = { Text(filter, fontSize = 11.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                )
-                            )
-                        }
-                    }
-                }
+                SearchBarWithStatusFilter(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                    selectedFilter = selectedPaymentFilter,
+                    onFilterSelected = { viewModel.setPaymentFilter(it) },
+                    placeholderText = "Search by farmer name, phone, serial or address...",
+                    isDark = isDark,
+                    testTagPrefix = "garden_search",
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
         }
 
-        // Summary Statistics Cards Grid (Total Payment, Received Payment, Pending Payment, Total Quantity)
+        // 3. Summary Statistics Cards Grid
         item {
             GardenRecordSummaryCards(
                 totalPayment = totalPayment,
@@ -1687,56 +1661,6 @@ fun GardenPlanningRecordsTab(
             )
         }
 
-        // Active Recording Book Header Banner
-        item {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "Garden Planning Recording Book",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = "${entries.size} Records",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            }
-        }
-
         if (entries.isEmpty()) {
             item {
                 Box(
@@ -1745,15 +1669,21 @@ fun GardenPlanningRecordsTab(
                         .padding(vertical = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
+                    if (isInitialLoading) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Park,
                             contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.outline
+                            modifier = Modifier.size(64.dp),
+                            tint = Color.Gray
                         )
                         Text(
                             text = "No Records Found",
@@ -1765,11 +1695,19 @@ fun GardenPlanningRecordsTab(
                             text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
                                 "No garden planning records match your search or filter criteria."
                             else
-                                "No entries saved in the Garden Planning Recording Book yet.",
+                                "No entries saved in the Garden Planning Recording Book yet. Create a new entry under Garden Planning to add it here.",
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
+                        OutlinedButton(
+                            onClick = { onAddNewEntry() },
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Add New Entry to Garden Planning")
+                        }
                     }
+                }
                 }
             }
         } else {

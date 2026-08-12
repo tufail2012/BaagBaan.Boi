@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import com.example.ui.AppThemeMode
 
@@ -61,21 +62,24 @@ fun MyApplicationTheme(
             onSurfaceVariant = Color(0xFFB0B0B0),
             outline = Color(0xFF383838)
         )
-        else -> lightColorScheme(
-            primary = accentColor,
-            onPrimary = Color.White,
-            primaryContainer = accentColor.copy(alpha = 0.15f),
-            onPrimaryContainer = accentColor,
-            secondary = accentColor,
-            secondaryContainer = accentColor.copy(alpha = 0.12f),
-            background = AgriBackground,
-            surface = AgriSurface,
-            surfaceVariant = Color(0xFFF1F5F9),
-            onBackground = AgriTextPrimary,
-            onSurface = AgriTextPrimary,
-            onSurfaceVariant = AgriTextSecondary,
-            outline = AgriOutline
-        )
+        else -> {
+            val faintTintedBackground = lerp(accentColor, Color.White, 0.93f)
+            lightColorScheme(
+                primary = accentColor,
+                onPrimary = Color.White,
+                primaryContainer = accentColor.copy(alpha = 0.15f),
+                onPrimaryContainer = accentColor,
+                secondary = accentColor,
+                secondaryContainer = accentColor.copy(alpha = 0.12f),
+                background = faintTintedBackground,
+                surface = Color.White,
+                surfaceVariant = Color(0xFFF1F5F9),
+                onBackground = AgriTextPrimary,
+                onSurface = AgriTextPrimary,
+                onSurfaceVariant = AgriTextSecondary,
+                outline = AgriOutline
+            )
+        }
     }
 
     MaterialTheme(

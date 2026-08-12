@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.data.AppDatabase
 import com.example.data.AttendanceRepository
 import com.example.data.CropRecordRepository
+import com.example.data.GardenPlanningRepository
 import com.example.ui.AgriCropMainScreen
 import com.example.ui.AppThemeMode
 import com.example.ui.AttendanceViewModel
@@ -59,8 +60,9 @@ class MainActivity : ComponentActivity() {
         NotificationHelper.createNotificationChannels(this)
 
         val database = AppDatabase.getDatabase(this, lifecycleScope)
+        val gardenPlanningRepository = GardenPlanningRepository(database.gardenPlanningDao(), database.farmerContactDao(), database.recycleBinDao())
         val cropRepository = CropRecordRepository(database.cropRecordDao(), database.farmerContactDao(), database.recycleBinDao(), database.inventoryDao())
-        val cropFactory = CropViewModelFactory(cropRepository)
+        val cropFactory = CropViewModelFactory(cropRepository, gardenPlanningRepository)
         val cropViewModel = ViewModelProvider(this, cropFactory)[CropViewModel::class.java]
 
         val attendanceRepository = AttendanceRepository(database.attendanceDao())

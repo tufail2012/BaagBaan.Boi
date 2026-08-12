@@ -1,5 +1,6 @@
 package com.example.ui.components.attendance
 
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -577,6 +578,8 @@ fun AddWorkerDialog(
     var phone by remember { mutableStateOf(prefix) }
     var dailyRateText by remember { mutableStateOf("") }
     var advanceText by remember { mutableStateOf("") }
+    var isSavingWorker by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -652,15 +655,33 @@ fun AddWorkerDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (name.isNotBlank()) {
-                        val rate = dailyRateText.toDoubleOrNull() ?: 0.0
-                        val advance = advanceText.toDoubleOrNull() ?: 0.0
-                        onConfirm(name, phone, rate, advance)
+                    if (name.isNotBlank() && !isSavingWorker) {
+                        isSavingWorker = true
+                        coroutineScope.launch {
+                            try {
+                                val rate = dailyRateText.toDoubleOrNull() ?: 0.0
+                                val advance = advanceText.toDoubleOrNull() ?: 0.0
+                                onConfirm(name, phone, rate, advance)
+                            } catch (t: Throwable) {
+                                android.util.Log.e("AddWorker", "Error adding worker", t)
+                            } finally {
+                                isSavingWorker = false
+                            }
+                        }
                     }
                 },
+                enabled = !isSavingWorker && name.isNotBlank(),
                 modifier = Modifier.testTag("add_worker_confirm_button")
             ) {
-                Text("Add Worker")
+                if (isSavingWorker) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Add Worker")
+                }
             }
         },
         dismissButton = {
@@ -708,6 +729,8 @@ fun EditWorkerDialog(
     var dailyRateText by remember { mutableStateOf(if (worker.dailyRate > 0) worker.dailyRate.toInt().toString() else "") }
     var advanceText by remember { mutableStateOf(if (worker.advancePaid > 0) worker.advancePaid.toInt().toString() else "") }
     var showConfirmDeactivate by remember { mutableStateOf(false) }
+    var isSavingWorker by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     if (showConfirmDeactivate) {
         AlertDialog(
@@ -831,21 +854,39 @@ fun EditWorkerDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (name.isNotBlank()) {
-                            val rate = dailyRateText.toDoubleOrNull() ?: 0.0
-                            val advance = advanceText.toDoubleOrNull() ?: 0.0
-                            onConfirm(
-                                worker.copy(
-                                    name = name.trim(),
-                                    phoneNumber = phone.trim(),
-                                    dailyRate = rate,
-                                    advancePaid = advance
-                                )
-                            )
+                        if (name.isNotBlank() && !isSavingWorker) {
+                            isSavingWorker = true
+                            coroutineScope.launch {
+                                try {
+                                    val rate = dailyRateText.toDoubleOrNull() ?: 0.0
+                                    val advance = advanceText.toDoubleOrNull() ?: 0.0
+                                    onConfirm(
+                                        worker.copy(
+                                            name = name.trim(),
+                                            phoneNumber = phone.trim(),
+                                            dailyRate = rate,
+                                            advancePaid = advance
+                                        )
+                                    )
+                                } catch (t: Throwable) {
+                                    android.util.Log.e("EditWorker", "Error updating worker", t)
+                                } finally {
+                                    isSavingWorker = false
+                                }
+                            }
                         }
-                    }
+                    },
+                    enabled = !isSavingWorker && name.isNotBlank()
                 ) {
-                    Text("Save Changes")
+                    if (isSavingWorker) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Save Changes")
+                    }
                 }
             },
             dismissButton = {

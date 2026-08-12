@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
 import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -9,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +61,8 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -112,11 +116,27 @@ fun NotificationCenterSheet(
     var selectedFilterTab by remember { mutableIntStateOf(0) } // 0: All, 1: Unread, 2: Bookings, 3: Reminders
     var showCreateReminderDialog by remember { mutableStateOf(false) }
 
+    val bookingCount = remember(notifications) {
+        notifications.count { it.type.equals("BOOKING", ignoreCase = true) || it.type.equals("GARDEN", ignoreCase = true) }
+    }
+    val reminderCount = remember(notifications) {
+        notifications.count { it.type.equals("REMINDER", ignoreCase = true) || it.type.equals("TASK", ignoreCase = true) }
+    }
+
+    val tabs = remember(notifications.size, unreadCount, bookingCount, reminderCount) {
+        listOf(
+            "All (${notifications.size})",
+            "Unread ($unreadCount)",
+            "Bookings ($bookingCount)",
+            "Reminders ($reminderCount)"
+        )
+    }
+
     val filteredNotifications = remember(notifications, selectedFilterTab) {
         when (selectedFilterTab) {
             1 -> notifications.filter { !it.isRead }
-            2 -> notifications.filter { it.type == "BOOKING" }
-            3 -> notifications.filter { it.type == "REMINDER" }
+            2 -> notifications.filter { it.type.equals("BOOKING", ignoreCase = true) || it.type.equals("GARDEN", ignoreCase = true) }
+            3 -> notifications.filter { it.type.equals("REMINDER", ignoreCase = true) || it.type.equals("TASK", ignoreCase = true) }
             else -> notifications
         }
     }
@@ -150,7 +170,7 @@ fun NotificationCenterSheet(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -268,6 +288,7 @@ fun NotificationCenterSheet(
                 OutlinedButton(
                     onClick = { showCreateReminderDialog = true },
                     shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("schedule_reminder_button")
                 ) {
@@ -322,18 +343,33 @@ fun NotificationCenterSheet(
                 selectedTabIndex = selectedFilterTab,
                 containerColor = Color.Transparent,
                 contentColor = MaterialTheme.colorScheme.primary,
+                indicator = { tabPositions ->
+                    if (selectedFilterTab in tabPositions.indices) {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedFilterTab]),
+                            height = 3.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
                 modifier = Modifier.padding(vertical = 4.dp)
             ) {
-                val tabs = listOf("All (${notifications.size})", "Unread ($unreadCount)", "Bookings", "Reminders")
                 tabs.forEachIndexed { index, title ->
+                    val isSelected = selectedFilterTab == index
                     Tab(
-                        selected = selectedFilterTab == index,
+                        selected = isSelected,
                         onClick = { selectedFilterTab = index },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         text = {
                             Text(
                                 text = title,
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedFilterTab == index) FontWeight.Bold else FontWeight.Medium
+                                fontSize = 10.5.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     )
@@ -406,6 +442,8 @@ fun NotificationCenterSheet(
 
         var dateText by remember { mutableStateOf(dateFormat.format(Date(scheduledTimeMillis))) }
         var timeText by remember { mutableStateOf(timeFormat.format(Date(scheduledTimeMillis))) }
+        var isSavingReminder by remember { mutableStateOf(false) }
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
         val updateCalendar = {
             scheduledTimeMillis = calendar.timeInMillis
@@ -626,15 +664,35 @@ fun NotificationCenterSheet(
             confirmButton = {
                 Button(
                     onClick = {
-                        val titleToUse = reminderTitle.ifBlank { "Scheduled Task Reminder" }
-                        val messageToUse = reminderMessage.ifBlank { "You have an upcoming task or event scheduled." }
-                        onScheduleReminder(titleToUse, messageToUse, scheduledTimeMillis)
-                        showCreateReminderDialog = false
+                        if (!isSavingReminder) {
+                            isSavingReminder = true
+                            coroutineScope.launch {
+                                try {
+                                    val titleToUse = reminderTitle.ifBlank { "Scheduled Task Reminder" }
+                                    val messageToUse = reminderMessage.ifBlank { "You have an upcoming task or event scheduled." }
+                                    onScheduleReminder(titleToUse, messageToUse, scheduledTimeMillis)
+                                    showCreateReminderDialog = false
+                                } catch (t: Throwable) {
+                                    android.util.Log.e("CreateReminder", "Error scheduling reminder", t)
+                                } finally {
+                                    isSavingReminder = false
+                                }
+                            }
+                        }
                     },
+                    enabled = !isSavingReminder,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.testTag("save_reminder_button")
                 ) {
-                    Text("Schedule Notification", color = Color.White, fontWeight = FontWeight.Bold)
+                    if (isSavingReminder) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                    } else {
+                        Text("Schedule Notification", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             dismissButton = {
@@ -661,18 +719,21 @@ fun NotificationItemRow(
     val icon = when (notification.type) {
         "BOOKING" -> Icons.Default.LocalFlorist
         "REMINDER" -> Icons.Default.Alarm
+        "ALERT", "URGENT", "OVERDUE" -> Icons.Default.NotificationsActive
         else -> Icons.Default.Notifications
     }
 
     val iconBgColor = when (notification.type) {
-        "BOOKING" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-        "REMINDER" -> Color(0xFF1976D2).copy(alpha = 0.15f)
+        "BOOKING" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        "REMINDER" -> MaterialTheme.colorScheme.secondaryContainer
+        "ALERT", "URGENT", "OVERDUE" -> MaterialTheme.colorScheme.errorContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val iconTint = when (notification.type) {
         "BOOKING" -> MaterialTheme.colorScheme.primary
-        "REMINDER" -> Color(0xFF1976D2)
+        "REMINDER" -> MaterialTheme.colorScheme.onSecondaryContainer
+        "ALERT", "URGENT", "OVERDUE" -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 

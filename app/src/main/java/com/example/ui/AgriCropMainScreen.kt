@@ -293,6 +293,7 @@ fun AgriCropMainScreen(
             "SEARCH" -> {
                 GlobalSearchResultsScreen(
                     viewModel = viewModel,
+                    gardenPlanningViewModel = gardenPlanningViewModel,
                     onBack = { viewModel.closeGlobalSearch() },
                     modifier = modifier
                 )

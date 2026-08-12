@@ -49,8 +49,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,8 +57,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -81,15 +83,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.CropRecord
-import com.example.data.calculateRemainingBalance
-import com.example.data.calculateTotalAmount
-import com.example.data.isPaymentCleared
+import com.example.data.GardenPlanningEntry
+import com.example.data.GlobalSearchResult
 import com.example.ui.CropViewModel
+import com.example.ui.GardenPlanningViewModel
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GlobalSearchResultsScreen(
     viewModel: CropViewModel,
+    gardenPlanningViewModel: GardenPlanningViewModel? = null,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -99,7 +102,8 @@ fun GlobalSearchResultsScreen(
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
 
-    var selectedDetailRecord by remember { mutableStateOf<CropRecord?>(null) }
+    var selectedDetailCropRecord by remember { mutableStateOf<CropRecord?>(null) }
+    var selectedDetailGardenEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
     var selectedCategoryFilter by remember { mutableStateOf("All Categories") }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -117,15 +121,15 @@ fun GlobalSearchResultsScreen(
         if (selectedCategoryFilter == "All Categories") {
             searchResults
         } else {
-            searchResults.filter { record ->
+            searchResults.filter { result ->
                 when (selectedCategoryFilter) {
-                    "Local Plants" -> record.serviceType.contains("Local", ignoreCase = true)
-                    "Imported Plants" -> record.serviceType.contains("Imported", ignoreCase = true) && !record.serviceType.contains("Rootstock", ignoreCase = true)
-                    "Imported Rootstocks" -> record.serviceType.contains("Rootstock", ignoreCase = true)
-                    "Site Visit" -> record.serviceType.contains("Site Visit", ignoreCase = true)
-                    "Pruning" -> record.serviceType.contains("Pruning", ignoreCase = true)
-                    "Garden Planning" -> record.serviceType.contains("Garden", ignoreCase = true)
-                    else -> record.serviceType.equals(selectedCategoryFilter, ignoreCase = true)
+                    "Local Plants" -> result.serviceType.contains("Local", ignoreCase = true)
+                    "Imported Plants" -> result.serviceType.contains("Imported", ignoreCase = true) && !result.serviceType.contains("Rootstock", ignoreCase = true)
+                    "Imported Rootstocks" -> result.serviceType.contains("Rootstock", ignoreCase = true)
+                    "Site Visit" -> result.serviceType.contains("Site Visit", ignoreCase = true)
+                    "Pruning" -> result.serviceType.contains("Pruning", ignoreCase = true)
+                    "Garden Planning" -> result is GlobalSearchResult.Garden || result.serviceType.contains("Garden", ignoreCase = true)
+                    else -> result.serviceType.equals(selectedCategoryFilter, ignoreCase = true)
                 }
             }
         }
@@ -233,7 +237,6 @@ fun GlobalSearchResultsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
-                // Banner showing status with badge shifted left and dropdown on right
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = if (isDark) Color(0xFF1E293B) else MaterialTheme.colorScheme.primaryContainer,
@@ -246,7 +249,6 @@ fun GlobalSearchResultsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Left section: Title & Results counter badge shifted to the left
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -277,7 +279,6 @@ fun GlobalSearchResultsScreen(
 
                         Spacer(modifier = Modifier.width(6.dp))
 
-                        // Right section: Clickable Dropdown Menu replacing old badge position
                         Box {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
@@ -380,29 +381,62 @@ fun GlobalSearchResultsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
                 ) {
-                    items(finalFilteredResults, key = { it.id }) { record ->
-                        SwipeableRecordItem(
-                            record = record,
-                            onDelete = { viewModel.deleteRecord(record) }
+                    items(
+                        items = finalFilteredResults,
+                        key = { item ->
+                            when (item) {
+                                is GlobalSearchResult.Crop -> "crop_${item.record.id}"
+                                is GlobalSearchResult.Garden -> "garden_${item.entry.id}"
+                            }
+                        }
+                    ) { item ->
+                        val onDeleteItem: () -> Unit = {
+                            when (item) {
+                                is GlobalSearchResult.Crop -> viewModel.deleteRecord(item.record)
+                                is GlobalSearchResult.Garden -> {
+                                    gardenPlanningViewModel?.deleteEntry(item.entry)
+                                    Unit
+                                }
+                            }
+                        }
+
+                        SwipeableSearchResultItem(
+                            farmerName = item.farmerName,
+                            serialNumber = item.serialNumber,
+                            onDelete = onDeleteItem
                         ) {
                             GlobalSearchResultCard(
-                                record = record,
+                                item = item,
                                 searchQuery = searchQuery,
                                 isDark = isDark,
                                 onCall = {
-                                    if (record.contactNumber.isNotBlank()) {
+                                    if (item.contactNumber.isNotBlank()) {
                                         val intent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:${record.contactNumber}")
+                                            data = Uri.parse("tel:${item.contactNumber}")
                                         }
                                         context.startActivity(intent)
                                     }
                                 },
                                 onEdit = {
-                                    viewModel.loadRecordForEditing(record)
-                                    onBack()
+                                    when (item) {
+                                        is GlobalSearchResult.Crop -> {
+                                            viewModel.loadRecordForEditing(item.record)
+                                            onBack()
+                                        }
+                                        is GlobalSearchResult.Garden -> {
+                                            gardenPlanningViewModel?.loadEntryForEdit(item.entry)
+                                            viewModel.selectServiceCategory("Garden Planning")
+                                            onBack()
+                                        }
+                                    }
                                 },
-                                onDelete = { viewModel.deleteRecord(record) },
-                                onOpenDetail = { selectedDetailRecord = record }
+                                onDelete = onDeleteItem,
+                                onOpenDetail = {
+                                    when (item) {
+                                        is GlobalSearchResult.Crop -> selectedDetailCropRecord = item.record
+                                        is GlobalSearchResult.Garden -> selectedDetailGardenEntry = item.entry
+                                    }
+                                }
                             )
                         }
                     }
@@ -411,22 +445,129 @@ fun GlobalSearchResultsScreen(
         }
     }
 
-    selectedDetailRecord?.let { record ->
+    selectedDetailCropRecord?.let { record ->
         BookingRecordDetailDialog(
             record = record,
-            onDismiss = { selectedDetailRecord = null },
+            onDismiss = { selectedDetailCropRecord = null },
             onEdit = { rec ->
-                selectedDetailRecord = null
+                selectedDetailCropRecord = null
                 viewModel.loadRecordForEditing(rec)
                 onBack()
             },
             onDelete = { rec ->
-                selectedDetailRecord = null
+                selectedDetailCropRecord = null
                 viewModel.deleteRecord(rec)
             },
             onUpdateRecord = { updatedRec ->
-                selectedDetailRecord = updatedRec
+                selectedDetailCropRecord = updatedRec
                 viewModel.updateRecordSync(updatedRec)
+            }
+        )
+    }
+
+    selectedDetailGardenEntry?.let { entry ->
+        if (gardenPlanningViewModel != null) {
+            GardenBookingRecordDetailDialog(
+                entry = entry,
+                viewModel = gardenPlanningViewModel,
+                isDark = isDark,
+                onDismiss = { selectedDetailGardenEntry = null },
+                onEdit = { edited ->
+                    selectedDetailGardenEntry = null
+                    gardenPlanningViewModel.loadEntryForEdit(edited)
+                    viewModel.selectServiceCategory("Garden Planning")
+                    onBack()
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableSearchResultItem(
+    farmerName: String,
+    serialNumber: String,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart || dismissValue == SwipeToDismissBoxValue.StartToEnd) {
+                showDeleteConfirmation = true
+                false
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        modifier = modifier,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                else -> Alignment.CenterEnd
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(Color(0xFFDC2626))
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                contentAlignment = alignment
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Swipe to Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    ) {
+        content()
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Record", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the record for $farmerName ($serialNumber)?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -434,7 +575,7 @@ fun GlobalSearchResultsScreen(
 
 @Composable
 private fun GlobalSearchResultCard(
-    record: CropRecord,
+    item: GlobalSearchResult,
     searchQuery: String = "",
     isDark: Boolean,
     onCall: () -> Unit,
@@ -446,10 +587,10 @@ private fun GlobalSearchResultCard(
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val totalAmount = record.calculateTotalAmount()
-    val initial = record.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F"
+    val totalAmount = item.totalAmount
+    val initial = item.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F"
 
-    val (serviceBadgeBg, serviceBadgeText, serviceBadgeIcon) = when (record.serviceType.lowercase()) {
+    val (serviceBadgeBg, serviceBadgeText, serviceBadgeIcon) = when (item.serviceType.lowercase()) {
         "imported", "imported plants" -> Triple(
             if (isDark) Color(0xFF2E1065) else Color(0xFFF3E8FF),
             if (isDark) Color(0xFFC084FC) else Color(0xFF7E22CE),
@@ -470,6 +611,11 @@ private fun GlobalSearchResultCard(
             if (isDark) Color(0xFFF472B6) else Color(0xFFBE185D),
             Icons.Default.ContentCut
         )
+        "garden planning", "garden" -> Triple(
+            if (isDark) Color(0xFF1E3A8A) else Color(0xFFDBEAFE),
+            if (isDark) Color(0xFF93C5FD) else Color(0xFF1D4ED8),
+            Icons.Default.Park
+        )
         else -> Triple(
             if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7),
             if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D),
@@ -478,11 +624,11 @@ private fun GlobalSearchResultCard(
     }
 
     val (statusBg, statusTextColor) = when {
-        record.isPaymentCleared() -> {
+        item.isPaymentCleared -> {
             if (isDark) Color(0xFF1B382B) to Color(0xFF6EE7B7)
             else Color(0xFFDCFCE7) to Color(0xFF15803D)
         }
-        record.amountPaid > 0 -> {
+        item.amountPaid > 0 -> {
             if (isDark) Color(0xFF382A13) to Color(0xFFFDE047)
             else Color(0xFFFEF3C7) to Color(0xFFB45309)
         }
@@ -493,8 +639,8 @@ private fun GlobalSearchResultCard(
     }
 
     val statusLabel = when {
-        record.isPaymentCleared() -> "Fully Paid"
-        record.amountPaid > 0 -> "Advance Paid"
+        item.isPaymentCleared -> "Fully Paid"
+        item.amountPaid > 0 -> "Advance Paid"
         else -> "Pending"
     }
 
@@ -508,7 +654,7 @@ private fun GlobalSearchResultCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .clickable { onOpenDetail() }
-            .testTag("global_search_card_${record.id}")
+            .testTag("global_search_card_${item.id}")
     ) {
         Row(
             modifier = Modifier
@@ -522,8 +668,8 @@ private fun GlobalSearchResultCard(
                     .fillMaxHeight()
                     .background(
                         color = when {
-                            record.isPaymentCleared() -> Color(0xFF16A34A)
-                            record.amountPaid > 0 -> Color(0xFFE65100)
+                            item.isPaymentCleared -> Color(0xFF16A34A)
+                            item.amountPaid > 0 -> Color(0xFFE65100)
                             else -> Color(0xFFDC2626)
                         }
                     )
@@ -535,7 +681,7 @@ private fun GlobalSearchResultCard(
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Service Category Tag Header
+                // Header tag
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -557,7 +703,7 @@ private fun GlobalSearchResultCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = record.serviceType.uppercase(),
+                                text = item.serviceType.uppercase(),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = serviceBadgeText
@@ -565,7 +711,6 @@ private fun GlobalSearchResultCard(
                         }
                     }
 
-                    // Payment Status Tag
                     Surface(
                         shape = RoundedCornerShape(50.dp),
                         color = statusBg
@@ -580,7 +725,7 @@ private fun GlobalSearchResultCard(
                     }
                 }
 
-                // Farmer Avatar + Name + Serial Number
+                // Farmer avatar, name, serial number
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -605,7 +750,7 @@ private fun GlobalSearchResultCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         HighlightedText(
-                            text = record.farmerName.ifBlank { "Unknown Farmer" },
+                            text = item.farmerName.ifBlank { "Unknown Farmer" },
                             query = searchQuery,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
@@ -616,7 +761,7 @@ private fun GlobalSearchResultCard(
                         )
 
                         HighlightedText(
-                            text = "Serial No: ${record.serialNumber}",
+                            text = "Serial No: ${item.serialNumber}",
                             query = searchQuery,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
@@ -628,22 +773,22 @@ private fun GlobalSearchResultCard(
 
                 // Details: Phone, Variety/Rootstock, Booking Date
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (record.contactNumber.isNotBlank() || record.farmerAddress.isNotBlank()) {
+                    if (item.contactNumber.isNotBlank() || item.farmerAddress.isNotBlank()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             HighlightedText(
-                                text = "Contact: ${record.contactNumber.ifBlank { "N/A" }}",
+                                text = "Contact: ${item.contactNumber.ifBlank { "N/A" }}",
                                 query = searchQuery,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                                 isDark = isDark
                             )
-                            if (record.farmerAddress.isNotBlank()) {
+                            if (item.farmerAddress.isNotBlank()) {
                                 HighlightedText(
-                                    text = "• ${record.farmerAddress}",
+                                    text = "• ${item.farmerAddress}",
                                     query = searchQuery,
                                     fontSize = 13.sp,
                                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -655,14 +800,32 @@ private fun GlobalSearchResultCard(
                         }
                     }
 
-                    val detailLine = buildString {
-                        if (record.plantVariety.isNotBlank()) append(record.plantVariety)
-                        if (record.rootstock.isNotBlank()) {
-                            if (isNotEmpty()) append(" (${record.rootstock})") else append(record.rootstock)
+                    val detailLine = when (item) {
+                        is GlobalSearchResult.Crop -> {
+                            val rec = item.record
+                            buildString {
+                                if (rec.plantVariety.isNotBlank()) append(rec.plantVariety)
+                                if (rec.rootstock.isNotBlank()) {
+                                    if (isNotEmpty()) append(" (${rec.rootstock})") else append(rec.rootstock)
+                                }
+                                if (rec.quantity > 0) {
+                                    if (isNotEmpty()) append(" • ")
+                                    append("${rec.quantity} Units")
+                                }
+                            }
                         }
-                        if (record.quantity > 0) {
-                            if (isNotEmpty()) append(" • ")
-                            append("${record.quantity} Units")
+                        is GlobalSearchResult.Garden -> {
+                            val entry = item.entry
+                            buildString {
+                                if (entry.plantVariety.isNotBlank()) append(entry.plantVariety)
+                                if (entry.rootStock.isNotBlank()) {
+                                    if (isNotEmpty()) append(" (${entry.rootStock})") else append(entry.rootStock)
+                                }
+                                if (entry.totalKanalArea > 0) {
+                                    if (isNotEmpty()) append(" • ")
+                                    append("${entry.totalKanalArea} Kanals (${(entry.totalKanalArea * entry.plantsPerKanal).toInt()} Plants)")
+                                }
+                            }
                         }
                     }
 
@@ -678,19 +841,24 @@ private fun GlobalSearchResultCard(
                         )
                     }
 
+                    val bookingDate = when (item) {
+                        is GlobalSearchResult.Crop -> item.record.bookingDate
+                        is GlobalSearchResult.Garden -> item.entry.bookingDate
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Total: ₹${totalAmount.toInt()} (Paid: ₹${record.amountPaid.toInt()})",
+                            text = "Total: ₹${totalAmount.toInt()} (Paid: ₹${item.amountPaid.toInt()})",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color.White else Color(0xFF0F172A)
                         )
 
-                        if (record.bookingDate.isNotBlank()) {
+                        if (bookingDate.isNotBlank()) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -702,7 +870,7 @@ private fun GlobalSearchResultCard(
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = record.bookingDate,
+                                    text = bookingDate,
                                     fontSize = 12.sp,
                                     color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
                                 )
@@ -716,92 +884,101 @@ private fun GlobalSearchResultCard(
                     thickness = 1.dp
                 )
 
-                // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
+                // Bottom Action Row
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 1. WhatsApp Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                            .clickable {
-                                if (record.contactNumber.isNotBlank()) {
-                                    showWhatsAppConfirm = true
-                                } else {
-                                    Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                        contentAlignment = Alignment.Center
+                    // 1. WhatsApp Button
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7),
+                        modifier = Modifier.clickable {
+                            if (item.contactNumber.isNotBlank()) {
+                                showWhatsAppConfirm = true
+                            } else {
+                                Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Chat,
-                            contentDescription = "WhatsApp",
-                            tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Chat,
+                                contentDescription = "WhatsApp",
+                                tint = if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "WhatsApp",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D)
+                            )
+                        }
                     }
 
-                    // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
+                    // Right Side: View Details, Edit, Delete
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onOpenDetail() }
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "View Details",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
-                            contentDescription = "View Details",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.clickable { onOpenDetail() }
+                        ) {
+                            Text(
+                                text = "View Details",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
+                                contentDescription = "View Details",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
 
-                    // 4. Edit Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                            .clickable { onEdit() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Record",
-                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                        // Edit Icon
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                                .clickable { onEdit() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Record",
+                                tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
 
-                    // 5. Delete Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                            .clickable { showDeleteConfirm = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete Record",
-                            tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFE11D48),
-                            modifier = Modifier.size(18.dp)
-                        )
+                        // Delete Icon
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
+                                .clickable { showDeleteConfirm = true },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Delete Record",
+                                tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFE11D48),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -812,12 +989,12 @@ private fun GlobalSearchResultCard(
         AlertDialog(
             onDismissRequest = { showWhatsAppConfirm = false },
             title = { Text("Open WhatsApp Chat", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to open WhatsApp to chat with ${record.farmerName} (${record.contactNumber})?") },
+            text = { Text("Are you sure you want to open WhatsApp to chat with ${item.farmerName} (${item.contactNumber})?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showWhatsAppConfirm = false
-                        openWhatsAppHelper(context, record.contactNumber)
+                        openWhatsAppHelper(context, item.contactNumber)
                     }
                 ) {
                     Text("Open", color = Color(0xFF22C55E), fontWeight = FontWeight.Bold)
@@ -835,7 +1012,7 @@ private fun GlobalSearchResultCard(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete Record", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for ${record.farmerName} (${record.serialNumber})?") },
+            text = { Text("Are you sure you want to delete the record for ${item.farmerName} (${item.serialNumber})?") },
             confirmButton = {
                 TextButton(
                     onClick = {
