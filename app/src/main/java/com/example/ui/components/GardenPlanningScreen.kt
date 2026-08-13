@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -264,6 +265,7 @@ fun GardenPlanningScreen(
     onNavigateToBookings: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToContactDirectory: () -> Unit = {},
+    onNavigateToPaymentReminders: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onOpenRecycleBin: () -> Unit = {},
@@ -364,6 +366,7 @@ fun GardenPlanningScreen(
                 onNavigateToBookings = onNavigateToBookings,
                 onNavigateToBackupRestore = onNavigateToBackupRestore,
                 onNavigateToContactDirectory = onNavigateToContactDirectory,
+                onNavigateToPaymentReminders = onNavigateToPaymentReminders,
                 onNavigateToDashboard = onNavigateToDashboard,
                 onNavigateToInventory = onNavigateToInventory,
                 onOpenRecycleBin = onOpenRecycleBin,
@@ -609,6 +612,7 @@ fun GardenPlanningFormTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scrollState)
+            .imePadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {

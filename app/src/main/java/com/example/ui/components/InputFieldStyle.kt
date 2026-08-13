@@ -1,9 +1,12 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -14,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Shape
@@ -23,6 +27,24 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun Modifier.bringIntoViewOnFocus(
+    scope: CoroutineScope = rememberCoroutineScope(),
+    requester: BringIntoViewRequester = remember { BringIntoViewRequester() }
+): Modifier = this
+    .bringIntoViewRequester(requester)
+    .onFocusEvent { focusState ->
+        if (focusState.isFocused) {
+            scope.launch {
+                requester.bringIntoView()
+            }
+        }
+    }
 
 @Composable
 fun isAppInDarkMode(): Boolean {
@@ -34,6 +56,7 @@ fun isAppInDarkMode(): Boolean {
  * The ripple originates from the point of tap, is contained strictly within [shape],
  * and provides responsive, lag-free visual feedback without overflowing or affecting surrounding UI.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
     shape: Shape = RoundedCornerShape(16.dp),
@@ -42,7 +65,7 @@ fun Modifier.boundedFormFieldRipple(
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null
 ): Modifier {
-    val clipMod = this.clip(shape)
+    val clipMod = this.bringIntoViewOnFocus().clip(shape)
     return if (onClick != null) {
         clipMod.clickable(
             interactionSource = interactionSource,

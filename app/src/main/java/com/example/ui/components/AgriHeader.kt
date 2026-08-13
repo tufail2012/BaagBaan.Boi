@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -115,6 +116,7 @@ fun AgriHeader(
     onNavigateToBookings: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToContactDirectory: () -> Unit = {},
+    onNavigateToPaymentReminders: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onOpenRecycleBin: () -> Unit = {},
@@ -274,6 +276,7 @@ fun AgriHeader(
                             onNavigateToInventory = onNavigateToInventory,
                             onNavigateToAttendance = onNavigateToAttendance,
                             onNavigateToContactDirectory = onNavigateToContactDirectory,
+                            onNavigateToPaymentReminders = onNavigateToPaymentReminders,
                             onNavigateToBackupRestore = onNavigateToBackupRestore,
                             onNavigateToLogin = onNavigateToLogin,
                             onNavigateToGardenPlanning = onNavigateToGardenPlanning,
@@ -655,6 +658,7 @@ private fun OverflowMenuContent(
     onNavigateToInventory: () -> Unit,
     onNavigateToAttendance: () -> Unit,
     onNavigateToContactDirectory: () -> Unit,
+    onNavigateToPaymentReminders: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToGardenPlanning: () -> Unit = {},
@@ -789,6 +793,34 @@ private fun OverflowMenuContent(
             onNavigateToContactDirectory()
         },
         modifier = Modifier.testTag("contact_directory_menu_item$tagSuffix")
+    )
+
+    // Payment Reminders
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ReceiptLong,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Payment Reminders",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToPaymentReminders()
+        },
+        modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
     )
 
     // 5. Data Backup & Restore

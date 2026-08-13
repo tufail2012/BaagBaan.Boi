@@ -47,6 +47,7 @@ import com.example.ui.components.UserBookingsSection
 import com.example.ui.components.LoginScreen
 import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.components.ContactDirectoryDialog
+import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.AgriDashboardScreen
 import com.google.firebase.auth.FirebaseAuth
 import androidx.credentials.CredentialManager
@@ -82,6 +83,7 @@ fun AgriCropMainScreen(
     var showNotificationCenter by remember { mutableStateOf(false) }
     var showBackupRestoreDialog by remember { mutableStateOf(false) }
     var showContactDirectoryDialog by remember { mutableStateOf(false) }
+    var showPaymentRemindersDialog by remember { mutableStateOf(false) }
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
 
@@ -182,6 +184,12 @@ fun AgriCropMainScreen(
         )
     }
 
+    if (showPaymentRemindersDialog) {
+        PaymentRemindersDialog(
+            onDismiss = { showPaymentRemindersDialog = false }
+        )
+    }
+
     if (showRecycleBinDialog) {
         com.example.ui.components.RecycleBinDialog(
             onDismissRequest = { showRecycleBinDialog = false },
@@ -276,6 +284,7 @@ fun AgriCropMainScreen(
                     onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
                     onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                     onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                    onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
                     onNavigateToInventory = { showInventoryDialog = true },
                     onOpenRecycleBin = { showRecycleBinDialog = true },
                     onNavigateToDashboard = { isDashboardActive = true },
@@ -348,6 +357,9 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToContactDirectory = {
                                     showContactDirectoryDialog = true
+                                },
+                                onNavigateToPaymentReminders = {
+                                    showPaymentRemindersDialog = true
                                 },
                                 onNavigateToInventory = {
                                     showInventoryDialog = true
@@ -447,6 +459,7 @@ fun AgriCropMainScreen(
                                         onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
                                         onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                                         onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                                        onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
                                         onNavigateToInventory = { showInventoryDialog = true },
                                         onOpenRecycleBin = { showRecycleBinDialog = true },
                                         onNavigateToDashboard = { isDashboardActive = true },
