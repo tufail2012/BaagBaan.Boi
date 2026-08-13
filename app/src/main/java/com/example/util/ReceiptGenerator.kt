@@ -28,7 +28,10 @@ data class ReceiptData(
     val amountPaid: Double,
     val remainingBalance: Double,
     val paymentStatus: String,
-    val expectedDelivery: String
+    val expectedDelivery: String,
+    val rootstock: String = "",
+    val rootDiameter: String = "",
+    val scionVariety: String = ""
 )
 
 object ReceiptGenerator {
@@ -205,14 +208,42 @@ object ReceiptGenerator {
         )
 
         // Section 2: Order & Service Details
-        drawSectionCard(
-            title = "🌱 ORDER & SERVICE DETAILS",
-            items = listOf(
+        val isRootstock = data.serviceCategory.equals("Rootstocks", ignoreCase = true) ||
+                data.serviceCategory.contains("Rootstock", ignoreCase = true) ||
+                data.serviceCategory.equals("Imported Rootstocks", ignoreCase = true) ||
+                data.serviceCategory.equals("Imported Rootstock", ignoreCase = true)
+
+        val orderDetailsItems = if (isRootstock) {
+            val actualRootstock = data.rootstock.ifBlank { "M9-T337" }
+            val rawDiam = data.rootDiameter.ifBlank { "9 to 12 mm" }
+            val formattedDiam = if (rawDiam.lowercase().contains("mm")) rawDiam else "$rawDiam mm"
+            val actualScion = data.scionVariety.ifBlank { data.plantVariety.ifBlank { "N/A" } }
+            val qtyStr = if (data.quantity.lowercase().endsWith("plants") || data.quantity.lowercase().endsWith("rootstocks")) {
+                data.quantity
+            } else {
+                "${data.quantity} Rootstocks"
+            }
+
+            listOf(
+                "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
+                "Rootstock" to actualRootstock,
+                "Root Diameter (mm)" to formattedDiam,
+                "Scion Variety" to actualScion,
+                "Quantity / Units" to qtyStr,
+                "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
+            )
+        } else {
+            listOf(
                 "Service Category" to data.serviceCategory.ifBlank { "N/A" },
                 "Item / Variety" to data.plantVariety.ifBlank { data.serviceCategory },
                 "Quantity / Units" to "${data.quantity} Plants",
                 "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
             )
+        }
+
+        drawSectionCard(
+            title = "🌱 ORDER & SERVICE DETAILS",
+            items = orderDetailsItems
         )
 
         // Section 3: Payment Breakdown

@@ -126,6 +126,11 @@ fun WhatsAppTemplateDialog(
     // Generate Receipt bitmap & URI when Digital Receipt (index 2) is selected
     LaunchedEffect(selectedTemplateIndex, farmerName, totalAmount, amountPaid) {
         if (selectedTemplateIndex == 2 && receiptBitmap == null) {
+            val isRootstockSvc = serviceType.equals("Rootstocks", ignoreCase = true) ||
+                    serviceType.contains("Rootstock", ignoreCase = true) ||
+                    serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                    serviceType.equals("Imported Rootstock", ignoreCase = true)
+
             val rData = ReceiptData(
                 serialNumber = serialNumber,
                 bookingDate = currentDateStr,
@@ -133,14 +138,17 @@ fun WhatsAppTemplateDialog(
                 contactNumber = contactNumber,
                 address = "Jammu & Kashmir",
                 orchardLocation = "Apple Orchard",
-                serviceCategory = serviceType,
+                serviceCategory = if (isRootstockSvc) "Imported Rootstocks" else serviceType,
                 plantVariety = serviceType,
                 quantity = "1",
                 totalAmount = totalAmount,
                 amountPaid = amountPaid,
                 remainingBalance = calculatedBalance,
                 paymentStatus = paymentStatus,
-                expectedDelivery = "Scheduled As Agreed"
+                expectedDelivery = "Scheduled As Agreed",
+                rootstock = if (isRootstockSvc) "M9-T337" else "",
+                rootDiameter = if (isRootstockSvc) "9 to 12 mm" else "",
+                scionVariety = if (isRootstockSvc) "Standard Variety" else ""
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)

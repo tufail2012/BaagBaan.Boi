@@ -782,6 +782,19 @@ fun BookingRecordDetailDialog(
                     // Button 1: Preview & Send Digital Receipt Image
                     Button(
                         onClick = {
+                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
+                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                            val actualRs = extRootstock.ifBlank { "M9-T337" }
+                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
+
                             val rData = ReceiptData(
                                 serialNumber = record.serialNumber,
                                 bookingDate = record.bookingDate.ifBlank { todayStr },
@@ -789,14 +802,17 @@ fun BookingRecordDetailDialog(
                                 contactNumber = record.contactNumber,
                                 address = record.farmerAddress,
                                 orchardLocation = record.location,
-                                serviceCategory = record.serviceType,
-                                plantVariety = record.plantVariety,
+                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
                                 quantity = "${record.quantity}",
                                 totalAmount = totalRecordValue,
                                 amountPaid = totalPaidSoFar,
                                 remainingBalance = remainingBalance,
                                 paymentStatus = record.paymentStatus,
-                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" }
+                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                rootstock = actualRs,
+                                rootDiameter = actualDiam,
+                                scionVariety = actualScion
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp

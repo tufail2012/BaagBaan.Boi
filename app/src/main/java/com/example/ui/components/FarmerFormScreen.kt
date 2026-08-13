@@ -1931,6 +1931,11 @@ fun FarmerFormScreen(
 
         // Action Buttons
         val generateReceipt = {
+            val isRootstockForm = selectedService.equals("Rootstocks", ignoreCase = true) || selectedService.contains("Rootstock", ignoreCase = true)
+            val actualRootstockVal = if (rootstock.isNotBlank()) rootstock else selectedRootstockSubTab
+            val actualScionVal = if (scionVariety.isNotBlank()) scionVariety else plantVariety
+            val actualDiamVal = if (rootDiameter.isNotBlank()) rootDiameter else "9 to 12 mm"
+
             val rData = ReceiptData(
                 serialNumber = if (serialNumber.isBlank()) "N/A" else serialNumber,
                 bookingDate = if (bookingDate.isBlank()) "N/A" else bookingDate,
@@ -1938,14 +1943,17 @@ fun FarmerFormScreen(
                 contactNumber = if (contactNumber.isBlank()) "N/A" else contactNumber,
                 address = if (farmerAddress.isBlank()) "N/A" else farmerAddress,
                 orchardLocation = if (location.isBlank()) "N/A" else location,
-                serviceCategory = selectedService,
-                plantVariety = if (plantVariety.isBlank()) selectedService else plantVariety,
+                serviceCategory = if (isRootstockForm) "Imported Rootstocks" else selectedService,
+                plantVariety = if (isRootstockForm) actualScionVal.ifBlank { "N/A" } else if (plantVariety.isBlank()) selectedService else plantVariety,
                 quantity = if (quantity.isBlank()) "0" else quantity,
                 totalAmount = totalPayment,
                 amountPaid = paidAmountNum,
                 remainingBalance = remainingBalance,
                 paymentStatus = paymentStatus,
-                expectedDelivery = if (expectedDelivery.isBlank()) "TBD" else expectedDelivery
+                expectedDelivery = if (expectedDelivery.isBlank()) "TBD" else expectedDelivery,
+                rootstock = actualRootstockVal,
+                rootDiameter = actualDiamVal,
+                scionVariety = actualScionVal
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)
