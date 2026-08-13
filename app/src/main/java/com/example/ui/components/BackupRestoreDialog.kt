@@ -403,10 +403,10 @@ fun BackupRestoreDialog(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 24.dp)
                     .verticalScroll(rememberScrollState())
-                    .imePadding()
             ) {
                 // Header
                 Row(

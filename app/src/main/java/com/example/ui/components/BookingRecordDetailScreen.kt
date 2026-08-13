@@ -215,8 +215,8 @@ fun BookingRecordDetailDialog(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
                     .imePadding()
+                    .verticalScroll(rememberScrollState())
                     .navigationBarsPadding()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)

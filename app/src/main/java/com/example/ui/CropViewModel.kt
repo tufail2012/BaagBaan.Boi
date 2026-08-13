@@ -9,6 +9,7 @@ import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
 import com.example.data.GlobalSearchResult
 import com.example.data.isPaymentCleared
+import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -674,7 +675,7 @@ class CropViewModel(
 
             if (editingRecordId.value == null) {
                 repository.insert(record)
-                _userMessage.value = "New record saved successfully!"
+                BookingConfirmationState.show()
                 onBookingSavedListener?.invoke(record.farmerName, record.serviceType, record.serialNumber, record.expectedDelivery)
             } else {
                 repository.update(record, oldRecord = editingOldRecord)

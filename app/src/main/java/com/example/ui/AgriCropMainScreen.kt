@@ -47,6 +47,7 @@ import com.example.ui.components.UserBookingsSection
 import com.example.ui.components.LoginScreen
 import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.components.ContactDirectoryDialog
+import com.example.ui.components.BookingConfirmationOverlay
 import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.AgriDashboardScreen
 import com.google.firebase.auth.FirebaseAuth
@@ -498,6 +499,9 @@ fun AgriCropMainScreen(
                             },
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
+
+                        // Full-screen booking confirmation overlay
+                        BookingConfirmationOverlay()
                     }
                 }
             }

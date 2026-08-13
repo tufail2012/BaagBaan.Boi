@@ -103,6 +103,8 @@ fun PaymentRemindersDialog(
 
     var searchQuery by remember { mutableStateOf("") }
 
+    var loadErrorTrace by remember { mutableStateOf<String?>(null) }
+
     // Load Crop Records and Garden Planning Entries
     val cropRecords by db.cropRecordDao().getAllRecords().collectAsState(initial = emptyList())
     val gardenEntries by db.gardenPlanningDao().getAllEntries().collectAsState(initial = emptyList())
@@ -111,63 +113,68 @@ fun PaymentRemindersDialog(
 
     // Filter all pending payment items
     val pendingItems = remember(cropRecords, gardenEntries, searchQuery) {
-        val list = mutableListOf<PendingPaymentItem>()
+        try {
+            val list = mutableListOf<PendingPaymentItem>()
 
-        // 1. Process Crop Records
-        cropRecords.forEach { crop ->
-            val remDue = crop.calculateRemainingBalance()
-            val isPending = !crop.paymentStatus.equals("Fully Paid", ignoreCase = true) && remDue > 0.01
-            if (isPending) {
-                list.add(
-                    PendingPaymentItem(
-                        id = crop.id,
-                        serialNumber = crop.serialNumber,
-                        farmerName = crop.farmerName,
-                        contactNumber = crop.contactNumber,
-                        amountDue = remDue,
-                        totalCost = crop.calculateTotalAmount(),
-                        amountPaid = crop.amountPaid,
-                        paymentStatus = crop.paymentStatus,
-                        serviceType = if (crop.serviceType.isNotBlank()) crop.serviceType else "Crop Order",
-                        source = "CROP"
+            // 1. Process Crop Records
+            cropRecords.forEach { crop ->
+                val remDue = crop.calculateRemainingBalance()
+                val isPending = !crop.paymentStatus.equals("Fully Paid", ignoreCase = true) && remDue > 0.01
+                if (isPending) {
+                    list.add(
+                        PendingPaymentItem(
+                            id = crop.id,
+                            serialNumber = crop.serialNumber,
+                            farmerName = crop.farmerName,
+                            contactNumber = crop.contactNumber,
+                            amountDue = remDue,
+                            totalCost = crop.calculateTotalAmount(),
+                            amountPaid = crop.amountPaid,
+                            paymentStatus = crop.paymentStatus,
+                            serviceType = if (crop.serviceType.isNotBlank()) crop.serviceType else "Crop Order",
+                            source = "CROP"
+                        )
                     )
-                )
+                }
             }
-        }
 
-        // 2. Process Garden Planning Entries
-        gardenEntries.forEach { garden ->
-            val remDue = (garden.totalCost - garden.amountPaid).coerceAtLeast(0.0)
-            val isPending = !garden.paymentStatus.equals("Fully Paid", ignoreCase = true) && remDue > 0.01
-            if (isPending) {
-                list.add(
-                    PendingPaymentItem(
-                        id = garden.id,
-                        serialNumber = garden.serialNumber,
-                        farmerName = garden.farmerName,
-                        contactNumber = garden.contactNumber,
-                        amountDue = remDue,
-                        totalCost = garden.totalCost,
-                        amountPaid = garden.amountPaid,
-                        paymentStatus = garden.paymentStatus,
-                        serviceType = "Garden Planning",
-                        source = "GARDEN"
+            // 2. Process Garden Planning Entries
+            gardenEntries.forEach { garden ->
+                val remDue = (garden.totalCost - garden.amountPaid).coerceAtLeast(0.0)
+                val isPending = !garden.paymentStatus.equals("Fully Paid", ignoreCase = true) && remDue > 0.01
+                if (isPending) {
+                    list.add(
+                        PendingPaymentItem(
+                            id = garden.id,
+                            serialNumber = garden.serialNumber,
+                            farmerName = garden.farmerName,
+                            contactNumber = garden.contactNumber,
+                            amountDue = remDue,
+                            totalCost = garden.totalCost,
+                            amountPaid = garden.amountPaid,
+                            paymentStatus = garden.paymentStatus,
+                            serviceType = "Garden Planning",
+                            source = "GARDEN"
+                        )
                     )
-                )
+                }
             }
-        }
 
-        // Filter by search query if non-blank
-        if (searchQuery.isNotBlank()) {
-            val q = searchQuery.trim().lowercase()
-            list.filter { item ->
-                item.farmerName.lowercase().contains(q) ||
-                        item.serialNumber.lowercase().contains(q) ||
-                        item.contactNumber.contains(q) ||
-                        item.serviceType.lowercase().contains(q)
+            // Filter by search query if non-blank
+            if (searchQuery.isNotBlank()) {
+                val q = searchQuery.trim().lowercase()
+                list.filter { item ->
+                    item.farmerName.lowercase().contains(q) ||
+                            item.serialNumber.lowercase().contains(q) ||
+                            item.contactNumber.contains(q) ||
+                            item.serviceType.lowercase().contains(q)
+                }
+            } else {
+                list
             }
-        } else {
-            list
+        } catch (e: Exception) {
+            loadErrorTrace = "Error loading payment reminders: ${e.message}\n${e.stackTraceToString()}"
+            emptyList()
         }
     }
 

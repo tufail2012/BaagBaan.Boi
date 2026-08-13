@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
 import com.example.util.MessageTemplateHelper
+import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -315,7 +316,7 @@ class GardenPlanningViewModel(
         try {
             if (entry.id == 0L) {
                 repository.insert(entry)
-                userMessage.value = "Garden Planning Entry Saved Successfully!"
+                BookingConfirmationState.show()
             } else {
                 repository.update(entry)
                 userMessage.value = "Garden Planning Entry Updated Successfully!"

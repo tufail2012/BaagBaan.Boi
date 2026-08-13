@@ -425,6 +425,7 @@ fun AgriHeader(
                                     onNavigateToInventory = onNavigateToInventory,
                                     onNavigateToAttendance = onNavigateToAttendance,
                                     onNavigateToContactDirectory = onNavigateToContactDirectory,
+                                    onNavigateToPaymentReminders = onNavigateToPaymentReminders,
                                     onNavigateToBackupRestore = onNavigateToBackupRestore,
                                     onNavigateToLogin = onNavigateToLogin,
                                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,

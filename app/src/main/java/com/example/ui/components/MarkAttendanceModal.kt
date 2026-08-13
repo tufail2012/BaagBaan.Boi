@@ -83,8 +83,8 @@ fun MarkAttendanceModal(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
                     .imePadding()
+                    .verticalScroll(rememberScrollState())
             ) {
                 // Header Row
                 Row(

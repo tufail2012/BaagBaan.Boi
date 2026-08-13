@@ -33,18 +33,19 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun Modifier.bringIntoViewOnFocus(
-    scope: CoroutineScope = rememberCoroutineScope(),
-    requester: BringIntoViewRequester = remember { BringIntoViewRequester() }
-): Modifier = this
-    .bringIntoViewRequester(requester)
-    .onFocusEvent { focusState ->
-        if (focusState.isFocused) {
-            scope.launch {
-                requester.bringIntoView()
+fun Modifier.bringIntoViewOnFocus(): Modifier {
+    val scope = rememberCoroutineScope()
+    val requester = remember { BringIntoViewRequester() }
+    return this
+        .bringIntoViewRequester(requester)
+        .onFocusEvent { focusState ->
+            if (focusState.isFocused) {
+                scope.launch {
+                    requester.bringIntoView()
+                }
             }
         }
-    }
+}
 
 @Composable
 fun isAppInDarkMode(): Boolean {

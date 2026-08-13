@@ -132,8 +132,8 @@ fun AddEditInventoryItemModal(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .imePadding(),
+                        .imePadding()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     // Item Name
