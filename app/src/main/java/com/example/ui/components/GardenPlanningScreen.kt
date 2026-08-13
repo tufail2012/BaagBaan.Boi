@@ -278,7 +278,7 @@ fun GardenPlanningScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
 
     val userMessage by viewModel.userMessage.collectAsState()
     val allEntries by viewModel.allEntries.collectAsState()
@@ -383,7 +383,7 @@ fun GardenPlanningScreen(
             val isEditing = viewModel.editingEntryId.collectAsState().value != null
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
-                onModeSelected = { selectedTabIndex = it },
+                onModeSelected = { viewModel.selectedTabIndex.value = it },
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntries.size})"
             )
@@ -393,7 +393,7 @@ fun GardenPlanningScreen(
                     GardenPlanningFormTab(
                         viewModel = viewModel,
                         isDark = isDark,
-                        onSaved = { selectedTabIndex = 1 }
+                        onSaved = { viewModel.selectedTabIndex.value = 1 }
                     )
                 }
                 1 -> {
@@ -403,11 +403,11 @@ fun GardenPlanningScreen(
                         isDark = isDark,
                         onEdit = { entry ->
                             viewModel.loadEntryForEdit(entry)
-                            selectedTabIndex = 0
+                            viewModel.selectedTabIndex.value = 0
                         },
                         onAddNewEntry = {
                             viewModel.clearForm()
-                            selectedTabIndex = 0
+                            viewModel.selectedTabIndex.value = 0
                         }
                     )
                 }
@@ -435,10 +435,12 @@ fun GardenPlanningFormTab(
     val contactNumber by viewModel.contactNumber.collectAsState()
     val totalKanalArea by viewModel.totalKanalArea.collectAsState()
     val plantsPerKanal by viewModel.plantsPerKanal.collectAsState()
+    val totalPlants by viewModel.totalPlants.collectAsState()
     val costPerPlant by viewModel.costPerPlant.collectAsState()
     val plantVariety by viewModel.plantVariety.collectAsState()
     val rootStock by viewModel.rootStock.collectAsState()
     val saplingAge by viewModel.saplingAge.collectAsState()
+    val plantOrigin by viewModel.plantOrigin.collectAsState()
     val amountPaid by viewModel.amountPaid.collectAsState()
     val paymentStatus by viewModel.paymentStatus.collectAsState()
     val bookingDate by viewModel.bookingDate.collectAsState()
@@ -803,96 +805,158 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Plant Variety
-        OutlinedTextField(
-            value = plantVariety,
-            onValueChange = { viewModel.plantVariety.value = it },
-            label = { Text("Plant Variety") },
-            placeholder = { Text("e.g. M9 / Gala / Red Delicious") },
-            shape = textFieldShape,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Outlined.LocalFlorist,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_plant_variety_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Root Stock
-        OutlinedTextField(
-            value = rootStock,
-            onValueChange = { viewModel.rootStock.value = it },
-            label = { Text("Rootstock") },
-            placeholder = { Text("e.g. M9 / MM106 / Seedling") },
-            shape = textFieldShape,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Spa,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_root_stock_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Sapling Age Dropdown
-        var ageDropdownExpanded by remember { mutableStateOf(false) }
-        val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "Grafted / Budded")
-
-        Box(modifier = Modifier.fillMaxWidth()) {
+        // Row 1: Plant Variety (left) | Rootstock (right)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Plant Variety
             OutlinedTextField(
-                value = saplingAge,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Sapling Age") },
-                placeholder = { Text("Select Sapling Age") },
+                value = plantVariety,
+                onValueChange = { viewModel.plantVariety.value = it },
+                label = { Text("Plant Variety", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("e.g. Gala") },
+                shape = textFieldShape,
+                singleLine = true,
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.HourglassTop,
+                        imageVector = Icons.Outlined.LocalFlorist,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                trailingIcon = {
-                    IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
-                    }
-                },
-                shape = textFieldShape,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { ageDropdownExpanded = true }
+                    .weight(1f)
                     .boundedFormFieldRipple(shape = textFieldShape)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_sapling_age_input"),
+                    .testTag("garden_plant_variety_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
-            DropdownMenu(
-                expanded = ageDropdownExpanded,
-                onDismissRequest = { ageDropdownExpanded = false }
-            ) {
-                saplingAgeOptions.forEach { age ->
-                    DropdownMenuItem(
-                        text = { Text(age) },
-                        onClick = {
-                            viewModel.saplingAge.value = age
-                            ageDropdownExpanded = false
-                        }
+
+            // Rootstock
+            OutlinedTextField(
+                value = rootStock,
+                onValueChange = { viewModel.rootStock.value = it },
+                label = { Text("Rootstock", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("e.g. M9") },
+                shape = textFieldShape,
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Spa,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
                     )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_root_stock_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+        }
+
+        // Row 2: Sapling Age (left) | Plant Origin (right)
+        var ageDropdownExpanded by remember { mutableStateOf(false) }
+        val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "Grafted / Budded")
+
+        var originDropdownExpanded by remember { mutableStateOf(false) }
+        val plantOriginOptions = listOf("Local Plants", "Imported Plants")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Sapling Age Dropdown
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = saplingAge,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("Select Age") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.HourglassTop,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
+                        }
+                    },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { ageDropdownExpanded = true }
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_sapling_age_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+                DropdownMenu(
+                    expanded = ageDropdownExpanded,
+                    onDismissRequest = { ageDropdownExpanded = false }
+                ) {
+                    saplingAgeOptions.forEach { age ->
+                        DropdownMenuItem(
+                            text = { Text(age) },
+                            onClick = {
+                                viewModel.saplingAge.value = age
+                                ageDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Plant Origin Dropdown
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedTextField(
+                    value = plantOrigin,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("Select Origin") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Yard,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
+                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
+                        }
+                    },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { originDropdownExpanded = true }
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_plant_origin_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+                DropdownMenu(
+                    expanded = originDropdownExpanded,
+                    onDismissRequest = { originDropdownExpanded = false }
+                ) {
+                    plantOriginOptions.forEach { originOption ->
+                        DropdownMenuItem(
+                            text = { Text(originOption) },
+                            onClick = {
+                                viewModel.plantOrigin.value = originOption
+                                originDropdownExpanded = false
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -907,57 +971,57 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Field 1: Total Kanals Area (accepts decimals e.g. 1.2)
-        OutlinedTextField(
-            value = totalKanalArea,
-            onValueChange = { 
-                viewModel.totalKanalArea.value = it
-                viewModel.recalculatePaymentStatus()
-            },
-            label = { Text("Total Kanals Area *") },
-            placeholder = { Text("e.g. 1.2") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = textFieldShape,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Park,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_kanal_area_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Side-by-side Row: Plants per Kanal & Unit Price per Plant
+        // 3-Field Row: Total Kanal Area, Plants per Kanal, Total Plants
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Field 1: Total Kanal Area
+            OutlinedTextField(
+                value = totalKanalArea,
+                onValueChange = { newArea ->
+                    viewModel.totalKanalArea.value = newArea
+                    val kanal = newArea.toDoubleOrNull()
+                    val density = plantsPerKanal.toDoubleOrNull()
+                    if (kanal != null && density != null) {
+                        val calculatedPlants = Math.round(kanal * density).toInt()
+                        viewModel.totalPlants.value = if (calculatedPlants > 0) calculatedPlants.toString() else "0"
+                    } else if (newArea.isBlank()) {
+                        viewModel.totalPlants.value = ""
+                    }
+                    viewModel.recalculatePaymentStatus()
+                },
+                label = { Text("Kanal Area *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("e.g. 1.2") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = textFieldShape,
+                singleLine = true,
+                modifier = Modifier
+                    .weight(1f)
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_kanal_area_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
             // Field 2: Plants per Kanal
             OutlinedTextField(
                 value = plantsPerKanal,
-                onValueChange = { 
-                    viewModel.plantsPerKanal.value = it
+                onValueChange = { newDensityStr ->
+                    viewModel.plantsPerKanal.value = newDensityStr
+                    val kanal = totalKanalArea.toDoubleOrNull()
+                    val density = newDensityStr.toDoubleOrNull()
+                    if (kanal != null && density != null) {
+                        val calculatedPlants = Math.round(kanal * density).toInt()
+                        viewModel.totalPlants.value = if (calculatedPlants > 0) calculatedPlants.toString() else "0"
+                    }
                     viewModel.recalculatePaymentStatus()
                 },
-                label = { Text("Plants per Kanal *") },
+                label = { Text("Plants/Kanal *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("e.g. 100") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = textFieldShape,
                 singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Spa,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
                 modifier = Modifier
                     .weight(1f)
                     .boundedFormFieldRipple(shape = textFieldShape)
@@ -966,48 +1030,80 @@ fun GardenPlanningFormTab(
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
-            // Field 3: Unit Price per Plant
+            // Field 3: Total Plants
             OutlinedTextField(
-                value = costPerPlant,
-                onValueChange = { 
-                    viewModel.costPerPlant.value = it
+                value = totalPlants,
+                onValueChange = { newPlantsStr ->
+                    viewModel.totalPlants.value = newPlantsStr
+                    val plants = newPlantsStr.toDoubleOrNull()
+                    val density = plantsPerKanal.toDoubleOrNull()
+                    if (plants != null && density != null && density > 0) {
+                        val calculatedKanal = plants / density
+                        val formattedKanal = if (calculatedKanal % 1.0 == 0.0) {
+                            calculatedKanal.toInt().toString()
+                        } else {
+                            String.format(java.util.Locale.US, "%.2f", calculatedKanal)
+                        }
+                        viewModel.totalKanalArea.value = formattedKanal
+                    }
                     viewModel.recalculatePaymentStatus()
                 },
-                label = { Text("Unit Price per Plant *") },
-                placeholder = { Text("e.g. 150") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                label = { Text("Total Plants *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("e.g. 120") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = textFieldShape,
                 singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.CurrencyRupee,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
                 modifier = Modifier
                     .weight(1f)
                     .boundedFormFieldRipple(shape = textFieldShape)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_cost_per_plant_input"),
+                    .testTag("garden_total_plants_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
         }
 
-        // Computed Total Cost & Summary Box (displayed when all 3 fields are filled)
+        // Field 4: Unit Price per Plant
+        OutlinedTextField(
+            value = costPerPlant,
+            onValueChange = { 
+                viewModel.costPerPlant.value = it
+                viewModel.recalculatePaymentStatus()
+            },
+            label = { Text("Unit Price per Plant *") },
+            placeholder = { Text("e.g. 150") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            shape = textFieldShape,
+            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.CurrencyRupee,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .boundedFormFieldRipple(shape = textFieldShape)
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("garden_cost_per_plant_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
+        )
+
+        // Computed Total Cost & Summary Box (displayed when total plants and unit price are filled)
         val areaVal = totalKanalArea.toDoubleOrNull()
         val plantsVal = plantsPerKanal.toDoubleOrNull()
+        val totalPVal = totalPlants.toDoubleOrNull() ?: (if (areaVal != null && plantsVal != null) areaVal * plantsVal else null)
         val costVal = costPerPlant.toDoubleOrNull()
-        val isAllCostFieldsFilled = totalKanalArea.isNotBlank() && plantsPerKanal.isNotBlank() && costPerPlant.isNotBlank() && areaVal != null && plantsVal != null && costVal != null
+        val isAllCostFieldsFilled = totalPVal != null && totalPVal > 0 && costVal != null && costVal > 0
 
         if (isAllCostFieldsFilled) {
-            val calcTotalCost = areaVal!! * plantsVal!! * costVal!!
-            val calculatedTotalPlants = Math.round(areaVal * plantsVal).toInt()
+            val calcTotalCost = totalPVal!! * costVal!!
+            val calculatedTotalPlants = Math.round(totalPVal).toInt()
             val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
             val formattedTotalCost = currencyFormat.format(calcTotalCost)
 
-            val areaDisplay = if (areaVal % 1.0 == 0.0) areaVal.toLong().toString() else areaVal.toString()
-            val plantsDisplay = if (plantsVal % 1.0 == 0.0) plantsVal.toLong().toString() else plantsVal.toString()
+            val areaDisplay = areaVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
+            val plantsDisplay = plantsVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
 
             Surface(
                 modifier = Modifier

@@ -76,10 +76,12 @@ class GardenPlanningViewModel(
     val contactNumber = MutableStateFlow("")
     val totalKanalArea = MutableStateFlow("")
     val plantsPerKanal = MutableStateFlow("")
+    val totalPlants = MutableStateFlow("")
     val costPerPlant = MutableStateFlow("")
     val plantVariety = MutableStateFlow("")
     val rootStock = MutableStateFlow("")
     val saplingAge = MutableStateFlow("1 Year")
+    val plantOrigin = MutableStateFlow("Local Plants")
     val amountPaid = MutableStateFlow("0")
     val paymentStatus = MutableStateFlow("Pending")
     val bookingDate = MutableStateFlow(dateFormatter.format(Date()))
@@ -87,6 +89,11 @@ class GardenPlanningViewModel(
     val notes = MutableStateFlow("")
     val selectedTemplate = MutableStateFlow("Booking Confirmation")
     val userMessage = MutableStateFlow<String?>(null)
+    val selectedTabIndex = MutableStateFlow(0)
+
+    fun resetToNewEntry() {
+        selectedTabIndex.value = 0
+    }
 
     init {
         // Auto-generate initial serial number
@@ -104,10 +111,9 @@ class GardenPlanningViewModel(
     }
 
     fun calculateTotalCost(): Double {
-        val area = totalKanalArea.value.toDoubleOrNull() ?: 0.0
-        val plants = plantsPerKanal.value.toDoubleOrNull() ?: 0.0
+        val count = totalPlants.value.toDoubleOrNull() ?: ((totalKanalArea.value.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.value.toDoubleOrNull() ?: 0.0))
         val cost = costPerPlant.value.toDoubleOrNull() ?: 0.0
-        return area * plants * cost
+        return count * cost
     }
 
     fun calculateAmountPaid(): Double {
@@ -231,10 +237,12 @@ class GardenPlanningViewModel(
         contactNumber.value = entry.contactNumber
         totalKanalArea.value = if (entry.totalKanalArea > 0) entry.totalKanalArea.toString() else ""
         plantsPerKanal.value = if (entry.plantsPerKanal > 0) entry.plantsPerKanal.toString() else ""
+        totalPlants.value = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) Math.round(entry.totalKanalArea * entry.plantsPerKanal).toInt().toString() else ""
         costPerPlant.value = if (entry.costPerPlant > 0) entry.costPerPlant.toString() else ""
         plantVariety.value = entry.plantVariety
         rootStock.value = entry.rootStock
         saplingAge.value = entry.saplingAge.ifBlank { "1 Year" }
+        plantOrigin.value = entry.plantOrigin.ifBlank { "Local Plants" }
         val paidVal = if (entry.amountPaid > 0) entry.amountPaid else if (entry.paymentStatus == "Fully Paid") entry.totalCost else 0.0
         amountPaid.value = if (paidVal > 0) {
             if (paidVal % 1.0 == 0.0) paidVal.toLong().toString() else paidVal.toString()
@@ -252,10 +260,12 @@ class GardenPlanningViewModel(
         contactNumber.value = ""
         totalKanalArea.value = ""
         plantsPerKanal.value = ""
+        totalPlants.value = ""
         costPerPlant.value = ""
         plantVariety.value = ""
         rootStock.value = ""
         saplingAge.value = "1 Year"
+        plantOrigin.value = "Local Plants"
         amountPaid.value = "0"
         paymentStatus.value = "Pending"
         bookingDate.value = dateFormatter.format(Date())
@@ -291,6 +301,7 @@ class GardenPlanningViewModel(
             plantVariety = plantVariety.value.trim(),
             rootStock = rootStock.value.trim(),
             saplingAge = saplingAge.value.trim(),
+            plantOrigin = plantOrigin.value.trim(),
             totalCost = calcTotalCost,
             amountPaid = paid,
             remainingBalance = rem,

@@ -17,6 +17,7 @@ data class GardenPlanningEntry(
     val plantVariety: String = "",
     val rootStock: String = "",
     val saplingAge: String = "1 Year",
+    val plantOrigin: String = "Local Plants",
     val totalCost: Double = 0.0,
     val amountPaid: Double = 0.0,
     val remainingBalance: Double = 0.0,

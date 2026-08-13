@@ -337,6 +337,7 @@ class CropViewModel(
     fun selectServiceCategory(service: String) {
         saveCurrentTabSerialState()
         _selectedService.value = service
+        _viewMode.value = 0
         serviceType.value = service
         _recordsFilterService.value = service
         if (service.equals("Pruning", ignoreCase = true)) {

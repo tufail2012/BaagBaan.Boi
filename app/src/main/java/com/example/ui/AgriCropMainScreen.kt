@@ -253,6 +253,7 @@ fun AgriCropMainScreen(
                     onBack = { isDashboardActive = false },
                     onNavigateToCategory = { category ->
                         viewModel.selectServiceCategory(category)
+                        gardenPlanningViewModel.resetToNewEntry()
                         isDashboardActive = false
                     },
                     modifier = modifier
@@ -362,6 +363,7 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToGardenPlanning = {
                                     viewModel.selectServiceCategory("Garden Planning")
+                                    gardenPlanningViewModel.resetToNewEntry()
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {
@@ -477,6 +479,9 @@ fun AgriCropMainScreen(
                             selectedCategory = selectedService,
                             onCategorySelected = { category ->
                                 viewModel.selectServiceCategory(category)
+                                if (category.equals("Garden Planning", ignoreCase = true) || category.equals("Garden", ignoreCase = true)) {
+                                    gardenPlanningViewModel.resetToNewEntry()
+                                }
                             },
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
