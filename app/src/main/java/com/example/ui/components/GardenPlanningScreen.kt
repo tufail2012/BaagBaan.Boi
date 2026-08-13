@@ -416,6 +416,8 @@ fun GardenPlanningScreen(
     }
 }
 
+enum class LastEditedField { AREA, TOTAL_PLANTS, NONE }
+
 @Composable
 fun GardenPlanningFormTab(
     viewModel: GardenPlanningViewModel,
@@ -427,6 +429,8 @@ fun GardenPlanningFormTab(
 
     val textFieldShape = RoundedCornerShape(16.dp)
     val pillShape = RoundedCornerShape(24.dp)
+
+    var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
 
     val serialNumber by viewModel.serialNumber.collectAsState()
     val isSerialLocked by viewModel.isSerialLocked.collectAsState()
@@ -981,13 +985,18 @@ fun GardenPlanningFormTab(
                 value = totalKanalArea,
                 onValueChange = { newArea ->
                     viewModel.totalKanalArea.value = newArea
-                    val kanal = newArea.toDoubleOrNull()
+                    lastEdited = LastEditedField.AREA
+                    val area = newArea.toDoubleOrNull()
                     val density = plantsPerKanal.toDoubleOrNull()
-                    if (kanal != null && density != null) {
-                        val calculatedPlants = Math.round(kanal * density).toInt()
-                        viewModel.totalPlants.value = if (calculatedPlants > 0) calculatedPlants.toString() else "0"
-                    } else if (newArea.isBlank()) {
+                    if (newArea.isBlank()) {
                         viewModel.totalPlants.value = ""
+                    } else if (density == null || density <= 0) {
+                        viewModel.totalPlants.value = "—"
+                    } else if (area != null) {
+                        val calcPlants = Math.round(area * density).toInt()
+                        viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
+                    } else {
+                        viewModel.totalPlants.value = "—"
                     }
                     viewModel.recalculatePaymentStatus()
                 },
@@ -1009,11 +1018,38 @@ fun GardenPlanningFormTab(
                 value = plantsPerKanal,
                 onValueChange = { newDensityStr ->
                     viewModel.plantsPerKanal.value = newDensityStr
-                    val kanal = totalKanalArea.toDoubleOrNull()
                     val density = newDensityStr.toDoubleOrNull()
-                    if (kanal != null && density != null) {
-                        val calculatedPlants = Math.round(kanal * density).toInt()
-                        viewModel.totalPlants.value = if (calculatedPlants > 0) calculatedPlants.toString() else "0"
+                    if (lastEdited == LastEditedField.TOTAL_PLANTS) {
+                        // Recompute Kanal Area = totalPlants / plantsPerKanal (2 decimals), leave Total Plants untouched
+                        val plants = totalPlants.toDoubleOrNull()
+                        if (totalPlants.isBlank()) {
+                            viewModel.totalKanalArea.value = ""
+                        } else if (density == null || density <= 0) {
+                            viewModel.totalKanalArea.value = "—"
+                        } else if (plants != null) {
+                            val calcArea = plants / density
+                            val formattedKanal = if (calcArea % 1.0 == 0.0) {
+                                calcArea.toInt().toString()
+                            } else {
+                                String.format(java.util.Locale.US, "%.2f", calcArea)
+                            }
+                            viewModel.totalKanalArea.value = formattedKanal
+                        } else {
+                            viewModel.totalKanalArea.value = "—"
+                        }
+                    } else {
+                        // lastEdited == AREA or NONE (default): recompute Total Plants = round(kanalArea * plantsPerKanal), leave Kanal Area untouched
+                        val area = totalKanalArea.toDoubleOrNull()
+                        if (totalKanalArea.isBlank()) {
+                            viewModel.totalPlants.value = ""
+                        } else if (density == null || density <= 0) {
+                            viewModel.totalPlants.value = "—"
+                        } else if (area != null) {
+                            val calcPlants = Math.round(area * density).toInt()
+                            viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
+                        } else {
+                            viewModel.totalPlants.value = "—"
+                        }
                     }
                     viewModel.recalculatePaymentStatus()
                 },
@@ -1035,16 +1071,23 @@ fun GardenPlanningFormTab(
                 value = totalPlants,
                 onValueChange = { newPlantsStr ->
                     viewModel.totalPlants.value = newPlantsStr
+                    lastEdited = LastEditedField.TOTAL_PLANTS
                     val plants = newPlantsStr.toDoubleOrNull()
                     val density = plantsPerKanal.toDoubleOrNull()
-                    if (plants != null && density != null && density > 0) {
-                        val calculatedKanal = plants / density
-                        val formattedKanal = if (calculatedKanal % 1.0 == 0.0) {
-                            calculatedKanal.toInt().toString()
+                    if (newPlantsStr.isBlank()) {
+                        viewModel.totalKanalArea.value = ""
+                    } else if (density == null || density <= 0) {
+                        viewModel.totalKanalArea.value = "—"
+                    } else if (plants != null) {
+                        val calcArea = plants / density
+                        val formattedKanal = if (calcArea % 1.0 == 0.0) {
+                            calcArea.toInt().toString()
                         } else {
-                            String.format(java.util.Locale.US, "%.2f", calculatedKanal)
+                            String.format(java.util.Locale.US, "%.2f", calcArea)
                         }
                         viewModel.totalKanalArea.value = formattedKanal
+                    } else {
+                        viewModel.totalKanalArea.value = "—"
                     }
                     viewModel.recalculatePaymentStatus()
                 },
