@@ -31,7 +31,8 @@ data class ReceiptData(
     val expectedDelivery: String,
     val rootstock: String = "",
     val rootDiameter: String = "",
-    val scionVariety: String = ""
+    val scionVariety: String = "",
+    val plantOrigin: String = ""
 )
 
 object ReceiptGenerator {
@@ -233,12 +234,15 @@ object ReceiptGenerator {
                 "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
             )
         } else {
-            listOf(
-                "Service Category" to data.serviceCategory.ifBlank { "N/A" },
-                "Item / Variety" to data.plantVariety.ifBlank { data.serviceCategory },
-                "Quantity / Units" to "${data.quantity} Plants",
-                "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
-            )
+            val list = mutableListOf<Pair<String, String>>()
+            list.add("Service Category" to data.serviceCategory.ifBlank { "N/A" })
+            if (data.plantOrigin.isNotBlank()) {
+                list.add("Plant Origin" to data.plantOrigin)
+            }
+            list.add("Item / Variety" to data.plantVariety.ifBlank { data.serviceCategory })
+            list.add("Quantity / Units" to "${data.quantity} Plants")
+            list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
+            list
         }
 
         drawSectionCard(

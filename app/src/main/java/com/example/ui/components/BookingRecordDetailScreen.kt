@@ -339,6 +339,11 @@ fun BookingRecordDetailDialog(
                 }
 
                 // 3. Specifications List
+                val isImportedRootstocks = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                        record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                        record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                        record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -346,14 +351,22 @@ fun BookingRecordDetailDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
-                    DetailRowItem(label = "Variety / Type", value = record.plantVariety, isDark = isDark)
-                    if (record.healthStage.isNotBlank()) {
+                    DetailRowItem(
+                        label = if (isImportedRootstocks) "Scion Variety" else "Variety / Type",
+                        value = record.plantVariety,
+                        isDark = isDark
+                    )
+                    if (!isImportedRootstocks && record.healthStage.isNotBlank()) {
                         DetailRowItem(label = "Sapling Age", value = record.healthStage, isDark = isDark)
                     }
                     if (record.rootstock.isNotBlank()) {
                         DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
                     }
-                    DetailRowItem(label = "Quantity / Trees", value = "${record.quantity}", isDark = isDark)
+                    DetailRowItem(
+                        label = if (isImportedRootstocks) "Quantity / Roots" else "Quantity / Trees",
+                        value = "${record.quantity}",
+                        isDark = isDark
+                    )
                     DetailRowItem(label = "Rate (₹)", value = "₹${record.landAreaAcres.toInt()}", isDark = isDark)
                     
                     DetailRowItem(

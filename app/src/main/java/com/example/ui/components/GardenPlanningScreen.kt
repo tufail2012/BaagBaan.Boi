@@ -1626,7 +1626,8 @@ fun GardenPlanningFormTab(
                         amountPaid = amountPaidDouble,
                         remainingBalance = remainingBalance,
                         paymentStatus = paymentStatus,
-                        expectedDelivery = expectedDelivery
+                        expectedDelivery = expectedDelivery,
+                        plantOrigin = plantOrigin.ifBlank { "Local Plants" }
                     )
 
                     val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
@@ -2406,6 +2407,7 @@ fun GardenBookingRecordDetailDialog(
                     DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
                     DetailRowItem(label = "Total Calculated Plants", value = "$totalPlants Plants", isDark = isDark)
                     DetailRowItem(label = "Rate / Unit Price", value = "₹${currentEntry.costPerPlant.toInt()}", isDark = isDark)
+                    DetailRowItem(label = "Plant Origin", value = currentEntry.plantOrigin.ifBlank { "Local Plants" }, isDark = isDark)
                     if (currentEntry.plantVariety.isNotBlank()) {
                         DetailRowItem(label = "Plant Variety", value = currentEntry.plantVariety, isDark = isDark)
                     }
@@ -2815,7 +2817,8 @@ fun GardenBookingRecordDetailDialog(
                                 amountPaid = totalPaidSoFar,
                                 remainingBalance = remainingBalance,
                                 paymentStatus = currentEntry.paymentStatus,
-                                expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" }
+                                expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
+                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" }
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp
