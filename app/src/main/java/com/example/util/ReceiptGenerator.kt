@@ -239,7 +239,17 @@ object ReceiptGenerator {
             if (data.plantOrigin.isNotBlank()) {
                 list.add("Plant Origin" to data.plantOrigin)
             }
-            list.add("Item / Variety" to data.plantVariety.ifBlank { data.serviceCategory })
+            val itemVariety = if (data.rootstock.isNotBlank()) {
+                val baseVariety = data.plantVariety.ifBlank { data.serviceCategory }
+                if (baseVariety.contains(data.rootstock) || baseVariety.contains("/")) {
+                    baseVariety
+                } else {
+                    "$baseVariety / ${data.rootstock}"
+                }
+            } else {
+                data.plantVariety.ifBlank { data.serviceCategory }
+            }
+            list.add("Item / Variety" to itemVariety)
             list.add("Quantity / Units" to "${data.quantity} Plants")
             list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
             list

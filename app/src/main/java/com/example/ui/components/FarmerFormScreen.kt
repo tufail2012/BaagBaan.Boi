@@ -1932,7 +1932,7 @@ fun FarmerFormScreen(
         // Action Buttons
         val generateReceipt = {
             val isRootstockForm = selectedService.equals("Rootstocks", ignoreCase = true) || selectedService.contains("Rootstock", ignoreCase = true)
-            val actualRootstockVal = if (rootstock.isNotBlank()) rootstock else selectedRootstockSubTab
+            val actualRootstockVal = if (rootstock.isNotBlank()) rootstock else if (isRootstockForm) selectedRootstockSubTab else ""
             val actualScionVal = if (scionVariety.isNotBlank()) scionVariety else plantVariety
             val actualDiamVal = if (rootDiameter.isNotBlank()) rootDiameter else "9 to 12 mm"
 

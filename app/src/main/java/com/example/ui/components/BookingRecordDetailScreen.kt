@@ -804,7 +804,7 @@ fun BookingRecordDetailDialog(
                             val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
                             val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
 
-                            val actualRs = extRootstock.ifBlank { "M9-T337" }
+                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
                             val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
                             val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
 
