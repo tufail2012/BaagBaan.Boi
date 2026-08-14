@@ -124,6 +124,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -1874,21 +1877,142 @@ fun GardenPlanningRecordsTab(
             }
         } else {
             items(entries, key = { it.id }) { entry ->
-                GardenPlanningRecordCard(
+                SwipeableGardenPlanningItem(
                     entry = entry,
-                    currencyFormat = currencyFormat,
-                    onViewDetails = { selectedDetailEntry = entry },
-                    onEdit = { onEdit(entry) },
                     onDelete = { entryToDelete = entry },
-                    context = context,
-                    isDark = isDark
-                )
+                    context = context
+                ) {
+                    GardenPlanningRecordCard(
+                        entry = entry,
+                        currencyFormat = currencyFormat,
+                        onViewDetails = { selectedDetailEntry = entry },
+                        onEdit = { onEdit(entry) },
+                        onDelete = { entryToDelete = entry },
+                        context = context,
+                        isDark = isDark
+                    )
+                }
             }
         }
 
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableGardenPlanningItem(
+    entry: GardenPlanningEntry,
+    onDelete: () -> Unit,
+    context: Context,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    var showWhatsAppDialog by remember { mutableStateOf(false) }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right -> Send via WhatsApp
+                    if (entry.contactNumber.isNotBlank()) {
+                        showWhatsAppDialog = true
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "No contact number available for ${entry.farmerName.ifBlank { "Farmer" }}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left -> Delete
+                    onDelete()
+                    false
+                }
+                else -> false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        modifier = modifier,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+            val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+            val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+            val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
+            val text = if (isStartToEnd) "WhatsApp" else "Delete"
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(bgColor)
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                contentAlignment = alignment
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (isStartToEnd) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Send WhatsApp",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        },
+        content = {
+            content()
+        }
+    )
+
+    if (showWhatsAppDialog) {
+        val totalCost = entry.totalCost
+        val amountPaid = entry.amountPaid
+        val remBalance = if (entry.remainingBalance > 0) entry.remainingBalance else maxOf(0.0, totalCost - amountPaid)
+
+        WhatsAppTemplateDialog(
+            farmerName = entry.farmerName.ifBlank { "Farmer" },
+            contactNumber = entry.contactNumber,
+            serviceType = "Garden Planning",
+            amountPaid = amountPaid,
+            totalAmount = totalCost,
+            remainingBalance = remBalance,
+            paymentStatus = entry.paymentStatus,
+            onDismiss = { showWhatsAppDialog = false }
+        )
     }
 }
 

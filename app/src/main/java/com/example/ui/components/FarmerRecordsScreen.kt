@@ -9,9 +9,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -262,7 +264,7 @@ fun FarmerRecordsScreen(
             items(records, key = { it.id }) { record ->
                 SwipeableRecordItem(
                     record = record,
-                    onDelete = { viewModel.deleteRecord(record) }
+                    onDelete = { recordToDelete = record }
                 ) {
                     FarmerRecordCard(
                         record = record,
@@ -352,7 +354,7 @@ private fun RecordSummaryCards(
                 title = "Received Payment",
                 value = "₹${numberFmt.format(receivedPayment.toLong())}",
                 icon = Icons.Default.CheckCircle,
-                accentColor = Color(0xFF2E7D32),
+                accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
                 bgColor = if (isDark) Color(0xFF1B2E1B) else Color(0xFFE8F5E9),
                 modifier = Modifier.weight(1f)
             )
@@ -367,7 +369,7 @@ private fun RecordSummaryCards(
                 title = "Pending Payment",
                 value = "₹${numberFmt.format(pendingPayment.toLong())}",
                 icon = Icons.Default.HourglassTop,
-                accentColor = Color(0xFFC62828),
+                accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
                 bgColor = if (isDark) Color(0xFF331C1C) else Color(0xFFFFEBEE),
                 modifier = Modifier.weight(1f)
             )
@@ -378,7 +380,7 @@ private fun RecordSummaryCards(
                     title = "Total Quantity",
                     value = "${numberFmt.format(totalQuantity)} Units",
                     icon = Icons.Default.Inventory2,
-                    accentColor = Color(0xFF0288D1),
+                    accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                     bgColor = if (isDark) Color(0xFF1A2A38) else Color(0xFFE1F5FE),
                     modifier = Modifier.weight(1f)
                 )
@@ -484,289 +486,298 @@ private fun FarmerRecordCard(
 
     val initial = record.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F"
 
-    val (statusBg, statusTextColor) = when {
-        record.isPaymentCleared() -> {
-            if (isDark) Color(0xFF1B382B) to Color(0xFF6EE7B7)
-            else Color(0xFFDCFCE7) to Color(0xFF15803D)
-        }
-        record.amountPaid > 0 -> {
-            if (isDark) Color(0xFF382A13) to Color(0xFFFDE047)
-            else Color(0xFFFEF3C7) to Color(0xFFB45309)
-        }
-        else -> {
-            if (isDark) Color(0xFF381A1A) to Color(0xFFFCA5A5)
-            else Color(0xFFFEE2E2) to Color(0xFFB91C1C)
-        }
+    val avatarBgColor = when {
+        record.isPaymentCleared() -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
+        record.amountPaid > 0 -> if (isDark) Color(0xFFF57C00) else Color(0xFFE65100)
+        else -> MaterialTheme.colorScheme.primary
     }
+
     val statusLabel = when {
         record.isPaymentCleared() -> "Fully Paid"
         record.amountPaid > 0 -> "Advance Paid"
         else -> "Pending"
     }
 
+    val statusBadgeColor = when {
+        record.isPaymentCleared() -> Color(0xFF2E7D32)
+        record.amountPaid > 0 -> Color(0xFFE65100)
+        else -> MaterialTheme.colorScheme.error
+    }
+
     Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDark) Color(0xFF1E293B) else Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
             .clickable { onOpenDetail() }
-            .testTag("farmer_record_card_${record.id}")
+            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
+            .testTag("farmer_record_card_${record.id}"),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Left vertical accent strip
-            Box(
-                modifier = Modifier
-                    .width(6.dp)
-                    .fillMaxHeight()
-                    .background(
-                        color = when {
-                            record.isPaymentCleared() -> Color(0xFF16A34A)
-                            record.amountPaid > 0 -> Color(0xFFE65100)
-                            else -> Color(0xFFDC2626)
-                        }
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // Row 1: Profile Initial Avatar + Farmer Name + Serial Number & Payment Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Top Row: Avatar + Name + Booking Date & Status Tag
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                // Profile Avatar with Initial
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(avatarBgColor),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        // Profile Avatar showing First Letter of Farmer's Name
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isDark) Color(0xFF3B1E22) else Color(0xFFFFEBEE)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = initial,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)
-                            )
-                        }
-
-                        Column {
-                            // Farmer Name
-                            HighlightedText(
-                                text = record.farmerName.ifBlank { "Unknown Farmer" },
-                                query = searchQuery,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                isDark = isDark
-                            )
-
-                            // Booking Date with Calendar Icon
-                            if (record.bookingDate.isNotBlank()) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.padding(top = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CalendarToday,
-                                        contentDescription = "Booking Date",
-                                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = record.bookingDate,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Payment Status Tag
-                    Surface(
-                        shape = RoundedCornerShape(50.dp),
-                        color = statusBg
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = statusTextColor,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                        )
-                    }
+                    Text(
+                        text = initial,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                // Middle Row 1: Serial Number
-                if (record.serialNumber.isNotBlank()) {
+                // Farmer Name & Serial No
+                Column(modifier = Modifier.weight(1f)) {
                     HighlightedText(
-                        text = "Serial: ${record.serialNumber}",
+                        text = record.farmerName.ifBlank { "Farmer Name Not Specified" },
                         query = searchQuery,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         isDark = isDark
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (record.serialNumber.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "#${record.serialNumber}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (record.bookingDate.isNotBlank()) {
+                            Text(
+                                text = "• ${record.bookingDate}",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
-                // Middle Row 2: Quantity and Total Amount
+                // Payment Status Badge
+                Surface(
+                    color = statusBadgeColor,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = statusLabel,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 2.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+
+            // Address & Contact Info
+            if (record.farmerAddress.isNotBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val amountText = if (record.amountPaid > 0 && !record.isPaymentCleared()) {
-                        "${record.quantity} Units • ₹${totalAmount.toLong()}"
-                    } else {
-                        "${record.quantity} Units • ₹${totalAmount.toLong()}"
-                    }
-                    Text(
-                        text = amountText,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
                     )
-                }
-
-                // Contact Number & Address
-                val contactAndAddress = buildString {
-                    if (record.contactNumber.isNotBlank()) {
-                        append(record.contactNumber)
-                    }
-                    if (record.farmerAddress.isNotBlank()) {
-                        if (isNotEmpty()) append(" • ")
-                        append(record.farmerAddress)
-                    }
-                }
-
-                if (contactAndAddress.isNotBlank()) {
                     HighlightedText(
-                        text = contactAndAddress,
+                        text = record.farmerAddress,
                         query = searchQuery,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        isDark = isDark,
-                        modifier = Modifier.clickable { onCallFarmer() }
+                        isDark = isDark
+                    )
+                }
+            }
+
+            if (record.contactNumber.isNotBlank()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.clickable { onCallFarmer() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    HighlightedText(
+                        text = record.contactNumber,
+                        query = searchQuery,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        isDark = isDark
+                    )
+                }
+            }
+
+            // Specs / Quantity & Price Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val specDetail = buildString {
+                    if (record.plantVariety.isNotBlank()) append(record.plantVariety)
+                    if (record.rootstock.isNotBlank()) {
+                        if (isNotEmpty()) append(" • ")
+                        append(record.rootstock)
+                    }
+                    val unitLabel = if (record.serviceType.equals("Rootstocks", ignoreCase = true) || record.serviceType.contains("Rootstock", ignoreCase = true)) "Roots" else if (record.serviceType.equals("Site Visit", ignoreCase = true)) "Visits" else "Plants"
+                    if (isNotEmpty()) append(" • ")
+                    append("${record.quantity} $unitLabel")
+                }
+                Text(
+                    text = specDetail.ifBlank { "${record.quantity} Units" },
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+
+                Text(
+                    text = "₹${NumberFormat.getNumberInstance(Locale("en", "IN")).format(totalAmount.toLong())}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                thickness = 1.dp
+            )
+
+            // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. WhatsApp Icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
+                        .clickable {
+                            if (record.contactNumber.isNotBlank()) {
+                                showCardWhatsAppConfirm = true
+                            } else {
+                                Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Chat,
+                        contentDescription = "WhatsApp",
+                        tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
-                HorizontalDivider(
-                    color = (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)).copy(alpha = 0.6f),
-                    thickness = 1.dp
-                )
-
-                // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
+                // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onOpenDetail() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 ) {
-                    // 1. WhatsApp Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                            .clickable {
-                                if (record.contactNumber.isNotBlank()) {
-                                    showCardWhatsAppConfirm = true
-                                } else {
-                                    Toast.makeText(context, "No contact number available", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Chat,
-                            contentDescription = "WhatsApp",
-                            tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Text(
+                        text = "View Details",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
+                        contentDescription = "View Details",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
 
-                    // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onOpenDetail() }
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "View Details",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
-                            contentDescription = "View Details",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                // 4. Edit Icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                        .clickable { onEdit() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Record",
+                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
 
-                    // 4. Edit Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                            .clickable { onEdit() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Record",
-                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    // 5. Delete Icon
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                            .clickable { onDelete() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete Record",
-                            tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                // 5. Delete Icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
+                        .clickable { onDelete() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete Record",
+                        tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -821,15 +832,31 @@ fun SwipeableRecordItem(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showWhatsAppDialog by remember { mutableStateOf(false) }
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart || dismissValue == SwipeToDismissBoxValue.StartToEnd) {
-                showDeleteConfirmation = true
-                false
-            } else {
-                false
+            when (dismissValue) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right -> Send via WhatsApp
+                    if (record.contactNumber.isNotBlank()) {
+                        showWhatsAppDialog = true
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "No contact number available for ${record.farmerName.ifBlank { "Farmer" }}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left -> Delete
+                    onDelete()
+                    false
+                }
+                else -> false
             }
         }
     )
@@ -841,17 +868,17 @@ fun SwipeableRecordItem(
         modifier = modifier,
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val alignment = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                else -> Alignment.CenterEnd
-            }
+            val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+            val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+            val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+            val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
+            val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xFFDC2626))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(bgColor)
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 contentAlignment = alignment
             ) {
@@ -859,18 +886,33 @@ fun SwipeableRecordItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "Swipe to Delete",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Delete",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                    if (isStartToEnd) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Send WhatsApp",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         },
@@ -879,16 +921,24 @@ fun SwipeableRecordItem(
         }
     )
 
-    if (showDeleteConfirmation) {
-        DeleteBookingConfirmationDialog(
-            title = "Delete this booking?",
-            farmerName = record.farmerName,
-            identifier = if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType,
-            onConfirm = {
-                showDeleteConfirmation = false
-                onDelete()
-            },
-            onDismiss = { showDeleteConfirmation = false }
+    if (showWhatsAppDialog) {
+        val totalAmount = record.calculateTotalAmount()
+        val remBalance = record.calculateRemainingBalance()
+        val statusLabel = when {
+            record.isPaymentCleared() -> "Fully Paid"
+            record.amountPaid > 0 -> "Advance Paid"
+            else -> "Pending"
+        }
+
+        WhatsAppTemplateDialog(
+            farmerName = record.farmerName.ifBlank { "Farmer" },
+            contactNumber = record.contactNumber,
+            serviceType = record.serviceType,
+            amountPaid = record.amountPaid,
+            totalAmount = totalAmount,
+            remainingBalance = remBalance,
+            paymentStatus = statusLabel,
+            onDismiss = { showWhatsAppDialog = false }
         )
     }
 }

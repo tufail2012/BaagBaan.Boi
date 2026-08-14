@@ -1008,128 +1008,259 @@ fun FarmerFormScreen(
                 )
             }
 
-            // 2. Rootstock (Manual Input Text Field)
-            OutlinedTextField(
-                value = rootstock,
-                onValueChange = { viewModel.rootstock.value = it },
-                label = { Text("Rootstock *") },
-                placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
-                shape = textFieldShape,
-                singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Spa,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("rootstock_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // 3. Country / Source of Import (Manual Text Input for Imported Plants and Imported Rootstocks)
-            if (isImportedPlants || isImportedRootstocks) {
-                OutlinedTextField(
-                    value = importCountry,
-                    onValueChange = { viewModel.importCountry.value = it },
-                    label = { Text("Country / Source of Import *") },
-                    placeholder = { Text("Enter country or source of import (e.g. Italy, Netherlands)") },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Public,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("import_country_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-            }
-
-            // 4. Root Diameter ('mm') (Manual Text Input for Imported Rootstocks)
-            if (isImportedRootstocks) {
-                OutlinedTextField(
-                    value = rootDiameter,
-                    onValueChange = { viewModel.rootDiameter.value = it },
-                    label = { Text("Root Diameter ('mm') *") },
-                    placeholder = { Text("e.g. 9 to 12 mm") },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Straighten,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("root_diameter_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-            }
-
-            // 3. Sapling Age (Dropdown Field with Defined Age Options) - Removed for Imported Rootstocks
-            if (!isImportedRootstocks) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { saplingAgeMenuExpanded = true }
-                        .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+            // 2. Local Plants: Rootstock & Sapling Age side-by-side
+            if (!isImportedPlants && !isImportedRootstocks) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // Rootstock (Manual Input Text Field)
                     OutlinedTextField(
-                        value = healthStage.ifBlank { "1 Year" },
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Sapling Age *") },
+                        value = rootstock,
+                        onValueChange = { viewModel.rootstock.value = it },
+                        label = { Text("Rootstock *") },
+                        placeholder = { Text("e.g. M9, MM106") },
                         shape = textFieldShape,
+                        singleLine = true,
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.HourglassTop,
+                                imageVector = Icons.Default.Spa,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         },
-                        trailingIcon = {
-                            IconButton(onClick = { saplingAgeMenuExpanded = true }) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                            }
-                        },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { saplingAgeMenuExpanded = true }
+                            .weight(1f)
+                            .boundedFormFieldRipple(shape = textFieldShape)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("sapling_age_dropdown"),
+                            .testTag("rootstock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
 
-                    DropdownMenu(
-                        expanded = saplingAgeMenuExpanded,
-                        onDismissRequest = { saplingAgeMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
+                    // Sapling Age (Dropdown Field with Defined Age Options)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { saplingAgeMenuExpanded = true }
+                            .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
                     ) {
-                        saplingAgeOptions.forEach { age ->
-                            DropdownMenuItem(
-                                text = { Text(age) },
-                                onClick = {
-                                    viewModel.healthStage.value = age
-                                    saplingAgeMenuExpanded = false
+                        OutlinedTextField(
+                            value = healthStage.ifBlank { "1 Year" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Sapling Age *") },
+                            shape = textFieldShape,
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.HourglassTop,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { saplingAgeMenuExpanded = true }) {
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                                 }
-                            )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { saplingAgeMenuExpanded = true }
+                                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                                .testTag("sapling_age_dropdown"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
+
+                        DropdownMenu(
+                            expanded = saplingAgeMenuExpanded,
+                            onDismissRequest = { saplingAgeMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            saplingAgeOptions.forEach { age ->
+                                DropdownMenuItem(
+                                    text = { Text(age) },
+                                    onClick = {
+                                        viewModel.healthStage.value = age
+                                        saplingAgeMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
+                }
+            } else if (isImportedPlants) {
+                // Imported Plants: Rootstock (Full Width), then [Country of Import & Sapling Age] side-by-side
+                OutlinedTextField(
+                    value = rootstock,
+                    onValueChange = { viewModel.rootstock.value = it },
+                    label = { Text("Rootstock *") },
+                    placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("rootstock_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Country / Source of Import & Sapling Age side-by-side
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = importCountry,
+                        onValueChange = { viewModel.importCountry.value = it },
+                        label = { Text("Country / Source *") },
+                        placeholder = { Text("e.g. Italy") },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Public,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                            .testTag("import_country_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { saplingAgeMenuExpanded = true }
+                            .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                    ) {
+                        OutlinedTextField(
+                            value = healthStage.ifBlank { "1 Year" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Sapling Age *") },
+                            shape = textFieldShape,
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.HourglassTop,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { saplingAgeMenuExpanded = true }) {
+                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { saplingAgeMenuExpanded = true }
+                                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                                .testTag("sapling_age_dropdown"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
+
+                        DropdownMenu(
+                            expanded = saplingAgeMenuExpanded,
+                            onDismissRequest = { saplingAgeMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            saplingAgeOptions.forEach { age ->
+                                DropdownMenuItem(
+                                    text = { Text(age) },
+                                    onClick = {
+                                        viewModel.healthStage.value = age
+                                        saplingAgeMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (isImportedRootstocks) {
+                // Imported Rootstocks: Rootstock (Full Width), then [Country / Source of Import & Root Diameter (mm)] side-by-side
+                OutlinedTextField(
+                    value = rootstock,
+                    onValueChange = { viewModel.rootstock.value = it },
+                    label = { Text("Rootstock *") },
+                    placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("rootstock_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Country / Source of Import & Root Diameter ('mm') side-by-side
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = importCountry,
+                        onValueChange = { viewModel.importCountry.value = it },
+                        label = { Text("Country / Source *") },
+                        placeholder = { Text("e.g. Italy") },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Public,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                            .testTag("import_country_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    OutlinedTextField(
+                        value = rootDiameter,
+                        onValueChange = { viewModel.rootDiameter.value = it },
+                        label = { Text("Root Dia ('mm') *") },
+                        placeholder = { Text("e.g. 9-12 mm") },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Straighten,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                            .testTag("root_diameter_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
                 }
             }
         }

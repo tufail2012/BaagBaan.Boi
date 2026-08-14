@@ -401,8 +401,7 @@ fun GlobalSearchResultsScreen(
                         }
 
                         SwipeableSearchResultItem(
-                            farmerName = item.farmerName,
-                            serialNumber = item.serialNumber,
+                            item = item,
                             onDelete = onDeleteItem
                         ) {
                             GlobalSearchResultCard(
@@ -486,21 +485,36 @@ fun GlobalSearchResultsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeableSearchResultItem(
-    farmerName: String,
-    serialNumber: String,
+    item: GlobalSearchResult,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var showWhatsAppDialog by remember { mutableStateOf(false) }
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart || dismissValue == SwipeToDismissBoxValue.StartToEnd) {
-                showDeleteConfirmation = true
-                false
-            } else {
-                false
+            when (dismissValue) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right -> Send via WhatsApp
+                    if (item.contactNumber.isNotBlank()) {
+                        showWhatsAppDialog = true
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "No contact number available for ${item.farmerName.ifBlank { "Farmer" }}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    false
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left -> Delete
+                    onDelete()
+                    false
+                }
+                else -> false
             }
         }
     )
@@ -512,17 +526,17 @@ private fun SwipeableSearchResultItem(
         modifier = modifier,
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val alignment = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                else -> Alignment.CenterEnd
-            }
+            val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+            val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+            val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+            val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
+            val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Color(0xFFDC2626))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(bgColor)
                     .padding(horizontal = 20.dp, vertical = 8.dp),
                 contentAlignment = alignment
             ) {
@@ -530,35 +544,60 @@ private fun SwipeableSearchResultItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "Swipe to Delete",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Delete",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                    if (isStartToEnd) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Send WhatsApp",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Swipe to Delete",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
+        },
+        content = {
+            content()
         }
-    ) {
-        content()
-    }
+    )
 
-    if (showDeleteConfirmation) {
-        DeleteBookingConfirmationDialog(
-            title = "Delete this booking?",
-            farmerName = farmerName,
-            identifier = serialNumber,
-            onConfirm = {
-                showDeleteConfirmation = false
-                onDelete()
-            },
-            onDismiss = { showDeleteConfirmation = false }
+    if (showWhatsAppDialog) {
+        val totalAmount = item.totalAmount
+        val amountPaid = item.amountPaid
+        val remBalance = maxOf(0.0, totalAmount - amountPaid)
+        val statusLabel = when {
+            item.isPaymentCleared -> "Fully Paid"
+            amountPaid > 0 -> "Advance Paid"
+            else -> "Pending"
+        }
+
+        WhatsAppTemplateDialog(
+            farmerName = item.farmerName.ifBlank { "Farmer" },
+            contactNumber = item.contactNumber,
+            serviceType = item.serviceType,
+            amountPaid = amountPaid,
+            totalAmount = totalAmount,
+            remainingBalance = remBalance,
+            paymentStatus = statusLabel,
+            onDismiss = { showWhatsAppDialog = false }
         )
     }
 }
@@ -634,135 +673,148 @@ private fun GlobalSearchResultCard(
         else -> "Pending"
     }
 
+    val avatarBgColor = when {
+        item.isPaymentCleared -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
+        item.amountPaid > 0 -> if (isDark) Color(0xFFF57C00) else Color(0xFFE65100)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     Card(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isDark) Color(0xFF1E293B) else Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
             .clickable { onOpenDetail() }
             .testTag("global_search_card_${item.id}")
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min)
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Left vertical accent strip
-            Box(
-                modifier = Modifier
-                    .width(6.dp)
-                    .fillMaxHeight()
-                    .background(
-                        color = when {
-                            item.isPaymentCleared -> Color(0xFF16A34A)
-                            item.amountPaid > 0 -> Color(0xFFE65100)
-                            else -> Color(0xFFDC2626)
-                        }
-                    )
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // Header tag
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header tag
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = serviceBadgeBg
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = serviceBadgeBg
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = serviceBadgeIcon,
-                                contentDescription = null,
-                                tint = serviceBadgeText,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = item.serviceType.uppercase(),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = serviceBadgeText
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(50.dp),
-                        color = statusBg
-                    ) {
+                        Icon(
+                            imageVector = serviceBadgeIcon,
+                            contentDescription = null,
+                            tint = serviceBadgeText,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Text(
-                            text = statusLabel,
+                            text = item.serviceType.uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = statusTextColor,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            color = serviceBadgeText
                         )
                     }
                 }
 
-                // Farmer avatar, name, serial number
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = statusBg
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isDark) Color(0xFF3B1E22) else Color(0xFFFFEBEE)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = initial,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)
-                        )
-                    }
+                    Text(
+                        text = statusLabel,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusTextColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        HighlightedText(
-                            text = item.farmerName.ifBlank { "Unknown Farmer" },
-                            query = searchQuery,
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            isDark = isDark
-                        )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 2.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
-                        HighlightedText(
-                            text = "Serial No: ${item.serialNumber}",
-                            query = searchQuery,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                            isDark = isDark
-                        )
-                    }
+            // Farmer avatar, name, serial number
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(avatarBgColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = initial,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
 
-                // Details: Phone, Variety/Rootstock, Booking Date
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    HighlightedText(
+                        text = item.farmerName.ifBlank { "Unknown Farmer" },
+                        query = searchQuery,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        isDark = isDark
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (item.serialNumber.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = "#${item.serialNumber}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        val bookingDateStr = when (item) {
+                            is GlobalSearchResult.Crop -> item.record.bookingDate
+                            is GlobalSearchResult.Garden -> item.entry.bookingDate
+                        }
+                        if (bookingDateStr.isNotBlank()) {
+                            Text(
+                                text = "• $bookingDateStr",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Details: Phone, Variety/Rootstock, Booking Date
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (item.contactNumber.isNotBlank() || item.farmerAddress.isNotBlank()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -973,7 +1025,6 @@ private fun GlobalSearchResultCard(
                 }
             }
         }
-    }
 
     if (showWhatsAppConfirm) {
         AlertDialog(
