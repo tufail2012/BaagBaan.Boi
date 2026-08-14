@@ -1888,6 +1888,7 @@ private fun GardenPlanningRecordCard(
     context: Context,
     isDark: Boolean = isAppInDarkMode()
 ) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
     val avatarBgColor = when (entry.paymentStatus) {
         "Fully Paid" -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
@@ -2150,7 +2151,7 @@ private fun GardenPlanningRecordCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                        .clickable { onDelete() },
+                        .clickable { showDeleteConfirm = true },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -2162,6 +2163,29 @@ private fun GardenPlanningRecordCard(
                 }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the Garden Planning booking for '${entry.farmerName.ifBlank { "Farmer" }}' (Serial #${entry.serialNumber.ifBlank { "01" }})? It will be moved to the Recycle Bin.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -2893,8 +2917,8 @@ fun GardenBookingRecordDetailDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Garden Planning Entry") },
-            text = { Text("Are you sure you want to delete the record for ${currentEntry.farmerName}? This action cannot be undone.") },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the Garden Planning booking for '${currentEntry.farmerName.ifBlank { "Farmer" }}' (Serial #${currentEntry.serialNumber.ifBlank { "01" }})? It will be moved to the Recycle Bin.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -2903,7 +2927,7 @@ fun GardenBookingRecordDetailDialog(
                         onDismiss()
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

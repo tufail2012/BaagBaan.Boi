@@ -464,6 +464,7 @@ private fun FarmerRecordCard(
     val context = LocalContext.current
     val isDark = isAppInDarkMode()
     var showCardWhatsAppConfirm by remember { mutableStateOf(false) }
+    var showCardDeleteConfirm by remember { mutableStateOf(false) }
 
     val totalAmount = record.calculateTotalAmount()
     val remBalance = record.calculateRemainingBalance()
@@ -743,7 +744,7 @@ private fun FarmerRecordCard(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                            .clickable { onDelete() },
+                            .clickable { showCardDeleteConfirm = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -756,6 +757,29 @@ private fun FarmerRecordCard(
                 }
             }
         }
+    }
+
+    if (showCardDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showCardDeleteConfirm = false },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the record for '${record.farmerName}' (${if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType})? It will be moved to the Recycle Bin.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showCardDeleteConfirm = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCardDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showCardWhatsAppConfirm) {
@@ -868,8 +892,8 @@ fun SwipeableRecordItem(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete Record", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for '${record.farmerName}' (${if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType})?") },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the record for '${record.farmerName}' (${if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType})? It will be moved to the Recycle Bin.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -877,7 +901,7 @@ fun SwipeableRecordItem(
                         onDelete()
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

@@ -552,8 +552,8 @@ private fun SwipeableSearchResultItem(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete Record", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for $farmerName ($serialNumber)?") },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the record for $farmerName ($serialNumber)? It will be moved to the Recycle Bin.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -561,7 +561,7 @@ private fun SwipeableSearchResultItem(
                         onDelete()
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1011,8 +1011,8 @@ private fun GlobalSearchResultCard(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Record", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for ${item.farmerName} (${item.serialNumber})?") },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete the record for ${item.farmerName} (${item.serialNumber})? It will be moved to the Recycle Bin.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1020,7 +1020,7 @@ private fun GlobalSearchResultCard(
                         onDelete()
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

@@ -901,8 +901,8 @@ fun BookingRecordDetailDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete Booking Record", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete this booking for ${record.farmerName}? This action cannot be undone.") },
+            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete this booking for ${record.farmerName.ifBlank { "Farmer" }} (${record.serviceType})? It will be moved to the Recycle Bin.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -911,7 +911,7 @@ fun BookingRecordDetailDialog(
                         onDelete(record)
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold)
+                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
