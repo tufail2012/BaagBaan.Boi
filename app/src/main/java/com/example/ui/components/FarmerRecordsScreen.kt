@@ -114,6 +114,7 @@ fun FarmerRecordsScreen(
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
     var selectedDetailRecord by remember { mutableStateOf<CropRecord?>(null) }
+    var recordToDelete by remember { mutableStateOf<CropRecord?>(null) }
 
     val listState = rememberLazyListState()
     listState.rememberScrollHapticFeedback()
@@ -275,12 +276,25 @@ fun FarmerRecordsScreen(
                             }
                         },
                         onEdit = { viewModel.loadRecordForEditing(record) },
-                        onDelete = { viewModel.deleteRecord(record) },
+                        onDelete = { recordToDelete = record },
                         onOpenDetail = { selectedDetailRecord = record }
                     )
                 }
             }
         }
+    }
+
+    recordToDelete?.let { rec ->
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = rec.farmerName,
+            identifier = if (rec.serialNumber.isNotBlank()) rec.serialNumber else rec.serviceType,
+            onConfirm = {
+                viewModel.deleteRecord(rec)
+                recordToDelete = null
+            },
+            onDismiss = { recordToDelete = null }
+        )
     }
 
     selectedDetailRecord?.let { detailRec ->
@@ -464,7 +478,6 @@ private fun FarmerRecordCard(
     val context = LocalContext.current
     val isDark = isAppInDarkMode()
     var showCardWhatsAppConfirm by remember { mutableStateOf(false) }
-    var showCardDeleteConfirm by remember { mutableStateOf(false) }
 
     val totalAmount = record.calculateTotalAmount()
     val remBalance = record.calculateRemainingBalance()
@@ -744,7 +757,7 @@ private fun FarmerRecordCard(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                            .clickable { showCardDeleteConfirm = true },
+                            .clickable { onDelete() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -757,29 +770,6 @@ private fun FarmerRecordCard(
                 }
             }
         }
-    }
-
-    if (showCardDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showCardDeleteConfirm = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for '${record.farmerName}' (${if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showCardDeleteConfirm = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCardDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 
     if (showCardWhatsAppConfirm) {
@@ -890,25 +880,15 @@ fun SwipeableRecordItem(
     )
 
     if (showDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for '${record.farmerName}' (${if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirmation = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = record.farmerName,
+            identifier = if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType,
+            onConfirm = {
+                showDeleteConfirmation = false
+                onDelete()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteConfirmation = false }
         )
     }
 }

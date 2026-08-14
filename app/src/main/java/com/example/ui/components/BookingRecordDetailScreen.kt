@@ -899,26 +899,16 @@ fun BookingRecordDetailDialog(
 
     // Delete Confirmation Dialog
     if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete this booking for ${record.farmerName.ifBlank { "Farmer" }} (${record.serviceType})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDismiss()
-                        onDelete(record)
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = record.farmerName,
+            identifier = if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType,
+            onConfirm = {
+                showDeleteConfirm = false
+                onDismiss()
+                onDelete(record)
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteConfirm = false }
         )
     }
 

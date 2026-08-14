@@ -1728,6 +1728,7 @@ fun GardenPlanningRecordsTab(
     lazyListState.rememberScrollHapticFeedback()
 
     var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
+    var entryToDelete by remember { mutableStateOf<GardenPlanningEntry?>(null) }
     var isInitialLoading by remember { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(entries) {
         if (entries.isNotEmpty()) {
@@ -1748,6 +1749,19 @@ fun GardenPlanningRecordsTab(
                 selectedDetailEntry = null
                 onEdit(entry)
             }
+        )
+    }
+
+    entryToDelete?.let { entry ->
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = entry.farmerName,
+            identifier = entry.serialNumber,
+            onConfirm = {
+                viewModel.deleteEntry(entry)
+                entryToDelete = null
+            },
+            onDismiss = { entryToDelete = null }
         )
     }
 
@@ -1865,7 +1879,7 @@ fun GardenPlanningRecordsTab(
                     currencyFormat = currencyFormat,
                     onViewDetails = { selectedDetailEntry = entry },
                     onEdit = { onEdit(entry) },
-                    onDelete = { viewModel.deleteEntry(entry) },
+                    onDelete = { entryToDelete = entry },
                     context = context,
                     isDark = isDark
                 )
@@ -1888,7 +1902,6 @@ private fun GardenPlanningRecordCard(
     context: Context,
     isDark: Boolean = isAppInDarkMode()
 ) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
     val avatarBgColor = when (entry.paymentStatus) {
         "Fully Paid" -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
@@ -2151,7 +2164,7 @@ private fun GardenPlanningRecordCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                        .clickable { showDeleteConfirm = true },
+                        .clickable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -2163,29 +2176,6 @@ private fun GardenPlanningRecordCard(
                 }
             }
         }
-    }
-
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the Garden Planning booking for '${entry.farmerName.ifBlank { "Farmer" }}' (Serial #${entry.serialNumber.ifBlank { "01" }})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
     }
 }
 
@@ -2915,26 +2905,16 @@ fun GardenBookingRecordDetailDialog(
 
     // Delete Record Confirmation Dialog
     if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the Garden Planning booking for '${currentEntry.farmerName.ifBlank { "Farmer" }}' (Serial #${currentEntry.serialNumber.ifBlank { "01" }})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        viewModel.deleteEntry(currentEntry)
-                        onDismiss()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = currentEntry.farmerName,
+            identifier = currentEntry.serialNumber,
+            onConfirm = {
+                showDeleteConfirm = false
+                viewModel.deleteEntry(currentEntry)
+                onDismiss()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteConfirm = false }
         )
     }
 

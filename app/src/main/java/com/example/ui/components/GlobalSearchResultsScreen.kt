@@ -550,25 +550,15 @@ private fun SwipeableSearchResultItem(
     }
 
     if (showDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for $farmerName ($serialNumber)? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirmation = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = farmerName,
+            identifier = serialNumber,
+            onConfirm = {
+                showDeleteConfirmation = false
+                onDelete()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteConfirmation = false }
         )
     }
 }
@@ -1009,25 +999,15 @@ private fun GlobalSearchResultCard(
     }
 
     if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete this booking?", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete the record for ${item.farmerName} (${item.serialNumber})? It will be moved to the Recycle Bin.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteConfirm = false
-                        onDelete()
-                    }
-                ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
+        DeleteBookingConfirmationDialog(
+            title = "Delete this booking?",
+            farmerName = item.farmerName,
+            identifier = item.serialNumber,
+            onConfirm = {
+                showDeleteConfirm = false
+                onDelete()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showDeleteConfirm = false }
         )
     }
 }
