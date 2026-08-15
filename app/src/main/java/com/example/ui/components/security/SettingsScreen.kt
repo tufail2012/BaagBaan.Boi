@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,26 +26,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Pattern
 import androidx.compose.material.icons.filled.Pin
-import androidx.compose.material.icons.filled.PrivacyTip
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,8 +88,13 @@ import com.example.ui.AppThemeMode
 fun SettingsScreen(
     appLockManager: AppLockManager,
     themeMode: AppThemeMode,
+    currentUserEmail: String? = null,
+    currentUserPhotoUrl: String? = null,
     onOpenThemeDialog: () -> Unit,
+    onNavigateToAccounts: () -> Unit = {},
+    onLogout: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
+    onOpenRecycleBin: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -107,6 +112,50 @@ fun SettingsScreen(
     var showLockAfterSheet by remember { mutableStateOf(false) }
     var showDisableAuthDialog by remember { mutableStateOf(false) }
     var showChangeMethodAuthDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = "Logout",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to log out from ${currentUserEmail ?: "your account"}?",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogout()
+                    }
+                ) {
+                    Text(
+                        text = "Logout",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
 
     // Lock After Bottom Sheet
     if (showLockAfterSheet) {
@@ -255,7 +304,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Bar
+            // Top App Bar
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,7 +341,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Security, Privacy & App Preferences",
+                            text = "Appearance, Account, Security & Storage",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -306,10 +355,115 @@ fun SettingsScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                item { Spacer(modifier = Modifier.height(6.dp)) }
+                item { Spacer(modifier = Modifier.height(4.dp)) }
 
                 // ==========================================
-                // SECTION 1: SECURITY & PRIVACY
+                // SECTION 1: APPEARANCE
+                // ==========================================
+                item {
+                    Text(
+                        text = "Appearance",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            val modeLabel = when (themeMode) {
+                                AppThemeMode.SYSTEM -> "System Default"
+                                AppThemeMode.LIGHT -> "Light Theme"
+                                AppThemeMode.DARK -> "Dark Theme"
+                                AppThemeMode.AMOLED -> "AMOLED Pure Black"
+                            }
+
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Palette,
+                                title = "Theme & Preferences",
+                                subtitle = modeLabel,
+                                onClick = onOpenThemeDialog,
+                                testTag = "settings_theme_row"
+                            )
+                        }
+                    }
+                }
+
+                // ==========================================
+                // SECTION 2: ACCOUNT
+                // ==========================================
+                item {
+                    Text(
+                        text = "Account",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Accounts Row
+                            SettingsNavigationRow(
+                                icon = Icons.Default.AccountCircle,
+                                title = "Accounts",
+                                subtitle = if (!currentUserEmail.isNullOrBlank()) currentUserEmail else "Sign in / Manage accounts",
+                                onClick = onNavigateToAccounts,
+                                testTag = "settings_accounts_row"
+                            )
+
+                            // Logout Row (if logged in)
+                            if (!currentUserEmail.isNullOrBlank()) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
+
+                                SettingsNavigationRow(
+                                    icon = Icons.AutoMirrored.Filled.ExitToApp,
+                                    title = "Logout",
+                                    subtitle = "Sign out of $currentUserEmail",
+                                    onClick = { showLogoutDialog = true },
+                                    isDestructive = true,
+                                    testTag = "settings_logout_row"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // ==========================================
+                // SECTION 3: SECURITY & PRIVACY
                 // ==========================================
                 item {
                     Text(
@@ -336,7 +490,7 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            // Primary App Lock Toggle Row
+                            // 1. App Lock Switch Row
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -373,7 +527,12 @@ fun SettingsScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "Protect this app from unauthorized access",
+                                            text = if (isAppLockEnabled) "App is protected with ${when (unlockMethod) {
+                                                UnlockMethod.BIOMETRIC -> "Fingerprint"
+                                                UnlockMethod.PIN -> "PIN"
+                                                UnlockMethod.PATTERN -> "Pattern"
+                                                UnlockMethod.PASSWORD -> "Password"
+                                            }}" else "Protect this app from unauthorized access",
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -414,7 +573,14 @@ fun SettingsScreen(
                                         modifier = Modifier.padding(bottom = 12.dp)
                                     )
 
-                                    // Unlock Method Row
+                                    // Dynamic Method Title and Icon based strictly on configured unlockMethod
+                                    val currentMethodName = when (unlockMethod) {
+                                        UnlockMethod.BIOMETRIC -> "Fingerprint"
+                                        UnlockMethod.PIN -> "PIN"
+                                        UnlockMethod.PATTERN -> "Pattern"
+                                        UnlockMethod.PASSWORD -> "Password"
+                                    }
+
                                     val methodIcon = when (unlockMethod) {
                                         UnlockMethod.BIOMETRIC -> Icons.Default.Fingerprint
                                         UnlockMethod.PIN -> Icons.Default.Pin
@@ -422,17 +588,29 @@ fun SettingsScreen(
                                         UnlockMethod.PASSWORD -> Icons.Default.Password
                                     }
 
+                                    // 2. Unlock Method Display Row
                                     SettingsNavigationRow(
                                         icon = methodIcon,
                                         title = "Unlock Method",
-                                        subtitle = unlockMethod.title,
+                                        subtitle = currentMethodName,
                                         onClick = { showChangeMethodAuthDialog = true },
                                         testTag = "settings_unlock_method"
                                     )
 
                                     Spacer(modifier = Modifier.height(10.dp))
 
-                                    // Lock After Row
+                                    // 3. Change Unlock Method Row
+                                    SettingsNavigationRow(
+                                        icon = Icons.Default.Key,
+                                        title = "Change Unlock Method",
+                                        subtitle = "Configure Fingerprint, PIN, Pattern, or Password",
+                                        onClick = { showChangeMethodAuthDialog = true },
+                                        testTag = "settings_change_unlock_method"
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // 4. Lock After Row
                                     SettingsNavigationRow(
                                         icon = Icons.Default.Timer,
                                         title = "Lock After",
@@ -443,9 +621,9 @@ fun SettingsScreen(
 
                                     Spacer(modifier = Modifier.height(14.dp))
 
-                                    // Privacy Protection Subheader
+                                    // Other Security Options
                                     Text(
-                                        text = "Privacy Protection",
+                                        text = "Other Security Options",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -456,7 +634,7 @@ fun SettingsScreen(
                                     SettingsToggleRow(
                                         icon = Icons.Default.VisibilityOff,
                                         title = "Hide Content in Recent Apps",
-                                        subtitle = "Prevent sensitive app content from appearing in the recent-apps preview",
+                                        subtitle = "Prevent sensitive app content from appearing in recent-apps preview",
                                         checked = hideInRecentApps,
                                         onCheckedChange = { checked ->
                                             appLockManager.updateHideInRecentApps(checked)
@@ -488,49 +666,29 @@ fun SettingsScreen(
                                         modifier = Modifier.padding(bottom = 12.dp)
                                     )
 
-                                    // Additional Action Buttons
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    // Disable App Lock Button
+                                    OutlinedButton(
+                                        onClick = { showDisableAuthDialog = true },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        ),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(44.dp)
+                                            .testTag("disable_app_lock_button")
                                     ) {
-                                        OutlinedButton(
-                                            onClick = { showChangeMethodAuthDialog = true },
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.weight(1f).height(44.dp)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Key,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Text("Change Method", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-
-                                        OutlinedButton(
-                                            onClick = { showDisableAuthDialog = true },
-                                            shape = RoundedCornerShape(12.dp),
-                                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                                                contentColor = MaterialTheme.colorScheme.error
-                                            ),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-                                            modifier = Modifier.weight(1f).height(44.dp)
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.LockOpen,
-                                                    contentDescription = null,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Text("Disable Lock", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.LockOpen,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text("Disable App Lock", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -540,54 +698,7 @@ fun SettingsScreen(
                 }
 
                 // ==========================================
-                // SECTION 2: APPEARANCE & DISPLAY
-                // ==========================================
-                item {
-                    Text(
-                        text = "Appearance & Display",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                    )
-
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            val modeLabel = when (themeMode) {
-                                AppThemeMode.SYSTEM -> "System Default"
-                                AppThemeMode.LIGHT -> "Light Theme"
-                                AppThemeMode.DARK -> "Dark Theme"
-                                AppThemeMode.AMOLED -> "AMOLED Pure Black"
-                            }
-
-                            SettingsNavigationRow(
-                                icon = Icons.Default.Palette,
-                                title = "Theme & Accent Color",
-                                subtitle = modeLabel,
-                                onClick = onOpenThemeDialog,
-                                testTag = "settings_theme_row"
-                            )
-                        }
-                    }
-                }
-
-                // ==========================================
-                // SECTION 3: DATA & STORAGE
+                // SECTION 4: DATA & STORAGE
                 // ==========================================
                 item {
                     Text(
@@ -613,31 +724,38 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            // 1. Data Backup & Restore
                             SettingsNavigationRow(
                                 icon = Icons.Default.CloudSync,
-                                title = "Backup & Restore",
-                                subtitle = "Local JSON / Excel database backups",
+                                title = "Data Backup & Restore",
+                                subtitle = "Local JSON & Excel database backups",
                                 onClick = onNavigateToBackupRestore,
                                 testTag = "settings_backup_row"
+                            )
+
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+
+                            // 2. Recycle Bin
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Delete,
+                                title = "Recycle Bin",
+                                subtitle = "Restore or permanently delete removed records",
+                                onClick = onOpenRecycleBin,
+                                testTag = "settings_recycle_bin_row"
                             )
                         }
                     }
                 }
 
                 // ==========================================
-                // SECTION 4: ABOUT & ENCRYPTION
+                // SECURITY ENCRYPTION NOTE
                 // ==========================================
                 item {
-                    Text(
-                        text = "About & Encryption",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                    )
-
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
@@ -696,8 +814,11 @@ private fun SettingsNavigationRow(
     subtitle: String,
     onClick: () -> Unit,
     testTag: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isDestructive: Boolean = false
 ) {
+    val primaryTint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -722,13 +843,16 @@ private fun SettingsNavigationRow(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)),
+                        .background(
+                            if (isDestructive) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = primaryTint,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -738,7 +862,7 @@ private fun SettingsNavigationRow(
                         text = title,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = titleColor
                     )
                     Text(
                         text = subtitle,

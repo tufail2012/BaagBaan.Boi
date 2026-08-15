@@ -281,8 +281,19 @@ fun AgriCropMainScreen(
                 SettingsScreen(
                     appLockManager = effectiveAppLockManager,
                     themeMode = themeMode,
+                    currentUserEmail = currentUser?.email,
+                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
                     onOpenThemeDialog = { showThemePreferencesDialog = true },
+                    onNavigateToAccounts = {
+                        isSettingsActive = false
+                        isLoginActive = true
+                    },
+                    onLogout = {
+                        isSettingsActive = false
+                        performLogout()
+                    },
                     onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                    onOpenRecycleBin = { showRecycleBinDialog = true },
                     onBack = { isSettingsActive = false },
                     modifier = modifier
                 )

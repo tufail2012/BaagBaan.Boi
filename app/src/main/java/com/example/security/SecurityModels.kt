@@ -1,7 +1,7 @@
 package com.example.security
 
 enum class UnlockMethod(val title: String, val subtitle: String) {
-    BIOMETRIC("Fingerprint / Biometric", "Use your device biometric"),
+    BIOMETRIC("Fingerprint", "Unlock using fingerprint or biometric"),
     PIN("PIN", "Unlock with a secure PIN"),
     PATTERN("Pattern", "Unlock using a pattern"),
     PASSWORD("Password", "Unlock with a password")

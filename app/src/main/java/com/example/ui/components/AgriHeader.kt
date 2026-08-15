@@ -673,7 +673,6 @@ private fun OverflowMenuContent(
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
 ) {
-    // === GROUP 1: Main (no header) ===
     // 1. Dashboard
     DropdownMenuItem(
         text = {
@@ -758,22 +757,6 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("attendance_menu_item$tagSuffix")
     )
 
-    // === DIVIDER 1 ===
-    HorizontalDivider(
-        modifier = Modifier.padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    )
-
-    // === GROUP 2: PROFILE & DATA ===
-    Text(
-        text = "PROFILE & DATA",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.2.sp,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 12.dp, top = 6.dp, bottom = 4.dp)
-    )
-
     // 4. Contact Directory
     DropdownMenuItem(
         text = {
@@ -802,7 +785,7 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("contact_directory_menu_item$tagSuffix")
     )
 
-    // Payment Reminders
+    // 5. Payment Reminder
     DropdownMenuItem(
         text = {
             Row(
@@ -817,7 +800,7 @@ private fun OverflowMenuContent(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Payment Reminders",
+                    text = "Payment Reminder",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
@@ -830,72 +813,13 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
     )
 
-    // 5. Data Backup & Restore
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CloudSync,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Data Backup & Restore",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-            }
-        },
-        onClick = {
-            onDismiss()
-            onNavigateToBackupRestore()
-        },
-        modifier = Modifier.testTag("backup_restore_menu_item$tagSuffix")
+    // Divider before Settings
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
 
-    // 6. Accounts
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AccountCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Accounts",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    if (currentUserEmail != null) {
-                        Text(
-                            text = currentUserEmail,
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        },
-        onClick = {
-            onDismiss()
-            onNavigateToLogin()
-        },
-        modifier = Modifier.testTag("accounts_menu_item$tagSuffix")
-    )
-
-    // Settings (Security & App Lock)
+    // 6. Settings
     DropdownMenuItem(
         text = {
             Row(
@@ -909,18 +833,11 @@ private fun OverflowMenuContent(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Settings & Security",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "App Lock, PIN, Fingerprint & Privacy",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "Settings",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
             }
         },
         onClick = {
@@ -929,125 +846,6 @@ private fun OverflowMenuContent(
         },
         modifier = Modifier.testTag("settings_menu_item$tagSuffix")
     )
-
-    // === DIVIDER 2 ===
-    HorizontalDivider(
-        modifier = Modifier.padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    )
-
-    // === GROUP 3: Bottom group (no header) ===
-    // 7. Recycle Bin
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Recycle Bin",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-            }
-        },
-        onClick = {
-            onDismiss()
-            onOpenRecycleBin()
-        },
-        modifier = Modifier.testTag("recycle_bin_menu_item$tagSuffix")
-    )
-
-    // 8. Theme Preferences
-    val currentModeLabel = when (themeMode) {
-        AppThemeMode.SYSTEM -> "System"
-        AppThemeMode.LIGHT -> "Light"
-        AppThemeMode.DARK -> "Dark"
-        AppThemeMode.AMOLED -> "AMOLED"
-    }
-
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Theme Preferences",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "($currentModeLabel)",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        },
-        onClick = {
-            onDismiss()
-            onOpenThemeDialog()
-        },
-        modifier = Modifier.testTag("theme_preference_menu_item$tagSuffix")
-    )
-
-    // 9. Logout
-    if (currentUserEmail != null) {
-        DropdownMenuItem(
-            text = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Logout",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            },
-            onClick = {
-                onDismiss()
-                onLogout()
-            },
-            modifier = Modifier.testTag("logout_menu_item$tagSuffix")
-        )
-    }
 }
 
 @Composable
