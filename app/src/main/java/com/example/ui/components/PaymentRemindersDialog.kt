@@ -73,7 +73,6 @@ import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
-import com.example.ui.theme.AgriGreenPrimary
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -453,13 +452,13 @@ fun PendingPaymentRow(
                 // Service tag chip
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (item.source == "GARDEN") AgriGreenPrimary.copy(alpha = 0.15f) else Color(0xFF0284C7).copy(alpha = 0.15f)
+                    color = if (item.source == "GARDEN") MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color(0xFF0284C7).copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = item.serviceType,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (item.source == "GARDEN") AgriGreenPrimary else Color(0xFF0284C7),
+                        color = if (item.source == "GARDEN") MaterialTheme.colorScheme.primary else Color(0xFF0284C7),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }

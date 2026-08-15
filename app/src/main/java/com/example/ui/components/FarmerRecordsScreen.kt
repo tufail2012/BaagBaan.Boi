@@ -96,9 +96,6 @@ import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
 import com.example.ui.CropViewModel
-import com.example.ui.theme.AgriGreenLight
-import com.example.ui.theme.AgriGreenPrimary
-import com.example.ui.theme.AgriGreenPrimary
 import java.text.NumberFormat
 import java.util.Locale
 

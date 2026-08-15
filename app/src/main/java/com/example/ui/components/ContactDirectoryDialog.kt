@@ -89,8 +89,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
-import com.example.ui.theme.AgriGreenPrimary
-import com.example.ui.theme.AgriGreenPrimary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -758,12 +756,12 @@ fun ContactDetailsDialog(
 
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = AgriGreenPrimary.copy(alpha = 0.15f),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                     modifier = Modifier.padding(top = 4.dp)
                                 ) {
                                     Text(
                                         text = contact.category.ifEmpty { "Farmer" },
-                                        color = AgriGreenPrimary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
