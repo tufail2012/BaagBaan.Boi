@@ -229,11 +229,11 @@ fun BookingRecordDetailDialog(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFDC2626)
+                        color = MaterialTheme.colorScheme.primary
                     ) {
                         Text(
                             text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -254,7 +254,7 @@ fun BookingRecordDetailDialog(
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Record",
-                                tint = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -266,7 +266,7 @@ fun BookingRecordDetailDialog(
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete Record",
-                                tint = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626),
+                                tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -285,56 +285,80 @@ fun BookingRecordDetailDialog(
                     }
                 }
 
-                // 2. Farmer Header Card (Category in red, Name in bold, Phone, Address)
+                // 2. Farmer Header Card (Profile Avatar in Theme Color + Category + Name + Phone + Address)
                 Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Text(
-                            text = record.serviceType.ifBlank { "Local Plants" },
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)
-                        )
-                        Text(
-                            text = record.farmerName.ifBlank { "Farmer Name" },
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color.White else Color(0xFF0F172A)
-                        )
-                        if (record.contactNumber.isNotBlank()) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.clickable {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${record.contactNumber}"))
-                                    context.startActivity(intent)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Call,
-                                    contentDescription = "Call Phone",
-                                    tint = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = record.contactNumber,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color.White else Color(0xFF0F172A)
-                                )
-                            }
+                        // Profile Avatar in Theme Palette
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = record.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        Text(
-                            text = "Address: ${record.farmerAddress.ifBlank { "Not specified" }}",
-                            fontSize = 13.sp,
-                            color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-                        )
+
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = record.serviceType.ifBlank { "Local Plants" },
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = record.farmerName.ifBlank { "Farmer Name" },
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                            if (record.contactNumber.isNotBlank()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.clickable {
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${record.contactNumber}"))
+                                        context.startActivity(intent)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Call,
+                                        contentDescription = "Call Phone",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = record.contactNumber,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Address: ${record.farmerAddress.ifBlank { "Not specified" }}",
+                                fontSize = 13.sp,
+                                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                            )
+                        }
                     }
                 }
 
@@ -372,21 +396,21 @@ fun BookingRecordDetailDialog(
                     DetailRowItem(
                         label = "Total Amount",
                         value = "₹${totalRecordValue.toInt()}",
-                        valueColor = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626),
+                        valueColor = MaterialTheme.colorScheme.primary,
                         isBold = true,
                         isDark = isDark
                     )
                     DetailRowItem(
                         label = "Amount Paid",
                         value = "₹${totalPaidSoFar.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else (if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)),
+                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
                         isBold = true,
                         isDark = isDark
                     )
                     DetailRowItem(
                         label = "Remaining Balance",
                         value = "₹${remainingBalance.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else (if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)),
+                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
                         isBold = true,
                         isDark = isDark
                     )
@@ -398,7 +422,7 @@ fun BookingRecordDetailDialog(
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = if (isDark) Color(0xFF0F291E) else Color(0xFFF0FDF4),
-                    border = BorderStroke(1.dp, if (isDark) Color(0xFF16A34A).copy(alpha = 0.4f) else Color(0xFFDC2626).copy(alpha = 0.2f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -418,21 +442,21 @@ fun BookingRecordDetailDialog(
                                 Icon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
-                                    tint = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "Installment Payment Tracking",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
 
                             val (statusText, statusBg) = when {
                                 remainingBalance <= 0.01 -> "Fully Paid" to (if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
                                 totalPaidSoFar > 0 -> "Advance Paid" to Color(0xFFE65100)
-                                else -> "Pending" to (if (isDark) Color(0xFFB91C1C) else Color(0xFFDC2626))
+                                else -> "Pending" to MaterialTheme.colorScheme.primary
                             }
 
                             Box(
@@ -480,7 +504,7 @@ fun BookingRecordDetailDialog(
                                 SummaryLine(
                                     label = "Remaining Balance Due:",
                                     value = "₹${remainingBalance.toInt()}",
-                                    valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else (if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626)),
+                                    valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
                                     isBold = true,
                                     isDark = isDark
                                 )
@@ -496,7 +520,7 @@ fun BookingRecordDetailDialog(
                                 text = "RECORD NEW INSTALLMENT PAYMENT",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                color = MaterialTheme.colorScheme.primary
                             )
 
                             OutlinedTextField(
@@ -513,11 +537,11 @@ fun BookingRecordDetailDialog(
                                     unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                     focusedTextColor = if (isDark) Color.White else Color.Black,
                                     unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                    focusedLabelColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    focusedBorderColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                    cursorColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                    cursorColor = MaterialTheme.colorScheme.primary
                                 )
                             )
 
@@ -547,11 +571,11 @@ fun BookingRecordDetailDialog(
                                         unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                         focusedTextColor = if (isDark) Color.White else Color.Black,
                                         unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
                                         unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                        cursorColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
 
@@ -567,11 +591,11 @@ fun BookingRecordDetailDialog(
                                         unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                         focusedTextColor = if (isDark) Color.White else Color.Black,
                                         unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
                                         unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                        cursorColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
                             }
@@ -634,7 +658,7 @@ fun BookingRecordDetailDialog(
                                     .height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (canSave && !isSavingInstallment) Color(0xFFDC2626) else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                                    containerColor = if (canSave && !isSavingInstallment) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
                                     disabledContainerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
                                 )
                             ) {
@@ -674,7 +698,7 @@ fun BookingRecordDetailDialog(
                                     text = "Total: ₹${totalPaidSoFar.toInt()}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color(0xFF4ADE80) else Color(0xFFDC2626)
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -745,7 +769,7 @@ fun BookingRecordDetailDialog(
                                                     Icon(
                                                         imageVector = Icons.Default.Delete,
                                                         contentDescription = "Delete Installment",
-                                                        tint = if (isDark) Color(0xFFEF4444) else Color(0xFFDC2626),
+                                                        tint = MaterialTheme.colorScheme.error,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                 }

@@ -483,11 +483,7 @@ private fun FarmerRecordCard(
 
     val initial = record.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F"
 
-    val avatarBgColor = when {
-        record.isPaymentCleared() -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
-        record.amountPaid > 0 -> if (isDark) Color(0xFFF57C00) else Color(0xFFE65100)
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val avatarBgColor = MaterialTheme.colorScheme.primary
 
     val statusLabel = when {
         record.isPaymentCleared() -> "Fully Paid"
@@ -495,10 +491,10 @@ private fun FarmerRecordCard(
         else -> "Pending"
     }
 
-    val statusBadgeColor = when {
-        record.isPaymentCleared() -> Color(0xFF2E7D32)
-        record.amountPaid > 0 -> Color(0xFFE65100)
-        else -> MaterialTheme.colorScheme.error
+    val (statusBadgeBg, statusBadgeText) = when {
+        record.isPaymentCleared() -> Pair(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7), if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D))
+        record.amountPaid > 0 -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
+        else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
     }
 
     Card(
@@ -535,7 +531,7 @@ private fun FarmerRecordCard(
                 ) {
                     Text(
                         text = initial,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -584,12 +580,12 @@ private fun FarmerRecordCard(
 
                 // Payment Status Badge
                 Surface(
-                    color = statusBadgeColor,
+                    color = statusBadgeBg,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = statusLabel,
-                        color = Color.White,
+                        color = statusBadgeText,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

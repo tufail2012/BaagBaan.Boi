@@ -3,11 +3,17 @@
 package com.example.ui.components
 
 import kotlinx.coroutines.launch
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +42,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Delete
@@ -64,6 +69,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,8 +96,78 @@ import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val PREFS_SAVED_PHONE_CONTACTS = "agri_saved_phone_contacts"
+private const val KEY_SAVED_PHONE_SET = "saved_contacts_keys"
+
+fun loadSavedPhoneKeys(context: Context): Set<String> {
+    val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+    return prefs.getStringSet(KEY_SAVED_PHONE_SET, emptySet())?.toSet() ?: emptySet()
+}
+
+fun persistSavedPhoneKey(context: Context, key: String) {
+    if (key.isBlank()) return
+    val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+    val current = prefs.getStringSet(KEY_SAVED_PHONE_SET, emptySet())?.toMutableSet() ?: mutableSetOf()
+    current.add(key)
+    prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, current).apply()
+}
+
+fun getContactKeys(name: String, phone: String): List<String> {
+    val keys = mutableListOf<String>()
+    val cleanDigits = phone.filter { it.isDigit() }.takeLast(10)
+    if (cleanDigits.isNotEmpty()) {
+        keys.add(cleanDigits)
+    }
+    val nameTrimmed = name.trim().lowercase()
+    if (nameTrimmed.isNotEmpty()) {
+        keys.add(nameTrimmed)
+    }
+    return keys
+}
+
+fun queryDeviceContactsKeys(context: Context): Set<String> {
+    val foundKeys = mutableSetOf<String>()
+    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+        try {
+            val projection = arrayOf(
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
+            )
+            val cursor = context.contentResolver.query(
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                projection,
+                null,
+                null,
+                null
+            )
+            cursor?.use {
+                val numberIdx = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                val nameIdx = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                while (it.moveToNext()) {
+                    if (numberIdx >= 0) {
+                        val num = it.getString(numberIdx) ?: ""
+                        val clean = num.filter { c -> c.isDigit() }.takeLast(10)
+                        if (clean.isNotEmpty()) {
+                            foundKeys.add(clean)
+                        }
+                    }
+                    if (nameIdx >= 0) {
+                        val n = it.getString(nameIdx) ?: ""
+                        val trimmed = n.trim().lowercase()
+                        if (trimmed.isNotEmpty()) {
+                            foundKeys.add(trimmed)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore permission or cursor failure
+        }
+    }
+    return foundKeys
+}
 
 data class ContactDisplayItem(
     val id: Long = 0,
@@ -119,12 +195,33 @@ fun ContactDirectoryDialog(
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    // WhatsApp Dialog State
-    var selectedWhatsAppContact by remember { mutableStateOf<ContactDisplayItem?>(null) }
     // Expanded Contact Detail State
     var selectedContactForDetails by remember { mutableStateOf<ContactDisplayItem?>(null) }
     // Delete Contact State
     var contactToDelete by remember { mutableStateOf<ContactDisplayItem?>(null) }
+
+    // Saved to Phone Keys State
+    var savedPhoneKeys by remember { mutableStateOf(loadSavedPhoneKeys(context)) }
+
+    // Refresh device contacts on start and when resuming lifecycle
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val deviceKeys = queryDeviceContactsKeys(context)
+                if (deviceKeys.isNotEmpty()) {
+                    val updated = savedPhoneKeys + deviceKeys
+                    savedPhoneKeys = updated
+                    val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+                    prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Load custom contacts from DB
     val dbContacts by db.farmerContactDao().getAllContacts().collectAsState(initial = emptyList())
@@ -220,6 +317,10 @@ fun ContactDirectoryDialog(
     }
 
     fun saveToSystemPhoneContacts(name: String, phone: String, address: String) {
+        val keys = getContactKeys(name, phone)
+        keys.forEach { persistSavedPhoneKey(context, it) }
+        savedPhoneKeys = savedPhoneKeys + keys
+
         try {
             val intent = Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI).apply {
                 putExtra(ContactsContract.Intents.Insert.NAME, name)
@@ -363,6 +464,10 @@ fun ContactDirectoryDialog(
                                 .weight(1f)
                         ) {
                             items(allContactsList, key = { "${it.id}_${it.phone}_${it.name}" }) { item ->
+                                val isSavedInPhone = remember(item.name, item.phone, savedPhoneKeys) {
+                                    getContactKeys(item.name, item.phone).any { savedPhoneKeys.contains(it) }
+                                }
+
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -402,34 +507,12 @@ fun ContactDirectoryDialog(
                                             Spacer(modifier = Modifier.width(12.dp))
 
                                             Column {
-                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    HighlightedText(
-                                                        text = item.name,
-                                                        query = searchQuery,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 16.sp
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-
-                                                    // WhatsApp Icon directly next to Farmer's Name!
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(26.dp)
-                                                            .clip(CircleShape)
-                                                            .background(WhatsAppGreen)
-                                                            .clickable {
-                                                                selectedWhatsAppContact = item
-                                                            },
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Chat,
-                                                            contentDescription = "WhatsApp Templates",
-                                                            tint = Color.White,
-                                                            modifier = Modifier.size(15.dp)
-                                                        )
-                                                    }
-                                                }
+                                                HighlightedText(
+                                                    text = item.name,
+                                                    query = searchQuery,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp
+                                                )
 
                                                 Spacer(modifier = Modifier.height(2.dp))
 
@@ -469,7 +552,7 @@ fun ContactDirectoryDialog(
                                             }
                                         }
 
-                                        // Action buttons: Call, Save, Delete
+                                        // Action buttons: Call, Save (if not saved in phone), Delete
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(2.dp),
                                             verticalAlignment = Alignment.CenterVertically
@@ -484,16 +567,18 @@ fun ContactDirectoryDialog(
                                                 )
                                             }
 
-                                            IconButton(
-                                                onClick = {
-                                                    saveToSystemPhoneContacts(item.name, item.phone, item.address)
+                                            if (!isSavedInPhone) {
+                                                IconButton(
+                                                    onClick = {
+                                                        saveToSystemPhoneContacts(item.name, item.phone, item.address)
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.PersonAdd,
+                                                        contentDescription = "Save to device contacts",
+                                                        tint = MaterialTheme.colorScheme.secondary
+                                                    )
                                                 }
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.PersonAdd,
-                                                    contentDescription = "Save to device contacts",
-                                                    tint = MaterialTheme.colorScheme.secondary
-                                                )
                                             }
 
                                             IconButton(
@@ -546,31 +631,15 @@ fun ContactDirectoryDialog(
         )
     }
 
-    // Modal for WhatsApp Templates
-    selectedWhatsAppContact?.let { contact ->
-        WhatsAppTemplateDialog(
-            farmerName = contact.name,
-            contactNumber = contact.phone,
-            serviceType = contact.associatedService.ifEmpty { "Agri Booking" },
-            amountPaid = contact.amountPaid,
-            totalAmount = contact.totalAmount,
-            remainingBalance = maxOf(0.0, contact.totalAmount - contact.amountPaid),
-            paymentStatus = contact.paymentStatus,
-            onDismiss = { selectedWhatsAppContact = null }
-        )
-    }
-
     // Expanded Contact Details Dialog on Tap
     selectedContactForDetails?.let { contactItem ->
+        val isContactSavedInPhone = getContactKeys(contactItem.name, contactItem.phone).any { savedPhoneKeys.contains(it) }
         ContactDetailsDialog(
             contact = contactItem,
             cropRecords = cropRecords,
+            isSavedInPhone = isContactSavedInPhone,
             onDismiss = { selectedContactForDetails = null },
             onMakeCall = { makePhoneCall(contactItem.phone) },
-            onOpenWhatsApp = {
-                selectedWhatsAppContact = contactItem
-                selectedContactForDetails = null
-            },
             onSaveToPhone = { saveToSystemPhoneContacts(contactItem.name, contactItem.phone, contactItem.address) },
             onDeleteContact = {
                 contactToDelete = contactItem
@@ -651,9 +720,9 @@ fun ContactDirectoryDialog(
 fun ContactDetailsDialog(
     contact: ContactDisplayItem,
     cropRecords: List<CropRecord>,
+    isSavedInPhone: Boolean,
     onDismiss: () -> Unit,
     onMakeCall: () -> Unit,
-    onOpenWhatsApp: () -> Unit,
     onSaveToPhone: () -> Unit,
     onDeleteContact: () -> Unit
 ) {
@@ -815,7 +884,7 @@ fun ContactDetailsDialog(
                                 // Action Buttons Row
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
                                     // Call
                                     IconButton(
@@ -832,34 +901,22 @@ fun ContactDetailsDialog(
                                         )
                                     }
 
-                                    // WhatsApp
-                                    IconButton(
-                                        onClick = onOpenWhatsApp,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(WhatsAppGreen)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Chat,
-                                            contentDescription = "WhatsApp",
-                                            tint = Color.White
-                                        )
-                                    }
-
-                                    // Save Phone
-                                    IconButton(
-                                        onClick = onSaveToPhone,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.secondaryContainer)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PersonAdd,
-                                            contentDescription = "Save to Phone",
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
+                                    // Save Phone (only if not yet saved)
+                                    if (!isSavedInPhone) {
+                                        Spacer(modifier = Modifier.width(24.dp))
+                                        IconButton(
+                                            onClick = onSaveToPhone,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PersonAdd,
+                                                contentDescription = "Save to Phone",
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                            )
+                                        }
                                     }
                                 }
                             }

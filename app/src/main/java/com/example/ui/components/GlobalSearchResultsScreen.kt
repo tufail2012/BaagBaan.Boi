@@ -662,8 +662,7 @@ private fun GlobalSearchResultCard(
             else Color(0xFFFEF3C7) to Color(0xFFB45309)
         }
         else -> {
-            if (isDark) Color(0xFF381A1A) to Color(0xFFFCA5A5)
-            else Color(0xFFFEE2E2) to Color(0xFFB91C1C)
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) to MaterialTheme.colorScheme.primary
         }
     }
 
@@ -673,11 +672,7 @@ private fun GlobalSearchResultCard(
         else -> "Pending"
     }
 
-    val avatarBgColor = when {
-        item.isPaymentCleared -> if (isDark) Color(0xFF388E3C) else Color(0xFF2E7D32)
-        item.amountPaid > 0 -> if (isDark) Color(0xFFF57C00) else Color(0xFFE65100)
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val avatarBgColor = MaterialTheme.colorScheme.primary
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -763,7 +758,7 @@ private fun GlobalSearchResultCard(
                         text = initial,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
