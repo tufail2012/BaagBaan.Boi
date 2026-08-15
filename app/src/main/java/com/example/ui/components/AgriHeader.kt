@@ -125,6 +125,7 @@ fun AgriHeader(
     onNavigateToLogin: () -> Unit = {},
     onNavigateToGardenPlanning: () -> Unit = {},
     onNavigateToSettings: (() -> Unit)? = null,
+    onNavigateToBusinessInfo: () -> Unit = {},
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -284,6 +285,7 @@ fun AgriHeader(
                             onNavigateToLogin = onNavigateToLogin,
                             onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                             onNavigateToSettings = onNavigateToSettings,
+                            onNavigateToBusinessInfo = onNavigateToBusinessInfo,
                             onLogout = onLogout,
                             onOpenThemeDialog = { showThemeDialog = true },
                             onOpenRecycleBin = onOpenRecycleBin
@@ -434,6 +436,7 @@ fun AgriHeader(
                                     onNavigateToLogin = onNavigateToLogin,
                                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                                     onNavigateToSettings = onNavigateToSettings,
+                                    onNavigateToBusinessInfo = onNavigateToBusinessInfo,
                                     onLogout = onLogout,
                                     onOpenThemeDialog = { showThemeDialog = true },
                                     onOpenRecycleBin = onOpenRecycleBin
@@ -669,6 +672,7 @@ private fun OverflowMenuContent(
     onNavigateToLogin: () -> Unit,
     onNavigateToGardenPlanning: () -> Unit = {},
     onNavigateToSettings: (() -> Unit)? = null,
+    onNavigateToBusinessInfo: () -> Unit = {},
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -813,13 +817,41 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
     )
 
+    // 6. Business Info
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Business Info",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToBusinessInfo()
+        },
+        modifier = Modifier.testTag("business_info_menu_item$tagSuffix")
+    )
+
     // Divider before Settings
     HorizontalDivider(
         modifier = Modifier.padding(vertical = 4.dp),
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
 
-    // 6. Settings
+    // 7. Settings
     DropdownMenuItem(
         text = {
             Row(

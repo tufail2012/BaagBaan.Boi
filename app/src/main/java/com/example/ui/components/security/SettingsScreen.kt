@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Pattern
 import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -95,6 +96,7 @@ fun SettingsScreen(
     onLogout: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
     onOpenRecycleBin: () -> Unit = {},
+    onNavigateToBusinessInfo: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -458,6 +460,46 @@ fun SettingsScreen(
                                     testTag = "settings_logout_row"
                                 )
                             }
+                        }
+                    }
+                }
+
+                // ==========================================
+                // SECTION: BUSINESS IDENTITY
+                // ==========================================
+                item {
+                    Text(
+                        text = "Business Identity",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Storefront,
+                                title = "Business Info",
+                                subtitle = "Shared business name, address, contacts & bank details",
+                                onClick = onNavigateToBusinessInfo,
+                                testTag = "settings_business_info_row"
+                            )
                         }
                     }
                 }

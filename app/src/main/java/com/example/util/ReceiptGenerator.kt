@@ -9,6 +9,8 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.example.data.BusinessInfo
+import com.example.data.BusinessInfoRepository
 import java.io.File
 import java.io.FileOutputStream
 import java.text.NumberFormat
@@ -37,7 +39,13 @@ data class ReceiptData(
 
 object ReceiptGenerator {
 
-    fun generateReceiptBitmap(data: ReceiptData, context: Context? = null): Bitmap {
+    fun generateReceiptBitmap(
+        data: ReceiptData,
+        context: Context? = null,
+        businessInfo: BusinessInfo? = null
+    ): Bitmap {
+        val info = businessInfo ?: BusinessInfoRepository.currentBusinessInfo
+
         val width = 1080
         val height = 1720
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -81,31 +89,55 @@ object ReceiptGenerator {
         val headerRect = RectF(48f, 48f, width - 48f, 320f)
         canvas.drawRoundRect(headerRect, 20f, 20f, paint)
 
-        // Header Title: BAAGBAAN BOI
+        // Header Title: Business Name
+        val displayName = info.businessName.ifBlank { "BAAGBAAN BOI" }.uppercase()
         paint.color = Color.WHITE
         paint.textSize = 50f
         paint.typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("BAAGBAAN BOI", width / 2f, 115f, paint)
+        canvas.drawText(displayName, width / 2f, 115f, paint)
 
         // Company Registration Number (GSTIN) directly below company header
-        paint.textSize = 21f
-        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        paint.color = goldAccent
-        canvas.drawText("Registration Number: 01EBWPG3946L1Z7", width / 2f, 155f, paint)
+        if (info.registrationNumber.isNotBlank()) {
+            paint.textSize = 21f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.color = goldAccent
+            canvas.drawText("Registration Number: ${info.registrationNumber}", width / 2f, 155f, paint)
+        }
 
-        // Subtitle
+        // Subtitle (Tagline & Location/Address)
+        val subtitle = buildString {
+            if (info.tagline.isNotBlank()) {
+                append(info.tagline)
+            }
+            val shortAddress = info.address.split(",").firstOrNull()?.trim() ?: info.address
+            if (shortAddress.isNotBlank()) {
+                if (isNotEmpty()) append(" • ")
+                append(shortAddress)
+            }
+        }.ifBlank { "The Streets of Kashmir • Ramnagri 192303" }
+
         paint.textSize = 22f
         paint.typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
         paint.color = Color.WHITE
-        canvas.drawText("The Streets of Kashmir • Ramnagri 192303", width / 2f, 195f, paint)
+        canvas.drawText(subtitle, width / 2f, 195f, paint)
 
-        // Contacts Row
+        // Contacts Row(s)
+        val contacts = info.contactNumbers.filter { it.isNotBlank() }
         paint.textSize = 19f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         paint.color = Color.WHITE
-        canvas.drawText("Contacts: +916006143037  |  +917006996169", width / 2f, 235f, paint)
-        canvas.drawText("+91 7051826858  |  +91 6005096439", width / 2f, 275f, paint)
+        if (contacts.isNotEmpty()) {
+            val firstRow = contacts.take(2).joinToString("  |  ")
+            canvas.drawText("Contacts: $firstRow", width / 2f, 235f, paint)
+            if (contacts.size > 2) {
+                val secondRow = contacts.drop(2).take(2).joinToString("  |  ")
+                canvas.drawText(secondRow, width / 2f, 275f, paint)
+            }
+        } else {
+            canvas.drawText("Contacts: +916006143037  |  +917006996169", width / 2f, 235f, paint)
+            canvas.drawText("+91 7051826858  |  +91 6005096439", width / 2f, 275f, paint)
+        }
 
         // 3. Official Digital Receipt Banner
         paint.color = maroonBg
@@ -261,17 +293,25 @@ object ReceiptGenerator {
         )
 
         // Section 3: Payment Breakdown
+        val paymentBreakdownItems = mutableListOf(
+            "Total Amount" to currencyFmt.format(data.totalAmount),
+            "Advance Paid" to currencyFmt.format(data.amountPaid),
+            "Balance Due" to currencyFmt.format(data.remainingBalance),
+            "Payment Status" to data.paymentStatus
+        )
+        if (info.accountNumber.isNotBlank()) {
+            paymentBreakdownItems.add("Account No" to info.accountNumber)
+        }
+        if (info.ifscCode.isNotBlank()) {
+            paymentBreakdownItems.add("IFSC Code" to info.ifscCode)
+        }
+        if (info.accountHolderName.isNotBlank()) {
+            paymentBreakdownItems.add("Account Holder" to info.accountHolderName)
+        }
+
         drawSectionCard(
             title = "💳 PAYMENT BREAKDOWN",
-            items = listOf(
-                "Total Amount" to currencyFmt.format(data.totalAmount),
-                "Advance Paid" to currencyFmt.format(data.amountPaid),
-                "Balance Due" to currencyFmt.format(data.remainingBalance),
-                "Payment Status" to data.paymentStatus,
-                "Account No" to "0018010100007537",
-                "IFSC Code" to "JAKA0SHOPAN",
-                "Account Holder" to "Aamir Manzoor Ganaie"
-            ),
+            items = paymentBreakdownItems,
             extraBadge = data.paymentStatus to (statusBg to statusText)
         )
 
@@ -285,12 +325,13 @@ object ReceiptGenerator {
         paint.textSize = 25f
         paint.typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("THANK YOU FOR CHOOSING BAAGBAAN BOI!", width / 2f, height - 102f, paint)
+        canvas.drawText("THANK YOU FOR CHOOSING ${displayName}!", width / 2f, height - 102f, paint)
 
         paint.textSize = 19f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
         paint.color = goldAccent
-        canvas.drawText("Ramnagri 192303, Shopian, Jammu & Kashmir", width / 2f, height - 70f, paint)
+        val footerAddress = info.address.ifBlank { "Ramnagri 192303, Shopian, Jammu & Kashmir" }
+        canvas.drawText(footerAddress, width / 2f, height - 70f, paint)
 
         // 5. Stamp Overlay
         drawStampOverlay(canvas, width.toFloat(), height.toFloat(), context)
@@ -366,26 +407,30 @@ object ReceiptGenerator {
     }
 
     fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {
-        return try {
-            val cachePath = File(context.cacheDir, "receipts")
-            if (!cachePath.exists()) {
-                cachePath.mkdirs()
-            }
-            val fileName = "Receipt_${serialNumber.ifBlank { "Entry" }}.png"
-            val file = File(cachePath, fileName)
-            val fileOutputStream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
-            fileOutputStream.flush()
-            fileOutputStream.close()
+        return com.example.util.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
+    }
+}
 
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {
+    return try {
+        val cachePath = File(context.cacheDir, "receipts")
+        if (!cachePath.exists()) {
+            cachePath.mkdirs()
         }
+        val fileName = "Receipt_${serialNumber.ifBlank { "Entry" }}.png"
+        val file = File(cachePath, fileName)
+        val fileOutputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream)
+        fileOutputStream.flush()
+        fileOutputStream.close()
+
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

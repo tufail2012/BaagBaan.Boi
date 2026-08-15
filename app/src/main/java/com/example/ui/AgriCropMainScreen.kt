@@ -51,7 +51,9 @@ import com.example.ui.components.BackupRestoreDialog
 import com.example.ui.components.ContactDirectoryDialog
 import com.example.ui.components.BookingConfirmationOverlay
 import com.example.ui.components.PaymentRemindersDialog
+import com.example.ui.components.BusinessInfoDialog
 import com.example.ui.components.AgriDashboardScreen
+import com.example.data.BusinessInfoRepository
 import com.example.security.AppLockManager
 import com.example.ui.components.security.AppLockScreen
 import com.example.ui.components.security.SettingsScreen
@@ -99,6 +101,11 @@ fun AgriCropMainScreen(
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
+    var showBusinessInfoDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        BusinessInfoRepository.startListening(context)
+    }
 
     val notifications by (notificationViewModel?.notifications?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
     val unreadCount by (notificationViewModel?.unreadCount?.collectAsState() ?: remember { mutableStateOf(0) })
@@ -229,6 +236,12 @@ fun AgriCropMainScreen(
         )
     }
 
+    if (showBusinessInfoDialog) {
+        BusinessInfoDialog(
+            onDismiss = { showBusinessInfoDialog = false }
+        )
+    }
+
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
         isSettingsActive -> "SETTINGS"
@@ -294,6 +307,7 @@ fun AgriCropMainScreen(
                     },
                     onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                     onOpenRecycleBin = { showRecycleBinDialog = true },
+                    onNavigateToBusinessInfo = { showBusinessInfoDialog = true },
                     onBack = { isSettingsActive = false },
                     modifier = modifier
                 )
@@ -427,6 +441,9 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToSettings = {
                                     isSettingsActive = true
+                                },
+                                onNavigateToBusinessInfo = {
+                                    showBusinessInfoDialog = true
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {
