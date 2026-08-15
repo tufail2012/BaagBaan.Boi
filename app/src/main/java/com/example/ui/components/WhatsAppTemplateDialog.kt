@@ -157,39 +157,49 @@ fun WhatsAppTemplateDialog(
     }
 
     fun generateMessage(index: Int): String {
+        val totalFormatted = "₹${String.format("%.2f", totalAmount)}"
+        val paidFormatted = "₹${String.format("%.2f", amountPaid)}"
+        val balanceFormatted = "₹${String.format("%.2f", calculatedBalance)}"
+        val farmerStr = farmerName.ifBlank { "Farmer" }
+
         return when (index) {
             0 -> {
-                // Booking Confirmation
-                "Hello $farmerName,\n\nYour booking for *$serviceType* with *AgriCrop* is confirmed!\n\n" +
-                        "• Farmer Name: $farmerName\n" +
-                        "• Service: $serviceType\n" +
-                        "• Total Amount: ₹${String.format("%.2f", totalAmount)}\n" +
-                        "• Status: $paymentStatus\n\n" +
-                        "Thank you for choosing AgriCrop!"
+                com.example.data.MessageTemplateRepository.renderTemplate(
+                    templateId = "simple_booking_confirmation",
+                    data = mapOf(
+                        "farmerName" to farmerStr,
+                        "serviceType" to serviceType,
+                        "totalAmount" to totalFormatted,
+                        "paymentStatus" to paymentStatus
+                    )
+                )
             }
             1 -> {
-                // Payment Reminder
-                "Dear $farmerName,\n\nThis is a friendly payment reminder regarding your *$serviceType* service with *AgriCrop*.\n\n" +
-                        "• Total Amount: ₹${String.format("%.2f", totalAmount)}\n" +
-                        "• Amount Paid: ₹${String.format("%.2f", amountPaid)}\n" +
-                        "• Pending Balance: ₹${String.format("%.2f", calculatedBalance)}\n\n" +
-                        "Kindly complete the remaining payment at your earliest convenience. Thank you!"
+                com.example.data.MessageTemplateRepository.renderTemplate(
+                    templateId = "simple_payment_reminder",
+                    data = mapOf(
+                        "farmerName" to farmerStr,
+                        "serviceType" to serviceType,
+                        "totalAmount" to totalFormatted,
+                        "amountPaid" to paidFormatted,
+                        "remainingBalance" to balanceFormatted
+                    )
+                )
             }
             2 -> {
-                // Digital Receipt Text Summary
-                "🌾 *BAAGBAAN BOI - OFFICIAL DIGITAL RECEIPT* 🌾\n" +
-                        "Registration Number: 01EBWPG3946L1Z7\n\n" +
-                        "• Receipt #: $serialNumber\n" +
-                        "• Date: $currentDateStr\n" +
-                        "• Customer Name: $farmerName\n" +
-                        "• Service Category: $serviceType\n" +
-                        "• Total Amount: ₹${String.format("%.2f", totalAmount)}\n" +
-                        "• Amount Paid: ₹${String.format("%.2f", amountPaid)}\n" +
-                        "• Balance Due: ₹${String.format("%.2f", calculatedBalance)}\n" +
-                        "• Payment Status: $paymentStatus\n" +
-                        "• Account No: 0018010100007537\n" +
-                        "• IFSC Code: JAKA0SHOPAN\n\n" +
-                        "Thank you for doing business with Baagbaan Boi!"
+                com.example.data.MessageTemplateRepository.renderTemplate(
+                    templateId = "digital_receipt_summary",
+                    data = mapOf(
+                        "serialNumber" to serialNumber,
+                        "date" to currentDateStr,
+                        "farmerName" to farmerStr,
+                        "serviceType" to serviceType,
+                        "totalAmount" to totalFormatted,
+                        "amountPaid" to paidFormatted,
+                        "remainingBalance" to balanceFormatted,
+                        "paymentStatus" to paymentStatus
+                    )
+                )
             }
             else -> ""
         }

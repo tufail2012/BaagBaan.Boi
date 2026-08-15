@@ -75,34 +75,30 @@ fun DigitalReceiptDialog(
     val remainingBalance = grossEarnings - totalAdvance
     val currentDateStr = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(Date())
 
-    val formattedReceiptText = buildString {
-        append("🧾 *BAAGBAAN BOI - OFFICIAL DIGITAL RECEIPT*\n")
-        append("Registration Number: 01EBWPG3946L1Z7\n")
-        append("------------------------------------------\n")
-        append("📅 *Date:* $currentDateStr\n")
-        append("👤 *Worker Name:* ${worker.name}\n")
-        if (worker.phoneNumber.isNotBlank()) {
-            append("📞 *Phone:* ${worker.phoneNumber}\n")
-        }
-        append("\n📊 *ATTENDANCE SUMMARY*\n")
-        append("• Present Days: $presentDays\n")
-        append("• Absent Days: $absentDays\n")
-        append("• Daily Rate: ₹${dailyRate.toInt()}/day\n")
-        append("\n💰 *PAYROLL BREAKDOWN*\n")
-        append("• Gross Earnings: ₹${grossEarnings.toInt()}\n")
-        append("• Total Advances Paid: ₹${totalAdvance.toInt()}\n")
-        append("• Net Balance Remaining: ₹${if (remainingBalance > 0) remainingBalance.toInt() else 0}\n")
-        append("• Account No: 0018010100007537\n")
-        append("• IFSC Code: JAKA0SHOPAN\n")
-        if (advancePayments.isNotEmpty()) {
+    val advanceText = if (advancePayments.isNotEmpty()) {
+        buildString {
             append("\n📝 *RECORDED ADVANCE PAYMENTS*\n")
             advancePayments.take(5).forEach { payment ->
                 append("• ${payment.date}: ₹${payment.amount.toInt()}\n")
             }
         }
-        append("------------------------------------------\n")
-        append("This is an official receipt of Baagbaan Boi.\n")
-    }
+    } else ""
+
+    val formattedReceiptText = com.example.data.MessageTemplateRepository.renderTemplate(
+        templateId = "worker_payroll_receipt",
+        data = mapOf(
+            "date" to currentDateStr,
+            "workerName" to worker.name,
+            "phoneNumber" to worker.phoneNumber,
+            "presentDays" to presentDays.toString(),
+            "absentDays" to absentDays.toString(),
+            "dailyRate" to "₹${dailyRate.toInt()}/day",
+            "grossEarnings" to "₹${grossEarnings.toInt()}",
+            "totalAdvance" to "₹${totalAdvance.toInt()}",
+            "netBalance" to "₹${if (remainingBalance > 0) remainingBalance.toInt() else 0}",
+            "advancePaymentsHistory" to advanceText
+        )
+    )
 
     val shareViaWhatsApp = {
         try {

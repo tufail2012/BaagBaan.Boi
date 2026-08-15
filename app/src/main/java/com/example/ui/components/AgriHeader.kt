@@ -126,6 +126,7 @@ fun AgriHeader(
     onNavigateToGardenPlanning: () -> Unit = {},
     onNavigateToSettings: (() -> Unit)? = null,
     onNavigateToBusinessInfo: () -> Unit = {},
+    onNavigateToMessageTemplates: () -> Unit = {},
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -437,6 +438,7 @@ fun AgriHeader(
                                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                                     onNavigateToSettings = onNavigateToSettings,
                                     onNavigateToBusinessInfo = onNavigateToBusinessInfo,
+                                    onNavigateToMessageTemplates = onNavigateToMessageTemplates,
                                     onLogout = onLogout,
                                     onOpenThemeDialog = { showThemeDialog = true },
                                     onOpenRecycleBin = onOpenRecycleBin
@@ -673,6 +675,7 @@ private fun OverflowMenuContent(
     onNavigateToGardenPlanning: () -> Unit = {},
     onNavigateToSettings: (() -> Unit)? = null,
     onNavigateToBusinessInfo: () -> Unit = {},
+    onNavigateToMessageTemplates: () -> Unit = {},
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -843,6 +846,34 @@ private fun OverflowMenuContent(
             onNavigateToBusinessInfo()
         },
         modifier = Modifier.testTag("business_info_menu_item$tagSuffix")
+    )
+
+    // 6.5. Message Templates
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ReceiptLong,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Message Templates",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToMessageTemplates()
+        },
+        modifier = Modifier.testTag("message_templates_menu_item$tagSuffix")
     )
 
     // Divider before Settings

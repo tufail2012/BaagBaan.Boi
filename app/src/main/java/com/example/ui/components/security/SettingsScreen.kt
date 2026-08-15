@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Pattern
 import androidx.compose.material.icons.filled.Pin
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
@@ -97,6 +98,7 @@ fun SettingsScreen(
     onNavigateToBackupRestore: () -> Unit,
     onOpenRecycleBin: () -> Unit = {},
     onNavigateToBusinessInfo: () -> Unit = {},
+    onNavigateToMessageTemplates: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -499,6 +501,19 @@ fun SettingsScreen(
                                 subtitle = "Shared business name, address, contacts & bank details",
                                 onClick = onNavigateToBusinessInfo,
                                 testTag = "settings_business_info_row"
+                            )
+
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            )
+
+                            SettingsNavigationRow(
+                                icon = Icons.Default.ReceiptLong,
+                                title = "Message Templates",
+                                subtitle = "Customize WhatsApp & SMS format strings and dynamic placeholders",
+                                onClick = onNavigateToMessageTemplates,
+                                testTag = "settings_message_templates_row"
                             )
                         }
                     }

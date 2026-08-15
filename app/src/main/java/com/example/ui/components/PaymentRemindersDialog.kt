@@ -201,7 +201,15 @@ fun PaymentRemindersDialog(
 
         val formattedDue = numberFormat.format(item.amountDue)
         val farmerDisplayName = if (item.farmerName.isBlank()) "Valued Customer" else item.farmerName
-        val message = "Dear $farmerDisplayName, this is a gentle payment reminder regarding your booking (#${item.serialNumber} - ${item.serviceType}). You have an outstanding balance of $formattedDue. Kindly arrange payment at your earliest convenience. Thank you! - Baagbaan Boi"
+        val message = com.example.data.MessageTemplateRepository.renderTemplate(
+            templateId = "quick_payment_reminder",
+            data = mapOf(
+                "farmerName" to farmerDisplayName,
+                "serialNumber" to item.serialNumber,
+                "serviceType" to item.serviceType,
+                "amountDue" to formattedDue
+            )
+        )
 
         val encodedMsg = Uri.encode(message)
         val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=$encodedMsg")

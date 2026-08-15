@@ -52,8 +52,10 @@ import com.example.ui.components.ContactDirectoryDialog
 import com.example.ui.components.BookingConfirmationOverlay
 import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.BusinessInfoDialog
+import com.example.ui.components.MessageTemplateManagerScreen
 import com.example.ui.components.AgriDashboardScreen
 import com.example.data.BusinessInfoRepository
+import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
 import com.example.ui.components.security.AppLockScreen
 import com.example.ui.components.security.SettingsScreen
@@ -102,9 +104,11 @@ fun AgriCropMainScreen(
     var showInventoryDialog by remember { mutableStateOf(false) }
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
     var showBusinessInfoDialog by remember { mutableStateOf(false) }
+    var isMessageTemplatesActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         BusinessInfoRepository.startListening(context)
+        MessageTemplateRepository.startListening(context)
     }
 
     val notifications by (notificationViewModel?.notifications?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
@@ -245,6 +249,7 @@ fun AgriCropMainScreen(
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
         isSettingsActive -> "SETTINGS"
+        isMessageTemplatesActive -> "TEMPLATES"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         isGlobalSearchActive -> "SEARCH"
@@ -308,7 +313,14 @@ fun AgriCropMainScreen(
                     onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                     onOpenRecycleBin = { showRecycleBinDialog = true },
                     onNavigateToBusinessInfo = { showBusinessInfoDialog = true },
+                    onNavigateToMessageTemplates = { isMessageTemplatesActive = true },
                     onBack = { isSettingsActive = false },
+                    modifier = modifier
+                )
+            }
+            "TEMPLATES" -> {
+                MessageTemplateManagerScreen(
+                    onNavigateBack = { isMessageTemplatesActive = false },
                     modifier = modifier
                 )
             }
@@ -444,6 +456,9 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToBusinessInfo = {
                                     showBusinessInfoDialog = true
+                                },
+                                onNavigateToMessageTemplates = {
+                                    isMessageTemplatesActive = true
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {

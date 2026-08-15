@@ -1265,24 +1265,21 @@ private fun sendWhatsAppBookingConfirmation(
     if (phone.isNotBlank()) {
         val cleanNumber = phone.replace("[^0-9]".toRegex(), "")
         val formattedNumber = if (cleanNumber.length == 10) "91$cleanNumber" else cleanNumber
-        val msg = """
-            🌱 *BAAGBAAN BOI - Booking Confirmation*
-            
-            Serial No: #${record.serialNumber}
-            Farmer Name: ${record.farmerName}
-            Category: ${record.serviceType}
-            Variety: ${record.plantVariety}
-            Quantity: ${record.quantity} Units
-            
-            💰 *Payment Summary:*
-            Total Amount: ₹${totalVal.toInt()}
-            Paid So Far: ₹${paidVal.toInt()}
-            Remaining Balance: ₹${remVal.toInt()}
-            Status: ${record.paymentStatus}
-            
-            Booking Date: ${record.bookingDate}
-            Thank you for choosing Baagbaan Boi!
-        """.trimIndent()
+        val msg = com.example.data.MessageTemplateRepository.renderTemplate(
+            templateId = "whatsapp_booking_short",
+            data = mapOf(
+                "serialNumber" to record.serialNumber,
+                "farmerName" to record.farmerName,
+                "serviceType" to record.serviceType,
+                "plantVariety" to record.plantVariety,
+                "quantity" to record.quantity.toString(),
+                "totalAmount" to "₹${totalVal.toInt()}",
+                "amountPaid" to "₹${paidVal.toInt()}",
+                "remainingBalance" to "₹${remVal.toInt()}",
+                "paymentStatus" to record.paymentStatus,
+                "bookingDate" to record.bookingDate
+            )
+        )
 
         val url = "https://api.whatsapp.com/send?phone=$formattedNumber&text=${Uri.encode(msg)}"
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -1305,14 +1302,19 @@ private fun sendSmsBookingConfirmation(
 ) {
     val phone = record.contactNumber
     if (phone.isNotBlank()) {
-        val msg = """
-            BAAGBAAN BOI - Booking Confirmation
-            Serial No: #${record.serialNumber}
-            Farmer: ${record.farmerName}
-            Service: ${record.serviceType} (${record.plantVariety})
-            Total: ₹${totalVal.toInt()} | Paid: ₹${paidVal.toInt()} | Balance: ₹${remVal.toInt()}
-            Status: ${record.paymentStatus}
-        """.trimIndent()
+        val msg = com.example.data.MessageTemplateRepository.renderTemplate(
+            templateId = "sms_booking_confirmation",
+            data = mapOf(
+                "serialNumber" to record.serialNumber,
+                "farmerName" to record.farmerName,
+                "serviceType" to record.serviceType,
+                "plantVariety" to record.plantVariety,
+                "totalAmount" to "₹${totalVal.toInt()}",
+                "amountPaid" to "₹${paidVal.toInt()}",
+                "remainingBalance" to "₹${remVal.toInt()}",
+                "paymentStatus" to record.paymentStatus
+            )
+        )
 
         val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:$phone")).apply {
             putExtra("sms_body", msg)
@@ -1344,28 +1346,23 @@ private fun sendWhatsAppTrackingDetails(
             "${idx + 1}. ${item.date}: ₹${item.amount.toInt()} (${item.modeNote})"
         }.joinToString("\n")
 
-        val msg = """
-            📦 *BAAGBAAN BOI - Booking Tracking Details*
-            
-            Serial No: #${record.serialNumber}
-            Customer: ${record.farmerName}
-            Service: ${record.serviceType}
-            Item / Variety: ${record.plantVariety}
-            Quantity: ${record.quantity} Units
-            Location: ${record.location.ifBlank { record.farmerAddress }}
-            Expected Delivery: ${record.expectedDelivery.ifBlank { "To be scheduled" }}
-            
-            💳 *Installment Payment Tracking:*
-            Total Record Value: ₹${totalVal.toInt()}
-            Total Paid So Far: ₹${paidVal.toInt()}
-            Remaining Balance Due: ₹${remVal.toInt()}
-            Status: ${record.paymentStatus}
-            
-            📜 *Payment History Log:*
-            $instText
-            
-            Thank you for trusting Baagbaan Boi!
-        """.trimIndent()
+        val msg = com.example.data.MessageTemplateRepository.renderTemplate(
+            templateId = "whatsapp_tracking_details",
+            data = mapOf(
+                "serialNumber" to record.serialNumber,
+                "farmerName" to record.farmerName,
+                "serviceType" to record.serviceType,
+                "plantVariety" to record.plantVariety,
+                "quantity" to record.quantity.toString(),
+                "location" to record.location.ifBlank { record.farmerAddress },
+                "expectedDelivery" to record.expectedDelivery.ifBlank { "To be scheduled" },
+                "totalAmount" to "₹${totalVal.toInt()}",
+                "amountPaid" to "₹${paidVal.toInt()}",
+                "remainingBalance" to "₹${remVal.toInt()}",
+                "paymentStatus" to record.paymentStatus,
+                "paymentHistory" to instText
+            )
+        )
 
         val url = "https://api.whatsapp.com/send?phone=$formattedNumber&text=${Uri.encode(msg)}"
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))

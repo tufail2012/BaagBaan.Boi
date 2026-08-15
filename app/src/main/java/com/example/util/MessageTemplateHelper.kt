@@ -20,6 +20,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.MessageTemplateRepository
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -64,78 +65,32 @@ object MessageTemplateHelper {
         val deliveryDateStr = expectedDelivery.ifBlank { "To be scheduled" }
         val serviceStr = serviceCategory.ifBlank { "Agriculture Booking" }
 
-        return when (template) {
-            "Payment Reminder" -> """
-                Dear $farmerNameStr,
-
-                This is a friendly payment reminder for your $serviceStr booking ($serialStr - $varietyStr).
-
-                • Total Amount: $totalAmtFormatted
-                • Amount Paid: $paidAmtFormatted
-                • Remaining Balance: $remBalFormatted
-                • Payment Status: $paymentStatus
-
-                Please clear the balance of $remBalFormatted at your earliest convenience. Thank you!
-            """.trimIndent()
-
-            "Thank You Note" -> """
-                Dear $farmerNameStr,
-
-                Thank you for booking $serviceStr ($varietyStr) with us!
-
-                Ref #: $serialStr | Quantity: $qtyStr plants
-                Booking Date: $bookingDateStr
-
-                We appreciate your trust in our nursery and wish you a fruitful harvest season!
-            """.trimIndent()
-
-            "Delivery Tracking" -> """
-                Dear $farmerNameStr,
-
-                Your $serviceStr order ($serialStr - $varietyStr, Qty: $qtyStr) is scheduled for delivery/fulfillment.
-
-                • Expected Delivery: $deliveryDateStr
-                • Remaining Balance: $remBalFormatted
-                • Address: $addressStr
-                • Orchard Location: $locationStr
-
-                Thank you for choosing our agricultural service!
-            """.trimIndent()
-
-            else -> """
-                🧾 BAAGBAAN BOI
-                Registration Number: 01EBWPG3946L1Z7
-                Ramnagri 192303
-                Contacts: +916006143037, +917006996169, +917051826858, +916005096439
-
-                OFFICIAL DIGITAL RECEIPT / BOOKING CONFIRMATION
-                ----------------------------------
-                FARMER / CUSTOMER DETAILS:
-                • Receipt / Serial #: $serialStr
-                • Booking Date: $bookingDateStr
-                • Customer Name: $farmerNameStr
-                • Contact Phone: $contactStr
-                • Address: $addressStr
-                • Orchard / Location: $locationStr
-
-                ORDER & SERVICE DETAILS:
-                • Category: $serviceStr
-                • Variety / Item: $varietyStr
-                • Quantity: $qtyStr plants
-                • Expected Delivery: $deliveryDateStr
-
-                PAYMENT BREAKDOWN:
-                • Total Amount: $totalAmtFormatted
-                • Advance Paid: $paidAmtFormatted
-                • Balance Due: $remBalFormatted
-                • Payment Status: $paymentStatus
-                • Account No: 0018010100007537
-                • IFSC Code: JAKA0SHOPAN
-                • Account Holder: Aamir Manzoor Ganaie
-                ----------------------------------
-                Thank you for choosing Baagbaan Boi!
-            """.trimIndent()
+        val templateId = when (template) {
+            "Payment Reminder" -> "payment_reminder"
+            "Thank You Note" -> "thank_you_note"
+            "Delivery Tracking" -> "delivery_tracking"
+            else -> "booking_confirmation_official"
         }
+
+        val data = mapOf(
+            "farmerName" to farmerNameStr,
+            "contactNumber" to contactStr,
+            "serialNumber" to serialStr,
+            "plantVariety" to varietyStr,
+            "quantity" to qtyStr,
+            "address" to addressStr,
+            "location" to locationStr,
+            "bookingDate" to bookingDateStr,
+            "expectedDelivery" to deliveryDateStr,
+            "serviceCategory" to serviceStr,
+            "serviceType" to serviceStr,
+            "totalAmount" to totalAmtFormatted,
+            "amountPaid" to paidAmtFormatted,
+            "remainingBalance" to remBalFormatted,
+            "paymentStatus" to paymentStatus
+        )
+
+        return MessageTemplateRepository.renderTemplate(templateId, data)
     }
 }
 

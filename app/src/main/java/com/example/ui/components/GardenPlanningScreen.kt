@@ -2222,7 +2222,15 @@ private fun GardenPlanningRecordCard(
                         .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
                         .clickable {
                             val cleanPhone = entry.contactNumber.replace("[^0-9]".toRegex(), "")
-                            val msg = "Dear ${entry.farmerName.ifBlank { "Farmer" }}, regarding your Garden Planning booking (#${entry.serialNumber}): Total Cost ${currencyFormat.format(entry.totalCost)}, Payment Status: ${entry.paymentStatus}."
+                            val msg = com.example.data.MessageTemplateRepository.renderTemplate(
+                                templateId = "garden_booking_note",
+                                data = mapOf(
+                                    "farmerName" to entry.farmerName.ifBlank { "Farmer" },
+                                    "serialNumber" to entry.serialNumber,
+                                    "totalCost" to currencyFormat.format(entry.totalCost),
+                                    "paymentStatus" to entry.paymentStatus
+                                )
+                            )
                             val intent = Intent(Intent.ACTION_VIEW).apply {
                                 data = Uri.parse("https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(msg)}")
                             }
@@ -3177,7 +3185,15 @@ fun GardenBookingRecordDetailDialog(
     // Confirmation dialog for Tracking Details WhatsApp message
     if (showTrackingWaConfirm) {
         val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
-        val trackingMsg = "Dear ${currentEntry.farmerName}, tracking details for your Garden Planning booking (#${currentEntry.serialNumber}): Status - ${currentEntry.paymentStatus}, Delivery expected: ${currentEntry.expectedDelivery.ifBlank { "TBD" }}."
+        val trackingMsg = com.example.data.MessageTemplateRepository.renderTemplate(
+            templateId = "garden_tracking_note",
+            data = mapOf(
+                "farmerName" to currentEntry.farmerName,
+                "serialNumber" to currentEntry.serialNumber,
+                "paymentStatus" to currentEntry.paymentStatus,
+                "expectedDelivery" to currentEntry.expectedDelivery.ifBlank { "TBD" }
+            )
+        )
         AlertDialog(
             onDismissRequest = { showTrackingWaConfirm = false },
             title = { Text("Confirm Tracking Delivery") },
