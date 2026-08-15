@@ -52,6 +52,9 @@ import com.example.ui.components.ContactDirectoryDialog
 import com.example.ui.components.BookingConfirmationOverlay
 import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.AgriDashboardScreen
+import com.example.security.AppLockManager
+import com.example.ui.components.security.AppLockScreen
+import com.example.ui.components.security.SettingsScreen
 import com.google.firebase.auth.FirebaseAuth
 import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
@@ -63,6 +66,7 @@ fun AgriCropMainScreen(
     viewModel: CropViewModel,
     attendanceViewModel: AttendanceViewModel,
     notificationViewModel: NotificationViewModel? = null,
+    appLockManager: AppLockManager? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -73,6 +77,11 @@ fun AgriCropMainScreen(
     var isAttendanceActive by remember { mutableStateOf(false) }
     var isGardenPlanningActive by remember { mutableStateOf(false) }
     var isDashboardActive by remember { mutableStateOf(false) }
+    var isSettingsActive by remember { mutableStateOf(false) }
+
+    val effectiveAppLockManager = remember { appLockManager ?: AppLockManager.getInstance(context.applicationContext) }
+    val isAppLockEnabled by effectiveAppLockManager.isAppLockEnabled.collectAsState()
+    val isAppLocked by effectiveAppLockManager.isLocked.collectAsState()
 
     val gardenPlanningViewModel: GardenPlanningViewModel = remember {
         val repository = com.example.data.GardenPlanningRepository(
@@ -89,6 +98,7 @@ fun AgriCropMainScreen(
     var showPaymentRemindersDialog by remember { mutableStateOf(false) }
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
+    var showThemePreferencesDialog by remember { mutableStateOf(false) }
 
     val notifications by (notificationViewModel?.notifications?.collectAsState() ?: remember { mutableStateOf(emptyList()) })
     val unreadCount by (notificationViewModel?.unreadCount?.collectAsState() ?: remember { mutableStateOf(0) })
@@ -209,16 +219,28 @@ fun AgriCropMainScreen(
         )
     }
 
+    if (showThemePreferencesDialog) {
+        com.example.ui.components.ThemeColoursDialog(
+            themeMode = themeMode,
+            selectedColorHex = accentColorHex,
+            onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+            onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+            onDismissRequest = { showThemePreferencesDialog = false }
+        )
+    }
+
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
+        isSettingsActive -> "SETTINGS"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
     }
 
-    AnimatedContent(
-        targetState = currentRootScreen,
+    Box(modifier = modifier.fillMaxSize()) {
+        AnimatedContent(
+            targetState = currentRootScreen,
         transitionSpec = {
             if (initialState == "LOGIN") {
                 (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.95f, animationSpec = tween(450)))
@@ -255,6 +277,16 @@ fun AgriCropMainScreen(
                     modifier = modifier
                 )
             }
+            "SETTINGS" -> {
+                SettingsScreen(
+                    appLockManager = effectiveAppLockManager,
+                    themeMode = themeMode,
+                    onOpenThemeDialog = { showThemePreferencesDialog = true },
+                    onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                    onBack = { isSettingsActive = false },
+                    modifier = modifier
+                )
+            }
             "DASHBOARD" -> {
                 AgriDashboardScreen(
                     viewModel = viewModel,
@@ -267,6 +299,7 @@ fun AgriCropMainScreen(
                         gardenPlanningViewModel.resetToNewEntry()
                         isDashboardActive = false
                     },
+                    onNavigateToSettings = { isSettingsActive = true },
                     modifier = modifier
                 )
             }
@@ -306,6 +339,7 @@ fun AgriCropMainScreen(
                             com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                         }
                     },
+                    onNavigateToSettings = { isSettingsActive = true },
                     modifier = modifier
                 )
             }
@@ -379,6 +413,9 @@ fun AgriCropMainScreen(
                                 onNavigateToGardenPlanning = {
                                     viewModel.selectServiceCategory("Garden Planning")
                                     gardenPlanningViewModel.resetToNewEntry()
+                                },
+                                onNavigateToSettings = {
+                                    isSettingsActive = true
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {
@@ -522,6 +559,7 @@ fun AgriCropMainScreen(
                                                     com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                                                 }
                                             },
+                                            onNavigateToSettings = { isSettingsActive = true },
                                             modifier = Modifier.fillMaxSize()
                                         )
                                     } else {
@@ -562,5 +600,14 @@ fun AgriCropMainScreen(
             }
         }
     }
+
+    // Production-ready App Lock authentication overlay when enabled and locked
+    if (isAppLockEnabled && isAppLocked) {
+        AppLockScreen(
+            appLockManager = effectiveAppLockManager,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
 }
 

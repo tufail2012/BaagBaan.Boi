@@ -95,11 +95,18 @@ object NotificationHelper {
 
         val smallIconRes = context.applicationInfo.icon.let { if (it != 0) it else android.R.drawable.ic_dialog_info }
 
+        val appLockPrefs = com.example.security.AppLockPreferences(context)
+        val shouldProtect = appLockPrefs.isAppLockEnabled && appLockPrefs.protectNotifications
+
+        val displayTitle = if (shouldProtect) "AgriCrop Security Alert" else title
+        val displayMessage = if (shouldProtect) "New notification content hidden while app is locked" else message
+
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(smallIconRes)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setContentTitle(displayTitle)
+            .setContentText(displayMessage)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(displayMessage))
+            .setVisibility(if (shouldProtect) NotificationCompat.VISIBILITY_SECRET else NotificationCompat.VISIBILITY_PRIVATE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

@@ -109,7 +109,8 @@ fun AttendanceHomeScreen(
     currentUserEmail: String? = null,
     currentUserPhotoUrl: String? = null,
     onLogout: () -> Unit = {},
-    onManualSync: (() -> Unit)? = null
+    onManualSync: (() -> Unit)? = null,
+    onNavigateToSettings: (() -> Unit)? = null
 ) {
     val activeWorkers by viewModel.activeWorkers.collectAsState()
     val selectedMonthYear by viewModel.selectedMonthYear.collectAsState()
@@ -153,6 +154,7 @@ fun AttendanceHomeScreen(
                     onOpenRecycleBin = onOpenRecycleBin,
                     onNavigateToLogin = onNavigateToLogin,
                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                    onNavigateToSettings = onNavigateToSettings,
                     unreadNotificationCount = unreadNotificationCount,
                     onOpenNotifications = onOpenNotifications,
                     currentUserEmail = currentUserEmail,

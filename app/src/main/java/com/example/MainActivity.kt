@@ -1,18 +1,19 @@
 package com.example
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.data.AppDatabase
 import com.example.data.AttendanceRepository
 import com.example.data.CropRecordRepository
 import com.example.data.GardenPlanningRepository
+import com.example.security.AppLockManager
 import com.example.ui.AgriCropMainScreen
 import com.example.ui.AppThemeMode
 import com.example.ui.AttendanceViewModel
@@ -31,11 +32,16 @@ import kotlinx.coroutines.Dispatchers
 import android.os.Build
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+    private lateinit var appLockManager: AppLockManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         com.example.util.SafeFirebase.init(this)
+
+        appLockManager = AppLockManager.getInstance(applicationContext)
+        appLockManager.applySecureWindowFlag(this)
 
         // Programmatically request maximum display refresh rate (120Hz / 90Hz / 144Hz)
         try {
@@ -121,9 +127,17 @@ class MainActivity : ComponentActivity() {
                 AgriCropMainScreen(
                     viewModel = cropViewModel,
                     attendanceViewModel = attendanceViewModel,
-                    notificationViewModel = notificationViewModel
+                    notificationViewModel = notificationViewModel,
+                    appLockManager = appLockManager
                 )
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::appLockManager.isInitialized) {
+            appLockManager.applySecureWindowFlag(this)
         }
     }
 }

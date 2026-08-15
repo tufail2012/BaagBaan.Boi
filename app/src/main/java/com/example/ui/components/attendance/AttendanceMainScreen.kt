@@ -51,6 +51,7 @@ fun AttendanceMainScreen(
     currentUserPhotoUrl: String? = null,
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
+    onNavigateToSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var currentScreen by remember { mutableStateOf(AttendanceViewScreen.HOME) }
@@ -103,7 +104,8 @@ fun AttendanceMainScreen(
                     currentUserEmail = currentUserEmail,
                     currentUserPhotoUrl = currentUserPhotoUrl,
                     onLogout = onLogout,
-                    onManualSync = onManualSync
+                    onManualSync = onManualSync,
+                    onNavigateToSettings = onNavigateToSettings
                 )
             }
             AttendanceViewScreen.DAILY_MARKING -> {

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.Assignment
@@ -96,6 +97,7 @@ fun AgriDashboardScreen(
     currentUserEmail: String? = null,
     onBack: () -> Unit,
     onNavigateToCategory: ((String) -> Unit)? = null,
+    onNavigateToSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
@@ -262,15 +264,30 @@ fun AgriDashboardScreen(
                         }
                     }
 
-                    IconButton(
-                        onClick = { userDashboardViewModel.refreshUser() },
-                        modifier = Modifier.testTag("dashboard_refresh_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Refresh Data",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (onNavigateToSettings != null) {
+                            IconButton(
+                                onClick = onNavigateToSettings,
+                                modifier = Modifier.testTag("dashboard_settings_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings & Security",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        IconButton(
+                            onClick = { userDashboardViewModel.refreshUser() },
+                            modifier = Modifier.testTag("dashboard_refresh_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh Data",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }

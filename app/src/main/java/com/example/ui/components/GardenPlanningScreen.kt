@@ -280,6 +280,7 @@ fun GardenPlanningScreen(
     currentUserPhotoUrl: String? = null,
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
+    onNavigateToSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -381,6 +382,7 @@ fun GardenPlanningScreen(
                 currentUserPhotoUrl = currentUserPhotoUrl,
                 onLogout = onLogout,
                 onManualSync = onManualSync,
+                onNavigateToSettings = onNavigateToSettings,
                 onBack = null
             )
             }

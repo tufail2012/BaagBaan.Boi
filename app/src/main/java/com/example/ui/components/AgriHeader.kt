@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -122,6 +124,7 @@ fun AgriHeader(
     onOpenRecycleBin: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToGardenPlanning: () -> Unit = {},
+    onNavigateToSettings: (() -> Unit)? = null,
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -280,6 +283,7 @@ fun AgriHeader(
                             onNavigateToBackupRestore = onNavigateToBackupRestore,
                             onNavigateToLogin = onNavigateToLogin,
                             onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                            onNavigateToSettings = onNavigateToSettings,
                             onLogout = onLogout,
                             onOpenThemeDialog = { showThemeDialog = true },
                             onOpenRecycleBin = onOpenRecycleBin
@@ -429,6 +433,7 @@ fun AgriHeader(
                                     onNavigateToBackupRestore = onNavigateToBackupRestore,
                                     onNavigateToLogin = onNavigateToLogin,
                                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                                    onNavigateToSettings = onNavigateToSettings,
                                     onLogout = onLogout,
                                     onOpenThemeDialog = { showThemeDialog = true },
                                     onOpenRecycleBin = onOpenRecycleBin
@@ -663,6 +668,7 @@ private fun OverflowMenuContent(
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToGardenPlanning: () -> Unit = {},
+    onNavigateToSettings: (() -> Unit)? = null,
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -887,6 +893,41 @@ private fun OverflowMenuContent(
             onNavigateToLogin()
         },
         modifier = Modifier.testTag("accounts_menu_item$tagSuffix")
+    )
+
+    // Settings (Security & App Lock)
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Settings & Security",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "App Lock, PIN, Fingerprint & Privacy",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToSettings?.invoke()
+        },
+        modifier = Modifier.testTag("settings_menu_item$tagSuffix")
     )
 
     // === DIVIDER 2 ===
