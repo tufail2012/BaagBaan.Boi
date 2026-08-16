@@ -147,17 +147,24 @@ fun ThemeColoursContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val isDark = MaterialTheme.colorScheme.surface.let {
+                    (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                }
+
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .background(
+                            if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Palette,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -369,6 +376,10 @@ private fun LargeThemeCard(
                 .fillMaxSize()
                 .padding(12.dp)
         ) {
+            val isDark = MaterialTheme.colorScheme.surface.let {
+                (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+            }
+
             Column(
                 modifier = Modifier.align(Alignment.CenterStart),
                 verticalArrangement = Arrangement.Center
@@ -376,7 +387,11 @@ private fun LargeThemeCard(
                 Icon(
                     imageVector = option.icon,
                     contentDescription = option.title,
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isSelected) {
+                        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                    } else {
+                        if (isDark) Color.White.copy(alpha = 0.65f) else MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.height(6.dp))
@@ -384,7 +399,9 @@ private fun LargeThemeCard(
                     text = option.title,
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) {
+                        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                    } else MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -392,7 +409,7 @@ private fun LargeThemeCard(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Selected",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .size(18.dp)
                         .align(Alignment.TopEnd)

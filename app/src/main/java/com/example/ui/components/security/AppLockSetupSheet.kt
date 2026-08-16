@@ -595,20 +595,31 @@ private fun MethodOptionCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.weight(1f)
             ) {
+                val isDark = MaterialTheme.colorScheme.surface.let {
+                    (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                }
+                val iconTint = if (enabled) {
+                    if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                } else {
+                    if (isDark) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                }
+
                 Box(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(
-                            if (enabled) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceVariant
+                            if (enabled) {
+                                if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                else MaterialTheme.colorScheme.primaryContainer
+                            } else MaterialTheme.colorScheme.surfaceVariant
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = iconTint,
                         modifier = Modifier.size(24.dp)
                     )
                 }

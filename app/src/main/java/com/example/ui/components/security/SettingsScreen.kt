@@ -181,6 +181,10 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val isDarkDialog = MaterialTheme.colorScheme.surface.let {
+                        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                    }
+
                     Text(
                         text = "Lock After",
                         fontSize = 18.sp,
@@ -191,7 +195,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isDarkDialog) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -200,14 +204,19 @@ fun SettingsScreen(
 
                 LockAfterDuration.entries.forEach { option ->
                     val isSelected = option == lockAfterDuration
+                    val isDarkDialog = MaterialTheme.colorScheme.surface.let {
+                        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                    }
                     Surface(
                         onClick = {
                             appLockManager.updateLockAfterDuration(option)
                             showLockAfterSheet = false
                         },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                        else Color.Transparent,
+                        color = if (isSelected) {
+                            if (isDarkDialog) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        } else Color.Transparent,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
@@ -223,13 +232,15 @@ fun SettingsScreen(
                                 text = option.label,
                                 fontSize = 15.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                color = if (isSelected) {
+                                    if (isDarkDialog) Color.White else MaterialTheme.colorScheme.primary
+                                } else MaterialTheme.colorScheme.onSurface
                             )
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = if (isDarkDialog) Color.White else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -324,6 +335,10 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    val isDarkTheme = MaterialTheme.colorScheme.surface.let {
+                        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                    }
+
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
@@ -333,7 +348,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -548,6 +563,15 @@ fun SettingsScreen(
                                 .padding(16.dp)
                         ) {
                             // 1. App Lock Switch Row
+                            val isDarkTheme = MaterialTheme.colorScheme.surface.let {
+                                (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                            }
+                            val masterLockIconTint = if (isAppLockEnabled) {
+                                if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
+                            } else {
+                                if (isDarkTheme) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -563,15 +587,17 @@ fun SettingsScreen(
                                             .size(42.dp)
                                             .clip(CircleShape)
                                             .background(
-                                                if (isAppLockEnabled) MaterialTheme.colorScheme.primaryContainer
-                                                else MaterialTheme.colorScheme.surfaceVariant
+                                                if (isAppLockEnabled) {
+                                                    if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.primaryContainer
+                                                } else MaterialTheme.colorScheme.surfaceVariant
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = if (isAppLockEnabled) Icons.Default.Lock else Icons.Default.LockOpen,
                                             contentDescription = null,
-                                            tint = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            tint = masterLockIconTint,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -834,10 +860,13 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
+                                val isDarkCard = MaterialTheme.colorScheme.surface.let {
+                                    (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+                                }
                                 Icon(
                                     imageVector = Icons.Default.Shield,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = if (isDarkCard) Color.White else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
@@ -874,8 +903,23 @@ private fun SettingsNavigationRow(
     modifier: Modifier = Modifier,
     isDestructive: Boolean = false
 ) {
-    val primaryTint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val isDark = MaterialTheme.colorScheme.surface.let {
+        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+    }
+    val iconTint = if (isDestructive) {
+        if (isDark) Color(0xFFFFB4AB) else MaterialTheme.colorScheme.error
+    } else {
+        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+    }
+    val containerBg = if (isDestructive) {
+        if (isDark) MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+        else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+    } else {
+        if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+    }
     val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
@@ -900,16 +944,13 @@ private fun SettingsNavigationRow(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (isDestructive) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                        ),
+                        .background(containerBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = primaryTint,
+                        tint = iconTint,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -932,7 +973,7 @@ private fun SettingsNavigationRow(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -949,6 +990,21 @@ private fun SettingsToggleRow(
     testTag: String,
     modifier: Modifier = Modifier
 ) {
+    val isDark = MaterialTheme.colorScheme.surface.let {
+        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
+    }
+    val iconTint = if (checked) {
+        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+    } else {
+        if (isDark) Color.White.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val boxBg = if (checked) {
+        if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -965,16 +1021,13 @@ private fun SettingsToggleRow(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
+                    .background(boxBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (checked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = iconTint,
                     modifier = Modifier.size(18.dp)
                 )
             }
