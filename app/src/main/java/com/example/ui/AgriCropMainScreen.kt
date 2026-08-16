@@ -248,8 +248,8 @@ fun AgriCropMainScreen(
 
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
-        isSettingsActive -> "SETTINGS"
         isMessageTemplatesActive -> "TEMPLATES"
+        isSettingsActive -> "SETTINGS"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         isGlobalSearchActive -> "SEARCH"

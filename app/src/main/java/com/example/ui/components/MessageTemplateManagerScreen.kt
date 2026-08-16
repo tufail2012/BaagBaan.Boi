@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +44,8 @@ fun MessageTemplateManagerScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    BackHandler(onBack = onNavigateBack)
+
     val context = LocalContext.current
     val isDark = MaterialTheme.colorScheme.surface.hashCode() % 2 == 0 // Or standard dark mode check
     val templatesState by MessageTemplateRepository.templatesState.collectAsState()
