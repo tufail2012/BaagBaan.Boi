@@ -354,28 +354,11 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.70f)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.LocalFlorist,
-                            contentDescription = "Baagbaan Boi Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(44.dp)
-                        )
-                    }
+                    AppBrandLogo(
+                        size = 84.dp,
+                        shape = RoundedCornerShape(24.dp),
+                        contentDescription = "Baagbaan Boi Logo"
+                    )
 
                     Text(
                         text = "Baagbaan Boi",

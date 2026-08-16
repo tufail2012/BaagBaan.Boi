@@ -6,202 +6,205 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 1. Soft Grounding Ambient Shadow -->
-    <path android:pathData="M 30,81 C 30,77.5 78,77.5 78,81 C 78,84.5 30,84.5 30,81 Z">
+    <!-- 1. Ambient Grounding Shadow Beneath Apple -->
+    <path android:pathData="M 32,82 C 32,78 76,78 76,82 C 76,86 32,86 32,82 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
                 android:centerX="54"
-                android:centerY="81"
-                android:gradientRadius="24"
-                android:startColor="#55000000"
+                android:centerY="82"
+                android:gradientRadius="22"
+                android:startColor="#4D000000"
                 android:endColor="#00000000" />
         </aapt:attr>
     </path>
 
-    <!-- 2. Apple Body (Realistic Organic Red Skin) -->
+    <!-- 2. Realistic Apple Body (Ruby & Crimson Multi-Stop Gradient) -->
     <path android:pathData="M 54,40
-        C 50,40 44,37 38,37
-        C 28,37 24,45 24,56
-        C 24,67 31,78 41,80
-        C 47,81 51,78.5 54,78.5
-        C 57,78.5 61,81 67,80
-        C 77,78 84,67 84,56
-        C 84,45 80,37 70,37
-        C 64,37 58,40 54,40 Z">
+        C 49.5,39.5 43,36 37,36
+        C 26,36 22,45.5 22,57
+        C 22,68.5 29.5,79.5 40,81
+        C 46,81.8 50.8,79.2 54,79.2
+        C 57.2,79.2 62,81.8 68,81
+        C 78.5,79.5 86,68.5 86,57
+        C 86,45.5 82,36 71,36
+        C 65,36 58.5,39.5 54,40 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
-                android:centerX="44"
-                android:centerY="49"
-                android:gradientRadius="38"
-                android:startColor="#FF4136"
-                android:endColor="#550207">
-                <item android:offset="0.0" android:color="#FF5247" />
-                <item android:offset="0.22" android:color="#E81C26" />
-                <item android:offset="0.52" android:color="#B80E1A" />
-                <item android:offset="0.80" android:color="#80060E" />
-                <item android:offset="1.0" android:color="#4A0206" />
+                android:centerX="42"
+                android:centerY="48"
+                android:gradientRadius="43">
+                <item android:offset="0.00" android:color="#FF4D4D" />
+                <item android:offset="0.18" android:color="#E81C26" />
+                <item android:offset="0.45" android:color="#C40F1E" />
+                <item android:offset="0.72" android:color="#8B0714" />
+                <item android:offset="0.90" android:color="#5E030C" />
+                <item android:offset="1.00" android:color="#380106" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 3. Apple 3D Core Volumetric Shadow (Right & Bottom Depth) -->
+    <!-- 3. 3D Volumetric Depth on Right Flank -->
     <path android:pathData="M 54,40
-        C 58,40 64,37 70,37
-        C 80,37 84,45 84,56
-        C 84,67 77,78 67,80
-        C 61,81 57,78.5 54,78.5
-        C 52.5,70 53.5,52 54,40 Z">
+        C 58.5,39.5 65,36 71,36
+        C 82,36 86,45.5 86,57
+        C 86,68.5 78.5,79.5 68,81
+        C 62,81.8 57.2,79.2 54,79.2
+        C 52.5,70 53,52 54,40 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
                 android:startX="54"
                 android:startY="54"
-                android:endX="84"
+                android:endX="86"
                 android:endY="68">
-                <item android:offset="0.0" android:color="#00000000" />
-                <item android:offset="0.45" android:color="#35300004" />
-                <item android:offset="1.0" android:color="#78220003" />
+                <item android:offset="0.00" android:color="#00000000" />
+                <item android:offset="0.40" android:color="#28200002" />
+                <item android:offset="0.75" android:color="#65180002" />
+                <item android:offset="1.00" android:color="#8E120002" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 4. Stem Cavity Indentation Shadow (Top Cleft) -->
-    <path android:pathData="M 47,40 C 51,43 57,43 61,40 C 58,45.5 50,45.5 47,40 Z">
+    <!-- 4. Stem Cavity Top Cleft Shadow -->
+    <path android:pathData="M 46,39.5 C 50.5,43.5 57.5,43.5 62,39.5 C 58.5,45.5 49.5,45.5 46,39.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
                 android:centerX="54"
-                android:centerY="41.5"
-                android:gradientRadius="7"
-                android:startColor="#A5380005"
-                android:endColor="#00380005" />
-        </aapt:attr>
-    </path>
-
-    <!-- 5. Bottom Rim Ambient Glow / Soft Under-Bounce Reflection -->
-    <path android:pathData="M 34,75 C 40,80 48,79.5 54,78 C 60,79.5 68,80 74,75 C 68,78 60,77.5 54,76.5 C 48,77.5 40,78 34,75 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="34"
-                android:startY="77"
-                android:endX="74"
-                android:endY="77">
-                <item android:offset="0.0" android:color="#00FF8C7A" />
-                <item android:offset="0.5" android:color="#50FFA899" />
-                <item android:offset="1.0" android:color="#00FF8C7A" />
+                android:centerY="41"
+                android:gradientRadius="7.5">
+                <item android:offset="0.0" android:color="#B0300004" />
+                <item android:offset="0.6" android:color="#55300004" />
+                <item android:offset="1.0" android:color="#00300004" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 6. Realistic Wooden Stem -->
-    <path
-        android:pathData="M 53.5,41.5 C 53,34 55,29.5 59.5,24.5 C 60.8,25.2 60.5,26.2 59.5,27.2 C 56.5,31 55.5,35 55.5,41 Z">
+    <!-- 5. Bottom Rim Ambient Glow -->
+    <path android:pathData="M 33,76 C 39,81 48,80.5 54,78.5 C 60,80.5 69,81 75,76 C 69,79 60,78 54,77 C 48,78 39,79 33,76 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="33"
+                android:startY="78"
+                android:endX="75"
+                android:endY="78">
+                <item android:offset="0.0" android:color="#00FFA0A0" />
+                <item android:offset="0.5" android:color="#55FFB2A8" />
+                <item android:offset="1.0" android:color="#00FFA0A0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 6. Realistic Wooden Stem in Central Cleft -->
+    <path android:pathData="M 53.5,41.5 C 53,33.5 54.5,28 59,23.5 C 60.5,24.2 60.2,25.2 59.2,26.2 C 56,30.5 55.5,35 55.5,41.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
                 android:startX="53.5"
                 android:startY="41.5"
                 android:endX="59.5"
-                android:endY="24.5">
+                android:endY="23.5">
                 <item android:offset="0.0" android:color="#3E2723" />
-                <item android:offset="0.5" android:color="#6D4C41" />
-                <item android:offset="1.0" android:color="#8D6E63" />
+                <item android:offset="0.5" android:color="#5D4037" />
+                <item android:offset="1.0" android:color="#795548" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 7. Stem Natural Highlight -->
+    <!-- 7. Stem Natural Bark Highlight -->
     <path
-        android:pathData="M 54.5,39 C 54.2,34 55.8,30 59,25.5"
-        android:strokeWidth="0.8"
+        android:pathData="M 54.5,39 C 54.2,33.5 55.8,29 58.6,24.8"
+        android:strokeWidth="0.75"
         android:strokeLineCap="round">
         <aapt:attr name="android:strokeColor">
             <gradient
                 android:type="linear"
                 android:startX="54.5"
                 android:startY="39"
-                android:endX="59"
-                android:endY="25.5">
+                android:endX="58.6"
+                android:endY="24.8">
                 <item android:offset="0.0" android:color="#00BCAAA4" />
-                <item android:offset="1.0" android:color="#90D7CCC8" />
+                <item android:offset="1.0" android:color="#85D7CCC8" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 8. Fresh Orchard Green Leaf -->
-    <path android:pathData="M 54,38
-        C 58.5,33.5 67,30 77,30
-        C 78,32 77,37.5 73,42
-        C 67.5,47.5 57.5,45 54,38 Z">
+    <!-- 8. Fresh Green Leaf on the RIGHT Side with Clear Pointed Tip -->
+    <path android:pathData="M 55.5,38.5
+        C 60.5,32 70,27.5 81.5,29.5
+        C 79,35 72.5,43 64.5,43.5
+        C 59.5,43.8 56.8,41 55.5,38.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="54"
-                android:startY="38"
-                android:endX="77"
-                android:endY="30">
-                <item android:offset="0.0" android:color="#2E7D32" />
-                <item android:offset="0.45" android:color="#43A047" />
-                <item android:offset="0.8" android:color="#66BB6A" />
-                <item android:offset="1.0" android:color="#81C784" />
+                android:startX="55.5"
+                android:startY="38.5"
+                android:endX="81.5"
+                android:endY="29.5">
+                <item android:offset="0.00" android:color="#1B5E20" />
+                <item android:offset="0.35" android:color="#2E7D32" />
+                <item android:offset="0.70" android:color="#43A047" />
+                <item android:offset="0.90" android:color="#66BB6A" />
+                <item android:offset="1.00" android:color="#81C784" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 9. Leaf Central Main Rib (Vein) -->
+    <!-- 9. Leaf Central Main Rib (Vein Directly to the Pointed Tip) -->
     <path
-        android:pathData="M 54.5,38 C 60.5,36 67.5,34.2 76,30.8"
-        android:strokeWidth="0.9"
-        android:strokeColor="#C8E6C9"
+        android:pathData="M 55.5,38.5 C 62.5,36 71.5,33 81.5,29.5"
+        android:strokeWidth="0.85"
+        android:strokeColor="#D4EDDA"
         android:strokeLineCap="round" />
 
-    <!-- 10. Leaf Secondary Branching Veins -->
+    <!-- 10. Leaf Secondary Veins -->
     <path
-        android:pathData="M 59,37 Q 60.5,34 63.5,32.8 M 64.5,35.8 Q 67,33.5 70.5,32.5 M 62,36.5 Q 64.5,40 68.5,41.5 M 66.5,35.2 Q 69,38.5 72.5,39.8"
-        android:strokeWidth="0.55"
-        android:strokeColor="#90A5D6A7"
+        android:pathData="M 62.5,36.2 Q 64.5,33.2 68,31.8 M 69,34 Q 71.5,31.8 75.5,30.8 M 63.8,37 Q 66.5,40.2 71,41.2 M 70.5,34.8 Q 73.2,38 77,38.8"
+        android:strokeWidth="0.5"
+        android:strokeColor="#85C8E6C9"
         android:strokeLineCap="round" />
 
-    <!-- 11. Leaf Specular Sunlight Sheen -->
+    <!-- 11. Leaf Upper Contour Sunlight Sheen -->
     <path
-        android:pathData="M 57,35 C 62.5,32.2 68.5,31 75.5,30.5"
-        android:strokeWidth="0.75"
-        android:strokeColor="#65FFFFFF"
+        android:pathData="M 58.5,34.5 C 64.5,30.8 72,29 80,29.5"
+        android:strokeWidth="0.7"
+        android:strokeColor="#55FFFFFF"
         android:strokeLineCap="round" />
 
-    <!-- 12. Main Specular Highlight (Natural Soft Sheen on Left Dome) -->
-    <path android:pathData="M 39,42.5
-        C 45,40.5 49,43.5 48,48.5
-        C 47,53 40,55.5 36,52
-        C 33.5,49 35,44 39,42.5 Z">
+    <!-- 12. Main Specular Dome Highlight (Upper-Left Shoulder) -->
+    <path android:pathData="M 37.5,42
+        C 43.5,40 48,43 47,48
+        C 46,52.5 39,54.5 35,51.5
+        C 32.5,48.5 34,43.5 37.5,42 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
-                android:centerX="41"
-                android:centerY="45"
-                android:gradientRadius="9"
-                android:startColor="#D8FFFFFF"
-                android:endColor="#00FFFFFF" />
+                android:centerX="39.5"
+                android:centerY="44.5"
+                android:gradientRadius="9">
+                <item android:offset="0.0" android:color="#D0FFFFFF" />
+                <item android:offset="1.0" android:color="#00FFFFFF" />
+            </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 13. Secondary Soft Ambient Curved Sheen (Crest of Left Flank) -->
+    <!-- 13. Curving Ambient Left Edge Sheen -->
     <path
-        android:pathData="M 29,48 C 27,53 27.5,60 30.5,66"
+        android:pathData="M 27.5,48.5 C 25.5,53.5 26,60.5 29,66.5"
         android:strokeWidth="1.5"
         android:strokeLineCap="round">
         <aapt:attr name="android:strokeColor">
             <gradient
                 android:type="linear"
-                android:startX="27"
-                android:startY="48"
-                android:endX="30.5"
-                android:endY="66">
+                android:startX="25.5"
+                android:startY="48.5"
+                android:endX="29"
+                android:endY="66.5">
                 <item android:offset="0.0" android:color="#00FFFFFF" />
-                <item android:offset="0.5" android:color="#40FFFFFF" />
+                <item android:offset="0.5" android:color="#35FFFFFF" />
                 <item android:offset="1.0" android:color="#00FFFFFF" />
             </gradient>
         </aapt:attr>
@@ -209,21 +212,61 @@
 
     <!-- 14. Subtle Soft Right-Side Rim Reflection -->
     <path
-        android:pathData="M 79,48 C 81.5,53 81,61 78,67"
+        android:pathData="M 80.5,48.5 C 83,53.5 82.5,61.5 79.5,67.5"
         android:strokeWidth="1.2"
         android:strokeLineCap="round">
         <aapt:attr name="android:strokeColor">
             <gradient
                 android:type="linear"
-                android:startX="81"
-                android:startY="48"
-                android:endX="78"
-                android:endY="67">
-                <item android:offset="0.0" android:color="#00FFA8A8" />
-                <item android:offset="0.5" android:color="#35FFC2C2" />
-                <item android:offset="1.0" android:color="#00FFA8A8" />
+                android:startX="83"
+                android:startY="48.5"
+                android:endX="79.5"
+                android:endY="67.5">
+                <item android:offset="0.0" android:color="#00FFA0A0" />
+                <item android:offset="0.5" android:color="#30FFC4C4" />
+                <item android:offset="1.0" android:color="#00FFA0A0" />
             </gradient>
         </aapt:attr>
     </path>
+
+    <!-- 15. Realistic Micro Dew Droplets -->
+    <!-- Droplet 1 (Center-Left) -->
+    <path android:pathData="M 45,51.5 C 46.2,51.5 47,52.3 47,53.5 C 47,54.7 46.2,55.5 45,55.5 C 43.8,55.5 43,54.7 43,53.5 C 43,52.3 43.8,51.5 45,51.5 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="44.5"
+                android:centerY="52.8"
+                android:gradientRadius="2.2">
+                <item android:offset="0.0" android:color="#50FFFFFF" />
+                <item android:offset="1.0" android:color="#951A0002" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M 44.2,52.4 C 44.6,52.4 44.9,52.7 44.9,53.1 C 44.9,53.5 44.6,53.8 44.2,53.8 C 43.8,53.8 43.5,53.5 43.5,53.1 C 43.5,52.7 43.8,52.4 44.2,52.4 Z"
+        android:fillColor="#E0FFFFFF" />
+
+    <!-- Droplet 2 (Lower-Left Body) -->
+    <path android:pathData="M 36,62 C 37,62 37.8,62.8 37.8,63.8 C 37.8,64.8 37,65.6 36,65.6 C 35,65.6 34.2,64.8 34.2,63.8 C 34.2,62.8 35,62 36,62 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="35.6"
+                android:centerY="63.2"
+                android:gradientRadius="1.8">
+                <item android:offset="0.0" android:color="#45FFFFFF" />
+                <item android:offset="1.0" android:color="#801A0002" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:pathData="M 35.4,62.8 C 35.7,62.8 36,63.1 36,63.4 C 36,63.7 35.7,64 35.4,64 C 35.1,64 34.8,63.7 34.8,63.4 C 34.8,63.1 35.1,62.8 35.4,62.8 Z"
+        android:fillColor="#D5FFFFFF" />
+
+    <!-- Droplet 3 (Right Shoulder Glistening Spec) -->
+    <path
+        android:pathData="M 66,45 C 66.4,45 66.7,45.3 66.7,45.7 C 66.7,46.1 66.4,46.4 66,46.4 C 65.6,46.4 65.3,46.1 65.3,45.7 C 65.3,45.3 65.6,45 66,45 Z"
+        android:fillColor="#C5FFFFFF" />
 
 </vector>

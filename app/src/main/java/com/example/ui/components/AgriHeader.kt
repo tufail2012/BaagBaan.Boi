@@ -326,6 +326,12 @@ fun AgriHeader(
                         }
                     }
 
+                    val isAppLogo = when (title.lowercase()) {
+                        "agricrop", "baagbaan boi", "home", "dashboard" -> true
+                        "imported", "imported plants", "rootstocks", "imported rootstocks", "site visit", "pruning", "bookings", "garden planning", "garden", "attendance", "worker attendance" -> false
+                        else -> true
+                    }
+
                     val headerBadgeIcon = when (title.lowercase()) {
                         "imported", "imported plants" -> Icons.Default.LocalShipping
                         "rootstocks", "imported rootstocks" -> Icons.Default.Spa
@@ -334,22 +340,31 @@ fun AgriHeader(
                         "bookings" -> Icons.Default.PlaylistAddCheck
                         "garden planning", "garden" -> Icons.Default.Park
                         "attendance", "worker attendance" -> Icons.Default.CalendarToday
-                        else -> Icons.Outlined.LocalFlorist
+                        else -> null
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = headerBadgeIcon,
-                            contentDescription = "$title Icon",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                    if (isAppLogo || headerBadgeIcon == null) {
+                        AppBrandLogo(
+                            size = 38.dp,
+                            shape = RoundedCornerShape(10.dp),
+                            elevation = 1.dp,
+                            contentDescription = "App Logo"
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = headerBadgeIcon,
+                                contentDescription = "$title Icon",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
 
                     Text(
