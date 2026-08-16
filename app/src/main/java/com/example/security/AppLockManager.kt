@@ -153,12 +153,8 @@ class AppLockManager private constructor(private val context: Context) {
 
     fun applySecureWindowFlag(activity: Activity) {
         try {
-            val shouldBeSecure = preferences.hideContentInRecentApps || _isLocked.value
-            if (shouldBeSecure) {
-                activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            } else {
-                activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-            }
+            // Explicitly clear FLAG_SECURE so screenshots, screen recording, and screen sharing are never restricted or blacked out
+            activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         } catch (_: Exception) {
             // Ignore window manipulation errors if activity is detaching
         }

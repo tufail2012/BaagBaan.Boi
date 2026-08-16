@@ -78,7 +78,7 @@ class AppLockPreferences(context: Context) {
         set(value) = prefs.edit().putLong(KEY_LOCK_AFTER_MS, value.durationMs).apply()
 
     var hideContentInRecentApps: Boolean
-        get() = prefs.getBoolean(KEY_HIDE_IN_RECENTS, true)
+        get() = prefs.getBoolean(KEY_HIDE_IN_RECENTS, false)
         set(value) = prefs.edit().putBoolean(KEY_HIDE_IN_RECENTS, value).apply()
 
     var protectNotifications: Boolean

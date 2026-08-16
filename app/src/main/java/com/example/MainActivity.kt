@@ -30,6 +30,7 @@ import com.example.ui.NotificationViewModelFactory
 import com.example.data.FirestoreSyncManager
 import kotlinx.coroutines.Dispatchers
 import android.os.Build
+import android.view.WindowManager
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
@@ -37,6 +38,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Ensure window privacy flag is cleared so screenshots, screen recording, and sharing work seamlessly
+        window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
 
         com.example.util.SafeFirebase.init(this)
 
