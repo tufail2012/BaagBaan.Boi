@@ -108,6 +108,7 @@ fun MessageTemplateManagerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -187,7 +188,7 @@ fun MessageTemplateManagerScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
+                contentPadding = PaddingValues(bottom = 32.dp)
             ) {
                 items(filteredTemplates, key = { it.id }) { template ->
                     val currentText = templatesState[template.id] ?: template.defaultText
@@ -399,6 +400,8 @@ fun TemplateEditorDialog(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
+                    .navigationBarsPadding()
                     .padding(18.dp)
             ) {
                 // Dialog Header
@@ -575,6 +578,8 @@ fun TemplateEditorDialog(
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))

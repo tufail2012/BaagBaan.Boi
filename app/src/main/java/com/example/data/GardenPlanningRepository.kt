@@ -18,6 +18,14 @@ class GardenPlanningRepository(
         return dao.getEntryById(id)
     }
 
+    suspend fun getEntryByIdSync(id: Long): GardenPlanningEntry? {
+        return dao.getEntryByIdSync(id)
+    }
+
+    suspend fun getAllEntriesList(): List<GardenPlanningEntry> {
+        return dao.getAllEntriesList()
+    }
+
     suspend fun insert(entry: GardenPlanningEntry): Long {
         val insertedId = dao.insertEntry(entry)
         val entryToSync = if (entry.id == 0L) entry.copy(id = insertedId) else entry

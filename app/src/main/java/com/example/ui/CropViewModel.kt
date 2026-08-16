@@ -89,6 +89,91 @@ class CropViewModel(
     private val _isGlobalSearchActive = MutableStateFlow(false)
     val isGlobalSearchActive: StateFlow<Boolean> = _isGlobalSearchActive.asStateFlow()
 
+    // Detail dialog states for direct deep-link and QR scan navigation
+    private val _selectedDetailCropRecord = MutableStateFlow<CropRecord?>(null)
+    val selectedDetailCropRecord: StateFlow<CropRecord?> = _selectedDetailCropRecord.asStateFlow()
+
+    private val _selectedDetailGardenEntry = MutableStateFlow<GardenPlanningEntry?>(null)
+    val selectedDetailGardenEntry: StateFlow<GardenPlanningEntry?> = _selectedDetailGardenEntry.asStateFlow()
+
+    fun openCropRecordDetail(record: CropRecord) {
+        _selectedDetailCropRecord.value = record
+    }
+
+    fun dismissCropRecordDetail() {
+        _selectedDetailCropRecord.value = null
+    }
+
+    fun openGardenEntryDetail(entry: GardenPlanningEntry) {
+        _selectedDetailGardenEntry.value = entry
+    }
+
+    fun dismissGardenEntryDetail() {
+        _selectedDetailGardenEntry.value = null
+    }
+
+    fun handleDeepLinkUri(uri: android.net.Uri?, onInvalid: ((String) -> Unit)? = null) {
+        if (uri == null) return
+        if (uri.scheme == "baagbaanboi" && uri.host == "record") {
+            val type = uri.getQueryParameter("type") ?: ""
+            val idStr = uri.getQueryParameter("id")
+            val serial = uri.getQueryParameter("serial")
+            val id = idStr?.toLongOrNull() ?: 0L
+            handleRecordLookup(type, id, serial, onInvalid)
+        } else {
+            onInvalid?.invoke("Not a valid booking code")
+        }
+    }
+
+    fun handleDeepLinkString(rawString: String, onInvalid: ((String) -> Unit)? = null) {
+        try {
+            val uri = android.net.Uri.parse(rawString)
+            if (uri != null && uri.scheme == "baagbaanboi" && uri.host == "record") {
+                val type = uri.getQueryParameter("type") ?: ""
+                val idStr = uri.getQueryParameter("id")
+                val serial = uri.getQueryParameter("serial")
+                val id = idStr?.toLongOrNull() ?: 0L
+                handleRecordLookup(type, id, serial, onInvalid)
+            } else {
+                onInvalid?.invoke("Not a valid booking code")
+            }
+        } catch (e: Exception) {
+            onInvalid?.invoke("Not a valid booking code")
+        }
+    }
+
+    fun handleRecordLookup(type: String, id: Long, serial: String?, onInvalid: ((String) -> Unit)? = null) {
+        viewModelScope.launch {
+            if (type.equals("gardenplanning", ignoreCase = true) || type.contains("garden", ignoreCase = true)) {
+                var entry: GardenPlanningEntry? = null
+                if (id > 0L) {
+                    entry = gardenPlanningRepository?.getEntryByIdSync(id)
+                }
+                if (entry == null && !serial.isNullOrBlank()) {
+                    entry = gardenPlanningRepository?.getAllEntriesList()?.find { it.serialNumber.equals(serial, ignoreCase = true) }
+                }
+                if (entry != null) {
+                    _selectedDetailGardenEntry.value = entry
+                } else {
+                    onInvalid?.invoke("Booking record not found")
+                }
+            } else {
+                var record: CropRecord? = null
+                if (id > 0L) {
+                    record = repository.getAllRecordsList().find { it.id == id }
+                }
+                if (record == null && !serial.isNullOrBlank()) {
+                    record = repository.getAllRecordsList().find { it.serialNumber.equals(serial, ignoreCase = true) }
+                }
+                if (record != null) {
+                    _selectedDetailCropRecord.value = record
+                } else {
+                    onInvalid?.invoke("Booking record not found")
+                }
+            }
+        }
+    }
+
     fun openGlobalSearch() {
         _isGlobalSearchActive.value = true
     }

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.PlaylistAddCheck
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
@@ -127,6 +128,7 @@ fun AgriHeader(
     onNavigateToSettings: (() -> Unit)? = null,
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
+    onNavigateToQrScanner: () -> Unit = {},
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -439,6 +441,7 @@ fun AgriHeader(
                                     onNavigateToSettings = onNavigateToSettings,
                                     onNavigateToBusinessInfo = onNavigateToBusinessInfo,
                                     onNavigateToMessageTemplates = onNavigateToMessageTemplates,
+                                    onNavigateToQrScanner = onNavigateToQrScanner,
                                     onLogout = onLogout,
                                     onOpenThemeDialog = { showThemeDialog = true },
                                     onOpenRecycleBin = onOpenRecycleBin
@@ -676,6 +679,7 @@ private fun OverflowMenuContent(
     onNavigateToSettings: (() -> Unit)? = null,
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
+    onNavigateToQrScanner: () -> Unit = {},
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -820,7 +824,7 @@ private fun OverflowMenuContent(
         modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
     )
 
-    // 6. Business Info
+    // 6. Scan QR
     DropdownMenuItem(
         text = {
             Row(
@@ -828,14 +832,14 @@ private fun OverflowMenuContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = Icons.Default.QrCodeScanner,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Business Info",
+                    text = "Scan QR",
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp
                 )
@@ -843,37 +847,9 @@ private fun OverflowMenuContent(
         },
         onClick = {
             onDismiss()
-            onNavigateToBusinessInfo()
+            onNavigateToQrScanner()
         },
-        modifier = Modifier.testTag("business_info_menu_item$tagSuffix")
-    )
-
-    // 6.5. Message Templates
-    DropdownMenuItem(
-        text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ReceiptLong,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Message Templates",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
-            }
-        },
-        onClick = {
-            onDismiss()
-            onNavigateToMessageTemplates()
-        },
-        modifier = Modifier.testTag("message_templates_menu_item$tagSuffix")
+        modifier = Modifier.testTag("scan_qr_menu_item$tagSuffix")
     )
 
     // Divider before Settings
@@ -882,7 +858,7 @@ private fun OverflowMenuContent(
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
 
-    // 7. Settings
+    // 6. Settings
     DropdownMenuItem(
         text = {
             Row(

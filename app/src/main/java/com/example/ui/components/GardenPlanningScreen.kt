@@ -2988,7 +2988,9 @@ fun GardenBookingRecordDetailDialog(
                                 remainingBalance = remainingBalance,
                                 paymentStatus = currentEntry.paymentStatus,
                                 expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
-                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" }
+                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                recordType = "gardenplanning",
+                                recordId = currentEntry.id
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp

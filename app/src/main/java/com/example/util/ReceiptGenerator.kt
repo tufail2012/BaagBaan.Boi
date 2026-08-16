@@ -34,7 +34,9 @@ data class ReceiptData(
     val rootstock: String = "",
     val rootDiameter: String = "",
     val scionVariety: String = "",
-    val plantOrigin: String = ""
+    val plantOrigin: String = "",
+    val recordType: String = "",
+    val recordId: Long = 0L
 )
 
 object ReceiptGenerator {
@@ -333,10 +335,92 @@ object ReceiptGenerator {
         val footerAddress = info.address.ifBlank { "Ramnagri 192303, Shopian, Jammu & Kashmir" }
         canvas.drawText(footerAddress, width / 2f, height - 70f, paint)
 
-        // 5. Stamp Overlay
+        // 5. QR Code Section
+        drawQrCodeSection(canvas, data, width.toFloat(), height.toFloat())
+
+        // 6. Stamp Overlay
         drawStampOverlay(canvas, width.toFloat(), height.toFloat(), context)
 
         return bitmap
+    }
+
+    private fun generateQrBitmap(content: String, size: Int): Bitmap? {
+        return try {
+            val hints = java.util.EnumMap<com.google.zxing.EncodeHintType, Any>(com.google.zxing.EncodeHintType::class.java).apply {
+                put(com.google.zxing.EncodeHintType.MARGIN, 1)
+                put(com.google.zxing.EncodeHintType.ERROR_CORRECTION, com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M)
+            }
+            val bitMatrix = com.google.zxing.qrcode.QRCodeWriter().encode(
+                content,
+                com.google.zxing.BarcodeFormat.QR_CODE,
+                size,
+                size,
+                hints
+            )
+            val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val darkGreen = Color.parseColor("#122E1F")
+            for (x in 0 until size) {
+                for (y in 0 until size) {
+                    bmp.setPixel(x, y, if (bitMatrix.get(x, y)) darkGreen else Color.WHITE)
+                }
+            }
+            bmp
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun drawQrCodeSection(
+        canvas: Canvas,
+        data: ReceiptData,
+        width: Float,
+        height: Float
+    ) {
+        val isGarden = data.recordType.equals("gardenplanning", ignoreCase = true) ||
+                (data.recordType.isBlank() && data.serviceCategory.contains("Garden", ignoreCase = true))
+        val typeParam = if (isGarden) "gardenplanning" else "croprecord"
+        val deepLinkUrl = if (data.recordId > 0L) {
+            "baagbaanboi://record?type=$typeParam&id=${data.recordId}"
+        } else if (data.serialNumber.isNotBlank() && data.serialNumber != "N/A") {
+            "baagbaanboi://record?type=$typeParam&id=0&serial=${data.serialNumber}"
+        } else {
+            "baagbaanboi://record?type=$typeParam&id=0"
+        }
+
+        val qrSize = 140
+        val qrBitmap = generateQrBitmap(deepLinkUrl, qrSize) ?: return
+
+        val qrCardLeft = 60f
+        val qrCardBottom = height - 165f
+        val qrCardTop = qrCardBottom - 210f
+        val qrCardRight = qrCardLeft + 250f
+        val qrCardRect = RectF(qrCardLeft, qrCardTop, qrCardRight, qrCardBottom)
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // Background card
+        paint.style = Paint.Style.FILL
+        paint.color = Color.parseColor("#FAF8F2")
+        canvas.drawRoundRect(qrCardRect, 16f, 16f, paint)
+
+        // Card border
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.parseColor("#E0D8C8")
+        paint.strokeWidth = 2.5f
+        canvas.drawRoundRect(qrCardRect, 16f, 16f, paint)
+
+        // Draw QR code image
+        val qrX = qrCardLeft + (qrCardRight - qrCardLeft - qrSize) / 2f
+        val qrY = qrCardTop + 14f
+        canvas.drawBitmap(qrBitmap, qrX, qrY, null)
+
+        // Caption beneath QR
+        paint.style = Paint.Style.FILL
+        paint.color = Color.parseColor("#122E1F")
+        paint.textSize = 16f
+        paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        paint.textAlign = Paint.Align.CENTER
+        canvas.drawText("Scan to view booking", qrCardRect.centerX(), qrCardBottom - 18f, paint)
     }
 
     private fun drawStampOverlay(canvas: Canvas, width: Float, height: Float, context: Context?) {

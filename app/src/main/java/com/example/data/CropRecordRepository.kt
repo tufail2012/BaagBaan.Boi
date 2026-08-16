@@ -25,6 +25,10 @@ class CropRecordRepository(
         return dao.getRecordById(id)
     }
 
+    suspend fun getAllRecordsList(): List<CropRecord> {
+        return dao.getAllRecordsList()
+    }
+
     suspend fun insert(record: CropRecord): Long {
         val insertedId = dao.insertRecord(record)
         val recordToSync = if (record.id == 0L) record.copy(id = insertedId) else record

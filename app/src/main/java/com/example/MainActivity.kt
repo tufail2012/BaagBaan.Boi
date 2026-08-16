@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private lateinit var appLockManager: AppLockManager
+    private var cropViewModel: CropViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +75,9 @@ class MainActivity : FragmentActivity() {
         val cropRepository = CropRecordRepository(database.cropRecordDao(), database.farmerContactDao(), database.recycleBinDao(), database.inventoryDao())
         val cropFactory = CropViewModelFactory(cropRepository, gardenPlanningRepository)
         val cropViewModel = ViewModelProvider(this, cropFactory)[CropViewModel::class.java]
+        this.cropViewModel = cropViewModel
+
+        cropViewModel.handleDeepLinkUri(intent?.data)
 
         val attendanceRepository = AttendanceRepository(database.attendanceDao())
         val attendanceFactory = AttendanceViewModelFactory(attendanceRepository)
@@ -135,6 +139,14 @@ class MainActivity : FragmentActivity() {
                     appLockManager = appLockManager
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.data?.let { uri ->
+            cropViewModel?.handleDeepLinkUri(uri)
         }
     }
 

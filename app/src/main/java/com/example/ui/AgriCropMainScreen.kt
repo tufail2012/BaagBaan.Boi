@@ -104,6 +104,7 @@ fun AgriCropMainScreen(
     var showInventoryDialog by remember { mutableStateOf(false) }
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
     var showBusinessInfoDialog by remember { mutableStateOf(false) }
+    var showQrScannerDialog by remember { mutableStateOf(false) }
     var isMessageTemplatesActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -243,6 +244,66 @@ fun AgriCropMainScreen(
     if (showBusinessInfoDialog) {
         BusinessInfoDialog(
             onDismiss = { showBusinessInfoDialog = false }
+        )
+    }
+
+    if (showQrScannerDialog) {
+        com.example.ui.components.QrScannerDialog(
+            onDismissRequest = { showQrScannerDialog = false },
+            onQrScanned = { rawQr ->
+                showQrScannerDialog = false
+                viewModel.handleDeepLinkString(rawQr) { errMsg ->
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(errMsg)
+                    }
+                }
+            }
+        )
+    }
+
+    val selectedDetailCropRecord by viewModel.selectedDetailCropRecord.collectAsState()
+    val selectedDetailGardenEntry by viewModel.selectedDetailGardenEntry.collectAsState()
+
+    selectedDetailCropRecord?.let { record ->
+        com.example.ui.components.BookingRecordDetailDialog(
+            record = record,
+            onDismiss = { viewModel.dismissCropRecordDetail() },
+            onEdit = { rec ->
+                viewModel.dismissCropRecordDetail()
+                viewModel.loadRecordForEditing(rec)
+                isSettingsActive = false
+                isDashboardActive = false
+                isAttendanceActive = false
+                isMessageTemplatesActive = false
+                viewModel.closeGlobalSearch()
+            },
+            onDelete = { rec ->
+                viewModel.dismissCropRecordDetail()
+                viewModel.deleteRecord(rec)
+            },
+            onUpdateRecord = { updatedRec ->
+                viewModel.openCropRecordDetail(updatedRec)
+                viewModel.updateRecordSync(updatedRec)
+            }
+        )
+    }
+
+    selectedDetailGardenEntry?.let { entry ->
+        com.example.ui.components.GardenBookingRecordDetailDialog(
+            entry = entry,
+            viewModel = gardenPlanningViewModel,
+            isDark = isDark,
+            onDismiss = { viewModel.dismissGardenEntryDetail() },
+            onEdit = { edited ->
+                viewModel.dismissGardenEntryDetail()
+                gardenPlanningViewModel.loadEntryForEdit(edited)
+                viewModel.selectServiceCategory("Garden Planning")
+                isSettingsActive = false
+                isDashboardActive = false
+                isAttendanceActive = false
+                isMessageTemplatesActive = false
+                viewModel.closeGlobalSearch()
+            }
         )
     }
 
@@ -459,6 +520,9 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToMessageTemplates = {
                                     isMessageTemplatesActive = true
+                                },
+                                onNavigateToQrScanner = {
+                                    showQrScannerDialog = true
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {

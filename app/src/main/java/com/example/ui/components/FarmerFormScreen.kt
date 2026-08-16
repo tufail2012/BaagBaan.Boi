@@ -2084,7 +2084,9 @@ fun FarmerFormScreen(
                 expectedDelivery = if (expectedDelivery.isBlank()) "TBD" else expectedDelivery,
                 rootstock = actualRootstockVal,
                 rootDiameter = actualDiamVal,
-                scionVariety = actualScionVal
+                scionVariety = actualScionVal,
+                recordType = "croprecord",
+                recordId = editingId ?: 0L
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)

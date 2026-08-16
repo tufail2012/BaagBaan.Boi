@@ -849,7 +849,9 @@ fun BookingRecordDetailDialog(
                                 expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
                                 rootstock = actualRs,
                                 rootDiameter = actualDiam,
-                                scionVariety = actualScion
+                                scionVariety = actualScion,
+                                recordType = "croprecord",
+                                recordId = record.id
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp
