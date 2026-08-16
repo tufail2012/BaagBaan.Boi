@@ -1,6 +1,7 @@
 package com.example.ui.components.security
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -117,6 +118,17 @@ fun SettingsScreen(
     var showDisableAuthDialog by remember { mutableStateOf(false) }
     var showChangeMethodAuthDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        when {
+            showLogoutDialog -> showLogoutDialog = false
+            showDisableAuthDialog -> showDisableAuthDialog = false
+            showChangeMethodAuthDialog -> showChangeMethodAuthDialog = false
+            showLockAfterSheet -> showLockAfterSheet = false
+            showSetupSheet -> showSetupSheet = false
+            else -> onBack()
+        }
+    }
 
     // Logout Confirmation Dialog
     if (showLogoutDialog) {

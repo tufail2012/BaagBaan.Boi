@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -96,16 +97,24 @@ fun GlobalSearchResultsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedDetailCropRecord by remember { mutableStateOf<CropRecord?>(null) }
+    var selectedDetailGardenEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
+    var selectedCategoryFilter by remember { mutableStateOf("All Categories") }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+
+    BackHandler {
+        when {
+            selectedDetailCropRecord != null -> selectedDetailCropRecord = null
+            selectedDetailGardenEntry != null -> selectedDetailGardenEntry = null
+            else -> onBack()
+        }
+    }
+
     val searchResults by viewModel.globalSearchResults.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isDark = isAppInDarkMode()
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
-
-    var selectedDetailCropRecord by remember { mutableStateOf<CropRecord?>(null) }
-    var selectedDetailGardenEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
-    var selectedCategoryFilter by remember { mutableStateOf("All Categories") }
-    var dropdownExpanded by remember { mutableStateOf(false) }
 
     val categoryFilterOptions = listOf(
         "All Categories",

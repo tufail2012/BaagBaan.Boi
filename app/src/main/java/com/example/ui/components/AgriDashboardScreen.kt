@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -100,6 +101,8 @@ fun AgriDashboardScreen(
     onNavigateToSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    BackHandler(onBack = onBack)
+
     val allRecords by viewModel.allRecords.collectAsState()
     val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()

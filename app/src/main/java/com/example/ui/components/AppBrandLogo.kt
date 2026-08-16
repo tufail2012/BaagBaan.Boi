@@ -7,7 +7,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -27,7 +26,7 @@ import com.example.ui.AppThemeMode
  * Reusable theme-adaptive App Logo Composable.
  * Renders the realistic red apple icon with pointed leaf on the right side.
  * Automatically adapts the background container based on the current theme mode:
- * - Light Mode: White background (#FFFFFF)
+ * - Light Mode: Pure White background (#FFFFFF)
  * - Dark Mode: Dark background (#121212)
  * - AMOLED Mode: Pure Black background (#000000)
  */
@@ -46,9 +45,10 @@ fun AppBrandLogo(
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK -> true
         AppThemeMode.AMOLED -> true
-        null -> MaterialTheme.colorScheme.background.red < 0.2f
+        null -> MaterialTheme.colorScheme.background.red < 0.25f
     }
-    val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
+    val isAmoled = themeMode == AppThemeMode.AMOLED ||
+            (isDark && (MaterialTheme.colorScheme.background == Color(0xFF000000) || MaterialTheme.colorScheme.surface == Color(0xFF000000)))
 
     val backgroundColor = when {
         isAmoled -> Color(0xFF000000)
@@ -79,3 +79,4 @@ fun AppBrandLogo(
         )
     }
 }
+

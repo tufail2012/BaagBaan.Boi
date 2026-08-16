@@ -1,5 +1,6 @@
 package com.example.ui.components.attendance
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHost
@@ -57,6 +58,18 @@ fun AttendanceMainScreen(
     var currentScreen by remember { mutableStateOf(AttendanceViewScreen.HOME) }
     val selectedWorker by viewModel.selectedWorker.collectAsState()
     val userMessage by viewModel.userMessage.collectAsState()
+
+    BackHandler {
+        when (currentScreen) {
+            AttendanceViewScreen.DAILY_MARKING,
+            AttendanceViewScreen.WORKER_DETAIL -> {
+                currentScreen = AttendanceViewScreen.HOME
+            }
+            AttendanceViewScreen.HOME -> {
+                onNavigateBackToMain()
+            }
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
 

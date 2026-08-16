@@ -328,11 +328,12 @@ fun AgriHeader(
 
                     val isAppLogo = when (title.lowercase()) {
                         "agricrop", "baagbaan boi", "home", "dashboard" -> true
-                        "imported", "imported plants", "rootstocks", "imported rootstocks", "site visit", "pruning", "bookings", "garden planning", "garden", "attendance", "worker attendance" -> false
-                        else -> true
+                        "local", "local plants", "imported", "imported plants", "rootstocks", "imported rootstocks", "site visit", "pruning", "bookings", "garden planning", "garden", "attendance", "worker attendance" -> false
+                        else -> false
                     }
 
                     val headerBadgeIcon = when (title.lowercase()) {
+                        "local", "local plants" -> Icons.Outlined.LocalFlorist
                         "imported", "imported plants" -> Icons.Default.LocalShipping
                         "rootstocks", "imported rootstocks" -> Icons.Default.Spa
                         "site visit" -> Icons.Outlined.Assignment

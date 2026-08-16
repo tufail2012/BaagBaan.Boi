@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -75,6 +76,10 @@ fun BusinessInfoDialog(
         }
     }
 
+    BackHandler(enabled = !isSaving) {
+        onDismiss()
+    }
+
     Dialog(
         onDismissRequest = {
             if (!isSaving) onDismiss()
@@ -85,9 +90,7 @@ fun BusinessInfoDialog(
         )
     ) {
         Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
+            modifier = Modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
@@ -166,135 +169,13 @@ fun BusinessInfoDialog(
                         }
                     }
                 }
-            },
-            bottomBar = {
-                // Bottom Action Bar with Awaited Save & Reset Buttons
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 3.dp,
-                    shadowElevation = 8.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                    ) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    businessName = BusinessInfo.DEFAULT.businessName
-                                    tagline = BusinessInfo.DEFAULT.tagline
-                                    address = BusinessInfo.DEFAULT.address
-                                    contactNumbers = BusinessInfo.DEFAULT.contactNumbers
-                                    accountNumber = BusinessInfo.DEFAULT.accountNumber
-                                    accountHolderName = BusinessInfo.DEFAULT.accountHolderName
-                                    ifscCode = BusinessInfo.DEFAULT.ifscCode
-                                    registrationNumber = BusinessInfo.DEFAULT.registrationNumber
-                                },
-                                enabled = !isSaving,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                                    .testTag("business_info_reset_button")
-                            ) {
-                                Text("Reset Defaults", fontWeight = FontWeight.Medium)
-                            }
-
-                            Button(
-                                onClick = {
-                                    if (businessName.isBlank()) {
-                                        errorMessage = "Business Name cannot be empty"
-                                        return@Button
-                                    }
-                                    if (address.isBlank()) {
-                                        errorMessage = "Address cannot be empty"
-                                        return@Button
-                                    }
-
-                                    isSaving = true
-                                    errorMessage = null
-                                    successMessage = null
-
-                                    val sanitizedContacts = contactNumbers
-                                        .map { it.trim() }
-                                        .filter { it.isNotBlank() && it != "+91" && it != "+91 " }
-
-                                    val updatedInfo = BusinessInfo(
-                                        businessName = businessName.trim(),
-                                        tagline = tagline.trim(),
-                                        address = address.trim(),
-                                        contactNumbers = if (sanitizedContacts.isNotEmpty()) sanitizedContacts else listOf("+916006143037"),
-                                        accountNumber = accountNumber.trim(),
-                                        accountHolderName = accountHolderName.trim(),
-                                        ifscCode = ifscCode.trim(),
-                                        registrationNumber = registrationNumber.trim()
-                                    )
-
-                                    coroutineScope.launch {
-                                        try {
-                                            val res = BusinessInfoRepository.saveBusinessInfo(updatedInfo, context)
-                                            if (res.isSuccess) {
-                                                successMessage = "Business Info saved & synced across devices!"
-                                                Toast.makeText(context, "Business Info saved successfully!", Toast.LENGTH_SHORT).show()
-                                            } else {
-                                                val err = res.exceptionOrNull()?.message ?: "Unknown error"
-                                                errorMessage = "Failed to save: $err"
-                                            }
-                                        } catch (e: Exception) {
-                                            errorMessage = "Error: ${e.message}"
-                                        } finally {
-                                            isSaving = false
-                                        }
-                                    }
-                                },
-                                enabled = !isSaving,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .weight(1.5f)
-                                    .height(48.dp)
-                                    .testTag("business_info_save_button"),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                if (isSaving) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Saving...")
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Save,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Save Business Info", fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
-                    }
-                }
             }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .imePadding()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -634,6 +515,119 @@ fun BusinessInfoDialog(
                         }
                     }
 
+                    // Action Buttons (Reset Default & Save Business Info)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                businessName = BusinessInfo.DEFAULT.businessName
+                                tagline = BusinessInfo.DEFAULT.tagline
+                                address = BusinessInfo.DEFAULT.address
+                                contactNumbers = BusinessInfo.DEFAULT.contactNumbers
+                                accountNumber = BusinessInfo.DEFAULT.accountNumber
+                                accountHolderName = BusinessInfo.DEFAULT.accountHolderName
+                                ifscCode = BusinessInfo.DEFAULT.ifscCode
+                                registrationNumber = BusinessInfo.DEFAULT.registrationNumber
+                            },
+                            enabled = !isSaving,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("business_info_reset_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RestartAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Reset Default", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                if (businessName.isBlank()) {
+                                    errorMessage = "Business Name cannot be empty"
+                                    return@Button
+                                }
+                                if (address.isBlank()) {
+                                    errorMessage = "Address cannot be empty"
+                                    return@Button
+                                }
+
+                                isSaving = true
+                                errorMessage = null
+                                successMessage = null
+
+                                val sanitizedContacts = contactNumbers
+                                    .map { it.trim() }
+                                    .filter { it.isNotBlank() && it != "+91" && it != "+91 " }
+
+                                val updatedInfo = BusinessInfo(
+                                    businessName = businessName.trim(),
+                                    tagline = tagline.trim(),
+                                    address = address.trim(),
+                                    contactNumbers = if (sanitizedContacts.isNotEmpty()) sanitizedContacts else listOf("+916006143037"),
+                                    accountNumber = accountNumber.trim(),
+                                    accountHolderName = accountHolderName.trim(),
+                                    ifscCode = ifscCode.trim(),
+                                    registrationNumber = registrationNumber.trim()
+                                )
+
+                                coroutineScope.launch {
+                                    try {
+                                        val res = BusinessInfoRepository.saveBusinessInfo(updatedInfo, context)
+                                        if (res.isSuccess) {
+                                            successMessage = "Business Info saved & synced across devices!"
+                                            Toast.makeText(context, "Business Info saved successfully!", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            val err = res.exceptionOrNull()?.message ?: "Unknown error"
+                                            errorMessage = "Failed to save: $err"
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Error: ${e.message}"
+                                    } finally {
+                                        isSaving = false
+                                    }
+                                }
+                            },
+                            enabled = !isSaving,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .testTag("business_info_save_button"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            if (isSaving) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Save Business Info", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
+                        }
+                    }
+
+                    // Safe bottom spacing & navigation bar inset clearance
+                    Spacer(modifier = Modifier.navigationBarsPadding())
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
