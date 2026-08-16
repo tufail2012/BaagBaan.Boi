@@ -567,7 +567,7 @@ fun SettingsScreen(
                                 (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
                             }
                             val masterLockIconTint = if (isAppLockEnabled) {
-                                if (isDarkTheme) Color.White else MaterialTheme.colorScheme.primary
+                                Color.White
                             } else {
                                 if (isDarkTheme) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
                             }
@@ -589,7 +589,7 @@ fun SettingsScreen(
                                             .background(
                                                 if (isAppLockEnabled) {
                                                     if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                                                    else MaterialTheme.colorScheme.primaryContainer
+                                                    else MaterialTheme.colorScheme.primary
                                                 } else MaterialTheme.colorScheme.surfaceVariant
                                             ),
                                         contentAlignment = Alignment.Center
@@ -907,16 +907,16 @@ private fun SettingsNavigationRow(
         (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
     }
     val iconTint = if (isDestructive) {
-        if (isDark) Color(0xFFFFB4AB) else MaterialTheme.colorScheme.error
+        if (isDark) Color(0xFFFFB4AB) else Color.White
     } else {
-        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+        Color.White
     }
     val containerBg = if (isDestructive) {
         if (isDark) MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-        else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+        else MaterialTheme.colorScheme.error
     } else {
         if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        else MaterialTheme.colorScheme.primary
     }
     val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
 
@@ -994,13 +994,13 @@ private fun SettingsToggleRow(
         (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
     }
     val iconTint = if (checked) {
-        if (isDark) Color.White else MaterialTheme.colorScheme.primary
+        Color.White
     } else {
         if (isDark) Color.White.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurfaceVariant
     }
     val boxBg = if (checked) {
         if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+        else MaterialTheme.colorScheme.primary
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }

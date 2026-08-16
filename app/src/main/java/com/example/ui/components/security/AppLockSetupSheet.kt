@@ -599,7 +599,7 @@ private fun MethodOptionCard(
                     (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
                 }
                 val iconTint = if (enabled) {
-                    if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                    Color.White
                 } else {
                     if (isDark) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 }
@@ -611,7 +611,7 @@ private fun MethodOptionCard(
                         .background(
                             if (enabled) {
                                 if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                                else MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.primary
                             } else MaterialTheme.colorScheme.surfaceVariant
                         ),
                     contentAlignment = Alignment.Center
