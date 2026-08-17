@@ -3,6 +3,8 @@ package com.example
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import com.example.ui.AppThemeMode
+import com.example.ui.components.AgriHeader
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -25,5 +27,20 @@ class GreetingScreenshotTest {
     composeTestRule.setContent { MyApplicationTheme { Text("BAAGBAAN BOI") } }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/greeting.png")
+  }
+
+  @Test
+  fun local_plants_header_light_mode_screenshot() {
+    composeTestRule.setContent {
+      MyApplicationTheme(themeMode = AppThemeMode.LIGHT) {
+        AgriHeader(
+          title = "Local Plants",
+          themeMode = AppThemeMode.LIGHT,
+          onSelectThemeMode = {}
+        )
+      }
+    }
+
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/local_plants_header_light.png")
   }
 }
