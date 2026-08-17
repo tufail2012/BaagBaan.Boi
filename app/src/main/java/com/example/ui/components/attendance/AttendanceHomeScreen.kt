@@ -1,6 +1,9 @@
 package com.example.ui.components.attendance
 
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.ui.components.BrandedPullToRefreshBox
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -118,6 +121,8 @@ fun AttendanceHomeScreen(
 
     var showAddWorkerDialog by remember { mutableStateOf(false) }
     var workerToEdit by remember { mutableStateOf<Worker?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val monthDisplayName = remember(selectedMonthYear) {
         try {
@@ -336,49 +341,62 @@ fun AttendanceHomeScreen(
                 val attendanceHomeListState = rememberLazyListState()
                 attendanceHomeListState.rememberScrollHapticFeedback()
 
-                LazyColumn(
-                    state = attendanceHomeListState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                BrandedPullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        if (isRefreshing) return@BrandedPullToRefreshBox
+                        isRefreshing = true
+                        scope.launch {
+                            delay(700)
+                            isRefreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Active Roster (${activeWorkers.size})",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                    LazyColumn(
+                        state = attendanceHomeListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Active Roster (${activeWorkers.size})",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
 
-                            TextButton(onClick = { showAddWorkerDialog = true }) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Worker", fontWeight = FontWeight.SemiBold)
+                                TextButton(onClick = { showAddWorkerDialog = true }) {
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Add Worker", fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
-                    }
 
-                    items(activeWorkers, key = { it.workerId }) { worker ->
-                        val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
-                        val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
-                        val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
+                        items(activeWorkers, key = { it.workerId }) { worker ->
+                            val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
+                            val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
+                            val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
 
-                        WorkerSummaryCard(
-                            worker = worker,
-                            presentCount = presentCount,
-                            absentCount = absentCount,
-                            onClick = { onSelectWorker(worker) },
-                            onEditClick = { workerToEdit = worker }
-                        )
-                    }
+                            WorkerSummaryCard(
+                                worker = worker,
+                                presentCount = presentCount,
+                                absentCount = absentCount,
+                                onClick = { onSelectWorker(worker) },
+                                onEditClick = { workerToEdit = worker }
+                            )
+                        }
 
-                    item {
-                        Spacer(modifier = Modifier.height(72.dp))
+                        item {
+                            Spacer(modifier = Modifier.height(72.dp))
+                        }
                     }
                 }
             }

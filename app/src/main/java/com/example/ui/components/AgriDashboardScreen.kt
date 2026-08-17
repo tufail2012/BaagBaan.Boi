@@ -86,6 +86,10 @@ import com.example.data.UserBooking
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
@@ -135,6 +139,8 @@ fun AgriDashboardScreen(
     }
 
     var selectedFilterTab by remember { mutableStateOf("All") }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val filteredLogRecords = remember(allRecords, rawBookings, selectedFilterTab) {
         when (selectedFilterTab) {
@@ -295,7 +301,20 @@ fun AgriDashboardScreen(
                 }
             }
 
-            LazyColumn(
+            BrandedPullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    if (isRefreshing) return@BrandedPullToRefreshBox
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        userDashboardViewModel.refreshUser()
+                        delay(700)
+                        isRefreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
@@ -520,6 +539,7 @@ fun AgriDashboardScreen(
                 }
 
                 item { Spacer(modifier = Modifier.height(24.dp)) }
+            }
             }
         }
     }

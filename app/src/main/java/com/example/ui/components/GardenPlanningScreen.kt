@@ -1,5 +1,9 @@
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
+
 import androidx.compose.material3.LocalTextStyle
 
 import kotlin.math.roundToInt
@@ -1734,6 +1738,8 @@ fun GardenPlanningRecordsTab(
 
     var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
     var entryToDelete by remember { mutableStateOf<GardenPlanningEntry?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var isInitialLoading by remember { mutableStateOf(true) }
     androidx.compose.runtime.LaunchedEffect(entries) {
         if (entries.isNotEmpty()) {
@@ -1783,13 +1789,25 @@ fun GardenPlanningRecordsTab(
     val pendingPayment = (totalPayment - receivedPayment).coerceAtLeast(0.0)
     val totalQuantity = entries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() }
 
-    LazyColumn(
-        state = lazyListState,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+    BrandedPullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            if (isRefreshing) return@BrandedPullToRefreshBox
+            isRefreshing = true
+            scope.launch {
+                delay(700)
+                isRefreshing = false
+            }
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
         // 1. Active Recording Book Header Banner (positioned directly ABOVE search box)
         item {
             RecordingBookHeader(
@@ -1900,6 +1918,7 @@ fun GardenPlanningRecordsTab(
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+    }
     }
 }
 

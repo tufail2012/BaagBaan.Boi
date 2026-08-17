@@ -56,6 +56,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.UserAttendance
 import com.example.ui.UserDashboardViewModel
 
@@ -69,6 +73,8 @@ fun UserAttendanceSection(
 
     var showMarkAttendanceModal by remember { mutableStateOf(false) }
     var attendanceToDelete by remember { mutableStateOf<UserAttendance?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Group records by date (sorted by date descending)
     val groupedByDate = remember(rawAttendanceList) {
@@ -170,122 +176,132 @@ fun UserAttendanceSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Content Area (Loading, Empty State, or Grouped List)
-        if (isLoading && rawAttendanceList.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Loading attendance records from Firestore...", style = MaterialTheme.typography.bodyMedium)
+        // Content Area with Branded Pull to Refresh (Loading, Empty State, or Grouped List)
+        BrandedPullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                if (isRefreshing) return@BrandedPullToRefreshBox
+                isRefreshing = true
+                coroutineScope.launch {
+                    viewModel.refreshUser()
+                    delay(700)
+                    isRefreshing = false
                 }
-            }
-        } else if (rawAttendanceList.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            if (isLoading && rawAttendanceList.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.HowToReg,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "No Attendance Records",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Tap 'Mark Attendance' to log present, absent or leave records for daily workers.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { showMarkAttendanceModal = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Mark Attendance", fontWeight = FontWeight.Bold, color = Color.White)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Loading attendance records from Firestore...", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-            }
-        } else {
-            val attendanceListState = rememberLazyListState()
-            attendanceListState.rememberScrollHapticFeedback()
-
-            LazyColumn(
-                state = attendanceListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentPadding = PaddingValues(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                groupedByDate.forEach { (dateGroup, records) ->
-                    item(key = "header_$dateGroup") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+            } else if (rawAttendanceList.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CalendarToday,
+                                imageVector = Icons.Default.HowToReg,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(36.dp)
                             )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No Attendance Records",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Tap 'Mark Attendance' to log present, absent or leave records for daily workers.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { showMarkAttendanceModal = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = dateGroup,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    text = "${records.size} workers",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                )
-                            }
+                            Text("Mark Attendance", fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
+                }
+            } else {
+                val attendanceListState = rememberLazyListState()
+                attendanceListState.rememberScrollHapticFeedback()
 
-                    items(records, key = { it.id }) { record ->
-                        AttendanceCardItem(
-                            record = record,
-                            onDelete = { attendanceToDelete = record }
-                        )
+                LazyColumn(
+                    state = attendanceListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    groupedByDate.forEach { (dateGroup, records) ->
+                        item(key = "header_$dateGroup") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = dateGroup,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = CircleShape
+                                ) {
+                                    Text(
+                                        text = "${records.size} workers",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        items(records, key = { it.id }) { record ->
+                            AttendanceCardItem(
+                                record = record,
+                                onDelete = { attendanceToDelete = record }
+                            )
+                        }
                     }
                 }
             }

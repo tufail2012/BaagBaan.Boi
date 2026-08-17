@@ -3,6 +3,8 @@
 package com.example.ui.components
 
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -194,6 +196,7 @@ fun ContactDirectoryDialog(
 
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     // Expanded Contact Detail State
     var selectedContactForDetails by remember { mutableStateOf<ContactDisplayItem?>(null) }
@@ -456,13 +459,32 @@ fun ContactDirectoryDialog(
                         val contactListState = rememberLazyListState()
                         contactListState.rememberScrollHapticFeedback()
 
-                        LazyColumn(
-                            state = contactListState,
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        BrandedPullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = {
+                                if (isRefreshing) return@BrandedPullToRefreshBox
+                                isRefreshing = true
+                                scope.launch {
+                                    val deviceKeys = queryDeviceContactsKeys(context)
+                                    if (deviceKeys.isNotEmpty()) {
+                                        val updated = savedPhoneKeys + deviceKeys
+                                        savedPhoneKeys = updated
+                                        val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+                                        prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
+                                    }
+                                    delay(700)
+                                    isRefreshing = false
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
                         ) {
+                            LazyColumn(
+                                state = contactListState,
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
                             items(allContactsList, key = { "${it.id}_${it.phone}_${it.name}" }) { item ->
                                 val isSavedInPhone = remember(item.name, item.phone, savedPhoneKeys) {
                                     getContactKeys(item.name, item.phone).any { savedPhoneKeys.contains(it) }
@@ -598,8 +620,9 @@ fun ContactDirectoryDialog(
                             }
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

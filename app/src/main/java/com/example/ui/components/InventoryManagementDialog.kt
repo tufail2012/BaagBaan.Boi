@@ -28,6 +28,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppDatabase
 import com.example.data.FirestoreSyncManager
 import com.example.data.InventoryItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,6 +54,7 @@ fun InventoryManagementDialog(
     var showAddEditModal by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<InventoryItem?>(null) }
     var itemToDelete by remember { mutableStateOf<InventoryItem?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     val currencyFormatter = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
 
@@ -385,32 +387,45 @@ fun InventoryManagementDialog(
                         }
                     }
                 } else {
-                    LazyColumn(
+                    BrandedPullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = {
+                            if (isRefreshing) return@BrandedPullToRefreshBox
+                            isRefreshing = true
+                            scope.launch {
+                                delay(700)
+                                isRefreshing = false
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .weight(1f)
                     ) {
-                        items(filteredItems, key = { it.id }) { item ->
-                            InventoryItemCard(
-                                item = item,
-                                isDark = isDark,
-                                onEdit = {
-                                    itemToEdit = item
-                                    showAddEditModal = true
-                                },
-                                onDelete = {
-                                    itemToDelete = item
-                                },
-                                onQuantityAdjust = { delta ->
-                                    scope.launch(Dispatchers.IO) {
-                                        val newQty = (item.currentQuantity + delta).coerceAtLeast(0)
-                                        val updated = item.copy(currentQuantity = newQty)
-                                        db.inventoryDao().updateItem(updated)
-                                        firestoreSyncManager.saveInventoryItem(updated)
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(filteredItems, key = { it.id }) { item ->
+                                InventoryItemCard(
+                                    item = item,
+                                    isDark = isDark,
+                                    onEdit = {
+                                        itemToEdit = item
+                                        showAddEditModal = true
+                                    },
+                                    onDelete = {
+                                        itemToDelete = item
+                                    },
+                                    onQuantityAdjust = { delta ->
+                                        scope.launch(Dispatchers.IO) {
+                                            val newQty = (item.currentQuantity + delta).coerceAtLeast(0)
+                                            val updated = item.copy(currentQuantity = newQty)
+                                            db.inventoryDao().updateItem(updated)
+                                            firestoreSyncManager.saveInventoryItem(updated)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }

@@ -91,6 +91,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
@@ -145,6 +149,8 @@ fun FarmerRecordsScreen(
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
 
     var isInitialLoading by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     androidx.compose.runtime.LaunchedEffect(records) {
         if (records.isNotEmpty()) {
             isInitialLoading = false
@@ -160,14 +166,26 @@ fun FarmerRecordsScreen(
     val pendingPayment = records.sumOf { it.calculateRemainingBalance() }
     val totalQuantity = records.sumOf { it.quantity }
 
-    LazyColumn(
-        state = listState,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(bottom = 100.dp)
+    BrandedPullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            if (isRefreshing) return@BrandedPullToRefreshBox
+            isRefreshing = true
+            coroutineScope.launch {
+                delay(700)
+                isRefreshing = false
+            }
+        },
+        modifier = modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 100.dp)
+        ) {
         // 1. Active Recording Book Header Banner
         item {
             RecordingBookHeader(
@@ -281,6 +299,7 @@ fun FarmerRecordsScreen(
                 }
             }
         }
+    }
     }
 
     recordToDelete?.let { rec ->

@@ -2,6 +2,9 @@
 
 package com.example.ui.components
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -101,6 +104,7 @@ fun PaymentRemindersDialog(
     val isDark = isSystemInDarkTheme()
 
     var searchQuery by remember { mutableStateOf("") }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     var loadErrorTrace by remember { mutableStateOf<String?>(null) }
 
@@ -386,23 +390,36 @@ fun PaymentRemindersDialog(
                             }
                         }
                     } else {
-                        LazyColumn(
+                        BrandedPullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = {
+                                if (isRefreshing) return@BrandedPullToRefreshBox
+                                isRefreshing = true
+                                scope.launch {
+                                    delay(700)
+                                    isRefreshing = false
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                .weight(1f)
                         ) {
-                            items(pendingItems, key = { "${it.source}_${it.id}" }) { item ->
-                                PendingPaymentRow(
-                                    item = item,
-                                    numberFormat = numberFormat,
-                                    isDark = isDark,
-                                    onSendWhatsApp = { openWhatsAppReminder(item) },
-                                    onCall = { makePhoneCall(item.contactNumber) }
-                                )
-                            }
-                            item {
-                                Spacer(modifier = Modifier.height(20.dp))
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(pendingItems, key = { "${it.source}_${it.id}" }) { item ->
+                                    PendingPaymentRow(
+                                        item = item,
+                                        numberFormat = numberFormat,
+                                        isDark = isDark,
+                                        onSendWhatsApp = { openWhatsAppReminder(item) },
+                                        onCall = { makePhoneCall(item.contactNumber) }
+                                    )
+                                }
+                                item {
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                }
                             }
                         }
                     }

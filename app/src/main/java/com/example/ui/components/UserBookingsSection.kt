@@ -64,6 +64,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.UserBooking
 import com.example.ui.UserDashboardViewModel
 
@@ -79,6 +83,8 @@ fun UserBookingsSection(
 
     var showNewBookingModal by remember { mutableStateOf(false) }
     var bookingToDelete by remember { mutableStateOf<UserBooking?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val filterOptions = listOf("All", "Local Plants", "Imported Plants", "Imported Rootstock", "Pruning", "Site Visit", "Garden Planning")
 
@@ -215,86 +221,96 @@ fun UserBookingsSection(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Content Area (Loading, Empty State, or Card List)
-        if (isLoading && bookings.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Loading bookings from Firestore...", style = MaterialTheme.typography.bodyMedium)
+        // Content Area with Branded Pull to Refresh (Loading, Empty State, or Card List)
+        BrandedPullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                if (isRefreshing) return@BrandedPullToRefreshBox
+                isRefreshing = true
+                coroutineScope.launch {
+                    viewModel.refreshUser()
+                    delay(700)
+                    isRefreshing = false
                 }
-            }
-        } else if (bookings.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            if (isLoading && bookings.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Loading bookings from Firestore...", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            } else if (bookings.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.EventNote,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EventNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = if (selectedFilter == "All") "No Bookings Found" else "No $selectedFilter Bookings",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Tap 'New Booking' to add pre-orders for plants, rootstocks or pruning.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { showNewBookingModal = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("New Booking", fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            } else {
+                val bookingsListState = rememberLazyListState()
+                bookingsListState.rememberScrollHapticFeedback()
+
+                LazyColumn(
+                    state = bookingsListState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 80.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(bookings, key = { it.id }) { booking ->
+                        BookingCardItem(
+                            booking = booking,
+                            onDelete = { bookingToDelete = booking }
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = if (selectedFilter == "All") "No Bookings Found" else "No $selectedFilter Bookings",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Tap 'New Booking' to add pre-orders for plants, rootstocks or pruning.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { showNewBookingModal = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("New Booking", fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                }
-            }
-        } else {
-            val bookingsListState = rememberLazyListState()
-            bookingsListState.rememberScrollHapticFeedback()
-
-            LazyColumn(
-                state = bookingsListState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                contentPadding = PaddingValues(bottom = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(bookings, key = { it.id }) { booking ->
-                    BookingCardItem(
-                        booking = booking,
-                        onDelete = { bookingToDelete = booking }
-                    )
                 }
             }
         }
