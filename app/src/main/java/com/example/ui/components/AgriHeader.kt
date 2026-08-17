@@ -120,6 +120,7 @@ fun AgriHeader(
     onNavigateToBackupRestore: () -> Unit = {},
     onNavigateToContactDirectory: () -> Unit = {},
     onNavigateToPaymentReminders: () -> Unit = {},
+    onNavigateToSeasonalReminders: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onOpenRecycleBin: () -> Unit = {},
@@ -289,11 +290,14 @@ fun AgriHeader(
                             onNavigateToAttendance = onNavigateToAttendance,
                             onNavigateToContactDirectory = onNavigateToContactDirectory,
                             onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                            onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
                             onNavigateToBackupRestore = onNavigateToBackupRestore,
                             onNavigateToLogin = onNavigateToLogin,
                             onNavigateToGardenPlanning = onNavigateToGardenPlanning,
                             onNavigateToSettings = onNavigateToSettings,
                             onNavigateToBusinessInfo = onNavigateToBusinessInfo,
+                            onNavigateToMessageTemplates = onNavigateToMessageTemplates,
+                            onNavigateToQrScanner = onNavigateToQrScanner,
                             onLogout = onLogout,
                             onOpenThemeDialog = { showThemeDialog = true },
                             onOpenRecycleBin = onOpenRecycleBin
@@ -456,6 +460,7 @@ fun AgriHeader(
                                     onNavigateToAttendance = onNavigateToAttendance,
                                     onNavigateToContactDirectory = onNavigateToContactDirectory,
                                     onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                                    onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
                                     onNavigateToBackupRestore = onNavigateToBackupRestore,
                                     onNavigateToLogin = onNavigateToLogin,
                                     onNavigateToGardenPlanning = onNavigateToGardenPlanning,
@@ -694,6 +699,7 @@ private fun OverflowMenuContent(
     onNavigateToAttendance: () -> Unit,
     onNavigateToContactDirectory: () -> Unit,
     onNavigateToPaymentReminders: () -> Unit = {},
+    onNavigateToSeasonalReminders: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onNavigateToGardenPlanning: () -> Unit = {},
@@ -843,6 +849,34 @@ private fun OverflowMenuContent(
             onNavigateToPaymentReminders()
         },
         modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
+    )
+
+    // Seasonal Reminders
+    DropdownMenuItem(
+        text = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Park,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Seasonal Reminders",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
+                )
+            }
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToSeasonalReminders()
+        },
+        modifier = Modifier.testTag("seasonal_reminders_menu_item$tagSuffix")
     )
 
     // 6. Scan QR

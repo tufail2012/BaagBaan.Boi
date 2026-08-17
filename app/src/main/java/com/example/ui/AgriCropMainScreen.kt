@@ -101,6 +101,8 @@ fun AgriCropMainScreen(
     var showContactDirectoryDialog by remember { mutableStateOf(false) }
     var showPaymentRemindersDialog by remember { mutableStateOf(false) }
     val showPaymentRemindersFromVm by viewModel.showPaymentRemindersDialog.collectAsState()
+    var showSeasonalRemindersDialog by remember { mutableStateOf(false) }
+    val showSeasonalRemindersFromVm by viewModel.showSeasonalRemindersDialog.collectAsState()
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
@@ -215,6 +217,15 @@ fun AgriCropMainScreen(
             onDismiss = {
                 showPaymentRemindersDialog = false
                 viewModel.dismissPaymentReminders()
+            }
+        )
+    }
+
+    if (showSeasonalRemindersDialog || showSeasonalRemindersFromVm) {
+        com.example.ui.components.SeasonalRemindersDialog(
+            onDismiss = {
+                showSeasonalRemindersDialog = false
+                viewModel.dismissSeasonalReminders()
             }
         )
     }
@@ -379,6 +390,7 @@ fun AgriCropMainScreen(
                     onOpenRecycleBin = { showRecycleBinDialog = true },
                     onNavigateToBusinessInfo = { showBusinessInfoDialog = true },
                     onNavigateToMessageTemplates = { isMessageTemplatesActive = true },
+                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
                     onBack = { isSettingsActive = false },
                     modifier = modifier
                 )
@@ -423,6 +435,7 @@ fun AgriCropMainScreen(
                     onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                     onNavigateToContactDirectory = { showContactDirectoryDialog = true },
                     onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
                     onNavigateToInventory = { showInventoryDialog = true },
                     onOpenRecycleBin = { showRecycleBinDialog = true },
                     onNavigateToDashboard = { isDashboardActive = true },
@@ -499,6 +512,9 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToPaymentReminders = {
                                     showPaymentRemindersDialog = true
+                                },
+                                onNavigateToSeasonalReminders = {
+                                    showSeasonalRemindersDialog = true
                                 },
                                 onNavigateToInventory = {
                                     showInventoryDialog = true
@@ -655,6 +671,7 @@ fun AgriCropMainScreen(
                                             onNavigateToBackupRestore = { showBackupRestoreDialog = true },
                                             onNavigateToContactDirectory = { showContactDirectoryDialog = true },
                                             onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                                            onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
                                             onNavigateToInventory = { showInventoryDialog = true },
                                             onOpenRecycleBin = { showRecycleBinDialog = true },
                                             onNavigateToDashboard = { isDashboardActive = true },

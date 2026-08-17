@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -105,6 +106,17 @@
                     android:scheme="baagbaanboi"
                     android:host="payments" />
             </intent-filter>
+
+            <!-- Deep link intent filter for Seasonal Reminders -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="com.baagbaan.boi.ACTION_OPEN_SEASONAL_REMINDERS" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="baagbaanboi"
+                    android:host="seasonal" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -120,6 +132,20 @@
         <receiver
             android:name=".notifications.ReminderBroadcastReceiver"
             android:exported="false" />
+
+        <!-- Device Boot & Package Update Receiver for Rescheduling Alarms -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
         <!-- Home-Screen App Widget Receiver -->
         <receiver

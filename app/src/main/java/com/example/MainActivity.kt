@@ -79,6 +79,9 @@ class MainActivity : FragmentActivity() {
 
         cropViewModel.handleDeepLinkUri(intent?.data)
         handleWidgetPaymentIntent(intent)
+        handleSeasonalIntent(intent)
+
+        com.example.data.SeasonalTaskRepository.startListening(this)
 
         val attendanceRepository = AttendanceRepository(database.attendanceDao())
         val attendanceFactory = AttendanceViewModelFactory(attendanceRepository)
@@ -150,6 +153,7 @@ class MainActivity : FragmentActivity() {
             cropViewModel?.handleDeepLinkUri(uri)
         }
         handleWidgetPaymentIntent(intent)
+        handleSeasonalIntent(intent)
     }
 
     private fun handleWidgetPaymentIntent(intent: android.content.Intent?) {
@@ -159,6 +163,16 @@ class MainActivity : FragmentActivity() {
                 (intent.data?.scheme == "baagbaanboi" && intent.data?.host == "payments")
         if (isOpenPayments) {
             cropViewModel?.openPaymentReminders()
+        }
+    }
+
+    private fun handleSeasonalIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val isOpenSeasonal = intent.getBooleanExtra("OPEN_SEASONAL_REMINDERS", false) ||
+                intent.action == "com.baagbaan.boi.ACTION_OPEN_SEASONAL_REMINDERS" ||
+                (intent.data?.scheme == "baagbaanboi" && (intent.data?.host == "seasonal" || intent.data?.host == "seasonal_reminders"))
+        if (isOpenSeasonal) {
+            cropViewModel?.openSeasonalReminders()
         }
     }
 

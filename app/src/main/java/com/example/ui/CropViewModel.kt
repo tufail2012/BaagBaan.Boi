@@ -109,6 +109,7 @@ class CropViewModel(
     }
 
     val showPaymentRemindersDialog = MutableStateFlow(false)
+    val showSeasonalRemindersDialog = MutableStateFlow(false)
 
     fun openPaymentReminders() {
         showPaymentRemindersDialog.value = true
@@ -116,6 +117,14 @@ class CropViewModel(
 
     fun dismissPaymentReminders() {
         showPaymentRemindersDialog.value = false
+    }
+
+    fun openSeasonalReminders() {
+        showSeasonalRemindersDialog.value = true
+    }
+
+    fun dismissSeasonalReminders() {
+        showSeasonalRemindersDialog.value = false
     }
 
     fun dismissGardenEntryDetail() {
@@ -126,6 +135,10 @@ class CropViewModel(
         if (uri == null) return
         if (uri.scheme == "baagbaanboi" && (uri.host == "payments" || uri.host == "payment_reminders" || uri.path == "/payments")) {
             openPaymentReminders()
+            return
+        }
+        if (uri.scheme == "baagbaanboi" && (uri.host == "seasonal" || uri.host == "seasonal_reminders" || uri.path == "/seasonal")) {
+            openSeasonalReminders()
             return
         }
         if (uri.scheme == "baagbaanboi" && uri.host == "record") {
@@ -144,6 +157,10 @@ class CropViewModel(
             val uri = android.net.Uri.parse(rawString)
             if (uri != null && uri.scheme == "baagbaanboi" && (uri.host == "payments" || uri.host == "payment_reminders" || uri.path == "/payments")) {
                 openPaymentReminders()
+                return
+            }
+            if (uri != null && uri.scheme == "baagbaanboi" && (uri.host == "seasonal" || uri.host == "seasonal_reminders" || uri.path == "/seasonal")) {
+                openSeasonalReminders()
                 return
             }
             if (uri != null && uri.scheme == "baagbaanboi" && uri.host == "record") {
