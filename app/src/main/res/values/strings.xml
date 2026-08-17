@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">BAAGBAAN BOI</string>
+    <string name="widget_pending_payments_description">View pending payments, total dues, and upcoming delivery dates at a glance.</string>
 </resources>

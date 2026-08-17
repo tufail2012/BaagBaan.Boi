@@ -100,6 +100,7 @@ fun AgriCropMainScreen(
     var showBackupRestoreDialog by remember { mutableStateOf(false) }
     var showContactDirectoryDialog by remember { mutableStateOf(false) }
     var showPaymentRemindersDialog by remember { mutableStateOf(false) }
+    val showPaymentRemindersFromVm by viewModel.showPaymentRemindersDialog.collectAsState()
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
@@ -209,9 +210,12 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showPaymentRemindersDialog) {
+    if (showPaymentRemindersDialog || showPaymentRemindersFromVm) {
         PaymentRemindersDialog(
-            onDismiss = { showPaymentRemindersDialog = false }
+            onDismiss = {
+                showPaymentRemindersDialog = false
+                viewModel.dismissPaymentReminders()
+            }
         )
     }
 

@@ -576,6 +576,7 @@ class FirestoreSyncManager {
 
             updateSyncState(SyncState.SYNCED)
             Log.d(TAG, "Full Cloud Firestore to Local Room DB sync completed successfully for user $uid")
+            com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
         } catch (e: Exception) {
             updateSyncState(SyncState.OFFLINE)
             Log.e(TAG, "Error performing Cloud sync: ${e.message}")

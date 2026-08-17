@@ -35,6 +35,7 @@ class CropRecordRepository(
         firestoreSyncManager.saveCropRecord(recordToSync)
         syncFarmerContactOnSave(recordToSync)
         adjustInventoryOnBookingSave(recordToSync)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
         return insertedId
     }
 
@@ -51,6 +52,7 @@ class CropRecordRepository(
             adjustInventoryOnBookingDelete(previousRecord)
         }
         adjustInventoryOnBookingSave(record)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
     }
 
     suspend fun delete(record: CropRecord) {
@@ -58,6 +60,7 @@ class CropRecordRepository(
         firestoreSyncManager.deleteCropRecord(record.id)
         syncFarmerContactOnDelete(record)
         adjustInventoryOnBookingDelete(record)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
 
         if (recycleBinDao != null) {
             val jsonPayload = RecycleBinConverter.cropRecordToJson(record)

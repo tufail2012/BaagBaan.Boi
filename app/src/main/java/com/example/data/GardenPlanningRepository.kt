@@ -31,6 +31,7 @@ class GardenPlanningRepository(
         val entryToSync = if (entry.id == 0L) entry.copy(id = insertedId) else entry
         firestoreSyncManager.saveGardenPlanningEntry(entryToSync)
         syncFarmerContactOnSave(entryToSync)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
         return insertedId
     }
 
@@ -38,11 +39,13 @@ class GardenPlanningRepository(
         dao.updateEntry(entry)
         firestoreSyncManager.saveGardenPlanningEntry(entry)
         syncFarmerContactOnSave(entry)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
     }
 
     suspend fun delete(entry: GardenPlanningEntry) {
         dao.deleteEntry(entry)
         firestoreSyncManager.deleteGardenPlanningEntry(entry.id)
+        com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
 
         if (recycleBinDao != null) {
             val jsonPayload = RecycleBinConverter.gardenPlanningToJson(entry)

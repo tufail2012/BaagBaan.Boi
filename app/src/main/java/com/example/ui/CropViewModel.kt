@@ -108,12 +108,26 @@ class CropViewModel(
         _selectedDetailGardenEntry.value = entry
     }
 
+    val showPaymentRemindersDialog = MutableStateFlow(false)
+
+    fun openPaymentReminders() {
+        showPaymentRemindersDialog.value = true
+    }
+
+    fun dismissPaymentReminders() {
+        showPaymentRemindersDialog.value = false
+    }
+
     fun dismissGardenEntryDetail() {
         _selectedDetailGardenEntry.value = null
     }
 
     fun handleDeepLinkUri(uri: android.net.Uri?, onInvalid: ((String) -> Unit)? = null) {
         if (uri == null) return
+        if (uri.scheme == "baagbaanboi" && (uri.host == "payments" || uri.host == "payment_reminders" || uri.path == "/payments")) {
+            openPaymentReminders()
+            return
+        }
         if (uri.scheme == "baagbaanboi" && uri.host == "record") {
             val type = uri.getQueryParameter("type") ?: ""
             val idStr = uri.getQueryParameter("id")
@@ -128,6 +142,10 @@ class CropViewModel(
     fun handleDeepLinkString(rawString: String, onInvalid: ((String) -> Unit)? = null) {
         try {
             val uri = android.net.Uri.parse(rawString)
+            if (uri != null && uri.scheme == "baagbaanboi" && (uri.host == "payments" || uri.host == "payment_reminders" || uri.path == "/payments")) {
+                openPaymentReminders()
+                return
+            }
             if (uri != null && uri.scheme == "baagbaanboi" && uri.host == "record") {
                 val type = uri.getQueryParameter("type") ?: ""
                 val idStr = uri.getQueryParameter("id")

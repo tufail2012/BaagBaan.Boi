@@ -78,6 +78,7 @@ class MainActivity : FragmentActivity() {
         this.cropViewModel = cropViewModel
 
         cropViewModel.handleDeepLinkUri(intent?.data)
+        handleWidgetPaymentIntent(intent)
 
         val attendanceRepository = AttendanceRepository(database.attendanceDao())
         val attendanceFactory = AttendanceViewModelFactory(attendanceRepository)
@@ -147,6 +148,17 @@ class MainActivity : FragmentActivity() {
         setIntent(intent)
         intent.data?.let { uri ->
             cropViewModel?.handleDeepLinkUri(uri)
+        }
+        handleWidgetPaymentIntent(intent)
+    }
+
+    private fun handleWidgetPaymentIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val isOpenPayments = intent.getBooleanExtra("OPEN_PAYMENT_REMINDERS", false) ||
+                intent.action == "com.baagbaan.boi.ACTION_OPEN_PAYMENT_REMINDERS" ||
+                (intent.data?.scheme == "baagbaanboi" && intent.data?.host == "payments")
+        if (isOpenPayments) {
+            cropViewModel?.openPaymentReminders()
         }
     }
 

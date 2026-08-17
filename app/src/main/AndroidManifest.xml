@@ -94,6 +94,17 @@
                     android:scheme="baagbaanboi"
                     android:host="record" />
             </intent-filter>
+
+            <!-- Deep link intent filter for Payment Reminders widget -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="com.baagbaan.boi.ACTION_OPEN_PAYMENT_REMINDERS" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="baagbaanboi"
+                    android:host="payments" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -109,6 +120,19 @@
         <receiver
             android:name=".notifications.ReminderBroadcastReceiver"
             android:exported="false" />
+
+        <!-- Home-Screen App Widget Receiver -->
+        <receiver
+            android:name=".widget.PendingPaymentsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pending_payments_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
