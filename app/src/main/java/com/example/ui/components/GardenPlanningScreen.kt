@@ -9,7 +9,9 @@ import androidx.compose.material3.LocalTextStyle
 import kotlin.math.roundToInt
 import android.graphics.Bitmap
 import android.Manifest
+import android.app.Activity
 import android.app.DatePickerDialog
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.ContentUris
@@ -18,6 +20,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
+import android.speech.RecognizerIntent
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -100,6 +103,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.LocalFlorist
@@ -587,6 +591,45 @@ fun GardenPlanningFormTab(
             }
         } else {
             contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
+
+    val speechToTextLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                val current = viewModel.notes.value
+                val updated = if (current.isBlank()) spokenText else "$current $spokenText"
+                viewModel.notes.value = updated
+            }
+        }
+    }
+
+    val launchSpeechToText = {
+        try {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak notes or inspection remarks...")
+            }
+            speechToTextLauncher.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.e("GardenPlanning", "Speech recognizer not found", e)
+            Toast.makeText(context, "Voice input not available on this device", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("GardenPlanning", "Failed to launch speech recognizer", e)
+            Toast.makeText(context, "Unable to open voice input", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchSpeechToText()
+        } else {
+            Toast.makeText(context, "Microphone permission is required for voice input", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1477,6 +1520,24 @@ fun GardenPlanningFormTab(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
                 )
+            },
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            launchSpeechToText()
+                        } else {
+                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
+                    modifier = Modifier.testTag("garden_notes_voice_input_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Input",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()

@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.ContactsContract
+import android.speech.RecognizerIntent
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -80,6 +81,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Send
@@ -330,6 +332,45 @@ fun FarmerFormScreen(
             launchContactPicker()
         } else {
             Toast.makeText(context, "Contacts permission is required to select a contact", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val speechToTextLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                val current = viewModel.notes.value
+                val updated = if (current.isBlank()) spokenText else "$current $spokenText"
+                viewModel.notes.value = updated
+            }
+        }
+    }
+
+    val launchSpeechToText = {
+        try {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak notes or inspection remarks...")
+            }
+            speechToTextLauncher.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.e("FarmerFormScreen", "Speech recognizer not found", e)
+            Toast.makeText(context, "Voice input not available on this device", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("FarmerFormScreen", "Failed to launch speech recognizer", e)
+            Toast.makeText(context, "Unable to open voice input", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchSpeechToText()
+        } else {
+            Toast.makeText(context, "Microphone permission is required for voice input", Toast.LENGTH_SHORT).show()
         }
     }
     val serialNumber by viewModel.serialNumber.collectAsState()
@@ -1908,10 +1949,29 @@ fun FarmerFormScreen(
                     tint = MaterialTheme.colorScheme.primary
                 )
             },
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            launchSpeechToText()
+                        } else {
+                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
+                    modifier = Modifier.testTag("notes_voice_input_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Voice Input",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark),
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("farmer_notes_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
