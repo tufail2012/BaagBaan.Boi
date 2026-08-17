@@ -307,9 +307,13 @@ fun AgriDashboardScreen(
                     if (isRefreshing) return@BrandedPullToRefreshBox
                     isRefreshing = true
                     coroutineScope.launch {
-                        userDashboardViewModel.refreshUser()
-                        delay(700)
-                        isRefreshing = false
+                        try {
+                            userDashboardViewModel.refreshUser()
+                            delay(600)
+                        } catch (_: Exception) {
+                        } finally {
+                            isRefreshing = false
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxSize()

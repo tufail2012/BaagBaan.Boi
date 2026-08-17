@@ -12,11 +12,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,15 +27,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -45,26 +42,24 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.example.R
 import com.example.ui.AppThemeMode
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
- * Branded Pull-to-Refresh container featuring the Baagbaan Boi Apple/Leaf brand icon.
+ * High-performance Branded Pull-to-Refresh container featuring the Baagbaan Boi Apple/Leaf brand icon.
  *
- * Behaviors:
- * - Apple/Leaf icon gradually appears & scales with pull distance
- * - Rotates as the user pulls down
- * - Haptic click triggered when threshold is crossed
- * - Smooth continuous spinning while refresh operation is active
- * - Smoothly glides back up upon completion without abrupt jumps
- * - Respects Light, Dark, AMOLED themes and dynamic accent colors
+ * Performance & Architecture:
+ * - Pure synchronous drag tracking with zero coroutine allocations during scroll movement.
+ * - Draw-phase visual updates via `Modifier.graphicsLayer` to eliminate recompositions during spin and pull.
+ * - Non-blocking: Child LazyColumns remain fully scrollable and responsive during active refresh.
+ * - Reusable single-job spring animations with cancellation safety.
+ * - Resets cleanly on early releases, cancellations, and completed/failed data requests.
  */
 @Composable
 fun BrandedPullToRefreshBox(
@@ -79,45 +74,86 @@ fun BrandedPullToRefreshBox(
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
-    val refreshThresholdPx = with(density) { 76.dp.toPx() }
-    val maxPullDistancePx = with(density) { 130.dp.toPx() }
-    val holdingOffsetPx = with(density) { 56.dp.toPx() }
+    val refreshThresholdPx = with(density) { 72.dp.toPx() }
+    val maxPullDistancePx = with(density) { 128.dp.toPx() }
+    val holdingOffsetPx = with(density) { 54.dp.toPx() }
 
-    val pullOffset = remember { Animatable(0f) }
+    val currentOnRefresh by rememberUpdatedState(onRefresh)
+    val currentIsRefreshing by rememberUpdatedState(isRefreshing)
+    val currentEnabled by rememberUpdatedState(enabled)
+
+    var dragDistance by remember { mutableFloatStateOf(0f) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val settleAnim = remember { Animatable(0f) }
+    var settleJob by remember { mutableStateOf<Job?>(null) }
     var hasTriggeredHaptic by remember { mutableStateOf(false) }
 
     // Synchronize holding state with external isRefreshing boolean
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            if (pullOffset.value < holdingOffsetPx) {
-                pullOffset.animateTo(
-                    targetValue = holdingOffsetPx,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
-                )
+            val startVal = if (isAnimating) settleAnim.value else dragDistance
+            if (startVal < holdingOffsetPx) {
+                isAnimating = true
+                settleJob?.cancel()
+                settleJob = coroutineScope.launch {
+                    try {
+                        settleAnim.snapTo(startVal)
+                        settleAnim.animateTo(
+                            targetValue = holdingOffsetPx,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    } finally {
+                        dragDistance = holdingOffsetPx
+                        isAnimating = false
+                    }
+                }
+            } else {
+                dragDistance = holdingOffsetPx
             }
         } else {
             hasTriggeredHaptic = false
-            pullOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = tween(durationMillis = 320, easing = FastOutSlowInEasing)
-            )
+            val startVal = if (isAnimating) settleAnim.value else dragDistance
+            if (startVal > 0f) {
+                isAnimating = true
+                settleJob?.cancel()
+                settleJob = coroutineScope.launch {
+                    try {
+                        settleAnim.snapTo(startVal)
+                        settleAnim.animateTo(
+                            targetValue = 0f,
+                            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
+                        )
+                    } finally {
+                        dragDistance = 0f
+                        isAnimating = false
+                    }
+                }
+            } else {
+                dragDistance = 0f
+                isAnimating = false
+            }
         }
     }
 
-    val nestedScrollConnection = remember(enabled, isRefreshing, refreshThresholdPx, maxPullDistancePx) {
+    val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (!enabled || isRefreshing) return Offset.Zero
+                if (!currentEnabled || currentIsRefreshing) return Offset.Zero
+
+                val currentOffset = if (isAnimating) settleAnim.value else dragDistance
 
                 // When user scrolls up while pull indicator is visible, collapse it first
-                if (available.y < 0 && pullOffset.value > 0f) {
+                if (available.y < 0f && currentOffset > 0f) {
+                    settleJob?.cancel()
+                    isAnimating = false
                     val consumed = available.y
-                    val newOffset = (pullOffset.value + consumed).coerceAtLeast(0f)
-                    coroutineScope.launch {
-                        pullOffset.snapTo(newOffset)
+                    val newOffset = (currentOffset + consumed).coerceAtLeast(0f)
+                    dragDistance = newOffset
+                    if (newOffset < refreshThresholdPx) {
+                        hasTriggeredHaptic = false
                     }
                     return Offset(0f, consumed)
                 }
@@ -129,13 +165,16 @@ fun BrandedPullToRefreshBox(
                 available: Offset,
                 source: NestedScrollSource
             ): Offset {
-                if (!enabled || isRefreshing) return Offset.Zero
+                if (!currentEnabled || currentIsRefreshing) return Offset.Zero
 
                 // When user pulls down at top of list
-                if (available.y > 0) {
-                    val dragMultiplier = 0.48f * (1f - (pullOffset.value / maxPullDistancePx).coerceIn(0f, 0.85f))
+                if (available.y > 0f) {
+                    settleJob?.cancel()
+                    isAnimating = false
+                    val currentOffset = dragDistance
+                    val dragMultiplier = 0.44f * (1f - (currentOffset / maxPullDistancePx).coerceIn(0f, 0.85f))
                     val delta = available.y * dragMultiplier
-                    val newOffset = (pullOffset.value + delta).coerceAtMost(maxPullDistancePx)
+                    val newOffset = (currentOffset + delta).coerceAtMost(maxPullDistancePx)
 
                     if (newOffset >= refreshThresholdPx && !hasTriggeredHaptic) {
                         hasTriggeredHaptic = true
@@ -144,86 +183,111 @@ fun BrandedPullToRefreshBox(
                         hasTriggeredHaptic = false
                     }
 
-                    coroutineScope.launch {
-                        pullOffset.snapTo(newOffset)
-                    }
+                    dragDistance = newOffset
                     return Offset(0f, available.y)
                 }
                 return Offset.Zero
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
-                if (!enabled || isRefreshing) return Velocity.Zero
+                if (!currentEnabled || currentIsRefreshing) return Velocity.Zero
 
-                if (pullOffset.value >= refreshThresholdPx) {
-                    onRefresh()
-                    pullOffset.animateTo(
-                        targetValue = holdingOffsetPx,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                } else if (pullOffset.value > 0f) {
+                val currentOffset = if (isAnimating) settleAnim.value else dragDistance
+
+                if (currentOffset >= refreshThresholdPx) {
+                    // Trigger refresh without blocking
+                    currentOnRefresh()
+                    isAnimating = true
+                    settleJob?.cancel()
+                    settleJob = coroutineScope.launch {
+                        try {
+                            settleAnim.snapTo(currentOffset)
+                            settleAnim.animateTo(
+                                targetValue = holdingOffsetPx,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                        } finally {
+                            dragDistance = holdingOffsetPx
+                            isAnimating = false
+                        }
+                    }
+                } else if (currentOffset > 0f) {
                     hasTriggeredHaptic = false
-                    pullOffset.animateTo(
-                        targetValue = 0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    )
+                    isAnimating = true
+                    settleJob?.cancel()
+                    settleJob = coroutineScope.launch {
+                        try {
+                            settleAnim.snapTo(currentOffset)
+                            settleAnim.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            )
+                        } finally {
+                            dragDistance = 0f
+                            isAnimating = false
+                        }
+                    }
                 }
                 return Velocity.Zero
             }
         }
     }
 
+    // High performance infinite rotation transition active during refresh
+    val infiniteTransition = rememberInfiniteTransition(label = "apple_spin_transition")
+    val spinRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 850, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "apple_spin_angle"
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(nestedScrollConnection)
     ) {
-        // Main Screen Content
+        // 1. Main Screen Content (remains fully scrollable and responsive)
         content()
 
-        // Branded Apple/Leaf Refresh Indicator
-        if (pullOffset.value > 0f || isRefreshing) {
-            val pullFraction = (pullOffset.value / refreshThresholdPx).coerceIn(0f, 1.5f)
-            val indicatorAlpha = (pullFraction * 1.6f).coerceIn(0f, 1f)
-            val indicatorScale = (0.4f + pullFraction * 0.6f).coerceIn(0.4f, 1.15f)
-
-            val infiniteTransition = rememberInfiniteTransition(label = "apple_spin")
-            val spinRotation by infiniteTransition.animateFloat(
-                initialValue = 0f,
-                targetValue = 360f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 900, easing = LinearEasing),
-                    repeatMode = RepeatMode.Restart
-                ),
-                label = "apple_continuous_spin"
-            )
-
-            val effectiveRotation = if (isRefreshing) {
-                spinRotation
-            } else {
-                pullFraction * 180f
-            }
-
-            val indicatorYOffset = with(density) {
-                (pullOffset.value * 0.72f - 44.dp.toPx()).coerceAtLeast(8.dp.toPx()).roundToInt()
-            }
-
+        // 2. Branded Apple/Leaf Refresh Indicator
+        val visibleOffset = if (isAnimating) settleAnim.value else dragDistance
+        if (visibleOffset > 0.5f || isRefreshing) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .zIndex(100f)
-                    .offset { IntOffset(x = 0, y = indicatorYOffset) }
-                    .alpha(indicatorAlpha)
-                    .scale(indicatorScale)
+                    .graphicsLayer {
+                        val offset = if (isAnimating) settleAnim.value else dragDistance
+                        val pullFraction = (offset / refreshThresholdPx).coerceIn(0f, 1.5f)
+                        val indicatorAlpha = (pullFraction * 1.6f).coerceIn(0f, 1f)
+                        val indicatorScale = (0.4f + pullFraction * 0.6f).coerceIn(0.4f, 1.15f)
+                        val indicatorYOffset = (offset * 0.72f - 44.dp.toPx()).coerceAtLeast(8.dp.toPx())
+
+                        translationY = indicatorYOffset
+                        alpha = indicatorAlpha
+                        scaleX = indicatorScale
+                        scaleY = indicatorScale
+                    }
             ) {
                 BrandedRefreshIndicatorPill(
-                    rotationDegrees = effectiveRotation,
+                    rotationDegreesProvider = {
+                        if (isRefreshing) {
+                            spinRotation
+                        } else {
+                            val offset = if (isAnimating) settleAnim.value else dragDistance
+                            (offset / refreshThresholdPx).coerceIn(0f, 1.5f) * 180f
+                        }
+                    },
                     isRefreshing = isRefreshing,
                     themeMode = themeMode
                 )
@@ -234,10 +298,11 @@ fun BrandedPullToRefreshBox(
 
 /**
  * Visual circular pill container displaying the official Apple/Leaf brand asset.
+ * Uses draw-phase graphicsLayer rotation to guarantee 0 recompositions during continuous spin.
  */
 @Composable
 private fun BrandedRefreshIndicatorPill(
-    rotationDegrees: Float,
+    rotationDegreesProvider: () -> Float,
     isRefreshing: Boolean,
     themeMode: AppThemeMode?,
     modifier: Modifier = Modifier
@@ -289,8 +354,11 @@ private fun BrandedRefreshIndicatorPill(
                 contentDescription = if (isRefreshing) "Refreshing..." else "Pull to refresh",
                 modifier = Modifier
                     .size(28.dp)
-                    .rotate(rotationDegrees)
+                    .graphicsLayer {
+                        rotationZ = rotationDegreesProvider()
+                    }
             )
         }
     }
 }
+

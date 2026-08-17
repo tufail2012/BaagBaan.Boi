@@ -172,8 +172,12 @@ fun FarmerRecordsScreen(
             if (isRefreshing) return@BrandedPullToRefreshBox
             isRefreshing = true
             coroutineScope.launch {
-                delay(700)
-                isRefreshing = false
+                try {
+                    delay(500)
+                } catch (_: Exception) {
+                } finally {
+                    isRefreshing = false
+                }
             }
         },
         modifier = modifier.fillMaxSize()

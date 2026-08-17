@@ -396,8 +396,12 @@ fun PaymentRemindersDialog(
                                 if (isRefreshing) return@BrandedPullToRefreshBox
                                 isRefreshing = true
                                 scope.launch {
-                                    delay(700)
-                                    isRefreshing = false
+                                    try {
+                                        delay(400)
+                                    } catch (_: Exception) {
+                                    } finally {
+                                        isRefreshing = false
+                                    }
                                 }
                             },
                             modifier = Modifier

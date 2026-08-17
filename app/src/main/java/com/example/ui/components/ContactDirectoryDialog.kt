@@ -465,15 +465,23 @@ fun ContactDirectoryDialog(
                                 if (isRefreshing) return@BrandedPullToRefreshBox
                                 isRefreshing = true
                                 scope.launch {
-                                    val deviceKeys = queryDeviceContactsKeys(context)
-                                    if (deviceKeys.isNotEmpty()) {
-                                        val updated = savedPhoneKeys + deviceKeys
-                                        savedPhoneKeys = updated
-                                        val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
-                                        prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
+                                    try {
+                                        val deviceKeys = withContext(Dispatchers.IO) {
+                                            queryDeviceContactsKeys(context)
+                                        }
+                                        if (deviceKeys.isNotEmpty()) {
+                                            val updated = savedPhoneKeys + deviceKeys
+                                            savedPhoneKeys = updated
+                                            withContext(Dispatchers.IO) {
+                                                val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+                                                prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
+                                            }
+                                        }
+                                        delay(400)
+                                    } catch (_: Exception) {
+                                    } finally {
+                                        isRefreshing = false
                                     }
-                                    delay(700)
-                                    isRefreshing = false
                                 }
                             },
                             modifier = Modifier

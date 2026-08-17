@@ -347,8 +347,12 @@ fun AttendanceHomeScreen(
                         if (isRefreshing) return@BrandedPullToRefreshBox
                         isRefreshing = true
                         scope.launch {
-                            delay(700)
-                            isRefreshing = false
+                            try {
+                                delay(500)
+                            } catch (_: Exception) {
+                            } finally {
+                                isRefreshing = false
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxSize()

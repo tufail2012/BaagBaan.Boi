@@ -183,9 +183,13 @@ fun UserAttendanceSection(
                 if (isRefreshing) return@BrandedPullToRefreshBox
                 isRefreshing = true
                 coroutineScope.launch {
-                    viewModel.refreshUser()
-                    delay(700)
-                    isRefreshing = false
+                    try {
+                        viewModel.refreshUser()
+                        delay(600)
+                    } catch (_: Exception) {
+                    } finally {
+                        isRefreshing = false
+                    }
                 }
             },
             modifier = Modifier
