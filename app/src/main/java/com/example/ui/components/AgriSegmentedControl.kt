@@ -95,16 +95,17 @@ private fun SegmentedTabItem(
     modifier: Modifier = Modifier
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
+    val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) {
-            if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White
+            if (isDark) primaryColor else Color.White
         } else Color.Transparent,
         label = "tab_bg"
     )
 
     val textColor by animateColorAsState(
         targetValue = if (isSelected) {
-            if (isDark) primaryColor else primaryColor
+            if (isDark) onPrimaryColor else primaryColor
         } else {
             if (isDark) Color(0xFFAAAAAA) else Color(0xFF546E7A)
         },

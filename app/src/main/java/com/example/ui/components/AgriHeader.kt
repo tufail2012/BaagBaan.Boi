@@ -182,11 +182,16 @@ fun AgriHeader(
                 horizontal = if (isAttendanceScreen) 12.dp else 16.dp,
                 vertical = 6.dp
             ),
-        color = MaterialTheme.colorScheme.surface,
+        color = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(
             width = 1.dp,
-            color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.35f) else Color.Transparent
+            color = if (isDark) {
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+            } else {
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.40f)
+            }
         ),
+        shadowElevation = if (isDark) 0.dp else 2.dp,
         tonalElevation = 2.dp,
         shape = if (isAttendanceScreen) RoundedCornerShape(12.dp) else CircleShape
     ) {

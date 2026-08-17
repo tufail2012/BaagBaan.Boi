@@ -64,6 +64,7 @@ fun MyApplicationTheme(
         )
         else -> {
             val faintTintedBackground = lerp(accentColor, Color.White, 0.93f)
+            val lightSurfaceContainerHigh = lerp(accentColor, Color(0xFFF1F5F9), 0.08f)
             lightColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,
@@ -73,7 +74,8 @@ fun MyApplicationTheme(
                 secondaryContainer = accentColor.copy(alpha = 0.12f),
                 background = faintTintedBackground,
                 surface = Color.White,
-                surfaceVariant = Color(0xFFF1F5F9),
+                surfaceVariant = lightSurfaceContainerHigh,
+                surfaceContainerHigh = lightSurfaceContainerHigh,
                 onBackground = AgriTextPrimary,
                 onSurface = AgriTextPrimary,
                 onSurfaceVariant = AgriTextSecondary,
