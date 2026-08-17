@@ -361,13 +361,13 @@ fun AgriHeader(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primary),
+                                .background(MaterialTheme.colorScheme.primary),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = headerBadgeIcon,
                                 contentDescription = "$title Icon",
-                                tint = if (isDark) MaterialTheme.colorScheme.primary else Color.White,
+                                tint = if (isDark) Color.Black else Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

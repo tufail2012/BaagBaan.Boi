@@ -43,4 +43,19 @@ class GreetingScreenshotTest {
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/local_plants_header_light.png")
   }
+
+  @Test
+  fun local_plants_header_dark_mode_screenshot() {
+    composeTestRule.setContent {
+      MyApplicationTheme(themeMode = AppThemeMode.DARK) {
+        AgriHeader(
+          title = "Local Plants",
+          themeMode = AppThemeMode.DARK,
+          onSelectThemeMode = {}
+        )
+      }
+    }
+
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/local_plants_header_dark.png")
+  }
 }
