@@ -101,7 +101,6 @@ fun SettingsScreen(
     onOpenRecycleBin: () -> Unit = {},
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
-    onNavigateToSeasonalReminders: () -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -543,19 +542,6 @@ fun SettingsScreen(
                                 subtitle = "Customize WhatsApp & SMS format strings and dynamic placeholders",
                                 onClick = onNavigateToMessageTemplates,
                                 testTag = "settings_message_templates_row"
-                            )
-
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
-
-                            SettingsNavigationRow(
-                                icon = Icons.Default.Park,
-                                title = "Seasonal Reminders",
-                                subtitle = "Orchard recurring calendar (pruning, grafting, spraying, fertilizing, harvest)",
-                                onClick = onNavigateToSeasonalReminders,
-                                testTag = "settings_seasonal_reminders_row"
                             )
                         }
                     }

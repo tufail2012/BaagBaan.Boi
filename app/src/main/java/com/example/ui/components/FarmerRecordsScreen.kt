@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.util.rememberScrollHapticFeedback
 import androidx.compose.foundation.shape.CircleShape
@@ -147,6 +148,8 @@ fun FarmerRecordsScreen(
     val searchShape = RoundedCornerShape(24.dp)
     val isPruning = selectedService.equals("Pruning", ignoreCase = true)
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
+
+    val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
 
     var isInitialLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -280,26 +283,32 @@ fun FarmerRecordsScreen(
                 }
             }
         } else {
-            items(records, key = { it.id }) { record ->
-                SwipeableRecordItem(
-                    record = record,
-                    onDelete = { recordToDelete = record }
+            itemsIndexed(records, key = { _, record -> record.id }) { index, record ->
+                StaggeredEntranceWrapper(
+                    itemId = record.id,
+                    index = index,
+                    animatedItemIds = animatedItemIds
                 ) {
-                    FarmerRecordCard(
+                    SwipeableRecordItem(
                         record = record,
-                        searchQuery = searchQuery,
-                        onCallFarmer = {
-                            if (record.contactNumber.isNotBlank()) {
-                                val intent = Intent(Intent.ACTION_DIAL).apply {
-                                    data = Uri.parse("tel:${record.contactNumber}")
+                        onDelete = { recordToDelete = record }
+                    ) {
+                        FarmerRecordCard(
+                            record = record,
+                            searchQuery = searchQuery,
+                            onCallFarmer = {
+                                if (record.contactNumber.isNotBlank()) {
+                                    val intent = Intent(Intent.ACTION_DIAL).apply {
+                                        data = Uri.parse("tel:${record.contactNumber}")
+                                    }
+                                    context.startActivity(intent)
                                 }
-                                context.startActivity(intent)
-                            }
-                        },
-                        onEdit = { viewModel.loadRecordForEditing(record) },
-                        onDelete = { recordToDelete = record },
-                        onOpenDetail = { selectedDetailRecord = record }
-                    )
+                            },
+                            onEdit = { viewModel.loadRecordForEditing(record) },
+                            onDelete = { recordToDelete = record },
+                            onOpenDetail = { selectedDetailRecord = record }
+                        )
+                    }
                 }
             }
         }

@@ -390,7 +390,6 @@ fun AgriCropMainScreen(
                     onOpenRecycleBin = { showRecycleBinDialog = true },
                     onNavigateToBusinessInfo = { showBusinessInfoDialog = true },
                     onNavigateToMessageTemplates = { isMessageTemplatesActive = true },
-                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
                     onBack = { isSettingsActive = false },
                     modifier = modifier
                 )

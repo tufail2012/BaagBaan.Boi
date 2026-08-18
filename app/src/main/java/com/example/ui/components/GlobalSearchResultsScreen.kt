@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -115,6 +116,7 @@ fun GlobalSearchResultsScreen(
     val isDark = isAppInDarkMode()
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
+    val animatedItemIds = remember(searchQuery, selectedCategoryFilter) { mutableSetOf<Any>() }
 
     val categoryFilterOptions = listOf(
         "All Categories",
@@ -390,62 +392,72 @@ fun GlobalSearchResultsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
                 ) {
-                    items(
+                    itemsIndexed(
                         items = finalFilteredResults,
-                        key = { item ->
+                        key = { _, item ->
                             when (item) {
                                 is GlobalSearchResult.Crop -> "crop_${item.record.id}"
                                 is GlobalSearchResult.Garden -> "garden_${item.entry.id}"
                             }
                         }
-                    ) { item ->
-                        val onDeleteItem: () -> Unit = {
-                            when (item) {
-                                is GlobalSearchResult.Crop -> viewModel.deleteRecord(item.record)
-                                is GlobalSearchResult.Garden -> {
-                                    gardenPlanningViewModel?.deleteEntry(item.entry)
-                                    Unit
+                    ) { index, item ->
+                        val itemId = when (item) {
+                            is GlobalSearchResult.Crop -> "crop_${item.record.id}"
+                            is GlobalSearchResult.Garden -> "garden_${item.entry.id}"
+                        }
+                        StaggeredEntranceWrapper(
+                            itemId = itemId,
+                            index = index,
+                            animatedItemIds = animatedItemIds
+                        ) {
+                            val onDeleteItem: () -> Unit = {
+                                when (item) {
+                                    is GlobalSearchResult.Crop -> viewModel.deleteRecord(item.record)
+                                    is GlobalSearchResult.Garden -> {
+                                        gardenPlanningViewModel?.deleteEntry(item.entry)
+                                        Unit
+                                    }
                                 }
                             }
-                        }
 
-                        SwipeableSearchResultItem(
-                            item = item,
-                            onDelete = onDeleteItem
-                        ) {
-                            GlobalSearchResultCard(
+                            SwipeableSearchResultItem(
                                 item = item,
-                                searchQuery = searchQuery,
-                                isDark = isDark,
-                                onCall = {
-                                    if (item.contactNumber.isNotBlank()) {
-                                        val intent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:${item.contactNumber}")
+                                onDelete = onDeleteItem
+                            ) {
+                                GlobalSearchResultCard(
+                                    item = item,
+                                    searchQuery = searchQuery,
+                                    isDark = isDark,
+                                    onCall = {
+                                        if (item.contactNumber.isNotBlank()) {
+                                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:${item.contactNumber}")
+                                            }
+                                            context.startActivity(intent)
                                         }
-                                        context.startActivity(intent)
-                                    }
-                                },
-                                onEdit = {
-                                    when (item) {
-                                        is GlobalSearchResult.Crop -> {
-                                            viewModel.loadRecordForEditing(item.record)
-                                            onBack()
+                                    },
+                                    onEdit = {
+                                        when (item) {
+                                            is GlobalSearchResult.Crop -> {
+                                                viewModel.loadRecordForEditing(item.record)
+                                                onBack()
+                                            }
+                                            is GlobalSearchResult.Garden -> {
+                                                gardenPlanningViewModel?.loadEntryForEdit(item.entry)
+                                                viewModel.selectServiceCategory("Garden Planning")
+                                                onBack()
+                                            }
                                         }
-                                        is GlobalSearchResult.Garden -> {
-                                            gardenPlanningViewModel?.loadEntryForEdit(item.entry)
-                                            viewModel.selectServiceCategory("Garden Planning")
-                                            onBack()
+                                    },
+                                    onDelete = onDeleteItem,
+                                    onOpenDetail = {
+                                        when (item) {
+                                            is GlobalSearchResult.Crop -> selectedDetailCropRecord = item.record
+                                            is GlobalSearchResult.Garden -> selectedDetailGardenEntry = item.entry
                                         }
                                     }
-                                },
-                                onDelete = onDeleteItem,
-                                onOpenDetail = {
-                                    when (item) {
-                                        is GlobalSearchResult.Crop -> selectedDetailCropRecord = item.record
-                                        is GlobalSearchResult.Garden -> selectedDetailGardenEntry = item.entry
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }

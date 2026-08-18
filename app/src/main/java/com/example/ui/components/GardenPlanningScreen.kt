@@ -52,6 +52,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.util.rememberScrollHapticFeedback
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1841,6 +1842,7 @@ fun GardenPlanningRecordsTab(
 
     // Financial & Quantity Summary Metrics
     val totalPayment = entries.sumOf { it.totalCost }
+    val animatedItemIds = remember(selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
     val receivedPayment = entries.sumOf { entry ->
         if (entry.amountPaid > 0) entry.amountPaid
         else when (entry.paymentStatus) {
@@ -1963,21 +1965,27 @@ fun GardenPlanningRecordsTab(
                 }
             }
         } else {
-            items(entries, key = { it.id }) { entry ->
-                SwipeableGardenPlanningItem(
-                    entry = entry,
-                    onDelete = { entryToDelete = entry },
-                    context = context
+            itemsIndexed(entries, key = { _, entry -> entry.id }) { index, entry ->
+                StaggeredEntranceWrapper(
+                    itemId = entry.id,
+                    index = index,
+                    animatedItemIds = animatedItemIds
                 ) {
-                    GardenPlanningRecordCard(
+                    SwipeableGardenPlanningItem(
                         entry = entry,
-                        currencyFormat = currencyFormat,
-                        onViewDetails = { selectedDetailEntry = entry },
-                        onEdit = { onEdit(entry) },
                         onDelete = { entryToDelete = entry },
-                        context = context,
-                        isDark = isDark
-                    )
+                        context = context
+                    ) {
+                        GardenPlanningRecordCard(
+                            entry = entry,
+                            currencyFormat = currencyFormat,
+                            onViewDetails = { selectedDetailEntry = entry },
+                            onEdit = { onEdit(entry) },
+                            onDelete = { entryToDelete = entry },
+                            context = context,
+                            isDark = isDark
+                        )
+                    }
                 }
             }
         }
