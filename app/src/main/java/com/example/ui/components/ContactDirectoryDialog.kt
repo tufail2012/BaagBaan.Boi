@@ -87,6 +87,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -410,7 +411,7 @@ fun ContactDirectoryDialog(
                     // Search Bar
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        onValueChange = { searchQuery = capitalizeWordsNaturally(it) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 12.dp),
@@ -424,7 +425,8 @@ fun ContactDirectoryDialog(
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions
                     )
 
                     if (allContactsList.isEmpty()) {
@@ -1179,9 +1181,10 @@ fun ManualAddContactModal(
             ) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { name = capitalizeWordsNaturally(it) },
                     label = { Text("Farmer / Contact Name *") },
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     modifier = Modifier.fillMaxWidth().bringIntoViewOnFocus(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -1217,18 +1220,20 @@ fun ManualAddContactModal(
 
                 OutlinedTextField(
                     value = address,
-                    onValueChange = { address = it },
+                    onValueChange = { address = capitalizeWordsNaturally(it) },
                     label = { Text("Address / Village / Location") },
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     modifier = Modifier.fillMaxWidth().bringIntoViewOnFocus(),
                     shape = RoundedCornerShape(12.dp)
                 )
 
                 OutlinedTextField(
                     value = category,
-                    onValueChange = { category = it },
+                    onValueChange = { category = capitalizeWordsNaturally(it) },
                     label = { Text("Category (e.g. Farmer, Supplier, Buyer)") },
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     modifier = Modifier.fillMaxWidth().bringIntoViewOnFocus(),
                     shape = RoundedCornerShape(12.dp)
                 )

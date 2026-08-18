@@ -222,7 +222,7 @@ fun AgriHeader(
 
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = onSearchQueryChange,
+                    onValueChange = { onSearchQueryChange(capitalizeWordsNaturally(it)) },
                     placeholder = {
                         Text(
                             "Search farmer name, serial no., contact no...",
@@ -230,6 +230,7 @@ fun AgriHeader(
                             color = if (isDark) Color.Gray else Color.DarkGray
                         )
                     },
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     singleLine = true,
                     leadingIcon = {
                         Icon(

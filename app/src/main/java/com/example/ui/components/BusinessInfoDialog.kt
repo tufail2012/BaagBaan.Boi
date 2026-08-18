@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -278,10 +279,11 @@ fun BusinessInfoDialog(
                             // Business Name
                             OutlinedTextField(
                                 value = businessName,
-                                onValueChange = { businessName = it },
+                                onValueChange = { businessName = capitalizeWordsNaturally(it) },
                                 label = { Text("Business Name *") },
                                 placeholder = { Text("e.g. BAAGBAAN BOI") },
                                 singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -291,10 +293,11 @@ fun BusinessInfoDialog(
                             // Tagline
                             OutlinedTextField(
                                 value = tagline,
-                                onValueChange = { tagline = it },
+                                onValueChange = { tagline = capitalizeWordsNaturally(it) },
                                 label = { Text("Tagline / Slogan") },
                                 placeholder = { Text("e.g. The Streets of Kashmir") },
                                 singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -304,11 +307,12 @@ fun BusinessInfoDialog(
                             // Address
                             OutlinedTextField(
                                 value = address,
-                                onValueChange = { address = it },
+                                onValueChange = { address = capitalizeWordsNaturally(it) },
                                 label = { Text("Business Address *") },
                                 placeholder = { Text("e.g. Ramnagri 192303, Shopian, Jammu & Kashmir") },
                                 minLines = 2,
                                 maxLines = 3,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -490,10 +494,11 @@ fun BusinessInfoDialog(
                             // Account Holder Name
                             OutlinedTextField(
                                 value = accountHolderName,
-                                onValueChange = { accountHolderName = it },
+                                onValueChange = { accountHolderName = capitalizeWordsNaturally(it) },
                                 label = { Text("Account Holder Name") },
                                 placeholder = { Text("e.g. Aamir Manzoor Ganaie") },
                                 singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()

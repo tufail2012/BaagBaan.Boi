@@ -159,6 +159,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.Image
@@ -741,11 +742,12 @@ fun GardenPlanningFormTab(
         // Farmer Name
         OutlinedTextField(
             value = farmerName,
-            onValueChange = { viewModel.farmerName.value = it },
+            onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
             label = { Text("Farmer Name *") },
             placeholder = { Text("e.g. Mohammad Abdullah") },
             shape = textFieldShape,
             singleLine = true,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
@@ -764,12 +766,13 @@ fun GardenPlanningFormTab(
         // Farmer Address
         OutlinedTextField(
             value = farmerAddress,
-            onValueChange = { viewModel.farmerAddress.value = it },
+            onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
             label = { Text("Farmer Address *") },
             placeholder = { Text("e.g. Village Green Valley, Sector 4") },
             shape = textFieldShape,
             singleLine = false,
             maxLines = 2,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
@@ -876,11 +879,12 @@ fun GardenPlanningFormTab(
             // Plant Variety
             OutlinedTextField(
                 value = plantVariety,
-                onValueChange = { viewModel.plantVariety.value = it },
+                onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
                 label = { Text("Plant Variety", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("e.g. Gala") },
                 shape = textFieldShape,
                 singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Outlined.LocalFlorist,
@@ -899,11 +903,12 @@ fun GardenPlanningFormTab(
             // Rootstock
             OutlinedTextField(
                 value = rootStock,
-                onValueChange = { viewModel.rootStock.value = it },
+                onValueChange = { viewModel.rootStock.value = capitalizeWordsNaturally(it) },
                 label = { Text("Rootstock", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("e.g. M9") },
                 shape = textFieldShape,
                 singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Spa,
@@ -1511,12 +1516,13 @@ fun GardenPlanningFormTab(
         // Notes
         OutlinedTextField(
             value = notes,
-            onValueChange = { viewModel.notes.value = it },
+            onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
             label = { Text("Notes / Inspection Remarks") },
             placeholder = { Text("Enter any special instructions or land conditions...") },
             minLines = 2,
             maxLines = 4,
             shape = textFieldShape,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Description,
@@ -2860,9 +2866,10 @@ fun GardenBookingRecordDetailDialog(
 
                                 OutlinedTextField(
                                     value = modeNoteText,
-                                    onValueChange = { modeNoteText = it },
+                                    onValueChange = { modeNoteText = capitalizeWordsNaturally(it) },
                                     label = { Text("Mode / Note") },
                                     singleLine = true,
+                                    keyboardOptions = AppDefaultWordKeyboardOptions,
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(

@@ -188,7 +188,7 @@ fun GlobalSearchResultsScreen(
 
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { viewModel.setSearchQuery(it) },
+                        onValueChange = { viewModel.setSearchQuery(capitalizeWordsNaturally(it)) },
                         placeholder = {
                             Text(
                                 text = "Search name, serial no, contact no...",
@@ -198,6 +198,7 @@ fun GlobalSearchResultsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         },
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         singleLine = true,
                         leadingIcon = {
                             Icon(

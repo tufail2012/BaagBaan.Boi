@@ -80,6 +80,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -506,10 +508,11 @@ fun NotificationCenterSheet(
 
                     OutlinedTextField(
                         value = reminderTitle,
-                        onValueChange = { reminderTitle = it },
+                        onValueChange = { reminderTitle = capitalizeWordsNaturally(it) },
                         label = { Text("Reminder Title") },
                         placeholder = { Text("e.g. Visit Farmer Orchard / Pruning Delivery") },
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -518,11 +521,12 @@ fun NotificationCenterSheet(
 
                     OutlinedTextField(
                         value = reminderMessage,
-                        onValueChange = { reminderMessage = it },
+                        onValueChange = { reminderMessage = capitalizeWordsNaturally(it) },
                         label = { Text("Reminder Description") },
                         placeholder = { Text("e.g. Check rootstock quantity and expected delivery") },
                         minLines = 2,
                         maxLines = 3,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()

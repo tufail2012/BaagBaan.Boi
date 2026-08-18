@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -365,10 +366,11 @@ fun NewBookingModal(
                 if (selectedType != "Pruning" && selectedType != "Site Visit") {
                     OutlinedTextField(
                         value = itemName,
-                        onValueChange = { itemName = it },
+                        onValueChange = { itemName = capitalizeWordsNaturally(it) },
                         label = { Text("Item / Plant Name (Optional)") },
                         placeholder = { Text("e.g. Gala Apple, Crimson Crisp") },
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("booking_item_name_input"),
@@ -381,11 +383,12 @@ fun NewBookingModal(
                 OutlinedTextField(
                     value = farmerName,
                     onValueChange = {
-                        farmerName = it
+                        farmerName = capitalizeWordsNaturally(it)
                         if (it.isNotBlank()) farmerNameError = null
                     },
                     label = { Text("Farmer Name *") },
                     placeholder = { Text("e.g. Ghulam Hassan") },
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     isError = farmerNameError != null,
                     supportingText = {
                         farmerNameError?.let { err ->
@@ -441,10 +444,11 @@ fun NewBookingModal(
                 // 8. Notes
                 OutlinedTextField(
                     value = notes,
-                    onValueChange = { notes = it },
+                    onValueChange = { notes = capitalizeWordsNaturally(it) },
                     label = { Text("Notes / Particulars (Optional)") },
                     placeholder = { Text("Add any special instructions or requirements...") },
                     maxLines = 3,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     trailingIcon = {
                         IconButton(
                             onClick = {

@@ -84,7 +84,7 @@ fun SearchBarWithStatusFilter(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Search Text Field
-            OutlinedTextField(
+            AppOutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 placeholder = {

@@ -39,6 +39,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.AppDefaultWordKeyboardOptions
+import com.example.ui.components.capitalizeWordsNaturally
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -67,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -618,9 +621,10 @@ fun AddWorkerDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { name = capitalizeWordsNaturally(it) },
                     label = { Text("Worker Name *") },
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("worker_name_input")
@@ -789,9 +793,10 @@ fun EditWorkerDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { name = capitalizeWordsNaturally(it) },
                         label = { Text("Worker Name") },
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -139,10 +140,11 @@ fun AddEditInventoryItemModal(
                     // Item Name
                     OutlinedTextField(
                         value = itemName,
-                        onValueChange = { itemName = it },
+                        onValueChange = { itemName = capitalizeWordsNaturally(it) },
                         label = { Text("Item Name *") },
                         placeholder = { Text("e.g., Red Delicious Grafted Plant") },
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("inventory_input_item_name"),
@@ -220,10 +222,11 @@ fun AddEditInventoryItemModal(
                     } else {
                         OutlinedTextField(
                             value = variety,
-                            onValueChange = { variety = it },
+                            onValueChange = { variety = capitalizeWordsNaturally(it) },
                             label = { Text("Variety / Breed (Optional)") },
                             placeholder = { Text("e.g., Kala Kullu, Gala, Honeycrisp") },
                             singleLine = true,
+                            keyboardOptions = AppDefaultWordKeyboardOptions,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("inventory_input_variety"),
@@ -316,10 +319,11 @@ fun AddEditInventoryItemModal(
                     // Supplier Name
                     OutlinedTextField(
                         value = supplierName,
-                        onValueChange = { supplierName = it },
+                        onValueChange = { supplierName = capitalizeWordsNaturally(it) },
                         label = { Text("Supplier Name (Optional)") },
                         placeholder = { Text("e.g., Green Valley Nursery") },
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("inventory_input_supplier_name"),

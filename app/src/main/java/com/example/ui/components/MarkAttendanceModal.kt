@@ -56,6 +56,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -186,11 +188,12 @@ fun MarkAttendanceModal(
                 OutlinedTextField(
                     value = workerName,
                     onValueChange = {
-                        workerName = it
+                        workerName = capitalizeWordsNaturally(it)
                         if (it.isNotBlank()) workerNameError = null
                     },
                     label = { Text("Worker Name *") },
                     placeholder = { Text("e.g. Tariq Ahmad, Shabir") },
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     isError = workerNameError != null,
                     supportingText = {
                         workerNameError?.let { err ->
@@ -287,10 +290,11 @@ fun MarkAttendanceModal(
                 // 4. Notes (Optional)
                 OutlinedTextField(
                     value = notes,
-                    onValueChange = { notes = it },
+                    onValueChange = { notes = capitalizeWordsNaturally(it) },
                     label = { Text("Notes (Optional)") },
                     placeholder = { Text("e.g. Half-day shift, overtime details...") },
                     maxLines = 3,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     trailingIcon = {
                         IconButton(
                             onClick = {

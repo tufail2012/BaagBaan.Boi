@@ -72,6 +72,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -581,9 +582,10 @@ fun BookingRecordDetailDialog(
 
                                 OutlinedTextField(
                                     value = modeNoteText,
-                                    onValueChange = { modeNoteText = it },
+                                    onValueChange = { modeNoteText = capitalizeWordsNaturally(it) },
                                     label = { Text("Mode / Note") },
                                     singleLine = true,
+                                    keyboardOptions = AppDefaultWordKeyboardOptions,
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = OutlinedTextFieldDefaults.colors(

@@ -8,7 +8,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.ripple
@@ -25,11 +29,199 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/**
+ * Standard keyboard options for text fields that expect natural word capitalization.
+ * Sends TYPE_TEXT_FLAG_CAP_WORDS to Android IMEs (Gboard, Samsung Keyboard, etc.)
+ */
+val AppDefaultWordKeyboardOptions = KeyboardOptions(
+    capitalization = KeyboardCapitalization.Words,
+    autoCorrectEnabled = true,
+    keyboardType = KeyboardType.Text
+)
+
+/**
+ * Pure, non-destructive natural word capitalization.
+ * Capitalizes the first character of each word (following whitespace, start of string)
+ * without altering length, erasing characters, or shifting cursor offsets.
+ */
+fun capitalizeWordsNaturally(input: String): String {
+    if (input.isEmpty()) return input
+    val chars = input.toCharArray()
+    var capitalizeNext = true
+    for (i in chars.indices) {
+        val c = chars[i]
+        if (c.isWhitespace()) {
+            capitalizeNext = true
+        } else if (capitalizeNext && c.isLetter()) {
+            chars[i] = c.uppercaseChar()
+            capitalizeNext = false
+        } else {
+            capitalizeNext = false
+        }
+    }
+    return String(chars)
+}
+
+fun capitalizeWordsNaturally(value: TextFieldValue): TextFieldValue {
+    val capitalizedText = capitalizeWordsNaturally(value.text)
+    return if (capitalizedText == value.text) {
+        value
+    } else {
+        value.copy(text = capitalizedText)
+    }
+}
+
+/**
+ * Reusable application-wide OutlinedTextField that defaults to natural word capitalization
+ * and elevated styling across all themes.
+ */
+@Composable
+fun AppOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    readOnly: Boolean = false,
+    textStyle: TextStyle = LocalTextStyle.current,
+    label: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    prefix: @Composable (() -> Unit)? = null,
+    suffix: @Composable (() -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null,
+    isError: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = AppDefaultWordKeyboardOptions,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    singleLine: Boolean = false,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    minLines: Int = 1,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    shape: Shape = RoundedCornerShape(16.dp),
+    colors: TextFieldColors = elevatedInputFieldColors(),
+    autoCapitalizeWords: Boolean = true
+) {
+    val effectiveOnValueChange: (String) -> Unit = remember(onValueChange, keyboardOptions, autoCapitalizeWords) {
+        { raw ->
+            val shouldAutoCapitalize = autoCapitalizeWords &&
+                keyboardOptions.capitalization == KeyboardCapitalization.Words &&
+                (keyboardOptions.keyboardType == KeyboardType.Text || keyboardOptions.keyboardType == KeyboardType.Unspecified)
+            if (shouldAutoCapitalize) {
+                onValueChange(capitalizeWordsNaturally(raw))
+            } else {
+                onValueChange(raw)
+            }
+        }
+    }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = effectiveOnValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle,
+        label = label,
+        placeholder = placeholder,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        prefix = prefix,
+        suffix = suffix,
+        supportingText = supportingText,
+        isError = isError,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = singleLine,
+        maxLines = maxLines,
+        minLines = minLines,
+        interactionSource = interactionSource,
+        shape = shape,
+        colors = colors
+    )
+}
+
+/**
+ * TextFieldValue overload of AppOutlinedTextField
+ */
+@Composable
+fun AppOutlinedTextField(
+    value: TextFieldValue,
+    onValueChange: (TextFieldValue) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    readOnly: Boolean = false,
+    textStyle: TextStyle = LocalTextStyle.current,
+    label: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    leadingIcon: @Composable (() -> Unit)? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    prefix: @Composable (() -> Unit)? = null,
+    suffix: @Composable (() -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null,
+    isError: Boolean = false,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = AppDefaultWordKeyboardOptions,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    singleLine: Boolean = false,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
+    minLines: Int = 1,
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+    shape: Shape = RoundedCornerShape(16.dp),
+    colors: TextFieldColors = elevatedInputFieldColors(),
+    autoCapitalizeWords: Boolean = true
+) {
+    val effectiveOnValueChange: (TextFieldValue) -> Unit = remember(onValueChange, keyboardOptions, autoCapitalizeWords) {
+        { raw ->
+            val shouldAutoCapitalize = autoCapitalizeWords &&
+                keyboardOptions.capitalization == KeyboardCapitalization.Words &&
+                (keyboardOptions.keyboardType == KeyboardType.Text || keyboardOptions.keyboardType == KeyboardType.Unspecified)
+            if (shouldAutoCapitalize) {
+                onValueChange(capitalizeWordsNaturally(raw))
+            } else {
+                onValueChange(raw)
+            }
+        }
+    }
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = effectiveOnValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle,
+        label = label,
+        placeholder = placeholder,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        prefix = prefix,
+        suffix = suffix,
+        supportingText = supportingText,
+        isError = isError,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = singleLine,
+        maxLines = maxLines,
+        minLines = minLines,
+        interactionSource = interactionSource,
+        shape = shape,
+        colors = colors
+    )
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -125,6 +125,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -718,11 +719,12 @@ fun FarmerFormScreen(
         // Farmer Name
         OutlinedTextField(
             value = farmerName,
-            onValueChange = { viewModel.farmerName.value = it },
+            onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
             label = { Text("Farmer Name *") },
             placeholder = { Text("e.g. Mohammad Abdullah") },
             shape = textFieldShape,
             singleLine = true,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Person,
@@ -741,12 +743,13 @@ fun FarmerFormScreen(
         // Farmer Address
         OutlinedTextField(
             value = farmerAddress,
-            onValueChange = { viewModel.farmerAddress.value = it },
+            onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
             label = { Text("Farmer Address *") },
             placeholder = { Text("e.g. Village Green Valley, Sector 4") },
             shape = textFieldShape,
             singleLine = false,
             maxLines = 2,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
@@ -933,12 +936,13 @@ fun FarmerFormScreen(
             // 2. Soil Health Observations
             OutlinedTextField(
                 value = soilHealthObservations,
-                onValueChange = { viewModel.soilHealthObservations.value = it },
+                onValueChange = { viewModel.soilHealthObservations.value = capitalizeWordsNaturally(it) },
                 label = { Text("Soil Health Observations") },
                 placeholder = { Text("e.g. Good organic content, pH 6.5, well drained") },
                 shape = textFieldShape,
                 singleLine = false,
                 maxLines = 3,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Landscape,
@@ -957,12 +961,13 @@ fun FarmerFormScreen(
             // 3. Plant Health Observations
             OutlinedTextField(
                 value = plantHealthObservations,
-                onValueChange = { viewModel.plantHealthObservations.value = it },
+                onValueChange = { viewModel.plantHealthObservations.value = capitalizeWordsNaturally(it) },
                 label = { Text("Plant Health Observations") },
                 placeholder = { Text("e.g. Healthy foliage, minor pest damage on lower leaves") },
                 shape = textFieldShape,
                 singleLine = false,
                 maxLines = 3,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.HealthAndSafety,
@@ -981,11 +986,12 @@ fun FarmerFormScreen(
             // 4. Orchard/Site Location
             OutlinedTextField(
                 value = location,
-                onValueChange = { viewModel.location.value = it },
+                onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
                 label = { Text("Orchard/Site Location *") },
                 placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
                 shape = textFieldShape,
                 singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Place,
@@ -1004,11 +1010,12 @@ fun FarmerFormScreen(
             // Orchard Location (Single field for Pruning Specification)
             OutlinedTextField(
                 value = location,
-                onValueChange = { viewModel.location.value = it },
+                onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
                 label = { Text("Orchard Location *") },
                 placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
                 shape = textFieldShape,
                 singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Place,
@@ -1028,11 +1035,12 @@ fun FarmerFormScreen(
             if (!isImportedRootstocks) {
                 OutlinedTextField(
                     value = plantVariety,
-                    onValueChange = { viewModel.plantVariety.value = it },
+                    onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
                     label = { Text("Plant Variety *") },
                     placeholder = { Text("Type plant variety (e.g. Gala Apple, Cherry, Wheat)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.LocalFlorist,
@@ -1058,11 +1066,12 @@ fun FarmerFormScreen(
                     // Rootstock (Manual Input Text Field)
                     OutlinedTextField(
                         value = rootstock,
-                        onValueChange = { viewModel.rootstock.value = it },
+                        onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
                         label = { Text("Rootstock *") },
                         placeholder = { Text("e.g. M9, MM106") },
                         shape = textFieldShape,
                         singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Spa,
@@ -1138,6 +1147,7 @@ fun FarmerFormScreen(
                     placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Spa,
@@ -1165,6 +1175,7 @@ fun FarmerFormScreen(
                         placeholder = { Text("e.g. Italy") },
                         shape = textFieldShape,
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Public,
@@ -1239,6 +1250,7 @@ fun FarmerFormScreen(
                     placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Spa,
@@ -1266,6 +1278,7 @@ fun FarmerFormScreen(
                         placeholder = { Text("e.g. Italy") },
                         shape = textFieldShape,
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Public,
@@ -1320,11 +1333,12 @@ fun FarmerFormScreen(
             // Scion Variety (Manual Text Field)
             OutlinedTextField(
                 value = scionVariety,
-                onValueChange = { viewModel.scionVariety.value = it },
+                onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
                 label = { Text("Scion Variety") },
                 placeholder = { Text("Enter scion variety (e.g. Honeycrisp, Gala)") },
                 shape = textFieldShape,
                 singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Nature,
@@ -1346,11 +1360,12 @@ fun FarmerFormScreen(
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = graftType,
-                    onValueChange = { viewModel.graftType.value = it },
+                    onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
                     label = { Text("Graft Type") },
                     placeholder = { Text("Type or select graft type (e.g. Bench Grafting)") },
                     shape = textFieldShape,
                     singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.ContentCut,
@@ -1936,12 +1951,13 @@ fun FarmerFormScreen(
         // Notes & Special Observations
         OutlinedTextField(
             value = notes,
-            onValueChange = { viewModel.notes.value = it },
+            onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
             label = { Text("Notes / Inspection Remarks") },
             placeholder = { Text("Enter pruning history, soil treatment, disease status, or special requests...") },
             shape = textFieldShape,
             minLines = 2,
             maxLines = 4,
+            keyboardOptions = AppDefaultWordKeyboardOptions,
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Description,
