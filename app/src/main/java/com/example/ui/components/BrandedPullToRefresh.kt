@@ -48,6 +48,7 @@ import androidx.compose.ui.zIndex
 import com.example.R
 import com.example.ui.AppThemeMode
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -83,6 +84,7 @@ fun BrandedPullToRefreshBox(
     val currentEnabled by rememberUpdatedState(enabled)
 
     val pullOffset = remember { Animatable(0f) }
+    val rotationAnim = remember { Animatable(0f) }
     var targetPullOffset by remember { mutableFloatStateOf(0f) }
     var hasTriggeredHaptic by remember { mutableStateOf(false) }
     var hasTriggeredRefreshForCurrentPull by remember { mutableStateOf(false) }
@@ -119,6 +121,28 @@ fun BrandedPullToRefreshBox(
                 )
             } else {
                 pullOffset.snapTo(0f)
+            }
+        }
+    }
+
+    // Observe isRefreshing state for icon rotation: drives continuous rotation during refresh and explicitly resets animateTo target to 0f on completion/failure
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
+            while (isActive) {
+                val currentAngle = rotationAnim.value % 360f
+                rotationAnim.snapTo(currentAngle)
+                rotationAnim.animateTo(
+                    targetValue = currentAngle + 360f,
+                    animationSpec = tween(durationMillis = 850, easing = LinearEasing)
+                )
+            }
+        } else {
+            // Even if network request fails in repository, explicitly reset rotation animateTo target to 0f
+            if (rotationAnim.value != 0f) {
+                rotationAnim.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
+                )
             }
         }
     }
@@ -227,18 +251,6 @@ fun BrandedPullToRefreshBox(
         }
     }
 
-    // High performance infinite rotation transition active during refresh
-    val infiniteTransition = rememberInfiniteTransition(label = "apple_spin_transition")
-    val spinRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 850, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "apple_spin_angle"
-    )
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -270,9 +282,11 @@ fun BrandedPullToRefreshBox(
                 BrandedRefreshIndicatorPill(
                     rotationDegreesProvider = {
                         if (isRefreshing) {
-                            spinRotation
-                        } else {
+                            rotationAnim.value
+                        } else if (targetPullOffset > 0f) {
                             (pullOffset.value / refreshThresholdPx).coerceIn(0f, 1.5f) * 180f
+                        } else {
+                            rotationAnim.value
                         }
                     },
                     isRefreshing = isRefreshing,
