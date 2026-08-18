@@ -29,11 +29,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Search
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -126,7 +128,18 @@ fun AttendanceHomeScreen(
     var showAddWorkerDialog by remember { mutableStateOf(false) }
     var workerToEdit by remember { mutableStateOf<Worker?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var workerSearchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+
+    val filteredWorkers = remember(activeWorkers, workerSearchQuery) {
+        if (workerSearchQuery.isBlank()) activeWorkers
+        else {
+            val q = workerSearchQuery.trim().lowercase()
+            activeWorkers.filter {
+                it.name.lowercase().contains(q) || it.phoneNumber.contains(q)
+            }
+        }
+    }
 
     val monthDisplayName = remember(selectedMonthYear) {
         try {
@@ -389,18 +402,60 @@ fun AttendanceHomeScreen(
                             }
                         }
 
-                        items(activeWorkers, key = { it.workerId }) { worker ->
-                            val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
-                            val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
-                            val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
+                        if (activeWorkers.isNotEmpty()) {
+                            item {
+                                OutlinedTextField(
+                                    value = workerSearchQuery,
+                                    onValueChange = { workerSearchQuery = it },
+                                    placeholder = { Text("Search worker by name or phone...", fontSize = 13.sp) },
+                                    leadingIcon = {
+                                        Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    },
+                                    trailingIcon = {
+                                        if (workerSearchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { workerSearchQuery = "" }) {
+                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    },
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("worker_search_input")
+                                )
+                            }
+                        }
 
-                            WorkerSummaryCard(
-                                worker = worker,
-                                presentCount = presentCount,
-                                absentCount = absentCount,
-                                onClick = { onSelectWorker(worker) },
-                                onEditClick = { workerToEdit = worker }
-                            )
+                        if (filteredWorkers.isEmpty() && workerSearchQuery.isNotBlank()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No workers match \"$workerSearchQuery\"",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            items(filteredWorkers, key = { it.workerId }) { worker ->
+                                val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
+                                val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
+                                val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
+
+                                WorkerSummaryCard(
+                                    worker = worker,
+                                    presentCount = presentCount,
+                                    absentCount = absentCount,
+                                    onClick = { onSelectWorker(worker) },
+                                    onEditClick = { workerToEdit = worker }
+                                )
+                            }
                         }
 
                         item {

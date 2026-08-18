@@ -91,6 +91,18 @@ class CropViewModel(
     private val _isGlobalSearchActive = MutableStateFlow(false)
     val isGlobalSearchActive: StateFlow<Boolean> = _isGlobalSearchActive.asStateFlow()
 
+    // Local Search Query for individual tab's Records section
+    private val _recordsSearchQuery = MutableStateFlow("")
+    val recordsSearchQuery: StateFlow<String> = _recordsSearchQuery.asStateFlow()
+
+    fun setRecordsSearchQuery(query: String) {
+        _recordsSearchQuery.value = query
+    }
+
+    fun clearRecordsSearchQuery() {
+        _recordsSearchQuery.value = ""
+    }
+
     // Detail dialog states for direct deep-link and QR scan navigation
     private val _selectedDetailCropRecord = MutableStateFlow<CropRecord?>(null)
     val selectedDetailCropRecord: StateFlow<CropRecord?> = _selectedDetailCropRecord.asStateFlow()
@@ -352,7 +364,7 @@ class CropViewModel(
 
     val filteredRecords: StateFlow<List<CropRecord>> = combine(
         repository.allRecords,
-        _searchQuery,
+        _recordsSearchQuery,
         _selectedService,
         combine(_selectedPaymentFilter, _recordSearchFilter) { pf, sf -> Pair(pf, sf) },
         combine(_selectedPruningSubTab, _selectedRootstockSubTab, _selectedGenevaSubOption) { p, r, g ->
@@ -362,9 +374,9 @@ class CropViewModel(
         val trimmedQuery = query.trim()
         records.filter { rec ->
             val isManualBooking = rec.serialNumber !in automaticSerials
-            val matchesCategory = if (trimmedQuery.isNotBlank()) true else isSameCategory(rec.serviceType, selectedSvc)
+            val matchesCategory = isSameCategory(rec.serviceType, selectedSvc)
 
-            val matchesSubTab = if (trimmedQuery.isNotBlank()) true else when {
+            val matchesSubTab = when {
                 selectedSvc.equals("Pruning", ignoreCase = true) -> {
                     rec.rootstock.contains(pruningTab, ignoreCase = true) ||
                     rec.plantVariety.contains(pruningTab, ignoreCase = true) ||
@@ -402,6 +414,7 @@ class CropViewModel(
                             rec.serviceType.contains(trimmedQuery, ignoreCase = true) ||
                             rec.rootstock.contains(trimmedQuery, ignoreCase = true) ||
                             rec.serialNumber.contains(trimmedQuery, ignoreCase = true) ||
+                            rec.notes.contains(trimmedQuery, ignoreCase = true) ||
                             rec.quantity.toString() == trimmedQuery ||
                             (trimmedQuery.toIntOrNull() != null && rec.quantity == trimmedQuery.toInt())
                 }
@@ -460,6 +473,7 @@ class CropViewModel(
     fun selectServiceCategory(service: String) {
         saveCurrentTabSerialState()
         _selectedService.value = service
+        _recordsSearchQuery.value = ""
         _viewMode.value = 0
         serviceType.value = service
         _recordsFilterService.value = service
@@ -479,6 +493,7 @@ class CropViewModel(
     fun selectPruningSubTab(subTab: String) {
         saveCurrentTabSerialState()
         _selectedPruningSubTab.value = subTab
+        _recordsSearchQuery.value = ""
         if (_selectedService.value.equals("Pruning", ignoreCase = true)) {
             rootstock.value = subTab
         }
@@ -488,6 +503,7 @@ class CropViewModel(
     fun selectRootstockSubTab(subTab: String, genevaSubOption: String? = null) {
         saveCurrentTabSerialState()
         _selectedRootstockSubTab.value = subTab
+        _recordsSearchQuery.value = ""
         if (genevaSubOption != null) {
             _selectedGenevaSubOption.value = genevaSubOption
         }
@@ -509,9 +525,6 @@ class CropViewModel(
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-        if (query.isNotBlank()) {
-            _isGlobalSearchActive.value = true
-        }
     }
 
     fun setPaymentFilter(filter: String) {

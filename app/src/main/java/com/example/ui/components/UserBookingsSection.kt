@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.FilterList
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlaylistAddCheck
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.AlertDialog
@@ -47,6 +49,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -80,6 +83,7 @@ fun UserBookingsSection(
     val allBookings by viewModel.rawBookings.collectAsState()
     val isLoading by viewModel.isLoadingBookings.collectAsState()
     val selectedFilter by viewModel.selectedBookingFilter.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     var showNewBookingModal by remember { mutableStateOf(false) }
     var bookingToDelete by remember { mutableStateOf<UserBooking?>(null) }
@@ -180,6 +184,31 @@ fun UserBookingsSection(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+
+        // Search Input
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { viewModel.setSearchQuery(it) },
+            placeholder = { Text("Search bookings by name, phone, variety...", fontSize = 13.sp) },
+            leadingIcon = {
+                Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .testTag("bookings_search_input")
+        )
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Filter Chips Row
         Row(

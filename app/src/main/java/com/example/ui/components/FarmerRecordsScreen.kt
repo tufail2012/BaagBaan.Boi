@@ -111,7 +111,7 @@ fun FarmerRecordsScreen(
     modifier: Modifier = Modifier
 ) {
     val records by viewModel.filteredRecords.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
+    val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
     val selectedService by viewModel.selectedService.collectAsState()
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
@@ -209,7 +209,7 @@ fun FarmerRecordsScreen(
             ) {
                 SearchBarWithStatusFilter(
                     searchQuery = searchQuery,
-                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                    onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
                     selectedFilter = selectedPaymentFilter,
                     onFilterSelected = { viewModel.setPaymentFilter(it) },
                     placeholderText = "Search by farmer name, phone, serial no...",
@@ -371,7 +371,8 @@ private fun RecordSummaryCards(
             // Card 1: Total Payment
             SummaryCardItem(
                 title = "Total Payment",
-                value = "₹${numberFmt.format(totalPayment.toLong())}",
+                targetValue = totalPayment,
+                formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = MaterialTheme.colorScheme.primary,
                 bgColor = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
@@ -381,7 +382,8 @@ private fun RecordSummaryCards(
             // Card 2: Received Payment
             SummaryCardItem(
                 title = "Received Payment",
-                value = "₹${numberFmt.format(receivedPayment.toLong())}",
+                targetValue = receivedPayment,
+                formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.CheckCircle,
                 accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
                 bgColor = if (isDark) Color(0xFF1B2E1B) else Color(0xFFE8F5E9),
@@ -396,7 +398,8 @@ private fun RecordSummaryCards(
             // Card 3: Pending Payment
             SummaryCardItem(
                 title = "Pending Payment",
-                value = "₹${numberFmt.format(pendingPayment.toLong())}",
+                targetValue = pendingPayment,
+                formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.HourglassTop,
                 accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
                 bgColor = if (isDark) Color(0xFF331C1C) else Color(0xFFFFEBEE),
@@ -407,7 +410,8 @@ private fun RecordSummaryCards(
             if (!isPruning && !isSiteVisit) {
                 SummaryCardItem(
                     title = "Total Quantity",
-                    value = "${numberFmt.format(totalQuantity)} Units",
+                    targetValue = totalQuantity.toDouble(),
+                    formatter = { "${numberFmt.format(it.toInt())} Units" },
                     icon = Icons.Default.Inventory2,
                     accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                     bgColor = if (isDark) Color(0xFF1A2A38) else Color(0xFFE1F5FE),
@@ -423,7 +427,8 @@ private fun RecordSummaryCards(
 @Composable
 private fun SummaryCardItem(
     title: String,
-    value: String,
+    targetValue: Double,
+    formatter: (Double) -> String,
     icon: ImageVector,
     accentColor: Color,
     bgColor: Color,
@@ -468,13 +473,12 @@ private fun SummaryCardItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = value,
+                CountUpText(
+                    targetValue = targetValue,
+                    formatter = formatter,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    color = accentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    color = accentColor
                 )
             }
         }

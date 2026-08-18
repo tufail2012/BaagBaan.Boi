@@ -30,6 +30,13 @@ class UserDashboardViewModel(
     private val _selectedBookingFilter = MutableStateFlow("All")
     val selectedBookingFilter: StateFlow<String> = _selectedBookingFilter.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     private val _isLoadingBookings = MutableStateFlow(false)
     val isLoadingBookings: StateFlow<Boolean> = _isLoadingBookings.asStateFlow()
 
@@ -39,11 +46,25 @@ class UserDashboardViewModel(
     private val _userMessage = MutableStateFlow<String?>(null)
     val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
 
-    val filteredBookings: StateFlow<List<UserBooking>> = combine(_rawBookings, _selectedBookingFilter) { bookings, filter ->
-        if (filter == "All") {
+    val filteredBookings: StateFlow<List<UserBooking>> = combine(_rawBookings, _selectedBookingFilter, _searchQuery) { bookings, filter, query ->
+        val typeFiltered = if (filter == "All") {
             bookings
         } else {
             bookings.filter { it.type.equals(filter, ignoreCase = true) }
+        }
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            typeFiltered
+        } else {
+            typeFiltered.filter {
+                it.farmerName.contains(trimmed, ignoreCase = true) ||
+                it.itemName.contains(trimmed, ignoreCase = true) ||
+                it.variety.contains(trimmed, ignoreCase = true) ||
+                it.type.contains(trimmed, ignoreCase = true) ||
+                it.season.contains(trimmed, ignoreCase = true) ||
+                it.notes.contains(trimmed, ignoreCase = true) ||
+                it.bookingDate.contains(trimmed, ignoreCase = true)
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
