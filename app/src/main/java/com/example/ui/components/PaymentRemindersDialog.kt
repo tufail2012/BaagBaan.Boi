@@ -2,16 +2,13 @@
 
 package com.example.ui.components
 
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
-import com.example.ui.components.BrandedPullToRefreshBox
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,11 +26,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -46,7 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -76,6 +72,9 @@ import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
+import com.example.util.PdfReceiptManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -101,10 +100,11 @@ fun PaymentRemindersDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { AppDatabase.getDatabase(context, scope) }
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkMode()
 
     var searchQuery by remember { mutableStateOf("") }
     var isRefreshing by remember { mutableStateOf(false) }
+    var selectedReceiptItem by remember { mutableStateOf<PendingPaymentItem?>(null) }
 
     var loadErrorTrace by remember { mutableStateOf<String?>(null) }
 
@@ -249,6 +249,16 @@ fun PaymentRemindersDialog(
         }
     }
 
+    // PDF Receipt Preview & Print Dialog
+    selectedReceiptItem?.let { item ->
+        FarmerPaymentReceiptDialog(
+            item = item,
+            cropRecords = cropRecords,
+            gardenEntries = gardenEntries,
+            onDismiss = { selectedReceiptItem = null }
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -258,6 +268,7 @@ fun PaymentRemindersDialog(
             color = MaterialTheme.colorScheme.background
         ) {
             Scaffold(
+                containerColor = MaterialTheme.colorScheme.background,
                 topBar = {
                     TopAppBar(
                         title = {
@@ -265,7 +276,8 @@ fun PaymentRemindersDialog(
                                 Text(
                                     text = "Payment Reminders",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
+                                    fontSize = 20.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "${pendingItems.size} Pending • ${numberFormat.format(totalOutstanding)} Dues",
@@ -276,11 +288,17 @@ fun PaymentRemindersDialog(
                         },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
-                                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            titleContentColor = MaterialTheme.colorScheme.onSurface,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
@@ -293,15 +311,28 @@ fun PaymentRemindersDialog(
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Outstanding Summary Card
+                    // Outstanding Summary Card - Theme Palette Adaptive
+                    val duesCardBg = if (isDark) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                    } else {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    }
+                    val duesBorderColor = if (isDark) {
+                        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.60f)
+                    }
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 12.dp)
+                            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = RoundedCornerShape(16.dp)),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isDark) Color(0xFF331E1E) else Color(0xFFFFF0F0)
-                        )
+                            containerColor = duesCardBg
+                        ),
+                        border = BorderStroke(1.dp, duesBorderColor)
                     ) {
                         Row(
                             modifier = Modifier
@@ -313,13 +344,16 @@ fun PaymentRemindersDialog(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(CircleShape)
-                                    .background(Color(0xFFE53935).copy(alpha = 0.2f)),
+                                    .background(
+                                        if (isDark) Color(0xFFEF5350).copy(alpha = 0.20f)
+                                        else Color(0xFFD32F2F).copy(alpha = 0.12f)
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Payment,
                                     contentDescription = null,
-                                    tint = Color(0xFFE53935),
+                                    tint = if (isDark) Color(0xFFEF5350) else Color(0xFFD32F2F),
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -336,33 +370,50 @@ fun PaymentRemindersDialog(
                                     formatter = { numberFormat.format(it) },
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFD32F2F)
+                                    color = if (isDark) Color(0xFFEF5350) else Color(0xFFD32F2F)
                                 )
                             }
                         }
                     }
 
-                    // Search input
-                    OutlinedTextField(
+                    // Search input - Elevated and Theme Adaptive
+                    val searchShape = RoundedCornerShape(16.dp)
+                    AppOutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier
                             .fillMaxWidth()
                             .bringIntoViewOnFocus()
+                            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = searchShape)
                             .testTag("payment_reminders_search_input"),
-                        placeholder = { Text("Search by farmer name, serial or phone...") },
+                        placeholder = {
+                            Text(
+                                text = "Search by farmer name, serial or phone...",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search")
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
+                        shape = searchShape,
+                        singleLine = true,
+                        colors = elevatedInputFieldColors(isDark = isDark)
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -418,6 +469,15 @@ fun PaymentRemindersDialog(
                                         item = item,
                                         numberFormat = numberFormat,
                                         isDark = isDark,
+                                        onOpenReceipt = { selectedReceiptItem = item },
+                                        onPrintReceipt = {
+                                            PdfReceiptManager.printReceipt(
+                                                context = context,
+                                                item = item,
+                                                cropRecords = cropRecords,
+                                                gardenEntries = gardenEntries
+                                            )
+                                        },
                                         onSendWhatsApp = { openWhatsAppReminder(item) },
                                         onCall = { makePhoneCall(item.contactNumber) }
                                     )
@@ -439,18 +499,25 @@ fun PendingPaymentRow(
     item: PendingPaymentItem,
     numberFormat: NumberFormat,
     isDark: Boolean,
+    onOpenReceipt: () -> Unit,
+    onPrintReceipt: () -> Unit,
     onSendWhatsApp: () -> Unit,
     onCall: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = RoundedCornerShape(16.dp))
             .testTag("pending_payment_row_${item.serialNumber}"),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(
+            1.dp,
+            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.60f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -479,16 +546,31 @@ fun PendingPaymentRow(
                     )
                 }
 
-                // Service tag chip
+                // Service tag chip - Theme-Aware Colors
+                val isGardenOrPlants = item.source == "GARDEN" ||
+                        item.serviceType.contains("Plant", ignoreCase = true) ||
+                        item.serviceType.contains("Rootstock", ignoreCase = true)
+
+                val chipBg = if (isGardenOrPlants) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isDark) 0.35f else 0.55f)
+                } else {
+                    if (isDark) Color(0xFF0C4A6E).copy(alpha = 0.40f) else Color(0xFFE0F2FE)
+                }
+                val chipText = if (isGardenOrPlants) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    if (isDark) Color(0xFF7DD3FC) else Color(0xFF0369A1)
+                }
+
                 Surface(
                     shape = RoundedCornerShape(20.dp),
-                    color = if (item.source == "GARDEN") MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color(0xFF0284C7).copy(alpha = 0.15f)
+                    color = chipBg
                 ) {
                     Text(
                         text = item.serviceType,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (item.source == "GARDEN") MaterialTheme.colorScheme.primary else Color(0xFF0284C7),
+                        color = chipText,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
@@ -512,7 +594,7 @@ fun PendingPaymentRow(
                         text = numberFormat.format(item.amountDue),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFD32F2F)
+                        color = if (isDark) Color(0xFFEF5350) else Color(0xFFD32F2F)
                     )
                 }
 
@@ -521,8 +603,9 @@ fun PendingPaymentRow(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.15f else 0.08f))
                             .clickable { onCall() }
-                            .padding(4.dp)
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Phone,
@@ -534,7 +617,7 @@ fun PendingPaymentRow(
                         Text(
                             text = item.contactNumber,
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -543,12 +626,44 @@ fun PendingPaymentRow(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Row 3: Actions
+            // Row 3: Actions (Print PDF Receipt, WhatsApp Reminder)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Receipt PDF / Print Action Button
+                OutlinedButton(
+                    onClick = onOpenReceipt,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        if (isDark) MaterialTheme.colorScheme.outline
+                        else MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(38.dp)
+                        .testTag("receipt_pdf_button_${item.serialNumber}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ReceiptLong,
+                        contentDescription = "PDF Receipt",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "PDF Receipt",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 if (item.contactNumber.isBlank()) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -568,20 +683,23 @@ fun PendingPaymentRow(
                             containerColor = Color(0xFF25D366)
                         ),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.testTag("send_whatsapp_reminder_${item.serialNumber}")
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(38.dp)
+                            .testTag("send_whatsapp_reminder_${item.serialNumber}")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Chat,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "Send via WhatsApp",
+                            text = "WhatsApp",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 12.sp
                         )
                     }
                 }
