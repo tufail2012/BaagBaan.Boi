@@ -1,6 +1,8 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -41,9 +43,11 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -55,6 +59,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 data class AgriNavItem(
     val title: String,
@@ -80,6 +85,7 @@ fun AgriBottomNav(
 
     val isDark = isAppInDarkMode()
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     val containerGlassGradient = if (!isDark) {
         Brush.verticalGradient(
@@ -149,6 +155,8 @@ fun AgriBottomNav(
             verticalAlignment = Alignment.CenterVertically
         ) {
             navItems.forEach { item ->
+                val scale = remember { Animatable(1f) }
+
                 val isSelected = selectedCategory.equals(item.serviceCategory, ignoreCase = true) ||
                         (selectedCategory.equals("Local", ignoreCase = true) && item.serviceCategory.equals("Local Plants", ignoreCase = true)) ||
                         (selectedCategory.equals("Garden", ignoreCase = true) && item.serviceCategory.equals("Garden Planning", ignoreCase = true))
@@ -219,6 +227,16 @@ fun AgriBottomNav(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(bounded = true, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)),
                             onClick = {
+                                scope.launch {
+                                    scale.animateTo(0.82f, animationSpec = tween(80, easing = FastOutSlowInEasing))
+                                    scale.animateTo(
+                                        1f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                }
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onCategorySelected(item.serviceCategory)
                             }
@@ -259,6 +277,7 @@ fun AgriBottomNav(
                             tint = animatedIconColor,
                             modifier = Modifier
                                 .size(24.dp)
+                                .scale(scale.value)
                                 .graphicsLayer {
                                     scaleX = animatedIconScale
                                     scaleY = animatedIconScale

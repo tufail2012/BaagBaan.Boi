@@ -331,8 +331,9 @@ fun PaymentRemindersDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
                                 )
-                                Text(
-                                    text = numberFormat.format(totalOutstanding),
+                                CountUpText(
+                                    targetValue = totalOutstanding,
+                                    formatter = { numberFormat.format(it) },
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFD32F2F)

@@ -58,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.CountUpText
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -856,8 +857,9 @@ fun WorkerPayrollSummarySection(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text("Total Earnings", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            text = "₹${totalEarnings.toInt()}",
+                        CountUpText(
+                            targetValue = totalEarnings,
+                            formatter = { "₹${it.toInt()}" },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -886,8 +888,9 @@ fun WorkerPayrollSummarySection(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text("Advances Received", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            text = "₹${advancePaid.toInt()}",
+                        CountUpText(
+                            targetValue = advancePaid,
+                            formatter = { "₹${it.toInt()}" },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -907,8 +910,9 @@ fun WorkerPayrollSummarySection(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Text("Remaining Balance", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            text = "₹${if (remainingBalance > 0) remainingBalance.toInt() else 0}",
+                        CountUpText(
+                            targetValue = if (remainingBalance > 0) remainingBalance else 0.0,
+                            formatter = { "₹${it.toInt()}" },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = MaterialTheme.colorScheme.onSurface

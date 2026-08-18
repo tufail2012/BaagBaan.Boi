@@ -748,7 +748,8 @@ private fun FinancialBreakdownCard(
                 // Total Volume
                 FinancialMetricBox(
                     label = "Total Volume",
-                    value = "₹${currencyFormat.format(totalRevenue.toLong())}",
+                    targetValue = totalRevenue,
+                    formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.TrendingUp,
                     accentColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
@@ -757,7 +758,8 @@ private fun FinancialBreakdownCard(
                 // Paid / Received
                 FinancialMetricBox(
                     label = "Amount Paid",
-                    value = "₹${currencyFormat.format(totalPaid.toLong())}",
+                    targetValue = totalPaid,
+                    formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.Payments,
                     accentColor = Color(0xFF2E7D32),
                     modifier = Modifier.weight(1f)
@@ -766,7 +768,8 @@ private fun FinancialBreakdownCard(
                 // Remaining Balance
                 FinancialMetricBox(
                     label = "Remaining",
-                    value = "₹${currencyFormat.format(totalRemaining.toLong())}",
+                    targetValue = totalRemaining,
+                    formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.ReceiptLong,
                     accentColor = if (totalRemaining > 0) Color(0xFFD32F2F) else Color(0xFF2E7D32),
                     modifier = Modifier.weight(1f)
@@ -831,7 +834,9 @@ private fun FinancialBreakdownCard(
 @Composable
 private fun FinancialMetricBox(
     label: String,
-    value: String,
+    targetValue: Double? = null,
+    formatter: ((Double) -> String)? = null,
+    value: String = "",
     icon: ImageVector,
     accentColor: Color,
     modifier: Modifier = Modifier
@@ -850,14 +855,26 @@ private fun FinancialMetricBox(
                 Icon(imageVector = icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(14.dp))
                 Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(
-                text = value,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = accentColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (targetValue != null && formatter != null) {
+                CountUpText(
+                    targetValue = targetValue,
+                    formatter = formatter,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else {
+                Text(
+                    text = value,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
