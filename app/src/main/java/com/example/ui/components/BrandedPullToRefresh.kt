@@ -82,58 +82,75 @@ fun BrandedPullToRefreshBox(
     val currentIsRefreshing by rememberUpdatedState(isRefreshing)
     val currentEnabled by rememberUpdatedState(enabled)
 
-    var dragDistance by remember { mutableFloatStateOf(0f) }
-    var isAnimating by remember { mutableStateOf(false) }
-    val settleAnim = remember { Animatable(0f) }
-    var settleJob by remember { mutableStateOf<Job?>(null) }
+    val pullOffset = remember { Animatable(0f) }
+    var targetPullOffset by remember { mutableFloatStateOf(0f) }
     var hasTriggeredHaptic by remember { mutableStateOf(false) }
+    var hasTriggeredRefreshForCurrentPull by remember { mutableStateOf(false) }
 
-    // Synchronize holding state with external isRefreshing boolean
+    // Synchronize holding state and reset lifecycle with external isRefreshing boolean
     LaunchedEffect(isRefreshing) {
         if (isRefreshing) {
-            val startVal = if (isAnimating) settleAnim.value else dragDistance
-            if (startVal < holdingOffsetPx) {
-                isAnimating = true
-                settleJob?.cancel()
-                settleJob = coroutineScope.launch {
-                    try {
-                        settleAnim.snapTo(startVal)
-                        settleAnim.animateTo(
-                            targetValue = holdingOffsetPx,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
-                    } finally {
-                        dragDistance = holdingOffsetPx
-                        isAnimating = false
-                    }
-                }
-            } else {
-                dragDistance = holdingOffsetPx
+            targetPullOffset = holdingOffsetPx
+            if (pullOffset.value < holdingOffsetPx) {
+                pullOffset.animateTo(
+                    targetValue = holdingOffsetPx,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
+            } else if (pullOffset.value > holdingOffsetPx) {
+                pullOffset.animateTo(
+                    targetValue = holdingOffsetPx,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
             }
         } else {
             hasTriggeredHaptic = false
-            val startVal = if (isAnimating) settleAnim.value else dragDistance
-            if (startVal > 0f) {
-                isAnimating = true
-                settleJob?.cancel()
-                settleJob = coroutineScope.launch {
-                    try {
-                        settleAnim.snapTo(startVal)
-                        settleAnim.animateTo(
-                            targetValue = 0f,
-                            animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
+            hasTriggeredRefreshForCurrentPull = false
+            targetPullOffset = 0f
+            if (pullOffset.value > 0f) {
+                pullOffset.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+                )
+            } else {
+                pullOffset.snapTo(0f)
+            }
+        }
+    }
+
+    val handleRelease: () -> Unit = {
+        if (currentEnabled && !currentIsRefreshing && targetPullOffset > 0f) {
+            val current = targetPullOffset
+            if (current >= refreshThresholdPx) {
+                targetPullOffset = holdingOffsetPx
+                if (!hasTriggeredRefreshForCurrentPull && !currentIsRefreshing) {
+                    hasTriggeredRefreshForCurrentPull = true
+                    currentOnRefresh()
+                }
+                coroutineScope.launch {
+                    pullOffset.animateTo(
+                        targetValue = holdingOffsetPx,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMediumLow
                         )
-                    } finally {
-                        dragDistance = 0f
-                        isAnimating = false
-                    }
+                    )
                 }
             } else {
-                dragDistance = 0f
-                isAnimating = false
+                targetPullOffset = 0f
+                hasTriggeredHaptic = false
+                hasTriggeredRefreshForCurrentPull = false
+                coroutineScope.launch {
+                    pullOffset.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing)
+                    )
+                }
             }
         }
     }
@@ -143,19 +160,17 @@ fun BrandedPullToRefreshBox(
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (!currentEnabled || currentIsRefreshing) return Offset.Zero
 
-                val currentOffset = if (isAnimating) settleAnim.value else dragDistance
-
-                // When user scrolls up while pull indicator is visible, collapse it first
-                if (available.y < 0f && currentOffset > 0f) {
-                    settleJob?.cancel()
-                    isAnimating = false
-                    val consumed = available.y
-                    val newOffset = (currentOffset + consumed).coerceAtLeast(0f)
-                    dragDistance = newOffset
+                // When user scrolls up while pull indicator is visible, retract indicator first
+                if (available.y < 0f && targetPullOffset > 0f) {
+                    val newOffset = (targetPullOffset + available.y).coerceAtLeast(0f)
+                    targetPullOffset = newOffset
+                    coroutineScope.launch {
+                        pullOffset.snapTo(newOffset)
+                    }
                     if (newOffset < refreshThresholdPx) {
                         hasTriggeredHaptic = false
                     }
-                    return Offset(0f, consumed)
+                    return Offset(0f, available.y)
                 }
                 return Offset.Zero
             }
@@ -169,12 +184,11 @@ fun BrandedPullToRefreshBox(
 
                 // When user pulls down at top of list
                 if (available.y > 0f) {
-                    settleJob?.cancel()
-                    isAnimating = false
-                    val currentOffset = dragDistance
-                    val dragMultiplier = 0.44f * (1f - (currentOffset / maxPullDistancePx).coerceIn(0f, 0.85f))
+                    val current = targetPullOffset
+                    val dragMultiplier = 0.44f * (1f - (current / maxPullDistancePx).coerceIn(0f, 0.85f))
                     val delta = available.y * dragMultiplier
-                    val newOffset = (currentOffset + delta).coerceAtMost(maxPullDistancePx)
+                    val newOffset = (current + delta).coerceIn(0f, maxPullDistancePx)
+                    targetPullOffset = newOffset
 
                     if (newOffset >= refreshThresholdPx && !hasTriggeredHaptic) {
                         hasTriggeredHaptic = true
@@ -183,7 +197,9 @@ fun BrandedPullToRefreshBox(
                         hasTriggeredHaptic = false
                     }
 
-                    dragDistance = newOffset
+                    coroutineScope.launch {
+                        pullOffset.snapTo(newOffset)
+                    }
                     return Offset(0f, available.y)
                 }
                 return Offset.Zero
@@ -192,47 +208,19 @@ fun BrandedPullToRefreshBox(
             override suspend fun onPreFling(available: Velocity): Velocity {
                 if (!currentEnabled || currentIsRefreshing) return Velocity.Zero
 
-                val currentOffset = if (isAnimating) settleAnim.value else dragDistance
+                if (targetPullOffset > 0f) {
+                    handleRelease()
+                    return Velocity.Zero
+                }
+                return Velocity.Zero
+            }
 
-                if (currentOffset >= refreshThresholdPx) {
-                    // Trigger refresh without blocking
-                    currentOnRefresh()
-                    isAnimating = true
-                    settleJob?.cancel()
-                    settleJob = coroutineScope.launch {
-                        try {
-                            settleAnim.snapTo(currentOffset)
-                            settleAnim.animateTo(
-                                targetValue = holdingOffsetPx,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            )
-                        } finally {
-                            dragDistance = holdingOffsetPx
-                            isAnimating = false
-                        }
-                    }
-                } else if (currentOffset > 0f) {
-                    hasTriggeredHaptic = false
-                    isAnimating = true
-                    settleJob?.cancel()
-                    settleJob = coroutineScope.launch {
-                        try {
-                            settleAnim.snapTo(currentOffset)
-                            settleAnim.animateTo(
-                                targetValue = 0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            )
-                        } finally {
-                            dragDistance = 0f
-                            isAnimating = false
-                        }
-                    }
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (!currentEnabled || currentIsRefreshing) return Velocity.Zero
+
+                if (targetPullOffset > 0f) {
+                    handleRelease()
+                    return Velocity.Zero
                 }
                 return Velocity.Zero
             }
@@ -260,17 +248,17 @@ fun BrandedPullToRefreshBox(
         content()
 
         // 2. Branded Apple/Leaf Refresh Indicator
-        val visibleOffset = if (isAnimating) settleAnim.value else dragDistance
+        val visibleOffset = pullOffset.value
         if (visibleOffset > 0.5f || isRefreshing) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .zIndex(100f)
                     .graphicsLayer {
-                        val offset = if (isAnimating) settleAnim.value else dragDistance
+                        val offset = pullOffset.value
                         val pullFraction = (offset / refreshThresholdPx).coerceIn(0f, 1.5f)
-                        val indicatorAlpha = (pullFraction * 1.6f).coerceIn(0f, 1f)
-                        val indicatorScale = (0.4f + pullFraction * 0.6f).coerceIn(0.4f, 1.15f)
+                        val indicatorAlpha = if (isRefreshing) 1f else (pullFraction * 1.6f).coerceIn(0f, 1f)
+                        val indicatorScale = if (isRefreshing) 1f else (0.4f + pullFraction * 0.6f).coerceIn(0.4f, 1.15f)
                         val indicatorYOffset = (offset * 0.72f - 44.dp.toPx()).coerceAtLeast(8.dp.toPx())
 
                         translationY = indicatorYOffset
@@ -284,8 +272,7 @@ fun BrandedPullToRefreshBox(
                         if (isRefreshing) {
                             spinRotation
                         } else {
-                            val offset = if (isAnimating) settleAnim.value else dragDistance
-                            (offset / refreshThresholdPx).coerceIn(0f, 1.5f) * 180f
+                            (pullOffset.value / refreshThresholdPx).coerceIn(0f, 1.5f) * 180f
                         }
                     },
                     isRefreshing = isRefreshing,
