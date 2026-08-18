@@ -251,7 +251,27 @@ class BackupRestoreManager {
                 paymentsJson.put(obj)
             }
 
-            // 5. Fetch User Bookings & User Attendance (if user is authenticated)
+            // 5. Fetch Inventory Items
+            val inventoryJson = JSONArray()
+            val localInventory = database.inventoryDao().getAllItemsSync()
+            localInventory.forEach { item ->
+                val obj = JSONObject()
+                obj.put("id", item.id)
+                obj.put("itemName", item.itemName)
+                obj.put("category", item.category)
+                obj.put("variety", item.variety)
+                obj.put("sku", item.sku)
+                obj.put("initialQuantity", item.initialQuantity)
+                obj.put("currentQuantity", item.currentQuantity)
+                obj.put("unitPrice", item.unitPrice)
+                obj.put("supplierName", item.supplierName)
+                obj.put("supplierContact", item.supplierContact)
+                obj.put("lowStockThreshold", item.lowStockThreshold)
+                obj.put("createdAt", item.createdAt)
+                inventoryJson.put(obj)
+            }
+
+            // 6. Fetch User Bookings & User Attendance (if user is authenticated)
             val userBookingsJson = JSONArray()
             val userAttendanceJson = JSONArray()
             val firestoreDb = db
@@ -316,6 +336,7 @@ class BackupRestoreManager {
             counts.put("workers", workersJson.length())
             counts.put("attendance_records", attendanceJson.length())
             counts.put("advance_payments", paymentsJson.length())
+            counts.put("inventory_items", inventoryJson.length())
             counts.put("user_bookings", userBookingsJson.length())
             counts.put("user_attendance", userAttendanceJson.length())
             metadata.put("counts", counts)
@@ -327,6 +348,7 @@ class BackupRestoreManager {
             dataObj.put("workers", workersJson)
             dataObj.put("attendance_records", attendanceJson)
             dataObj.put("advance_payments", paymentsJson)
+            dataObj.put("inventory_items", inventoryJson)
             dataObj.put("user_bookings", userBookingsJson)
             dataObj.put("user_attendance", userAttendanceJson)
 
@@ -608,7 +630,37 @@ class BackupRestoreManager {
                 }
             }
 
-            // 6. Restore User Attendance (if authenticated)
+            // 6. Restore Inventory Items (if present)
+            if (dataObj.has("inventory_items")) {
+                val array = dataObj.getJSONArray("inventory_items")
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val item = InventoryItem(
+                        id = obj.optLong("id", 0L),
+                        itemName = obj.optString("itemName", ""),
+                        category = obj.optString("category", "Local Plants"),
+                        variety = obj.optString("variety", ""),
+                        sku = obj.optString("sku", ""),
+                        initialQuantity = obj.optInt("initialQuantity", 0),
+                        currentQuantity = obj.optInt("currentQuantity", obj.optInt("initialQuantity", 0)),
+                        unitPrice = obj.optDouble("unitPrice", 0.0),
+                        supplierName = obj.optString("supplierName", ""),
+                        supplierContact = obj.optString("supplierContact", ""),
+                        lowStockThreshold = obj.optInt("lowStockThreshold", 10),
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                    )
+                    database.inventoryDao().insertItem(item)
+                }
+            }
+
+            // Recalculate and ensure Current Stock is 100% synchronized with confirmed bookings
+            try {
+                InventoryStockManager.recalculateAllStock(database)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error synchronizing inventory after restore: ${e.message}")
+            }
+
+            // 7. Restore User Attendance (if authenticated)
             if (!uid.isNullOrEmpty() && firestoreRestoreDb != null && dataObj.has("user_attendance")) {
                 val array = dataObj.getJSONArray("user_attendance")
                 for (i in 0 until array.length()) {

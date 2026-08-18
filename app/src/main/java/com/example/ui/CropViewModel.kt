@@ -8,6 +8,8 @@ import com.example.data.CropRecordRepository
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
 import com.example.data.GlobalSearchResult
+import com.example.data.InventoryStockManager
+import com.example.data.StockValidationResult
 import com.example.data.isPaymentCleared
 import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -573,7 +575,7 @@ class CropViewModel(
     }
 
     private val editingPaymentHistoryJson = MutableStateFlow("")
-    private var editingOldRecord: CropRecord? = null
+    var editingOldRecord: CropRecord? = null
 
     fun resetForm() {
         editingRecordId.value = null
@@ -793,31 +795,49 @@ class CropViewModel(
                 timestamp = System.currentTimeMillis()
             )
 
-            if (editingRecordId.value == null) {
-                repository.insert(record)
-                BookingConfirmationState.show()
-                onBookingSavedListener?.invoke(record.farmerName, record.serviceType, record.serialNumber, record.expectedDelivery)
-            } else {
-                repository.update(record, oldRecord = editingOldRecord)
-                _userMessage.value = "Record updated successfully!"
-                onBookingSavedListener?.invoke(record.farmerName, record.serviceType, record.serialNumber, record.expectedDelivery)
-            }
+            try {
+                val validation = repository.validateStockAvailability(record, oldRecord = editingOldRecord)
+                if (validation is StockValidationResult.InsufficientStock) {
+                    _userMessage.value = validation.errorMessage
+                    return@launch
+                }
 
-            resetForm()
-            _viewMode.value = 1 // Switch to records view
+                if (editingRecordId.value == null) {
+                    repository.insert(record)
+                    BookingConfirmationState.show()
+                    onBookingSavedListener?.invoke(record.farmerName, record.serviceType, record.serialNumber, record.expectedDelivery)
+                } else {
+                    repository.update(record, oldRecord = editingOldRecord)
+                    _userMessage.value = "Record updated successfully!"
+                    onBookingSavedListener?.invoke(record.farmerName, record.serviceType, record.serialNumber, record.expectedDelivery)
+                }
+
+                resetForm()
+                _viewMode.value = 1 // Switch to records view
+            } catch (e: Exception) {
+                _userMessage.value = e.message ?: "Failed to save booking"
+            }
         }
     }
 
     fun deleteRecord(record: CropRecord) {
         viewModelScope.launch {
-            repository.delete(record)
-            _userMessage.value = "Record deleted"
+            try {
+                repository.delete(record)
+                _userMessage.value = "Record deleted"
+            } catch (e: Exception) {
+                _userMessage.value = e.message ?: "Failed to delete record"
+            }
         }
     }
 
     suspend fun updateRecordSync(record: CropRecord) {
-        repository.update(record)
-        _userMessage.value = "Record updated"
+        try {
+            repository.update(record)
+            _userMessage.value = "Record updated"
+        } catch (e: Exception) {
+            _userMessage.value = e.message ?: "Failed to update record"
+        }
     }
 
     fun updateRecord(record: CropRecord) {

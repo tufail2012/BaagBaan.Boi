@@ -29,12 +29,27 @@ class CropRecordRepository(
         return dao.getAllRecordsList()
     }
 
+    suspend fun validateStockAvailability(record: CropRecord, oldRecord: CropRecord? = null): StockValidationResult {
+        if (inventoryDao == null) return StockValidationResult.Success(null, null)
+        return InventoryStockManager.validateStock(inventoryDao, record, oldRecord)
+    }
+
     suspend fun insert(record: CropRecord): Long {
+        if (inventoryDao != null) {
+            val validation = InventoryStockManager.validateStock(inventoryDao, record)
+            if (validation is StockValidationResult.InsufficientStock) {
+                throw IllegalStateException(validation.errorMessage)
+            }
+        }
+
         val insertedId = dao.insertRecord(record)
         val recordToSync = if (record.id == 0L) record.copy(id = insertedId) else record
         firestoreSyncManager.saveCropRecord(recordToSync)
         syncFarmerContactOnSave(recordToSync)
-        adjustInventoryOnBookingSave(recordToSync)
+        
+        if (inventoryDao != null) {
+            InventoryStockManager.applyBookingSave(inventoryDao, firestoreSyncManager, recordToSync)
+        }
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
         return insertedId
     }
@@ -44,14 +59,20 @@ class CropRecordRepository(
             dao.getRecordById(record.id).firstOrNull()
         }
 
+        if (inventoryDao != null) {
+            val validation = InventoryStockManager.validateStock(inventoryDao, record, oldRecord = previousRecord)
+            if (validation is StockValidationResult.InsufficientStock) {
+                throw IllegalStateException(validation.errorMessage)
+            }
+        }
+
         dao.updateRecord(record)
         firestoreSyncManager.saveCropRecord(record)
         syncFarmerContactOnSave(record)
 
-        if (previousRecord != null) {
-            adjustInventoryOnBookingDelete(previousRecord)
+        if (inventoryDao != null) {
+            InventoryStockManager.applyBookingUpdate(inventoryDao, firestoreSyncManager, record, previousRecord)
         }
-        adjustInventoryOnBookingSave(record)
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
     }
 
@@ -59,7 +80,10 @@ class CropRecordRepository(
         dao.deleteRecord(record)
         firestoreSyncManager.deleteCropRecord(record.id)
         syncFarmerContactOnDelete(record)
-        adjustInventoryOnBookingDelete(record)
+        
+        if (inventoryDao != null) {
+            InventoryStockManager.applyBookingDelete(inventoryDao, firestoreSyncManager, record)
+        }
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
 
         if (recycleBinDao != null) {
@@ -73,40 +97,6 @@ class CropRecordRepository(
             )
             val insertedId = recycleBinDao.insert(binItem)
             firestoreSyncManager.saveRecycleBinItem(binItem.copy(id = insertedId))
-        }
-    }
-
-    private suspend fun adjustInventoryOnBookingSave(record: CropRecord) {
-        if (inventoryDao == null) return
-        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
-        val categoryMatch = validCategories.firstOrNull { record.serviceType.contains(it, ignoreCase = true) }
-        if (categoryMatch != null) {
-            val varietyToMatch = if (record.rootstock.isNotBlank()) record.rootstock else record.plantVariety
-            val item = inventoryDao.findMatchingItem(categoryMatch, varietyToMatch)
-            if (item != null) {
-                inventoryDao.decrementQuantity(item.id, record.quantity)
-                val updated = inventoryDao.getItemById(item.id)
-                if (updated != null) {
-                    firestoreSyncManager.saveInventoryItem(updated)
-                }
-            }
-        }
-    }
-
-    private suspend fun adjustInventoryOnBookingDelete(record: CropRecord) {
-        if (inventoryDao == null) return
-        val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
-        val categoryMatch = validCategories.firstOrNull { record.serviceType.contains(it, ignoreCase = true) }
-        if (categoryMatch != null) {
-            val varietyToMatch = if (record.rootstock.isNotBlank()) record.rootstock else record.plantVariety
-            val item = inventoryDao.findMatchingItem(categoryMatch, varietyToMatch)
-            if (item != null) {
-                inventoryDao.incrementQuantity(item.id, record.quantity)
-                val updated = inventoryDao.getItemById(item.id)
-                if (updated != null) {
-                    firestoreSyncManager.saveInventoryItem(updated)
-                }
-            }
         }
     }
 

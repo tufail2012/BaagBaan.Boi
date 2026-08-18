@@ -64,6 +64,8 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Nature
@@ -407,6 +409,58 @@ fun FarmerFormScreen(
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
+
+    val inventoryItems by remember { com.example.data.AppDatabase.getDatabase(context).inventoryDao().getAllItems() }.collectAsState(initial = emptyList())
+    val isStockApplicable = !serviceType.contains("Site Visit", ignoreCase = true) && !serviceType.contains("Pruning", ignoreCase = true)
+
+    val matchedInventoryItem by remember(serviceType, plantVariety, rootstock, inventoryItems) {
+        androidx.compose.runtime.derivedStateOf {
+            if (!isStockApplicable) null
+            else {
+                val cat = com.example.data.InventoryStockManager.normalizeCategory(serviceType)
+                val cVar = plantVariety.trim()
+                val cRoot = rootstock.trim()
+                val pool = inventoryItems.filter {
+                    com.example.data.InventoryStockManager.normalizeCategory(it.category).equals(cat, ignoreCase = true) ||
+                    it.category.equals(serviceType, ignoreCase = true)
+                }.ifEmpty { inventoryItems }
+
+                when {
+                    cVar.isNotBlank() && cRoot.isNotBlank() -> {
+                        pool.firstOrNull {
+                            (it.variety.equals(cVar, ignoreCase = true) || it.itemName.contains(cVar, ignoreCase = true)) &&
+                            (it.itemName.contains(cRoot, ignoreCase = true) || it.variety.contains(cRoot, ignoreCase = true))
+                        } ?: pool.firstOrNull { it.variety.equals(cVar, ignoreCase = true) }
+                    }
+                    cat.equals("Imported Rootstock", ignoreCase = true) && cRoot.isNotBlank() -> {
+                        pool.firstOrNull {
+                            it.variety.equals(cRoot, ignoreCase = true) ||
+                            it.itemName.contains(cRoot, ignoreCase = true)
+                        }
+                    }
+                    cVar.isNotBlank() -> {
+                        pool.firstOrNull { it.variety.equals(cVar, ignoreCase = true) }
+                            ?: pool.firstOrNull { it.itemName.equals(cVar, ignoreCase = true) }
+                            ?: pool.firstOrNull { it.itemName.contains(cVar, ignoreCase = true) }
+                    }
+                    cRoot.isNotBlank() -> {
+                        pool.firstOrNull { it.variety.equals(cRoot, ignoreCase = true) || it.itemName.contains(cRoot, ignoreCase = true) }
+                    }
+                    pool.size == 1 -> pool.first()
+                    else -> null
+                }
+            }
+        }
+    }
+
+    val effectiveAvailableStock = remember(matchedInventoryItem, editingId) {
+        val baseStock = matchedInventoryItem?.currentQuantity ?: 0
+        val oldQty = if (editingId != null && viewModel.editingOldRecord != null) viewModel.editingOldRecord?.quantity ?: 0 else 0
+        baseStock + oldQty
+    }
+
+    val requestedQtyInt = quantity.toIntOrNull() ?: 0
+    val isInsufficientStock = isStockApplicable && matchedInventoryItem != null && requestedQtyInt > effectiveAvailableStock
 
     var selectedTemplate by remember { mutableStateOf("Booking Confirmation") }
     var templateMenuExpanded by remember { mutableStateOf(false) }
@@ -1436,6 +1490,47 @@ fun FarmerFormScreen(
             }
         }
 
+        if (isStockApplicable && matchedInventoryItem != null) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (isInsufficientStock) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Inventory,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Current Stock: ${matchedInventoryItem!!.currentQuantity} units (Initial: ${matchedInventoryItem!!.initialQuantity})",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isInsufficientStock) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    if (matchedInventoryItem!!.sku.isNotBlank()) {
+                        Text(
+                            text = "SKU: ${matchedInventoryItem!!.sku}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
         if (isImportedRootstocks) {
             val isUnitPriceError = landAreaAcres.isNotBlank() && (landAreaAcres.toDoubleOrNull() ?: 0.0) <= 0.0
             val isGraftChargeError = perUnitGraftingCharge.isNotBlank() && (perUnitGraftingCharge.toDoubleOrNull() ?: -1.0) < 0.0
@@ -1449,6 +1544,10 @@ fun FarmerFormScreen(
                 },
                 label = { Text("Quantity (Roots) *") },
                 placeholder = { Text("Enter quantity") },
+                isError = isInsufficientStock,
+                supportingText = if (isInsufficientStock) {
+                    { Text("Insufficient stock. Only $effectiveAvailableStock units are available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                } else null,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = pillShape,
                 singleLine = true,
@@ -1456,7 +1555,7 @@ fun FarmerFormScreen(
                     Icon(
                         imageVector = Icons.Default.FormatListNumbered,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     )
                 },
                 modifier = Modifier
@@ -1592,6 +1691,10 @@ fun FarmerFormScreen(
                     },
                     label = { Text(if (isSiteVisit) "No. of Visits *" else "Quantity *") },
                     placeholder = { Text(if (isSiteVisit) "e.g. 1" else "Enter quantity") },
+                    isError = isInsufficientStock,
+                    supportingText = if (isInsufficientStock) {
+                        { Text("Insufficient stock. Only $effectiveAvailableStock units available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                    } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = pillShape,
                     singleLine = true,
@@ -1599,7 +1702,7 @@ fun FarmerFormScreen(
                         Icon(
                             imageVector = Icons.Default.FormatListNumbered,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     },
                     modifier = Modifier

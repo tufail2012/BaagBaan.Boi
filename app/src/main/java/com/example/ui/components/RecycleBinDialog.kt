@@ -218,20 +218,7 @@ fun RecycleBinDialog(
                                                             val restoredRecord = RecycleBinConverter.jsonToCropRecord(item.jsonPayload)
                                                             db.cropRecordDao().insertRecord(restoredRecord)
                                                             firestoreSyncManager.saveCropRecord(restoredRecord)
-                                                            val validCategories = listOf("Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
-                                                            val categoryMatch = validCategories.firstOrNull { restoredRecord.serviceType.contains(it, ignoreCase = true) }
-                                                            if (categoryMatch != null) {
-                                                                val varietyToMatch = if (restoredRecord.rootstock.isNotBlank()) restoredRecord.rootstock else restoredRecord.plantVariety
-                                                                val invItem = db.inventoryDao().findMatchingItem(categoryMatch, varietyToMatch)
-                                                                    ?: db.inventoryDao().findMatchingItemByCategory(categoryMatch)
-                                                                if (invItem != null) {
-                                                                    db.inventoryDao().decrementQuantity(invItem.id, restoredRecord.quantity)
-                                                                    val updated = db.inventoryDao().getItemById(invItem.id)
-                                                                    if (updated != null) {
-                                                                        firestoreSyncManager.saveInventoryItem(updated)
-                                                                    }
-                                                                }
-                                                            }
+                                                            com.example.data.InventoryStockManager.applyBookingSave(db.inventoryDao(), firestoreSyncManager, restoredRecord)
                                                         } else if (item.itemType == "CONTACT") {
                                                             val restoredContact = RecycleBinConverter.jsonToContact(item.jsonPayload)
                                                             db.farmerContactDao().insertContact(restoredContact)

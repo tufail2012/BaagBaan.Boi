@@ -35,6 +35,15 @@ interface InventoryDao {
     @Query("DELETE FROM inventory_items WHERE id = :id")
     suspend fun deleteItemById(id: Long)
 
+    @Query("SELECT * FROM inventory_items WHERE sku = :sku LIMIT 1")
+    suspend fun getItemBySku(sku: String): InventoryItem?
+
+    @Query("SELECT * FROM inventory_items")
+    suspend fun getAllItemsSync(): List<InventoryItem>
+
+    @Query("UPDATE inventory_items SET currentQuantity = :quantity WHERE id = :id")
+    suspend fun updateCurrentQuantity(id: Long, quantity: Int)
+
     @Query("UPDATE inventory_items SET currentQuantity = MAX(0, currentQuantity - :quantity) WHERE id = :id")
     suspend fun decrementQuantity(id: Long, quantity: Int)
 
