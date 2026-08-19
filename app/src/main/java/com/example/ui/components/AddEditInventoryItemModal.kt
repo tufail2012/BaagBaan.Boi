@@ -393,9 +393,11 @@ fun AddEditInventoryItemModal(
                                         createdAt = itemToEdit?.createdAt ?: System.currentTimeMillis()
                                     )
 
+                                    val oldQty = itemToEdit?.currentQuantity ?: Int.MAX_VALUE
                                     val savedId = db.inventoryDao().insertItem(item)
                                     val finalItem = if (item.id == 0L) item.copy(id = savedId) else item
                                     firestoreSyncManager.saveInventoryItem(finalItem)
+                                    com.example.data.InventoryStockManager.checkAndNotifyLowStock(context, oldQty, finalItem)
 
                                     withContext(Dispatchers.Main) {
                                         isSaving = false

@@ -124,6 +124,7 @@ class CropViewModel(
 
     val showPaymentRemindersDialog = MutableStateFlow(false)
     val showSeasonalRemindersDialog = MutableStateFlow(false)
+    val showInventoryDialog = MutableStateFlow(false)
 
     fun openPaymentReminders() {
         showPaymentRemindersDialog.value = true
@@ -141,6 +142,14 @@ class CropViewModel(
         showSeasonalRemindersDialog.value = false
     }
 
+    fun openInventoryManagement() {
+        showInventoryDialog.value = true
+    }
+
+    fun dismissInventoryManagement() {
+        showInventoryDialog.value = false
+    }
+
     fun dismissGardenEntryDetail() {
         _selectedDetailGardenEntry.value = null
     }
@@ -153,6 +162,10 @@ class CropViewModel(
         }
         if (uri.scheme == "baagbaanboi" && (uri.host == "seasonal" || uri.host == "seasonal_reminders" || uri.path == "/seasonal")) {
             openSeasonalReminders()
+            return
+        }
+        if (uri.scheme == "baagbaanboi" && (uri.host == "inventory" || uri.host == "inventory_management" || uri.path == "/inventory")) {
+            openInventoryManagement()
             return
         }
         if (uri.scheme == "baagbaanboi" && uri.host == "record") {
@@ -175,6 +188,10 @@ class CropViewModel(
             }
             if (uri != null && uri.scheme == "baagbaanboi" && (uri.host == "seasonal" || uri.host == "seasonal_reminders" || uri.path == "/seasonal")) {
                 openSeasonalReminders()
+                return
+            }
+            if (uri != null && uri.scheme == "baagbaanboi" && (uri.host == "inventory" || uri.host == "inventory_management" || uri.path == "/inventory")) {
+                openInventoryManagement()
                 return
             }
             if (uri != null && uri.scheme == "baagbaanboi" && uri.host == "record") {

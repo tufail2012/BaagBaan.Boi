@@ -445,10 +445,12 @@ fun InventoryManagementDialog(
                                     },
                                     onQuantityAdjust = { delta ->
                                         scope.launch(Dispatchers.IO) {
+                                            val oldQty = item.currentQuantity
                                             val newQty = (item.currentQuantity + delta).coerceAtLeast(0)
                                             val updated = item.copy(currentQuantity = newQty)
                                             db.inventoryDao().updateItem(updated)
                                             firestoreSyncManager.saveInventoryItem(updated)
+                                            com.example.data.InventoryStockManager.checkAndNotifyLowStock(context, oldQty, updated)
                                         }
                                     }
                                 )

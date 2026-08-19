@@ -27,6 +27,7 @@ object NotificationHelper {
     const val CHANNEL_BOOKINGS_ID = "channel_bookings"
     const val CHANNEL_REMINDERS_ID = "channel_reminders"
     const val CHANNEL_SEASONAL_ID = "channel_seasonal_reminders"
+    const val CHANNEL_INVENTORY_ID = "channel_inventory_alerts"
 
     fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -60,10 +61,21 @@ object NotificationHelper {
                 enableVibration(true)
             }
 
+            val inventoryChannel = NotificationChannel(
+                CHANNEL_INVENTORY_ID,
+                "Inventory & Stock Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alerts when stock drops to or below the low stock threshold"
+                setShowBadge(true)
+                enableVibration(true)
+            }
+
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(bookingChannel)
             manager.createNotificationChannel(reminderChannel)
             manager.createNotificationChannel(seasonalChannel)
+            manager.createNotificationChannel(inventoryChannel)
         }
     }
 

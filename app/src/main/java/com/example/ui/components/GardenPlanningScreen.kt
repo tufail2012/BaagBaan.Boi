@@ -89,6 +89,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.AccountCircle
@@ -3368,13 +3369,27 @@ fun GardenBookingRecordDetailDialog(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = { receiptPreviewBitmap = null },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(0.8f)
                         ) {
                             Text("Close")
+                        }
+
+                        Button(
+                            onClick = {
+                                if (receiptPreviewBitmap != null) {
+                                    ReceiptGenerator.printReceiptBitmap(context, receiptPreviewBitmap!!, currentEntry.serialNumber)
+                                }
+                            },
+                            modifier = Modifier.weight(1.1f).testTag("print_receipt_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Print Receipt", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                         }
 
                         Button(
@@ -3400,12 +3415,12 @@ fun GardenBookingRecordDetailDialog(
                                     }
                                 }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1.2f).testTag("share_whatsapp_receipt_button"),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
                         ) {
                             Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Share Receipt", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Send via WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                         }
                     }
                 }

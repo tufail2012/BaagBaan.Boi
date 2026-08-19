@@ -1,6 +1,12 @@
 package com.example.data
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
+import com.example.notifications.NotificationHelper
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 sealed class StockValidationResult {
     data class Success(
@@ -224,22 +230,77 @@ object InventoryStockManager {
     }
 
     /**
+     * Centralized alert for low stock or out-of-stock events.
+     * Only fires on genuine downward threshold crossings:
+     * oldQuantity > item.lowStockThreshold AND item.currentQuantity <= item.lowStockThreshold
+     */
+    fun checkAndNotifyLowStock(
+        context: Context,
+        oldQuantity: Int,
+        item: InventoryItem
+    ) {
+        if (oldQuantity > item.lowStockThreshold && item.currentQuantity <= item.lowStockThreshold) {
+            val isOutOfStock = item.currentQuantity <= 0
+            val title = if (isOutOfStock) "Out of Stock Alert! ⚠️" else "Low Stock Alert! 📦"
+            val varietySuffix = if (item.variety.isNotBlank()) " (${item.variety})" else ""
+            val message = if (isOutOfStock) {
+                "${item.itemName}$varietySuffix is completely out of stock (0 units remaining)."
+            } else {
+                "${item.itemName}$varietySuffix is running low! Only ${item.currentQuantity} units remaining (Threshold: ${item.lowStockThreshold})."
+            }
+
+            val deepLinkUri = Uri.parse("baagbaanboi://inventory")
+
+            NotificationHelper.postSystemNotification(
+                context = context,
+                title = title,
+                message = message,
+                channelId = NotificationHelper.CHANNEL_INVENTORY_ID,
+                notificationId = (item.id.toInt() + 90000),
+                deepLinkUri = deepLinkUri
+            )
+
+            // Insert into in-app Notification Center Room database asynchronously
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val db = AppDatabase.getDatabase(context)
+                    db.notificationDao().insertNotification(
+                        AppNotification(
+                            title = title,
+                            message = message,
+                            type = "INVENTORY",
+                            relatedRecordId = item.id
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to insert low stock in-app notification: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
      * Applies inventory stock deduction on booking save (creation).
      */
     suspend fun applyBookingSave(
         inventoryDao: InventoryDao,
         firestoreSyncManager: FirestoreSyncManager,
-        record: CropRecord
+        record: CropRecord,
+        context: Context? = null
     ) {
         if (!isStockDeductible(record)) return
 
         val item = findMatchingInventoryItem(inventoryDao, record) ?: return
+        val oldQty = item.currentQuantity
         val newQty = (item.currentQuantity - record.quantity).coerceAtLeast(0)
         inventoryDao.updateCurrentQuantity(item.id, newQty)
 
         val updated = inventoryDao.getItemById(item.id)
         if (updated != null) {
             firestoreSyncManager.saveInventoryItem(updated)
+            if (context != null) {
+                checkAndNotifyLowStock(context, oldQty, updated)
+            }
         }
     }
 
@@ -249,17 +310,22 @@ object InventoryStockManager {
     suspend fun applyBookingDelete(
         inventoryDao: InventoryDao,
         firestoreSyncManager: FirestoreSyncManager,
-        record: CropRecord
+        record: CropRecord,
+        context: Context? = null
     ) {
         if (!isStockDeductible(record)) return
 
         val item = findMatchingInventoryItem(inventoryDao, record) ?: return
+        val oldQty = item.currentQuantity
         val newQty = item.currentQuantity + record.quantity
         inventoryDao.updateCurrentQuantity(item.id, newQty)
 
         val updated = inventoryDao.getItemById(item.id)
         if (updated != null) {
             firestoreSyncManager.saveInventoryItem(updated)
+            if (context != null) {
+                checkAndNotifyLowStock(context, oldQty, updated)
+            }
         }
     }
 
@@ -272,7 +338,8 @@ object InventoryStockManager {
         inventoryDao: InventoryDao,
         firestoreSyncManager: FirestoreSyncManager,
         newRecord: CropRecord,
-        oldRecord: CropRecord?
+        oldRecord: CropRecord?,
+        context: Context? = null
     ) {
         val wasDeductible = oldRecord != null && isStockDeductible(oldRecord)
         val isNowDeductible = isStockDeductible(newRecord)
@@ -286,24 +353,42 @@ object InventoryStockManager {
                 if (oldItem != null && newItem != null && oldItem.id == newItem.id) {
                     val diff = newRecord.quantity - oldRecord!!.quantity
                     if (diff != 0) {
+                        val oldQty = newItem.currentQuantity
                         val newStock = (newItem.currentQuantity - diff).coerceAtLeast(0)
                         inventoryDao.updateCurrentQuantity(newItem.id, newStock)
                         val updated = inventoryDao.getItemById(newItem.id)
-                        if (updated != null) firestoreSyncManager.saveInventoryItem(updated)
+                        if (updated != null) {
+                            firestoreSyncManager.saveInventoryItem(updated)
+                            if (context != null) {
+                                checkAndNotifyLowStock(context, oldQty, updated)
+                            }
+                        }
                     }
                 } else {
                     // Changed item entirely: return to old, deduct from new
                     if (oldItem != null) {
+                        val oldOldQty = oldItem.currentQuantity
                         val restoredStock = oldItem.currentQuantity + oldRecord!!.quantity
                         inventoryDao.updateCurrentQuantity(oldItem.id, restoredStock)
                         val updatedOld = inventoryDao.getItemById(oldItem.id)
-                        if (updatedOld != null) firestoreSyncManager.saveInventoryItem(updatedOld)
+                        if (updatedOld != null) {
+                            firestoreSyncManager.saveInventoryItem(updatedOld)
+                            if (context != null) {
+                                checkAndNotifyLowStock(context, oldOldQty, updatedOld)
+                            }
+                        }
                     }
                     if (newItem != null) {
+                        val oldNewQty = newItem.currentQuantity
                         val deductedStock = (newItem.currentQuantity - newRecord.quantity).coerceAtLeast(0)
                         inventoryDao.updateCurrentQuantity(newItem.id, deductedStock)
                         val updatedNew = inventoryDao.getItemById(newItem.id)
-                        if (updatedNew != null) firestoreSyncManager.saveInventoryItem(updatedNew)
+                        if (updatedNew != null) {
+                            firestoreSyncManager.saveInventoryItem(updatedNew)
+                            if (context != null) {
+                                checkAndNotifyLowStock(context, oldNewQty, updatedNew)
+                            }
+                        }
                     }
                 }
             }
@@ -311,20 +396,32 @@ object InventoryStockManager {
             // Case 2: Was deductible, but now NOT deductible (e.g. status changed to Cancelled or Draft)
             wasDeductible && !isNowDeductible -> {
                 if (oldItem != null) {
+                    val oldOldQty = oldItem.currentQuantity
                     val restoredStock = oldItem.currentQuantity + oldRecord!!.quantity
                     inventoryDao.updateCurrentQuantity(oldItem.id, restoredStock)
                     val updated = inventoryDao.getItemById(oldItem.id)
-                    if (updated != null) firestoreSyncManager.saveInventoryItem(updated)
+                    if (updated != null) {
+                        firestoreSyncManager.saveInventoryItem(updated)
+                        if (context != null) {
+                            checkAndNotifyLowStock(context, oldOldQty, updated)
+                        }
+                    }
                 }
             }
 
             // Case 3: Was NOT deductible, but is now deductible (e.g. status uncanceled back to Active/Confirmed)
             !wasDeductible && isNowDeductible -> {
                 if (newItem != null) {
+                    val oldNewQty = newItem.currentQuantity
                     val deductedStock = (newItem.currentQuantity - newRecord.quantity).coerceAtLeast(0)
                     inventoryDao.updateCurrentQuantity(newItem.id, deductedStock)
                     val updated = inventoryDao.getItemById(newItem.id)
-                    if (updated != null) firestoreSyncManager.saveInventoryItem(updated)
+                    if (updated != null) {
+                        firestoreSyncManager.saveInventoryItem(updated)
+                        if (context != null) {
+                            checkAndNotifyLowStock(context, oldNewQty, updated)
+                        }
+                    }
                 }
             }
 
@@ -339,7 +436,8 @@ object InventoryStockManager {
      */
     suspend fun recalculateAllStock(
         database: AppDatabase,
-        firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager()
+        firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager(),
+        context: Context? = null
     ) {
         try {
             val inventoryDao = database.inventoryDao()
@@ -360,9 +458,13 @@ object InventoryStockManager {
 
                 val calculatedCurrent = (item.initialQuantity - totalBookedQty).coerceAtLeast(0)
                 if (item.currentQuantity != calculatedCurrent) {
+                    val oldQty = item.currentQuantity
                     inventoryDao.updateCurrentQuantity(item.id, calculatedCurrent)
                     val updated = item.copy(currentQuantity = calculatedCurrent)
                     firestoreSyncManager.saveInventoryItem(updated)
+                    if (context != null) {
+                        checkAndNotifyLowStock(context, oldQty, updated)
+                    }
                 }
             }
         } catch (e: Exception) {

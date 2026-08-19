@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1087,22 +1088,47 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                showShareReceiptConfirm = true
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF25D366),
-                                contentColor = Color.White
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Share via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            Button(
+                                onClick = {
+                                    ReceiptGenerator.printReceiptBitmap(context, bmp, record.serialNumber)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("print_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            }
+
+                            Button(
+                                onClick = {
+                                    showShareReceiptConfirm = true
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("share_whatsapp_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF25D366),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            }
                         }
 
                         Row(

@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -719,23 +720,26 @@ fun NotificationItemRow(
         sdf.format(Date(notification.timestamp))
     }
 
-    val icon = when (notification.type) {
-        "BOOKING" -> Icons.Default.LocalFlorist
-        "REMINDER" -> Icons.Default.Alarm
+    val icon = when (notification.type.uppercase(Locale.ROOT)) {
+        "BOOKING", "GARDEN" -> Icons.Default.LocalFlorist
+        "REMINDER", "TASK" -> Icons.Default.Alarm
+        "INVENTORY", "STOCK" -> Icons.Default.Layers
         "ALERT", "URGENT", "OVERDUE" -> Icons.Default.NotificationsActive
         else -> Icons.Default.Notifications
     }
 
-    val iconBgColor = when (notification.type) {
-        "BOOKING" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-        "REMINDER" -> MaterialTheme.colorScheme.secondaryContainer
+    val iconBgColor = when (notification.type.uppercase(Locale.ROOT)) {
+        "BOOKING", "GARDEN" -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+        "REMINDER", "TASK" -> MaterialTheme.colorScheme.secondaryContainer
+        "INVENTORY", "STOCK" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
         "ALERT", "URGENT", "OVERDUE" -> MaterialTheme.colorScheme.errorContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
 
-    val iconTint = when (notification.type) {
-        "BOOKING" -> MaterialTheme.colorScheme.primary
-        "REMINDER" -> MaterialTheme.colorScheme.onSecondaryContainer
+    val iconTint = when (notification.type.uppercase(Locale.ROOT)) {
+        "BOOKING", "GARDEN" -> MaterialTheme.colorScheme.primary
+        "REMINDER", "TASK" -> MaterialTheme.colorScheme.onSecondaryContainer
+        "INVENTORY", "STOCK" -> MaterialTheme.colorScheme.error
         "ALERT", "URGENT", "OVERDUE" -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }

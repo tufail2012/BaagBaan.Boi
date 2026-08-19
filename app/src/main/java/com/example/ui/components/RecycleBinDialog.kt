@@ -218,7 +218,7 @@ fun RecycleBinDialog(
                                                             val restoredRecord = RecycleBinConverter.jsonToCropRecord(item.jsonPayload)
                                                             db.cropRecordDao().insertRecord(restoredRecord)
                                                             firestoreSyncManager.saveCropRecord(restoredRecord)
-                                                            com.example.data.InventoryStockManager.applyBookingSave(db.inventoryDao(), firestoreSyncManager, restoredRecord)
+                                                            com.example.data.InventoryStockManager.applyBookingSave(db.inventoryDao(), firestoreSyncManager, restoredRecord, context)
                                                         } else if (item.itemType == "CONTACT") {
                                                             val restoredContact = RecycleBinConverter.jsonToContact(item.jsonPayload)
                                                             db.farmerContactDao().insertContact(restoredContact)

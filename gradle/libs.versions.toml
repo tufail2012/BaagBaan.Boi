@@ -47,9 +47,11 @@ lifecycleProcess = "2.8.7"
 zxing = "3.5.3"
 mlkitBarcodeScanning = "17.3.0"
 glance = "1.1.1"
+print = "1.0.0"
 
 
 [libraries]
+androidx-print = { group = "androidx.print", name = "print", version.ref = "print" }
 androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }

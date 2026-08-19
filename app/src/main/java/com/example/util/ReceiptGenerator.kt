@@ -493,6 +493,17 @@ object ReceiptGenerator {
     fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {
         return com.example.util.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
     }
+
+    fun printReceiptBitmap(context: Context, bitmap: Bitmap, serialNumber: String = "Entry") {
+        try {
+            val printHelper = androidx.print.PrintHelper(context).apply {
+                scaleMode = androidx.print.PrintHelper.SCALE_MODE_FIT
+            }
+            printHelper.printBitmap("Receipt_${serialNumber.ifBlank { "Entry" }}", bitmap)
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "No printer found. Please connect a printer and try again.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
 }
 
 fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {

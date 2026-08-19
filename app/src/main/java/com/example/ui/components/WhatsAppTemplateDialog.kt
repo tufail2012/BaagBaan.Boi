@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Send
@@ -725,6 +726,26 @@ fun WhatsAppTemplateDialog(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                // Print Receipt
+                                OutlinedButton(
+                                    onClick = {
+                                        if (receiptBitmap != null) {
+                                            ReceiptGenerator.printReceiptBitmap(context, receiptBitmap!!, effectiveSerialNumber)
+                                        } else {
+                                            Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .testTag("print_receipt_action_button")
+                                ) {
+                                    Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Print", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                                }
+
                                 // Share Image File
                                 OutlinedButton(
                                     onClick = {
@@ -741,11 +762,14 @@ fun WhatsAppTemplateDialog(
                                         }
                                     },
                                     shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .testTag("share_receipt_file_button")
                                 ) {
                                     Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Share File", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Share", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
 
                                 // Copy Text Summary
@@ -757,11 +781,14 @@ fun WhatsAppTemplateDialog(
                                         Toast.makeText(context, "Text receipt copied to clipboard!", Toast.LENGTH_SHORT).show()
                                     },
                                     shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .testTag("copy_receipt_text_button")
                                 ) {
                                     Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy Text", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Copy", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
                             }
                         }
@@ -875,25 +902,53 @@ fun WhatsAppTemplateDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = {
-                            showFullScreenReceipt = false
-                            if (receiptUri != null) {
-                                launchWhatsAppImage(
-                                    phone = contactNumber,
-                                    uri = receiptUri!!,
-                                    caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($effectiveSerialNumber)."
-                                )
-                                onDismiss()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White)
+                        Button(
+                            onClick = {
+                                if (receiptBitmap != null) {
+                                    ReceiptGenerator.printReceiptBitmap(context, receiptBitmap!!, effectiveSerialNumber)
+                                } else {
+                                    Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("print_receipt_fullscreen_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Print, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = {
+                                showFullScreenReceipt = false
+                                if (receiptUri != null) {
+                                    launchWhatsAppImage(
+                                        phone = contactNumber,
+                                        uri = receiptUri!!,
+                                        caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($effectiveSerialNumber)."
+                                    )
+                                    onDismiss()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("send_whatsapp_receipt_fullscreen_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1)
+                        }
                     }
                 }
             }

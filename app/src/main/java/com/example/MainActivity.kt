@@ -73,7 +73,7 @@ class MainActivity : FragmentActivity() {
 
         val database = AppDatabase.getDatabase(this, lifecycleScope)
         val gardenPlanningRepository = GardenPlanningRepository(database.gardenPlanningDao(), database.farmerContactDao(), database.recycleBinDao())
-        val cropRepository = CropRecordRepository(database.cropRecordDao(), database.farmerContactDao(), database.recycleBinDao(), database.inventoryDao())
+        val cropRepository = CropRecordRepository(database.cropRecordDao(), database.farmerContactDao(), database.recycleBinDao(), database.inventoryDao(), context = this)
         val cropFactory = CropViewModelFactory(cropRepository, gardenPlanningRepository)
         val cropViewModel = ViewModelProvider(this, cropFactory)[CropViewModel::class.java]
         this.cropViewModel = cropViewModel
@@ -81,6 +81,7 @@ class MainActivity : FragmentActivity() {
         cropViewModel.handleDeepLinkUri(intent?.data)
         handleWidgetPaymentIntent(intent)
         handleSeasonalIntent(intent)
+        handleInventoryIntent(intent)
 
         com.example.data.SeasonalTaskRepository.startListening(this)
 
@@ -98,7 +99,7 @@ class MainActivity : FragmentActivity() {
                 val syncManager = FirestoreSyncManager()
                 syncManager.syncFromCloudToLocal(database.cropRecordDao(), database.attendanceDao())
                 syncManager.syncInventoryFromCloudToLocal(database.inventoryDao())
-                com.example.data.InventoryStockManager.recalculateAllStock(database, syncManager)
+                com.example.data.InventoryStockManager.recalculateAllStock(database, syncManager, this@MainActivity)
             } catch (e: Exception) {
                 // Log or ignore network error during initial offline sync
             }
@@ -173,6 +174,7 @@ class MainActivity : FragmentActivity() {
         }
         handleWidgetPaymentIntent(intent)
         handleSeasonalIntent(intent)
+        handleInventoryIntent(intent)
     }
 
     private fun handleWidgetPaymentIntent(intent: android.content.Intent?) {
@@ -192,6 +194,16 @@ class MainActivity : FragmentActivity() {
                 (intent.data?.scheme == "baagbaanboi" && (intent.data?.host == "seasonal" || intent.data?.host == "seasonal_reminders"))
         if (isOpenSeasonal) {
             cropViewModel?.openSeasonalReminders()
+        }
+    }
+
+    private fun handleInventoryIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val isOpenInventory = intent.getBooleanExtra("OPEN_INVENTORY", false) ||
+                intent.action == "com.baagbaan.boi.ACTION_OPEN_INVENTORY" ||
+                (intent.data?.scheme == "baagbaanboi" && (intent.data?.host == "inventory" || intent.data?.host == "inventory_management"))
+        if (isOpenInventory) {
+            cropViewModel?.openInventoryManagement()
         }
     }
 

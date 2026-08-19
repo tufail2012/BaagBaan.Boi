@@ -86,6 +86,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.LocationOn
@@ -2564,8 +2565,65 @@ fun FarmerFormScreen(
                         )
                     }
 
-                    // Share buttons
-                    Button(
+                    // Print and WhatsApp Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (generatedReceiptBitmap != null) {
+                                    ReceiptGenerator.printReceiptBitmap(context, generatedReceiptBitmap!!, serialNumber)
+                                } else {
+                                    Toast.makeText(context, "Receipt image not ready", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .testTag("print_receipt_button"),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Print Receipt", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+
+                        Button(
+                            onClick = {
+                                if (generatedReceiptUri != null) {
+                                    if (contactNumber.isBlank()) {
+                                        Toast.makeText(context, "Please enter farmer's contact phone number first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showWaFormReceiptConfirmDialog = true
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Failed to load receipt image file", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .testTag("share_receipt_whatsapp_button"),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF25D366),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Send via WhatsApp", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+
+                    OutlinedButton(
                         onClick = {
                             if (generatedReceiptUri != null) {
                                 showShareFormReceiptConfirmDialog = true
@@ -2575,45 +2633,13 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(44.dp)
                             .testTag("share_receipt_image_button"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.White
-                        )
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Share Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-
-                    Button(
-                        onClick = {
-                            if (generatedReceiptUri != null) {
-                                if (contactNumber.isBlank()) {
-                                    Toast.makeText(context, "Please enter farmer's contact phone number first", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    showWaFormReceiptConfirmDialog = true
-                                }
-                            } else {
-                                Toast.makeText(context, "Failed to load receipt image file", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                            .testTag("share_receipt_whatsapp_button"),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF25D366),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send via WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Share Receipt Image", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
 
                     TextButton(onClick = { showReceiptDialog = false }) {

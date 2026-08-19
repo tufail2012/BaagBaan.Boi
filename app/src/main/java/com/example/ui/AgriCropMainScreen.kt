@@ -105,6 +105,7 @@ fun AgriCropMainScreen(
     val showSeasonalRemindersFromVm by viewModel.showSeasonalRemindersDialog.collectAsState()
     var showRecycleBinDialog by remember { mutableStateOf(false) }
     var showInventoryDialog by remember { mutableStateOf(false) }
+    val showInventoryFromVm by viewModel.showInventoryDialog.collectAsState()
     var showThemePreferencesDialog by remember { mutableStateOf(false) }
     var showBusinessInfoDialog by remember { mutableStateOf(false) }
     var showQrScannerDialog by remember { mutableStateOf(false) }
@@ -238,9 +239,12 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showInventoryDialog) {
+    if (showInventoryDialog || showInventoryFromVm) {
         com.example.ui.components.InventoryManagementDialog(
-            onDismissRequest = { showInventoryDialog = false },
+            onDismissRequest = {
+                showInventoryDialog = false
+                viewModel.dismissInventoryManagement()
+            },
             db = db,
             isDark = isDark
         )

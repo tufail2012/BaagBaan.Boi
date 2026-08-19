@@ -8,7 +8,8 @@ class CropRecordRepository(
     private val farmerContactDao: FarmerContactDao? = null,
     private val recycleBinDao: RecycleBinDao? = null,
     private val inventoryDao: InventoryDao? = null,
-    private val firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager()
+    private val firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager(),
+    private val context: android.content.Context? = null
 ) {
     val allRecords: Flow<List<CropRecord>> = dao.getAllRecords()
     val recordCount: Flow<Int> = dao.getRecordCount()
@@ -48,7 +49,7 @@ class CropRecordRepository(
         syncFarmerContactOnSave(recordToSync)
         
         if (inventoryDao != null) {
-            InventoryStockManager.applyBookingSave(inventoryDao, firestoreSyncManager, recordToSync)
+            InventoryStockManager.applyBookingSave(inventoryDao, firestoreSyncManager, recordToSync, context)
         }
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
         return insertedId
@@ -71,7 +72,7 @@ class CropRecordRepository(
         syncFarmerContactOnSave(record)
 
         if (inventoryDao != null) {
-            InventoryStockManager.applyBookingUpdate(inventoryDao, firestoreSyncManager, record, previousRecord)
+            InventoryStockManager.applyBookingUpdate(inventoryDao, firestoreSyncManager, record, previousRecord, context)
         }
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
     }
@@ -82,7 +83,7 @@ class CropRecordRepository(
         syncFarmerContactOnDelete(record)
         
         if (inventoryDao != null) {
-            InventoryStockManager.applyBookingDelete(inventoryDao, firestoreSyncManager, record)
+            InventoryStockManager.applyBookingDelete(inventoryDao, firestoreSyncManager, record, context)
         }
         com.example.widget.PendingPaymentsWidgetUpdater.triggerUpdate()
 
