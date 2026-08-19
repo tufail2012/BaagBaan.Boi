@@ -117,7 +117,7 @@ fun persistSavedPhoneKey(context: Context, key: String) {
     prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, current).apply()
 }
 
-fun getContactKeys(name: String, phone: String): List<String> {
+fun getContactKeys(name: String, phone: String, serialNumber: String = ""): List<String> {
     val keys = mutableListOf<String>()
     val cleanDigits = phone.filter { it.isDigit() }.takeLast(10)
     if (cleanDigits.isNotEmpty()) {
@@ -126,6 +126,9 @@ fun getContactKeys(name: String, phone: String): List<String> {
     val nameTrimmed = name.trim().lowercase()
     if (nameTrimmed.isNotEmpty()) {
         keys.add(nameTrimmed)
+        if (serialNumber.isNotBlank()) {
+            keys.add("${serialNumber.trim().lowercase()} $nameTrimmed")
+        }
     }
     return keys
 }
@@ -178,6 +181,7 @@ data class ContactDisplayItem(
     val phone: String,
     val address: String,
     val category: String,
+    val serialNumber: String = "",
     val isFromCropRecords: Boolean = false,
     val associatedService: String = "",
     val totalAmount: Double = 0.0,
@@ -270,13 +274,20 @@ fun ContactDirectoryDialog(
             val cleanPhone = fc.phone.replace(Regex("[^0-9]"), "")
             val key = if (cleanPhone.isNotEmpty()) cleanPhone else fc.name.trim().lowercase()
             if (!deletedContactKeys.contains(key)) {
+                // Find matching cropRecord by phone or name to retrieve actual serialNumber
+                val matchingRecord = cropRecords.firstOrNull { cr ->
+                    val crClean = cr.contactNumber.replace(Regex("[^0-9]"), "")
+                    (cleanPhone.isNotEmpty() && crClean.isNotEmpty() && crClean == cleanPhone) ||
+                            (fc.name.isNotBlank() && cr.farmerName.trim().equals(fc.name.trim(), ignoreCase = true))
+                }
                 list.add(
                     ContactDisplayItem(
                         id = fc.id,
                         name = fc.name,
                         phone = fc.phone,
                         address = fc.address,
-                        category = fc.category
+                        category = fc.category,
+                        serialNumber = matchingRecord?.serialNumber ?: ""
                     )
                 )
                 if (cleanPhone.isNotEmpty()) phoneSet.add(cleanPhone)
@@ -296,6 +307,7 @@ fun ContactDirectoryDialog(
                         phone = record.contactNumber,
                         address = record.farmerAddress,
                         category = "Farmer (${record.serviceType})",
+                        serialNumber = record.serialNumber,
                         isFromCropRecords = true,
                         associatedService = record.serviceType,
                         totalAmount = record.quantity * record.landAreaAcres,
@@ -315,19 +327,26 @@ fun ContactDirectoryDialog(
                 it.name.lowercase().contains(q) ||
                         it.phone.contains(q) ||
                         it.address.lowercase().contains(q) ||
-                        it.category.lowercase().contains(q)
+                        it.category.lowercase().contains(q) ||
+                        it.serialNumber.lowercase().contains(q)
             }
         }
     }
 
-    fun saveToSystemPhoneContacts(name: String, phone: String, address: String) {
-        val keys = getContactKeys(name, phone)
+    fun saveToSystemPhoneContacts(name: String, phone: String, address: String, serialNumber: String = "") {
+        val keys = getContactKeys(name, phone, serialNumber)
         keys.forEach { persistSavedPhoneKey(context, it) }
         savedPhoneKeys = savedPhoneKeys + keys
 
+        val formattedName = if (serialNumber.isNotBlank()) {
+            "${serialNumber.trim()} ${name.trim()}".trim()
+        } else {
+            name.trim()
+        }
+
         try {
             val intent = Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI).apply {
-                putExtra(ContactsContract.Intents.Insert.NAME, name)
+                putExtra(ContactsContract.Intents.Insert.NAME, formattedName)
                 putExtra(ContactsContract.Intents.Insert.PHONE, phone)
                 putExtra(ContactsContract.Intents.Insert.POSTAL, address)
                 putExtra(ContactsContract.Intents.Insert.NOTES, "AgriCrop Farmer Contact")
@@ -496,8 +515,8 @@ fun ContactDirectoryDialog(
                                 modifier = Modifier.fillMaxSize()
                             ) {
                             items(allContactsList, key = { "${it.id}_${it.phone}_${it.name}" }) { item ->
-                                val isSavedInPhone = remember(item.name, item.phone, savedPhoneKeys) {
-                                    getContactKeys(item.name, item.phone).any { savedPhoneKeys.contains(it) }
+                                val isSavedInPhone = remember(item.name, item.phone, item.serialNumber, savedPhoneKeys) {
+                                    getContactKeys(item.name, item.phone, item.serialNumber).any { savedPhoneKeys.contains(it) }
                                 }
 
                                 Card(
@@ -602,7 +621,7 @@ fun ContactDirectoryDialog(
                                             if (!isSavedInPhone) {
                                                 IconButton(
                                                     onClick = {
-                                                        saveToSystemPhoneContacts(item.name, item.phone, item.address)
+                                                        saveToSystemPhoneContacts(item.name, item.phone, item.address, item.serialNumber)
                                                     }
                                                 ) {
                                                     Icon(
@@ -666,14 +685,14 @@ fun ContactDirectoryDialog(
 
     // Expanded Contact Details Dialog on Tap
     selectedContactForDetails?.let { contactItem ->
-        val isContactSavedInPhone = getContactKeys(contactItem.name, contactItem.phone).any { savedPhoneKeys.contains(it) }
+        val isContactSavedInPhone = getContactKeys(contactItem.name, contactItem.phone, contactItem.serialNumber).any { savedPhoneKeys.contains(it) }
         ContactDetailsDialog(
             contact = contactItem,
             cropRecords = cropRecords,
             isSavedInPhone = isContactSavedInPhone,
             onDismiss = { selectedContactForDetails = null },
             onMakeCall = { makePhoneCall(contactItem.phone) },
-            onSaveToPhone = { saveToSystemPhoneContacts(contactItem.name, contactItem.phone, contactItem.address) },
+            onSaveToPhone = { saveToSystemPhoneContacts(contactItem.name, contactItem.phone, contactItem.address, contactItem.serialNumber) },
             onDeleteContact = {
                 contactToDelete = contactItem
                 selectedContactForDetails = null
