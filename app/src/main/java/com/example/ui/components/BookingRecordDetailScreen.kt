@@ -33,12 +33,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -184,6 +187,9 @@ fun BookingRecordDetailDialog(
     var showSmsConfirm by remember { mutableStateOf(false) }
     var showTrackingWaConfirm by remember { mutableStateOf(false) }
     var showShareReceiptConfirm by remember { mutableStateOf(false) }
+    var showReceiveConfirmDialog by remember { mutableStateOf(false) }
+    var isReceivedState by remember(record.id, record.isReceived) { mutableStateOf(record.isReceived) }
+    var receivedDateState by remember(record.id, record.receivedDate) { mutableStateOf(record.receivedDate) }
     var installmentToDeleteIndex by remember { mutableStateOf<Int?>(null) }
     var selectedTemplate by remember { mutableStateOf("Booking Confirmation") }
 
@@ -818,55 +824,128 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
 
-                    // Button 1: Preview & Send Digital Receipt Image
-                    Button(
-                        onClick = {
-                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+                    // Receive Booking / Final Receipt / Preview Receipt Buttons
+                    if (isReceivedState) {
+                        Button(
+                            onClick = {
+                                val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstock", ignoreCase = true)
 
-                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+                                val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
 
-                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
-                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
-                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
+                                val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
+                                val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                                val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
 
-                            val rData = ReceiptData(
-                                serialNumber = record.serialNumber,
-                                bookingDate = record.bookingDate.ifBlank { todayStr },
-                                farmerName = record.farmerName,
-                                contactNumber = record.contactNumber,
-                                address = record.farmerAddress,
-                                orchardLocation = record.location,
-                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
-                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
-                                quantity = "${record.quantity}",
-                                totalAmount = totalRecordValue,
-                                amountPaid = totalPaidSoFar,
-                                remainingBalance = remainingBalance,
-                                paymentStatus = record.paymentStatus,
-                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
-                                rootstock = actualRs,
-                                rootDiameter = actualDiam,
-                                scionVariety = actualScion,
-                                recordType = "croprecord",
-                                recordId = record.id
-                            )
-                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
-                            receiptPreviewBitmap = bmp
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
-                    ) {
-                        Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                                val rData = ReceiptData(
+                                    serialNumber = record.serialNumber,
+                                    bookingDate = record.bookingDate.ifBlank { todayStr },
+                                    farmerName = record.farmerName,
+                                    contactNumber = record.contactNumber,
+                                    address = record.farmerAddress,
+                                    orchardLocation = record.location,
+                                    serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                    plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
+                                    quantity = "${record.quantity}",
+                                    totalAmount = totalRecordValue,
+                                    amountPaid = totalPaidSoFar,
+                                    remainingBalance = remainingBalance,
+                                    paymentStatus = record.paymentStatus,
+                                    expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                    rootstock = actualRs,
+                                    rootDiameter = actualDiam,
+                                    scionVariety = actualScion,
+                                    recordType = "croprecord",
+                                    recordId = record.id,
+                                    isReceived = true,
+                                    receivedDate = receivedDateState,
+                                    receiptTitle = "FINAL DIGITAL RECEIPT • RECEIVED"
+                                )
+                                val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                                receiptPreviewBitmap = bmp
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("view_final_receipt_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                        ) {
+                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("View Receipt", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+                    } else if (record.paymentStatus.equals("Fully Paid", ignoreCase = true)) {
+                        Button(
+                            onClick = {
+                                showReceiveConfirmDialog = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("receive_booking_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                        ) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Receive", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+                    } else {
+                        // Button 1: Preview & Send Digital Receipt Image
+                        Button(
+                            onClick = {
+                                val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
+                                val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                                val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
+                                val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                                val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
+
+                                val rData = ReceiptData(
+                                    serialNumber = record.serialNumber,
+                                    bookingDate = record.bookingDate.ifBlank { todayStr },
+                                    farmerName = record.farmerName,
+                                    contactNumber = record.contactNumber,
+                                    address = record.farmerAddress,
+                                    orchardLocation = record.location,
+                                    serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                    plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
+                                    quantity = "${record.quantity}",
+                                    totalAmount = totalRecordValue,
+                                    amountPaid = totalPaidSoFar,
+                                    remainingBalance = remainingBalance,
+                                    paymentStatus = record.paymentStatus,
+                                    expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                    rootstock = actualRs,
+                                    rootDiameter = actualDiam,
+                                    scionVariety = actualScion,
+                                    recordType = "croprecord",
+                                    recordId = record.id
+                                )
+                                val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                                receiptPreviewBitmap = bmp
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
+                        ) {
+                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
                     }
 
                     // Button 2: Send WhatsApp Confirmation
@@ -923,6 +1002,94 @@ fun BookingRecordDetailDialog(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+
+    // Receive Confirmation Dialog
+    if (showReceiveConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showReceiveConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Confirm Receipt",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to mark this booking as received?",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReceiveConfirmDialog = false
+                        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        isReceivedState = true
+                        receivedDateState = today
+                        val updatedRecord = record.copy(
+                            isReceived = true,
+                            receivedDate = today,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        coroutineScope.launch {
+                            onUpdateRecord(updatedRecord)
+
+                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
+                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
+                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
+
+                            val rData = ReceiptData(
+                                serialNumber = record.serialNumber,
+                                bookingDate = record.bookingDate.ifBlank { todayStr },
+                                farmerName = record.farmerName,
+                                contactNumber = record.contactNumber,
+                                address = record.farmerAddress,
+                                orchardLocation = record.location,
+                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
+                                quantity = "${record.quantity}",
+                                totalAmount = totalRecordValue,
+                                amountPaid = totalPaidSoFar,
+                                remainingBalance = remainingBalance,
+                                paymentStatus = record.paymentStatus,
+                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                rootstock = actualRs,
+                                rootDiameter = actualDiam,
+                                scionVariety = actualScion,
+                                recordType = "croprecord",
+                                recordId = record.id,
+                                isReceived = true,
+                                receivedDate = today,
+                                receiptTitle = "FINAL DIGITAL RECEIPT • RECEIVED"
+                            )
+                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                            receiptPreviewBitmap = bmp
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
+                ) {
+                    Text("Confirm", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReceiveConfirmDialog = false }) {
+                    Text("Cancel", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 
     // Delete Confirmation Dialog
@@ -1086,22 +1253,52 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                showShareReceiptConfirm = true
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF25D366),
-                                contentColor = Color.White
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Share via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                            Button(
+                                onClick = {
+                                    showShareReceiptConfirm = true
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("share_whatsapp_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF25D366),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Share via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+
+                            Button(
+                                onClick = {
+                                    val bmp = receiptPreviewBitmap
+                                    if (bmp != null) {
+                                        ReceiptGenerator.printReceiptBitmap(context, record.serialNumber, bmp)
+                                    } else {
+                                        Toast.makeText(context, "No printer found. Please connect a printer and try again.", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("print_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
 
                         Row(

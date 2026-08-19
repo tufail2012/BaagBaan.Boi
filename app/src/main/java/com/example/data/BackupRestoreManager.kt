@@ -96,6 +96,8 @@ class BackupRestoreManager {
                             expectedDelivery = doc.getString("expectedDelivery") ?: "",
                             paymentProofUri = doc.getString("paymentProofUri") ?: "",
                             paymentHistoryJson = doc.getString("paymentHistoryJson") ?: "",
+                            isReceived = doc.getBoolean("isReceived") ?: false,
+                            receivedDate = doc.getString("receivedDate") ?: "",
                             timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                         )
                     )
@@ -128,6 +130,8 @@ class BackupRestoreManager {
                 obj.put("expectedDelivery", record.expectedDelivery)
                 obj.put("paymentProofUri", record.paymentProofUri)
                 obj.put("paymentHistoryJson", record.paymentHistoryJson)
+                obj.put("isReceived", record.isReceived)
+                obj.put("receivedDate", record.receivedDate)
                 obj.put("timestamp", record.timestamp)
                 cropRecordsJson.put(obj)
             }
@@ -425,6 +429,8 @@ class BackupRestoreManager {
                         expectedDelivery = obj.optString("expectedDelivery", ""),
                         paymentProofUri = obj.optString("paymentProofUri", ""),
                         paymentHistoryJson = obj.optString("paymentHistoryJson", ""),
+                        isReceived = obj.optBoolean("isReceived", false),
+                        receivedDate = obj.optString("receivedDate", ""),
                         timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                     )
 
@@ -455,6 +461,8 @@ class BackupRestoreManager {
                                 "expectedDelivery" to record.expectedDelivery,
                                 "paymentProofUri" to record.paymentProofUri,
                                 "paymentHistoryJson" to record.paymentHistoryJson,
+                                "isReceived" to record.isReceived,
+                                "receivedDate" to record.receivedDate,
                                 "timestamp" to record.timestamp
                             )
                             cropRef

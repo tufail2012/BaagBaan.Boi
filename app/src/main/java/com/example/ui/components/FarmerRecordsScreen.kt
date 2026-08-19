@@ -614,18 +614,38 @@ private fun FarmerRecordCard(
                     }
                 }
 
-                // Payment Status Badge
-                Surface(
-                    color = statusBadgeBg,
-                    shape = RoundedCornerShape(12.dp)
+                // Payment Status & Received Badges
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = statusLabel,
-                        color = statusBadgeText,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    if (record.isReceived) {
+                        Surface(
+                            color = if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Received",
+                                color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = statusBadgeBg,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = statusLabel,
+                            color = statusBadgeText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 

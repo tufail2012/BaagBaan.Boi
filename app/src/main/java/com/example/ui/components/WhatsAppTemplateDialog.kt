@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Send
@@ -697,30 +698,57 @@ fun WhatsAppTemplateDialog(
 
                         // Main Action Buttons for Digital Receipt Document
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Send Receipt Image via WhatsApp Button
-                            Button(
-                                onClick = {
-                                    if (receiptUri != null) {
-                                        launchWhatsAppImage(
-                                            phone = contactNumber,
-                                            uri = receiptUri!!,
-                                            caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($serialNumber)."
-                                        )
-                                        onDismiss()
-                                    } else {
-                                        Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .testTag("send_whatsapp_receipt_image_button")
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Send Receipt Document via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                // Send Receipt Image via WhatsApp Button
+                                Button(
+                                    onClick = {
+                                        if (receiptUri != null) {
+                                            launchWhatsAppImage(
+                                                phone = contactNumber,
+                                                uri = receiptUri!!,
+                                                caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($serialNumber)."
+                                            )
+                                            onDismiss()
+                                        } else {
+                                            Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .testTag("send_whatsapp_receipt_image_button")
+                                ) {
+                                    Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+
+                                // Print Receipt Button
+                                Button(
+                                    onClick = {
+                                        val bmp = receiptBitmap
+                                        if (bmp != null) {
+                                            ReceiptGenerator.printReceiptBitmap(context, serialNumber, bmp)
+                                        } else {
+                                            Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .testTag("print_receipt_button")
+                                ) {
+                                    Icon(imageVector = Icons.Default.Print, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
                             }
 
                             Row(

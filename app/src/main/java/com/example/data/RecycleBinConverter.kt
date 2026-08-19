@@ -26,6 +26,8 @@ object RecycleBinConverter {
         json.put("expectedDelivery", record.expectedDelivery)
         json.put("paymentProofUri", record.paymentProofUri)
         json.put("paymentHistoryJson", record.paymentHistoryJson)
+        json.put("isReceived", record.isReceived)
+        json.put("receivedDate", record.receivedDate)
         json.put("timestamp", record.timestamp)
         return json.toString()
     }
@@ -53,6 +55,8 @@ object RecycleBinConverter {
             expectedDelivery = json.optString("expectedDelivery", ""),
             paymentProofUri = json.optString("paymentProofUri", ""),
             paymentHistoryJson = json.optString("paymentHistoryJson", ""),
+            isReceived = json.optBoolean("isReceived", false),
+            receivedDate = json.optString("receivedDate", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }
@@ -98,6 +102,8 @@ object RecycleBinConverter {
         json.put("expectedDelivery", entry.expectedDelivery)
         json.put("notes", entry.notes)
         json.put("installmentHistoryJson", entry.installmentHistoryJson)
+        json.put("isReceived", entry.isReceived)
+        json.put("receivedDate", entry.receivedDate)
         json.put("timestamp", entry.timestamp)
         return json.toString()
     }
@@ -121,6 +127,8 @@ object RecycleBinConverter {
             expectedDelivery = json.optString("expectedDelivery", ""),
             notes = json.optString("notes", ""),
             installmentHistoryJson = json.optString("installmentHistoryJson", ""),
+            isReceived = json.optBoolean("isReceived", false),
+            receivedDate = json.optString("receivedDate", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }

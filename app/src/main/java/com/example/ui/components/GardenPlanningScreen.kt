@@ -2213,18 +2213,38 @@ private fun GardenPlanningRecordCard(
                     }
                 }
 
-                // Payment Status Badge
-                Surface(
-                    color = statusBadgeBg,
-                    shape = RoundedCornerShape(12.dp)
+                // Payment Status & Received Badges
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = entry.paymentStatus.ifBlank { "Pending" },
-                        color = statusBadgeText,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    if (entry.isReceived) {
+                        Surface(
+                            color = if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Received",
+                                color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = statusBadgeBg,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = entry.paymentStatus.ifBlank { "Pending" },
+                            color = statusBadgeText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 
@@ -2485,6 +2505,9 @@ fun GardenBookingRecordDetailDialog(
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
     var showSmsConfirm by remember { mutableStateOf(false) }
     var showTrackingWaConfirm by remember { mutableStateOf(false) }
+    var showReceiveConfirmDialog by remember { mutableStateOf(false) }
+    var isReceivedState by remember(entry.id, entry.isReceived) { mutableStateOf(entry.isReceived) }
+    var receivedDateState by remember(entry.id, entry.receivedDate) { mutableStateOf(entry.receivedDate) }
     var installmentToDeleteIndex by remember { mutableStateOf<Int?>(null) }
     var selectedTemplate by remember { mutableStateOf("Booking Confirmation") }
 
@@ -3071,40 +3094,98 @@ fun GardenBookingRecordDetailDialog(
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
 
-                    // Button 1: Preview & Send Digital Receipt Image
-                    Button(
-                        onClick = {
-                            val rData = ReceiptData(
-                                serialNumber = currentEntry.serialNumber,
-                                bookingDate = currentEntry.bookingDate.ifBlank { todayStr },
-                                farmerName = currentEntry.farmerName,
-                                contactNumber = currentEntry.contactNumber,
-                                address = currentEntry.farmerAddress,
-                                orchardLocation = currentEntry.farmerAddress,
-                                serviceCategory = "Garden Planning",
-                                plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
-                                quantity = "$totalPlants",
-                                totalAmount = totalRecordValue,
-                                amountPaid = totalPaidSoFar,
-                                remainingBalance = remainingBalance,
-                                paymentStatus = currentEntry.paymentStatus,
-                                expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
-                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
-                                recordType = "gardenplanning",
-                                recordId = currentEntry.id
-                            )
-                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
-                            receiptPreviewBitmap = bmp
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
-                    ) {
-                        Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                    // Receive Booking / Final Receipt / Preview Receipt Buttons
+                    if (isReceivedState) {
+                        Button(
+                            onClick = {
+                                val rData = ReceiptData(
+                                    serialNumber = currentEntry.serialNumber,
+                                    bookingDate = currentEntry.bookingDate.ifBlank { todayStr },
+                                    farmerName = currentEntry.farmerName,
+                                    contactNumber = currentEntry.contactNumber,
+                                    address = currentEntry.farmerAddress,
+                                    orchardLocation = currentEntry.farmerAddress,
+                                    serviceCategory = "Garden Planning",
+                                    plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                    quantity = "$totalPlants",
+                                    totalAmount = totalRecordValue,
+                                    amountPaid = totalPaidSoFar,
+                                    remainingBalance = remainingBalance,
+                                    paymentStatus = currentEntry.paymentStatus,
+                                    expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
+                                    plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                    recordType = "gardenplanning",
+                                    recordId = currentEntry.id,
+                                    isReceived = true,
+                                    receivedDate = receivedDateState,
+                                    receiptTitle = "FINAL DIGITAL RECEIPT • RECEIVED"
+                                )
+                                val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                                receiptPreviewBitmap = bmp
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("view_final_receipt_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                        ) {
+                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("View Receipt", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+                    } else if (currentEntry.paymentStatus.equals("Fully Paid", ignoreCase = true)) {
+                        Button(
+                            onClick = {
+                                showReceiveConfirmDialog = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("receive_booking_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                        ) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Receive", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+                    } else {
+                        // Button 1: Preview & Send Digital Receipt Image
+                        Button(
+                            onClick = {
+                                val rData = ReceiptData(
+                                    serialNumber = currentEntry.serialNumber,
+                                    bookingDate = currentEntry.bookingDate.ifBlank { todayStr },
+                                    farmerName = currentEntry.farmerName,
+                                    contactNumber = currentEntry.contactNumber,
+                                    address = currentEntry.farmerAddress,
+                                    orchardLocation = currentEntry.farmerAddress,
+                                    serviceCategory = "Garden Planning",
+                                    plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                    quantity = "$totalPlants",
+                                    totalAmount = totalRecordValue,
+                                    amountPaid = totalPaidSoFar,
+                                    remainingBalance = remainingBalance,
+                                    paymentStatus = currentEntry.paymentStatus,
+                                    expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
+                                    plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                    recordType = "gardenplanning",
+                                    recordId = currentEntry.id
+                                )
+                                val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                                receiptPreviewBitmap = bmp
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
+                        ) {
+                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
                     }
 
                     // Button 2: Send WhatsApp Confirmation
@@ -3160,6 +3241,80 @@ fun GardenBookingRecordDetailDialog(
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
+    }
+
+    // Receive Confirmation Dialog
+    if (showReceiveConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showReceiveConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Confirm Receipt",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to mark this booking as received?",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReceiveConfirmDialog = false
+                        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        isReceivedState = true
+                        receivedDateState = today
+                        val updatedEntry = currentEntry.copy(
+                            isReceived = true,
+                            receivedDate = today,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        currentEntry = updatedEntry
+                        coroutineScope.launch {
+                            viewModel.updateEntrySync(updatedEntry)
+
+                            val rData = ReceiptData(
+                                serialNumber = currentEntry.serialNumber,
+                                bookingDate = currentEntry.bookingDate.ifBlank { todayStr },
+                                farmerName = currentEntry.farmerName,
+                                contactNumber = currentEntry.contactNumber,
+                                address = currentEntry.farmerAddress,
+                                orchardLocation = currentEntry.farmerAddress,
+                                serviceCategory = "Garden Planning",
+                                plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                quantity = "$totalPlants",
+                                totalAmount = totalRecordValue,
+                                amountPaid = totalPaidSoFar,
+                                remainingBalance = remainingBalance,
+                                paymentStatus = currentEntry.paymentStatus,
+                                expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
+                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                recordType = "gardenplanning",
+                                recordId = currentEntry.id,
+                                isReceived = true,
+                                receivedDate = today,
+                                receiptTitle = "FINAL DIGITAL RECEIPT • RECEIVED"
+                            )
+                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                            receiptPreviewBitmap = bmp
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A))
+                ) {
+                    Text("Confirm", fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReceiveConfirmDialog = false }) {
+                    Text("Cancel", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
     }
 
     // Delete Record Confirmation Dialog
@@ -3368,13 +3523,30 @@ fun GardenBookingRecordDetailDialog(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
                             onClick = { receiptPreviewBitmap = null },
                             modifier = Modifier.weight(1f)
                         ) {
                             Text("Close")
+                        }
+
+                        Button(
+                            onClick = {
+                                val bmp = receiptPreviewBitmap
+                                if (bmp != null) {
+                                    ReceiptGenerator.printReceiptBitmap(context, currentEntry.serialNumber, bmp)
+                                } else {
+                                    Toast.makeText(context, "No printer found. Please connect a printer and try again.", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Print", color = Color.White, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -3403,9 +3575,9 @@ fun GardenBookingRecordDetailDialog(
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
                         ) {
-                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Share Receipt", color = Color.White, fontWeight = FontWeight.Bold)
+                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("WhatsApp", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
