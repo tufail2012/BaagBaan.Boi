@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -141,6 +143,16 @@ fun AgriDashboardScreen(
     var selectedFilterTab by remember { mutableStateOf("All") }
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    var isInitialLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(allRecords, gardenEntries) {
+        if (allRecords.isNotEmpty() || gardenEntries.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
 
     val filteredLogRecords = remember(allRecords, rawBookings, selectedFilterTab) {
         when (selectedFilterTab) {
@@ -522,8 +534,14 @@ fun AgriDashboardScreen(
 
                 if (selectedFilterTab == "Garden Planning") {
                     if (gardenEntries.isEmpty()) {
-                        item {
-                            EmptyStateCard(message = "No Garden Planning entries registered yet.")
+                        if (isInitialLoading) {
+                            items(3) {
+                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                            }
+                        } else {
+                            item {
+                                EmptyStateCard(message = "No Garden Planning entries registered yet.")
+                            }
                         }
                     } else {
                         items(gardenEntries.take(8)) { entry ->
@@ -532,8 +550,14 @@ fun AgriDashboardScreen(
                     }
                 } else {
                     if (filteredLogRecords.isEmpty()) {
-                        item {
-                            EmptyStateCard(message = "No records found matching current filter.")
+                        if (isInitialLoading) {
+                            items(3) {
+                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                            }
+                        } else {
+                            item {
+                                EmptyStateCard(message = "No records found matching current filter.")
+                            }
                         }
                     } else {
                         items(filteredLogRecords.take(10)) { record ->

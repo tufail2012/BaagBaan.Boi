@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -72,7 +74,6 @@ import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
-import com.example.data.extractSerialNumberNumeric
 import com.example.util.PdfReceiptManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -112,6 +113,16 @@ fun PaymentRemindersDialog(
     // Load Crop Records and Garden Planning Entries
     val cropRecords by db.cropRecordDao().getAllRecords().collectAsState(initial = emptyList())
     val gardenEntries by db.gardenPlanningDao().getAllEntries().collectAsState(initial = emptyList())
+
+    var isInitialLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(cropRecords, gardenEntries) {
+        if (cropRecords.isNotEmpty() || gardenEntries.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
 
     val numberFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
 
@@ -164,22 +175,17 @@ fun PaymentRemindersDialog(
                 }
             }
 
-            val sortedList = list.sortedWith(
-                compareByDescending<PendingPaymentItem> { extractSerialNumberNumeric(it.serialNumber) }
-                    .thenByDescending { it.id }
-            )
-
             // Filter by search query if non-blank
             if (searchQuery.isNotBlank()) {
                 val q = searchQuery.trim().lowercase()
-                sortedList.filter { item ->
+                list.filter { item ->
                     item.farmerName.lowercase().contains(q) ||
                             item.serialNumber.lowercase().contains(q) ||
                             item.contactNumber.contains(q) ||
                             item.serviceType.lowercase().contains(q)
                 }
             } else {
-                sortedList
+                list
             }
         } catch (e: Exception) {
             loadErrorTrace = "Error loading payment reminders: ${e.message}\n${e.stackTraceToString()}"
@@ -425,26 +431,39 @@ fun PaymentRemindersDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (pendingItems.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.HourglassTop,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = if (searchQuery.isBlank()) "No pending payments found" else "No matching pending records",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                        if (isInitialLoading) {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                items(4) {
+                                    SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        imageVector = Icons.Default.HourglassTop,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = if (searchQuery.isBlank()) "No pending payments found" else "No matching pending records",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     } else {

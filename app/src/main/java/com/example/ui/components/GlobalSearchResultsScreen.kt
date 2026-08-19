@@ -118,6 +118,16 @@ fun GlobalSearchResultsScreen(
     val focusRequester = remember { FocusRequester() }
     val animatedItemIds = remember(searchQuery, selectedCategoryFilter) { mutableSetOf<Any>() }
 
+    var isInitialLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(searchResults) {
+        if (searchResults.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
+
     val categoryFilterOptions = listOf(
         "All Categories",
         "Local Plants",
@@ -345,42 +355,56 @@ fun GlobalSearchResultsScreen(
                 }
             }
 
-            // Results List or Empty State
+            // Results List, Loading Skeletons, or Empty State
             if (finalFilteredResults.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                if (isInitialLoading) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = if (isDark) Color(0xFF64748B) else Color.Gray
-                        )
-                        Text(
-                            text = "No Matching Records",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color.White else Color(0xFF0F172A)
-                        )
-                        Text(
-                            text = if (searchQuery.isNotBlank())
-                                "No records found matching '$searchQuery' across any service or sub-category."
-                            else
-                                "No records available in the application database.",
-                            fontSize = 13.sp,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        if (searchQuery.isNotBlank()) {
-                            TextButton(onClick = { viewModel.setSearchQuery("") }) {
-                                Text("Clear Search Query", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        items(4) {
+                            SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = if (isDark) Color(0xFF64748B) else Color.Gray
+                            )
+                            Text(
+                                text = "No Matching Records",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = if (searchQuery.isNotBlank())
+                                    "No records found matching '$searchQuery' across any service or sub-category."
+                                else
+                                    "No records available in the application database.",
+                                fontSize = 13.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            if (searchQuery.isNotBlank()) {
+                                TextButton(onClick = { viewModel.setSearchQuery("") }) {
+                                    Text("Clear Search Query", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -619,6 +643,7 @@ private fun SwipeableSearchResultItem(
             totalAmount = totalAmount,
             remainingBalance = remBalance,
             paymentStatus = statusLabel,
+            serialNumber = if (item.serialNumber.isBlank()) "N/A" else item.serialNumber,
             onDismiss = { showWhatsAppDialog = false }
         )
     }

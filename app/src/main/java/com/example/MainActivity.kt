@@ -6,6 +6,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -122,27 +123,44 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            val themeMode by cropViewModel.themeMode.collectAsState()
-            val accentHex by cropViewModel.accentColorHex.collectAsState()
-
-            val accentColor = androidx.compose.runtime.remember(accentHex) {
-                try {
-                    androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(accentHex))
-                } catch (e: Exception) {
-                    com.example.ui.theme.AgriRedPrimary
-                }
+            val savedCrashTrace = androidx.compose.runtime.remember {
+                com.example.util.CrashReporter.getSavedCrashTrace(this@MainActivity)
+            }
+            var activeCrashTrace by androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf(savedCrashTrace)
             }
 
-            MyApplicationTheme(
-                themeMode = themeMode,
-                accentColor = accentColor
-            ) {
-                AgriCropMainScreen(
-                    viewModel = cropViewModel,
-                    attendanceViewModel = attendanceViewModel,
-                    notificationViewModel = notificationViewModel,
-                    appLockManager = appLockManager
+            if (activeCrashTrace != null) {
+                com.example.util.CrashReportScreen(
+                    context = this@MainActivity,
+                    trace = activeCrashTrace!!,
+                    onDismiss = {
+                        activeCrashTrace = null
+                    }
                 )
+            } else {
+                val themeMode by cropViewModel.themeMode.collectAsState()
+                val accentHex by cropViewModel.accentColorHex.collectAsState()
+
+                val accentColor = androidx.compose.runtime.remember(accentHex) {
+                    try {
+                        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(accentHex))
+                    } catch (e: Exception) {
+                        com.example.ui.theme.AgriRedPrimary
+                    }
+                }
+
+                MyApplicationTheme(
+                    themeMode = themeMode,
+                    accentColor = accentColor
+                ) {
+                    AgriCropMainScreen(
+                        viewModel = cropViewModel,
+                        attendanceViewModel = attendanceViewModel,
+                        notificationViewModel = notificationViewModel,
+                        appLockManager = appLockManager
+                    )
+                }
             }
         }
     }

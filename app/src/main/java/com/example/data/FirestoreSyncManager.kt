@@ -96,8 +96,6 @@ class FirestoreSyncManager {
                 "expectedDelivery" to record.expectedDelivery,
                 "paymentProofUri" to record.paymentProofUri,
                 "paymentHistoryJson" to record.paymentHistoryJson,
-                "isReceived" to record.isReceived,
-                "receivedDate" to record.receivedDate,
                 "timestamp" to record.timestamp
             )
 
@@ -168,8 +166,6 @@ class FirestoreSyncManager {
                 "expectedDelivery" to entry.expectedDelivery,
                 "notes" to entry.notes,
                 "installmentHistoryJson" to entry.installmentHistoryJson,
-                "isReceived" to entry.isReceived,
-                "receivedDate" to entry.receivedDate,
                 "timestamp" to entry.timestamp
             )
 
@@ -371,8 +367,6 @@ class FirestoreSyncManager {
                         val expectedDelivery = doc.getString("expectedDelivery") ?: ""
                         val notes = doc.getString("notes") ?: ""
                         val installmentHistoryJson = doc.getString("installmentHistoryJson") ?: ""
-                        val isReceived = doc.getBoolean("isReceived") ?: false
-                        val receivedDate = doc.getString("receivedDate") ?: ""
                         val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                         val cloudEntry = GardenPlanningEntry(
@@ -392,8 +386,6 @@ class FirestoreSyncManager {
                             expectedDelivery = expectedDelivery,
                             notes = notes,
                             installmentHistoryJson = installmentHistoryJson,
-                            isReceived = isReceived,
-                            receivedDate = receivedDate,
                             timestamp = timestamp
                         )
 
@@ -444,8 +436,6 @@ class FirestoreSyncManager {
                 val expectedDelivery = doc.getString("expectedDelivery") ?: ""
                 val paymentProofUri = doc.getString("paymentProofUri") ?: ""
                 val paymentHistoryJson = doc.getString("paymentHistoryJson") ?: ""
-                val isReceived = doc.getBoolean("isReceived") ?: false
-                val receivedDate = doc.getString("receivedDate") ?: ""
                 val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                 val cloudRecord = CropRecord(
@@ -469,8 +459,6 @@ class FirestoreSyncManager {
                     expectedDelivery = expectedDelivery,
                     paymentProofUri = paymentProofUri,
                     paymentHistoryJson = paymentHistoryJson,
-                    isReceived = isReceived,
-                    receivedDate = receivedDate,
                     timestamp = timestamp
                 )
 

@@ -8,9 +8,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
-import android.widget.Toast
 import androidx.core.content.FileProvider
-import androidx.print.PrintHelper
 import com.example.data.BusinessInfo
 import com.example.data.BusinessInfoRepository
 import java.io.File
@@ -38,10 +36,7 @@ data class ReceiptData(
     val scionVariety: String = "",
     val plantOrigin: String = "",
     val recordType: String = "",
-    val recordId: Long = 0L,
-    val isReceived: Boolean = false,
-    val receivedDate: String = "",
-    val receiptTitle: String = ""
+    val recordId: Long = 0L
 )
 
 object ReceiptGenerator {
@@ -62,7 +57,6 @@ object ReceiptGenerator {
         val darkGreen = Color.parseColor("#122E1F")
         val headerBg = Color.parseColor("#1B3B2B")
         val maroonBg = Color.parseColor("#801B1B")
-        val finalGreenBg = Color.parseColor("#15803D")
         val creamCard = Color.parseColor("#FAF8F2")
         val creamBg = Color.parseColor("#F5F2E9")
         val textDark = Color.parseColor("#1C2520")
@@ -71,11 +65,9 @@ object ReceiptGenerator {
         val goldAccent = Color.parseColor("#D4AF37")
 
         // Status Colors
-        val isFinal = data.isReceived || data.receiptTitle.contains("FINAL", ignoreCase = true) || data.receiptTitle.contains("RECEIVED", ignoreCase = true)
-        val (statusBg, statusText) = when {
-            isFinal -> Color.parseColor("#DCFCE7") to Color.parseColor("#166534")
-            data.paymentStatus.lowercase() == "fully paid" -> Color.parseColor("#E8F5E9") to Color.parseColor("#2E7D32")
-            data.paymentStatus.lowercase() == "advance paid" -> Color.parseColor("#FFF3E0") to Color.parseColor("#E65100")
+        val (statusBg, statusText) = when (data.paymentStatus.lowercase()) {
+            "fully paid" -> Color.parseColor("#E8F5E9") to Color.parseColor("#2E7D32")
+            "advance paid" -> Color.parseColor("#FFF3E0") to Color.parseColor("#E65100")
             else -> Color.parseColor("#FFEBEE") to Color.parseColor("#C62828")
         }
 
@@ -149,21 +141,16 @@ object ReceiptGenerator {
             canvas.drawText("+91 7051826858  |  +91 6005096439", width / 2f, 275f, paint)
         }
 
-        // 3. Official / Final Digital Receipt Banner
-        val bannerTitle = when {
-            data.receiptTitle.isNotBlank() -> data.receiptTitle.uppercase()
-            isFinal -> "FINAL DIGITAL RECEIPT • RECEIVED"
-            else -> "OFFICIAL DIGITAL RECEIPT"
-        }
-        paint.color = if (isFinal) finalGreenBg else maroonBg
+        // 3. Official Digital Receipt Banner
+        paint.color = maroonBg
         paint.style = Paint.Style.FILL
-        val bannerRect = RectF(140f, 340f, width - 140f, 410f)
+        val bannerRect = RectF(180f, 340f, width - 180f, 410f)
         canvas.drawRoundRect(bannerRect, 16f, 16f, paint)
 
         paint.color = Color.WHITE
-        paint.textSize = if (isFinal) 26f else 28f
+        paint.textSize = 28f
         paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(bannerTitle, width / 2f, 385f, paint)
+        canvas.drawText("OFFICIAL DIGITAL RECEIPT", width / 2f, 385f, paint)
 
         var currentY = 435f
 
@@ -272,26 +259,14 @@ object ReceiptGenerator {
                 "${data.quantity} Rootstocks"
             }
 
-            val baseList = if (data.isReceived) {
-                listOf(
-                    "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
-                    "Rootstock" to actualRootstock,
-                    "Root Diameter (mm)" to formattedDiam,
-                    "Scion Variety" to actualScion,
-                    "Quantity / Units" to qtyStr,
-                    "Fulfillment Status" to if (data.receivedDate.isNotBlank()) "Received on ${data.receivedDate}" else "Received & Delivered"
-                )
-            } else {
-                listOf(
-                    "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
-                    "Rootstock" to actualRootstock,
-                    "Root Diameter (mm)" to formattedDiam,
-                    "Scion Variety" to actualScion,
-                    "Quantity / Units" to qtyStr,
-                    "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
-                )
-            }
-            baseList
+            listOf(
+                "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
+                "Rootstock" to actualRootstock,
+                "Root Diameter (mm)" to formattedDiam,
+                "Scion Variety" to actualScion,
+                "Quantity / Units" to qtyStr,
+                "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
+            )
         } else {
             val list = mutableListOf<Pair<String, String>>()
             list.add("Service Category" to data.serviceCategory.ifBlank { "N/A" })
@@ -310,18 +285,13 @@ object ReceiptGenerator {
             }
             list.add("Item / Variety" to itemVariety)
             list.add("Quantity / Units" to "${data.quantity} Plants")
-            if (data.isReceived) {
-                list.add("Fulfillment Status" to if (data.receivedDate.isNotBlank()) "Received on ${data.receivedDate}" else "Received & Delivered")
-            } else {
-                list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
-            }
+            list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
             list
         }
 
         drawSectionCard(
             title = "🌱 ORDER & SERVICE DETAILS",
-            items = orderDetailsItems,
-            extraBadge = if (data.isReceived) "RECEIVED" to (Color.parseColor("#DCFCE7") to Color.parseColor("#166534")) else null
+            items = orderDetailsItems
         )
 
         // Section 3: Payment Breakdown
@@ -522,18 +492,6 @@ object ReceiptGenerator {
 
     fun saveReceiptImageAndGetUri(context: Context, bitmap: Bitmap, serialNumber: String): Uri? {
         return com.example.util.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
-    }
-
-    fun printReceiptBitmap(context: Context, serialNumber: String, bitmap: Bitmap) {
-        try {
-            val printHelper = PrintHelper(context).apply {
-                scaleMode = PrintHelper.SCALE_MODE_FIT
-            }
-            val jobName = "Receipt_${serialNumber.ifBlank { "Booking" }}"
-            printHelper.printBitmap(jobName, bitmap)
-        } catch (e: Exception) {
-            Toast.makeText(context, "No printer found. Please connect a printer and try again.", Toast.LENGTH_SHORT).show()
-        }
     }
 }
 

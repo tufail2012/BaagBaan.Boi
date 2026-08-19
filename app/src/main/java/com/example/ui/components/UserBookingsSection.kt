@@ -84,6 +84,7 @@ fun UserBookingsSection(
     val isLoading by viewModel.isLoadingBookings.collectAsState()
     val selectedFilter by viewModel.selectedBookingFilter.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val isDark = isAppInDarkMode()
 
     var showNewBookingModal by remember { mutableStateOf(false) }
     var bookingToDelete by remember { mutableStateOf<UserBooking?>(null) }
@@ -271,14 +272,13 @@ fun UserBookingsSection(
                 .weight(1f)
         ) {
             if (isLoading && bookings.isEmpty()) {
-                Box(
+                LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("Loading bookings from Firestore...", style = MaterialTheme.typography.bodyMedium)
+                    items(4) {
+                        SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
                     }
                 }
             } else if (bookings.isEmpty()) {

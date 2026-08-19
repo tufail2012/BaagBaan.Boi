@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
-import com.example.data.extractSerialNumberNumeric
 import com.example.util.MessageTemplateHelper
 import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +44,7 @@ class GardenPlanningViewModel(
                         it.farmerAddress.lowercase(Locale.getDefault()).contains(q)
             }
         }
-        val filtered = when (paymentFilter) {
+        when (paymentFilter) {
             "Pending" -> result.filter { it.paymentStatus == "Pending" || it.paymentStatus == "Unpaid" }
             "Advance Paid" -> result.filter { it.paymentStatus == "Advance Paid" }
             "Fully Paid" -> result.filter { it.paymentStatus == "Fully Paid" }
@@ -53,10 +52,6 @@ class GardenPlanningViewModel(
             "Payments Pending" -> result.filter { it.paymentStatus != "Fully Paid" }
             else -> result
         }
-        filtered.sortedWith(
-            compareByDescending<GardenPlanningEntry> { extractSerialNumberNumeric(it.serialNumber) }
-                .thenByDescending { it.id }
-        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setPaymentFilter(filter: String) {

@@ -26,8 +26,6 @@ data class CropRecord(
     val expectedDelivery: String = "",
     val paymentProofUri: String = "",
     val paymentHistoryJson: String = "",
-    val isReceived: Boolean = false,
-    val receivedDate: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -45,12 +43,5 @@ fun CropRecord.calculateRemainingBalance(): Double {
 
 fun CropRecord.isPaymentCleared(): Boolean {
     return paymentStatus.equals("Fully Paid", ignoreCase = true) || calculateRemainingBalance() <= 0.01
-}
-
-fun extractSerialNumberNumeric(serialNumber: String?): Long {
-    if (serialNumber.isNullOrBlank()) return 0L
-    val digits = Regex("""\d+""").findAll(serialNumber).lastOrNull()?.value
-        ?: serialNumber.filter { it.isDigit() }
-    return digits.toLongOrNull() ?: 0L
 }
 

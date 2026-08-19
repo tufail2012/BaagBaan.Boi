@@ -10,7 +10,6 @@ import com.example.data.GardenPlanningRepository
 import com.example.data.GlobalSearchResult
 import com.example.data.InventoryStockManager
 import com.example.data.StockValidationResult
-import com.example.data.extractSerialNumberNumeric
 import com.example.data.isPaymentCleared
 import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -429,10 +428,7 @@ class CropViewModel(
             }
 
             isManualBooking && matchesCategory && matchesSubTab && matchesQuery && matchesPayment
-        }.sortedWith(
-            compareByDescending<CropRecord> { extractSerialNumberNumeric(it.serialNumber) }
-                .thenByDescending { it.id }
-        )
+        }.sortedWith(compareByDescending<CropRecord> { it.timestamp }.thenByDescending { it.id })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Global Search Flow across all services & sub-categories (Farmer Name, Serial No, Contact No)
@@ -448,10 +444,7 @@ class CropViewModel(
         gardenEntries.mapTo(combined) { GlobalSearchResult.Garden(it) }
 
         if (trimmed.isBlank()) {
-            combined.sortedWith(
-                compareByDescending<GlobalSearchResult> { extractSerialNumberNumeric(it.serialNumber) }
-                    .thenByDescending { it.id }
-            )
+            combined.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
         } else {
             val cleanQuery = trimmed.replace(" ", "").lowercase()
             combined.filter { item ->
@@ -472,10 +465,7 @@ class CropViewModel(
                 }
 
                 farmerNameMatch || serialMatch || phoneMatch || serviceMatch || addressMatch || extraMatch
-            }.sortedWith(
-                compareByDescending<GlobalSearchResult> { extractSerialNumberNumeric(it.serialNumber) }
-                    .thenByDescending { it.id }
-            )
+            }.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

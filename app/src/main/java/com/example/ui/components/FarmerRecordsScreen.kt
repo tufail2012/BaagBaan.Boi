@@ -233,25 +233,24 @@ fun FarmerRecordsScreen(
             )
         }
 
-        // Records List or Empty State
+        // Records List, Shimmer Skeleton Loading, or Empty State
         if (records.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isInitialLoading) {
-                        androidx.compose.material3.CircularProgressIndicator(
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+            if (isInitialLoading) {
+                items(4) {
+                    SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
+                }
+            } else {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                         Icon(
                             imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
                             contentDescription = null,
@@ -614,38 +613,18 @@ private fun FarmerRecordCard(
                     }
                 }
 
-                // Payment Status & Received Badges
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                // Payment Status Badge
+                Surface(
+                    color = statusBadgeBg,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    if (record.isReceived) {
-                        Surface(
-                            color = if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = "Received",
-                                color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
-                    Surface(
-                        color = statusBadgeBg,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            color = statusBadgeText,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                    Text(
+                        text = statusLabel,
+                        color = statusBadgeText,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
                 }
             }
 
@@ -841,6 +820,7 @@ private fun FarmerRecordCard(
             totalAmount = totalAmount,
             remainingBalance = remBalance,
             paymentStatus = statusLabel,
+            serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
             onDismiss = { showCardWhatsAppConfirm = false }
         )
     }
@@ -987,6 +967,7 @@ fun SwipeableRecordItem(
             totalAmount = totalAmount,
             remainingBalance = remBalance,
             paymentStatus = statusLabel,
+            serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
             onDismiss = { showWhatsAppDialog = false }
         )
     }

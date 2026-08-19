@@ -48,6 +48,16 @@ fun InventoryManagementDialog(
 
     val allItems by db.inventoryDao().getAllItems().collectAsState(initial = emptyList())
 
+    var isInitialLoading by remember { mutableStateOf(true) }
+    LaunchedEffect(allItems) {
+        if (allItems.isNotEmpty()) {
+            isInitialLoading = false
+        } else {
+            kotlinx.coroutines.delay(300)
+            isInitialLoading = false
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryFilter by remember { mutableStateOf("All") }
 
@@ -355,35 +365,48 @@ fun InventoryManagementDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Inventory List
+                // Inventory List, Skeleton Loading, or Empty State
                 if (filteredItems.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                    if (isInitialLoading) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Inventory,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
-                            )
-                            Text(
-                                text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textSecondary
-                            )
-                            Text(
-                                text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
-                                fontSize = 13.sp,
-                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                            )
+                            items(4) {
+                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Inventory,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(56.dp),
+                                    tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
+                                )
+                                Text(
+                                    text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textSecondary
+                                )
+                                Text(
+                                    text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
+                                    fontSize = 13.sp,
+                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                )
+                            }
                         }
                     }
                 } else {

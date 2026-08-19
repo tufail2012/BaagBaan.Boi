@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Send
@@ -97,6 +96,7 @@ fun WhatsAppTemplateDialog(
     totalAmount: Double = 0.0,
     remainingBalance: Double = 0.0,
     paymentStatus: String = "Pending",
+    serialNumber: String = "N/A",
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -114,17 +114,14 @@ fun WhatsAppTemplateDialog(
         SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date())
     }
 
-    val serialNumber = remember(farmerName, serviceType) {
-        val hash = kotlin.math.abs("$farmerName$serviceType".hashCode()) % 100000
-        "REC-${String.format("%05d", hash)}"
-    }
+    val effectiveSerialNumber = if (serialNumber.isBlank()) "N/A" else serialNumber
 
     val calculatedBalance = remember(remainingBalance, totalAmount, amountPaid) {
         if (remainingBalance > 0) remainingBalance else maxOf(0.0, totalAmount - amountPaid)
     }
 
     // Generate Receipt bitmap & URI when Digital Receipt (index 2) is selected
-    LaunchedEffect(selectedTemplateIndex, farmerName, totalAmount, amountPaid) {
+    LaunchedEffect(selectedTemplateIndex, farmerName, totalAmount, amountPaid, effectiveSerialNumber) {
         if (selectedTemplateIndex == 2 && receiptBitmap == null) {
             val isRootstockSvc = serviceType.equals("Rootstocks", ignoreCase = true) ||
                     serviceType.contains("Rootstock", ignoreCase = true) ||
@@ -132,7 +129,7 @@ fun WhatsAppTemplateDialog(
                     serviceType.equals("Imported Rootstock", ignoreCase = true)
 
             val rData = ReceiptData(
-                serialNumber = serialNumber,
+                serialNumber = effectiveSerialNumber,
                 bookingDate = currentDateStr,
                 farmerName = farmerName.ifBlank { "Farmer" },
                 contactNumber = contactNumber,
@@ -151,7 +148,7 @@ fun WhatsAppTemplateDialog(
                 scionVariety = if (isRootstockSvc) "Standard Variety" else ""
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
-            val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)
+            val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, effectiveSerialNumber)
             receiptBitmap = bmp
             receiptUri = uri
         }
@@ -191,7 +188,7 @@ fun WhatsAppTemplateDialog(
                 com.example.data.MessageTemplateRepository.renderTemplate(
                     templateId = "digital_receipt_summary",
                     data = mapOf(
-                        "serialNumber" to serialNumber,
+                        "serialNumber" to effectiveSerialNumber,
                         "date" to currentDateStr,
                         "farmerName" to farmerStr,
                         "serviceType" to serviceType,
@@ -206,7 +203,7 @@ fun WhatsAppTemplateDialog(
         }
     }
 
-    var editedMessage by remember(selectedTemplateIndex, farmerName, totalAmount, amountPaid) {
+    var editedMessage by remember(selectedTemplateIndex, farmerName, totalAmount, amountPaid, effectiveSerialNumber) {
         mutableStateOf(generateMessage(selectedTemplateIndex))
     }
 
@@ -515,7 +512,7 @@ fun WhatsAppTemplateDialog(
                                 color = WhatsAppGreen.copy(alpha = 0.15f)
                             ) {
                                 Text(
-                                    text = serialNumber,
+                                    text = effectiveSerialNumber,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     color = WhatsAppDarkGreen,
@@ -698,57 +695,30 @@ fun WhatsAppTemplateDialog(
 
                         // Main Action Buttons for Digital Receipt Document
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            // Send Receipt Image via WhatsApp Button
+                            Button(
+                                onClick = {
+                                    if (receiptUri != null) {
+                                        launchWhatsAppImage(
+                                            phone = contactNumber,
+                                            uri = receiptUri!!,
+                                            caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($effectiveSerialNumber)."
+                                        )
+                                        onDismiss()
+                                    } else {
+                                        Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .testTag("send_whatsapp_receipt_image_button")
                             ) {
-                                // Send Receipt Image via WhatsApp Button
-                                Button(
-                                    onClick = {
-                                        if (receiptUri != null) {
-                                            launchWhatsAppImage(
-                                                phone = contactNumber,
-                                                uri = receiptUri!!,
-                                                caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($serialNumber)."
-                                            )
-                                            onDismiss()
-                                        } else {
-                                            Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .testTag("send_whatsapp_receipt_image_button")
-                                ) {
-                                    Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-
-                                // Print Receipt Button
-                                Button(
-                                    onClick = {
-                                        val bmp = receiptBitmap
-                                        if (bmp != null) {
-                                            ReceiptGenerator.printReceiptBitmap(context, serialNumber, bmp)
-                                        } else {
-                                            Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .testTag("print_receipt_button")
-                                ) {
-                                    Icon(imageVector = Icons.Default.Print, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
+                                Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Send Receipt Document via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                             }
 
                             Row(
@@ -762,7 +732,7 @@ fun WhatsAppTemplateDialog(
                                             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                                 type = "image/png"
                                                 putExtra(Intent.EXTRA_STREAM, receiptUri)
-                                                putExtra(Intent.EXTRA_TEXT, "Official Digital Receipt - $farmerName ($serialNumber)")
+                                                putExtra(Intent.EXTRA_TEXT, "Official Digital Receipt - $farmerName ($effectiveSerialNumber)")
                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
                                             context.startActivity(Intent.createChooser(shareIntent, "Share Receipt Document"))
@@ -912,7 +882,7 @@ fun WhatsAppTemplateDialog(
                                 launchWhatsAppImage(
                                     phone = contactNumber,
                                     uri = receiptUri!!,
-                                    caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($serialNumber)."
+                                    caption = "Dear $farmerName, here is your official digital receipt from Baagbaan Boi ($effectiveSerialNumber)."
                                 )
                                 onDismiss()
                             }
