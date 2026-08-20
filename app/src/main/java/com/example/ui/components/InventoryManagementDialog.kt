@@ -181,14 +181,16 @@ fun InventoryManagementDialog(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             shape = RoundedCornerShape(24.dp),
             color = bgSurface
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .padding(14.dp)
             ) {
                 // Top Action Bar
                 Row(
@@ -239,12 +241,12 @@ fun InventoryManagementDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Dashboard Summary Cards Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Card 1: Total Stock
                     Card(
@@ -257,27 +259,28 @@ fun InventoryManagementDialog(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Layers,
                                     contentDescription = null,
                                     tint = Color(0xFF3B82F6),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Total Stock",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = textSecondary
+                                    color = textSecondary,
+                                    maxLines = 1
                                 )
                             }
                             Text(
                                 text = "$totalStock",
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF3B82F6)
                             )
@@ -299,27 +302,28 @@ fun InventoryManagementDialog(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.Warning,
                                     contentDescription = null,
                                     tint = if (lowStockCount > 0) Color(0xFFD97706) else textSecondary,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Low Stock Alerts",
+                                    text = "Low Stock",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (lowStockCount > 0) Color(0xFFB45309) else textSecondary
+                                    color = if (lowStockCount > 0) Color(0xFFB45309) else textSecondary,
+                                    maxLines = 1
                                 )
                             }
                             Text(
                                 text = "$lowStockCount",
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = if (lowStockCount > 0) Color(0xFFD97706) else textPrimary
                             )
@@ -337,27 +341,28 @@ fun InventoryManagementDialog(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Default.ShoppingCart,
                                     contentDescription = null,
                                     tint = Color(0xFF10B981),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "Items Sold",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = textSecondary
+                                    color = textSecondary,
+                                    maxLines = 1
                                 )
                             }
                             Text(
                                 text = "$totalSold",
-                                fontSize = 20.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF10B981)
                             )
@@ -365,41 +370,71 @@ fun InventoryManagementDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Search Bar & Action Buttons Row
+                // Compact Search Bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            text = "Search by item name, variety, SKU, supplier...",
+                            fontSize = 13.sp,
+                            color = textSecondary
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = textSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = textSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = cardBg,
+                        unfocusedContainerColor = cardBg,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
+                        focusedTextColor = textPrimary,
+                        unfocusedTextColor = textPrimary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("inventory_search_input")
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Action Buttons Row: Recalculate Stock + Add Item
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search inventory...") },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = textSecondary)
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", tint = textSecondary)
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("inventory_search_input"),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-
                     OutlinedButton(
                         onClick = {
                             showRecalculateConfirmDialog = true
                         },
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 12.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("recalculate_stock_button"),
                         colors = ButtonDefaults.outlinedButtonColors(
                             containerColor = if (isDark) Color(0xFF1E293B) else Color.White
                         ),
@@ -407,11 +442,22 @@ fun InventoryManagementDialog(
                             1.dp,
                             if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
                         ),
-                        modifier = Modifier.testTag("recalculate_stock_button")
+                        contentPadding = PaddingValues(horizontal = 8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Recalculate Stock", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = textPrimary)
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Recalculate Stock",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = textPrimary,
+                            maxLines = 1
+                        )
                     }
 
                     Button(
@@ -419,13 +465,28 @@ fun InventoryManagementDialog(
                             itemToEdit = null
                             showAddEditModal = true
                         },
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                        modifier = Modifier.testTag("add_new_inventory_item_button")
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("add_new_inventory_item_button"),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Item", fontWeight = FontWeight.Bold, fontSize = 13.5.sp)
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Add Item",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.5.sp,
+                            maxLines = 1
+                        )
                     }
                 }
 
@@ -435,7 +496,8 @@ fun InventoryManagementDialog(
                 val filterChips = listOf("All", "Low Stock", "Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
                     items(filterChips) { filterName ->
                         val isSelected = selectedCategoryFilter == filterName
@@ -461,7 +523,7 @@ fun InventoryManagementDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Inventory List, Skeleton Loading, or Empty State
                 if (filteredItems.isEmpty()) {
@@ -470,7 +532,8 @@ fun InventoryManagementDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             items(4) {
                                 SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
@@ -528,7 +591,8 @@ fun InventoryManagementDialog(
                     ) {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
                         ) {
                             items(filteredItems, key = { it.id }) { item ->
                                 InventoryItemCard(
