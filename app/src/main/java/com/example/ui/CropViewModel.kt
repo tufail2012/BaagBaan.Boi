@@ -13,6 +13,7 @@ import com.example.data.InventoryStockManager
 import com.example.data.StockValidationResult
 import com.example.data.isPaymentCleared
 import com.example.ui.components.BookingConfirmationState
+import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -458,7 +459,7 @@ class CropViewModel(
             }
 
             isManualBooking && matchesCategory && matchesSubTab && matchesQuery && matchesPayment
-        }.sortedWith(compareByDescending<CropRecord> { it.timestamp }.thenByDescending { it.id })
+        }.sortedWith(SerialNumberUtils.cropRecordComparator)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Global Search Flow across all services & sub-categories (Farmer Name, Serial No, Contact No)
@@ -474,7 +475,7 @@ class CropViewModel(
         gardenEntries.mapTo(combined) { GlobalSearchResult.Garden(it) }
 
         if (trimmed.isBlank()) {
-            combined.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
+            combined.sortedWith(SerialNumberUtils.globalSearchResultComparator)
         } else {
             val cleanQuery = trimmed.replace(" ", "").lowercase()
             combined.filter { item ->
@@ -495,7 +496,7 @@ class CropViewModel(
                 }
 
                 farmerNameMatch || serialMatch || phoneMatch || serviceMatch || addressMatch || extraMatch
-            }.sortedWith(compareByDescending<GlobalSearchResult> { it.timestamp }.thenByDescending { it.id })
+            }.sortedWith(SerialNumberUtils.globalSearchResultComparator)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

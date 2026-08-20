@@ -98,6 +98,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
+import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -786,7 +787,7 @@ fun ContactDetailsDialog(
             val cleanRecordPhone = record.contactNumber.replace(Regex("[^0-9]"), "")
             (cleanContactPhone.isNotEmpty() && cleanRecordPhone == cleanContactPhone) ||
                     (contactNameLower.isNotEmpty() && record.farmerName.trim().lowercase() == contactNameLower)
-        }
+        }.sortedWith(SerialNumberUtils.cropRecordComparator)
     }
 
     val totalBookings = relatedRecords.size

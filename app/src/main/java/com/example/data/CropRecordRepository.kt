@@ -1,7 +1,9 @@
 package com.example.data
 
+import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 
 class CropRecordRepository(
     private val dao: CropRecordDao,
@@ -11,16 +13,22 @@ class CropRecordRepository(
     private val firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager(),
     private val context: android.content.Context? = null
 ) {
-    val allRecords: Flow<List<CropRecord>> = dao.getAllRecords()
+    val allRecords: Flow<List<CropRecord>> = dao.getAllRecords().map { list ->
+        list.sortedWith(SerialNumberUtils.cropRecordComparator)
+    }
     val recordCount: Flow<Int> = dao.getRecordCount()
     val allInventoryItems: Flow<List<InventoryItem>> = inventoryDao?.getAllItems() ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
     fun getRecordsByService(serviceType: String): Flow<List<CropRecord>> {
-        return dao.getRecordsByService(serviceType)
+        return dao.getRecordsByService(serviceType).map { list ->
+            list.sortedWith(SerialNumberUtils.cropRecordComparator)
+        }
     }
 
     fun searchRecords(query: String): Flow<List<CropRecord>> {
-        return dao.searchRecords(query)
+        return dao.searchRecords(query).map { list ->
+            list.sortedWith(SerialNumberUtils.cropRecordComparator)
+        }
     }
 
     fun getRecordById(id: Long): Flow<CropRecord?> {
@@ -28,7 +36,7 @@ class CropRecordRepository(
     }
 
     suspend fun getAllRecordsList(): List<CropRecord> {
-        return dao.getAllRecordsList()
+        return dao.getAllRecordsList().sortedWith(SerialNumberUtils.cropRecordComparator)
     }
 
     suspend fun validateStockAvailability(record: CropRecord, oldRecord: CropRecord? = null): StockValidationResult {

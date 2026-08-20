@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
 import com.example.util.MessageTemplateHelper
+import com.example.util.SerialNumberUtils
 import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,7 +45,7 @@ class GardenPlanningViewModel(
                         it.farmerAddress.lowercase(Locale.getDefault()).contains(q)
             }
         }
-        when (paymentFilter) {
+        val filtered = when (paymentFilter) {
             "Pending" -> result.filter { it.paymentStatus == "Pending" || it.paymentStatus == "Unpaid" }
             "Advance Paid" -> result.filter { it.paymentStatus == "Advance Paid" }
             "Fully Paid" -> result.filter { it.paymentStatus == "Fully Paid" }
@@ -52,6 +53,7 @@ class GardenPlanningViewModel(
             "Payments Pending" -> result.filter { it.paymentStatus != "Fully Paid" }
             else -> result
         }
+        filtered.sortedWith(SerialNumberUtils.gardenEntryComparator)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setPaymentFilter(filter: String) {

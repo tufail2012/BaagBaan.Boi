@@ -1,6 +1,8 @@
 package com.example.data
 
+import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class GardenPlanningRepository(
     private val dao: GardenPlanningDao,
@@ -8,10 +10,14 @@ class GardenPlanningRepository(
     private val recycleBinDao: RecycleBinDao? = null,
     private val firestoreSyncManager: FirestoreSyncManager = FirestoreSyncManager()
 ) {
-    val allEntries: Flow<List<GardenPlanningEntry>> = dao.getAllEntries()
+    val allEntries: Flow<List<GardenPlanningEntry>> = dao.getAllEntries().map { list ->
+        list.sortedWith(SerialNumberUtils.gardenEntryComparator)
+    }
 
     fun searchEntries(query: String): Flow<List<GardenPlanningEntry>> {
-        return dao.searchEntries(query)
+        return dao.searchEntries(query).map { list ->
+            list.sortedWith(SerialNumberUtils.gardenEntryComparator)
+        }
     }
 
     fun getEntryById(id: Long): Flow<GardenPlanningEntry?> {
@@ -23,7 +29,7 @@ class GardenPlanningRepository(
     }
 
     suspend fun getAllEntriesList(): List<GardenPlanningEntry> {
-        return dao.getAllEntriesList()
+        return dao.getAllEntriesList().sortedWith(SerialNumberUtils.gardenEntryComparator)
     }
 
     suspend fun insert(entry: GardenPlanningEntry): Long {

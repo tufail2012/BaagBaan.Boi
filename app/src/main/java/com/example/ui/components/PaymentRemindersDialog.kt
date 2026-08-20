@@ -75,6 +75,7 @@ import com.example.data.GardenPlanningEntry
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
 import com.example.util.PdfReceiptManager
+import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -175,8 +176,7 @@ fun PaymentRemindersDialog(
                 }
             }
 
-            // Filter by search query if non-blank
-            if (searchQuery.isNotBlank()) {
+            val filteredList = if (searchQuery.isNotBlank()) {
                 val q = searchQuery.trim().lowercase()
                 list.filter { item ->
                     item.farmerName.lowercase().contains(q) ||
@@ -186,6 +186,9 @@ fun PaymentRemindersDialog(
                 }
             } else {
                 list
+            }
+            filteredList.sortedWith { i1, i2 ->
+                SerialNumberUtils.compareSerials(i1.serialNumber, i2.serialNumber)
             }
         } catch (e: Exception) {
             loadErrorTrace = "Error loading payment reminders: ${e.message}\n${e.stackTraceToString()}"
