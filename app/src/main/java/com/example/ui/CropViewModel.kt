@@ -8,6 +8,7 @@ import com.example.data.CropRecordRepository
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
 import com.example.data.GlobalSearchResult
+import com.example.data.InventoryItem
 import com.example.data.InventoryStockManager
 import com.example.data.StockValidationResult
 import com.example.data.isPaymentCleared
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -125,6 +127,17 @@ class CropViewModel(
     val showPaymentRemindersDialog = MutableStateFlow(false)
     val showSeasonalRemindersDialog = MutableStateFlow(false)
     val showInventoryDialog = MutableStateFlow(false)
+
+    private val _isInventoryLoaded = MutableStateFlow(false)
+    val isInventoryLoaded: StateFlow<Boolean> = _isInventoryLoaded.asStateFlow()
+
+    val inventoryItems: StateFlow<List<InventoryItem>> = repository.allInventoryItems
+        .onEach { _isInventoryLoaded.value = true }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = emptyList()
+        )
 
     fun openPaymentReminders() {
         showPaymentRemindersDialog.value = true

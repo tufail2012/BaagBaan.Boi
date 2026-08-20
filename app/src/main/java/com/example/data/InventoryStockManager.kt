@@ -72,12 +72,13 @@ object InventoryStockManager {
         rootstock: String = "",
         notes: String = "",
         explicitId: Long? = null,
-        explicitSku: String? = null
+        explicitSku: String? = null,
+        preloadedItems: List<InventoryItem>? = null
     ): InventoryItem? {
         try {
             // 1. Explicit ID
             if (explicitId != null && explicitId > 0L) {
-                val byId = inventoryDao.getItemById(explicitId)
+                val byId = preloadedItems?.firstOrNull { it.id == explicitId } ?: inventoryDao.getItemById(explicitId)
                 if (byId != null) return byId
             }
 
@@ -85,7 +86,7 @@ object InventoryStockManager {
             val idInNotes = Regex("""\[InventoryID:\s*(\d+)\]""", RegexOption.IGNORE_CASE)
                 .find(notes)?.groupValues?.get(1)?.toLongOrNull()
             if (idInNotes != null && idInNotes > 0L) {
-                val byId = inventoryDao.getItemById(idInNotes)
+                val byId = preloadedItems?.firstOrNull { it.id == idInNotes } ?: inventoryDao.getItemById(idInNotes)
                 if (byId != null) return byId
             }
 
@@ -93,12 +94,12 @@ object InventoryStockManager {
             val skuInNotes = explicitSku?.takeIf { it.isNotBlank() }
                 ?: Regex("""\[SKU:\s*([^\]]+)\]""", RegexOption.IGNORE_CASE).find(notes)?.groupValues?.get(1)?.trim()
             if (!skuInNotes.isNullOrBlank()) {
-                val bySku = inventoryDao.getItemBySku(skuInNotes)
+                val bySku = preloadedItems?.firstOrNull { it.sku.equals(skuInNotes, ignoreCase = true) } ?: inventoryDao.getItemBySku(skuInNotes)
                 if (bySku != null) return bySku
             }
 
             val category = normalizeCategory(serviceType)
-            val allItems = inventoryDao.getAllItemsSync()
+            val allItems = preloadedItems ?: inventoryDao.getAllItemsSync()
             if (allItems.isEmpty()) return null
 
             val candidateVariety = plantVariety.trim()
@@ -180,13 +181,18 @@ object InventoryStockManager {
         return null
     }
 
-    suspend fun findMatchingInventoryItem(inventoryDao: InventoryDao, record: CropRecord): InventoryItem? {
+    suspend fun findMatchingInventoryItem(
+        inventoryDao: InventoryDao,
+        record: CropRecord,
+        preloadedItems: List<InventoryItem>? = null
+    ): InventoryItem? {
         return findMatchingInventoryItem(
             inventoryDao = inventoryDao,
             serviceType = record.serviceType,
             plantVariety = record.plantVariety,
             rootstock = record.rootstock,
-            notes = record.notes
+            notes = record.notes,
+            preloadedItems = preloadedItems
         )
     }
 
@@ -446,16 +452,19 @@ object InventoryStockManager {
             if (allItems.isEmpty()) return
 
             val allBookings = cropDao.getAllRecordsList()
+            val deductibleBookings = allBookings.filter { isStockDeductible(it) }
+
+            // Pre-calculate total booked quantity for each inventory item in memory
+            val bookedQtyMap = mutableMapOf<Long, Int>()
+            for (booking in deductibleBookings) {
+                val matched = findMatchingInventoryItem(inventoryDao, booking, preloadedItems = allItems)
+                if (matched != null) {
+                    bookedQtyMap[matched.id] = (bookedQtyMap[matched.id] ?: 0) + booking.quantity
+                }
+            }
 
             for (item in allItems) {
-                val totalBookedQty = allBookings
-                    .filter { isStockDeductible(it) }
-                    .filter { booking ->
-                        val matched = findMatchingInventoryItem(inventoryDao, booking)
-                        matched?.id == item.id
-                    }
-                    .sumOf { it.quantity }
-
+                val totalBookedQty = bookedQtyMap[item.id] ?: 0
                 val calculatedCurrent = (item.initialQuantity - totalBookedQty).coerceAtLeast(0)
                 if (item.currentQuantity != calculatedCurrent) {
                     val oldQty = item.currentQuantity

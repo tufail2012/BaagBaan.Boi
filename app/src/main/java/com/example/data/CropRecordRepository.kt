@@ -13,6 +13,7 @@ class CropRecordRepository(
 ) {
     val allRecords: Flow<List<CropRecord>> = dao.getAllRecords()
     val recordCount: Flow<Int> = dao.getRecordCount()
+    val allInventoryItems: Flow<List<InventoryItem>> = inventoryDao?.getAllItems() ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
     fun getRecordsByService(serviceType: String): Flow<List<CropRecord>> {
         return dao.getRecordsByService(serviceType)

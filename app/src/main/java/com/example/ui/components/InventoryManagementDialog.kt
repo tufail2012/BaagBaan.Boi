@@ -31,6 +31,7 @@ import com.example.data.AppDatabase
 import com.example.data.FirestoreSyncManager
 import com.example.data.InventoryItem
 import com.example.data.InventoryStockManager
+import com.example.ui.CropViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,41 +39,40 @@ import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.util.Locale
 
-data class DbgMatchedBookingDiagnostic(
-    val id: Long,
-    val serialNumber: String,
-    val farmerName: String,
-    val plantVariety: String,
-    val rootstock: String,
-    val serviceType: String,
-    val quantity: Int,
-    val paymentStatus: String,
-    val matchedItemName: String,
-    val matchedSku: String
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryManagementDialog(
     onDismissRequest: () -> Unit,
     db: AppDatabase,
-    isDark: Boolean = false
+    isDark: Boolean = false,
+    viewModel: CropViewModel? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val firestoreSyncManager = remember { FirestoreSyncManager() }
 
-    val allItems by db.inventoryDao().getAllItems().collectAsState(initial = emptyList())
+    // Use cached StateFlow from ViewModel if available, fallback to direct DAO Flow
+    val allItemsState by if (viewModel != null) {
+        viewModel.inventoryItems.collectAsState()
+    } else {
+        remember(db) { db.inventoryDao().getAllItems() }.collectAsState(initial = null)
+    }
 
-    var isInitialLoading by remember { mutableStateOf(true) }
-    LaunchedEffect(allItems) {
-        if (allItems.isNotEmpty()) {
-            isInitialLoading = false
-        } else {
-            kotlinx.coroutines.delay(300)
-            isInitialLoading = false
+    val isVmLoaded by if (viewModel != null) {
+        viewModel.isInventoryLoaded.collectAsState()
+    } else {
+        remember { mutableStateOf(false) }
+    }
+
+    var isLocalLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(allItemsState) {
+        if (allItemsState != null) {
+            isLocalLoaded = true
         }
     }
+
+    val isDataReady = (viewModel != null && isVmLoaded) || isLocalLoaded || (allItemsState != null)
+    val allItems = allItemsState ?: emptyList()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryFilter by remember { mutableStateOf("All") }
@@ -84,65 +84,6 @@ fun InventoryManagementDialog(
 
     var showRecalculateConfirmDialog by remember { mutableStateOf(false) }
     var isRecalculating by remember { mutableStateOf(false) }
-    var dbgDiagnostics by remember { mutableStateOf<List<DbgMatchedBookingDiagnostic>>(emptyList()) }
-    var dbgItemFound by remember { mutableStateOf<InventoryItem?>(null) }
-    var isLoadingDiagnostics by remember { mutableStateOf(false) }
-
-    LaunchedEffect(showRecalculateConfirmDialog) {
-        if (showRecalculateConfirmDialog) {
-            isLoadingDiagnostics = true
-            withContext(Dispatchers.IO) {
-                try {
-                    val allBookings = db.cropRecordDao().getAllRecordsList()
-                    val allInvItems = db.inventoryDao().getAllItemsSync()
-                    val targetDbgItem = allInvItems.firstOrNull {
-                        it.sku.contains("DBG", ignoreCase = true) ||
-                        it.itemName.contains("DBG", ignoreCase = true) ||
-                        it.variety.contains("DBG", ignoreCase = true)
-                    }
-                    dbgItemFound = targetDbgItem
-
-                    val matchedList = mutableListOf<DbgMatchedBookingDiagnostic>()
-                    allBookings.forEach { booking ->
-                        if (InventoryStockManager.isStockDeductible(booking)) {
-                            val matched = InventoryStockManager.findMatchingInventoryItem(db.inventoryDao(), booking)
-                            if (matched != null && (
-                                matched.id == targetDbgItem?.id ||
-                                matched.sku.contains("DBG", ignoreCase = true) ||
-                                matched.itemName.contains("DBG", ignoreCase = true) ||
-                                matched.variety.contains("DBG", ignoreCase = true)
-                            )) {
-                                matchedList.add(
-                                    DbgMatchedBookingDiagnostic(
-                                        id = booking.id,
-                                        serialNumber = booking.serialNumber,
-                                        farmerName = booking.farmerName,
-                                        plantVariety = booking.plantVariety,
-                                        rootstock = booking.rootstock,
-                                        serviceType = booking.serviceType,
-                                        quantity = booking.quantity,
-                                        paymentStatus = booking.paymentStatus,
-                                        matchedItemName = matched.itemName,
-                                        matchedSku = matched.sku
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    dbgDiagnostics = matchedList
-
-                    android.util.Log.d("DBG_Diagnostic", "=== DBG Matched Bookings (${matchedList.size} records, total qty = ${matchedList.sumOf { it.quantity }}) ===")
-                    matchedList.forEach { b ->
-                        android.util.Log.d("DBG_Diagnostic", "Booking ID: ${b.id} | Serial: ${b.serialNumber} | Farmer: '${b.farmerName}' | Variety: '${b.plantVariety}' | Rootstock: '${b.rootstock}' | Service: '${b.serviceType}' | Qty: ${b.quantity} | Status: '${b.paymentStatus}' -> Matched: '${b.matchedItemName}' [SKU: ${b.matchedSku}]")
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("DBG_Diagnostic", "Error computing DBG diagnostics: ${e.message}", e)
-                } finally {
-                    isLoadingDiagnostics = false
-                }
-            }
-        }
-    }
 
     val currencyFormatter = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
 
@@ -222,7 +163,7 @@ fun InventoryManagementDialog(
                                 color = textPrimary
                             )
                             Text(
-                                text = "${allItems.size} item(s) in catalog",
+                                text = if (!isDataReady) "Loading catalog..." else "${allItems.size} item(s) in catalog",
                                 fontSize = 12.sp,
                                 color = textSecondary
                             )
@@ -279,7 +220,7 @@ fun InventoryManagementDialog(
                                 )
                             }
                             Text(
-                                text = "$totalStock",
+                                text = if (!isDataReady) "—" else "$totalStock",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF3B82F6)
@@ -292,13 +233,13 @@ fun InventoryManagementDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = if (lowStockCount > 0) {
+                            containerColor = if (isDataReady && lowStockCount > 0) {
                                 if (isDark) Color(0xFF451A03) else Color(0xFFFEF3C7)
                             } else cardBg
                         ),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            if (lowStockCount > 0) Color(0xFFF59E0B) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+                            if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
                         )
                     ) {
                         Column(
@@ -309,7 +250,7 @@ fun InventoryManagementDialog(
                                 Icon(
                                     imageVector = Icons.Default.Warning,
                                     contentDescription = null,
-                                    tint = if (lowStockCount > 0) Color(0xFFD97706) else textSecondary,
+                                    tint = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textSecondary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -317,15 +258,15 @@ fun InventoryManagementDialog(
                                     text = "Low Stock",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (lowStockCount > 0) Color(0xFFB45309) else textSecondary,
+                                    color = if (isDataReady && lowStockCount > 0) Color(0xFFB45309) else textSecondary,
                                     maxLines = 1
                                 )
                             }
                             Text(
-                                text = "$lowStockCount",
+                                text = if (!isDataReady) "—" else "$lowStockCount",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (lowStockCount > 0) Color(0xFFD97706) else textPrimary
+                                color = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textPrimary
                             )
                         }
                     }
@@ -361,7 +302,7 @@ fun InventoryManagementDialog(
                                 )
                             }
                             Text(
-                                text = "$totalSold",
+                                text = if (!isDataReady) "—" else "$totalSold",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color(0xFF10B981)
@@ -526,48 +467,46 @@ fun InventoryManagementDialog(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Inventory List, Skeleton Loading, or Empty State
-                if (filteredItems.isEmpty()) {
-                    if (isInitialLoading) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 16.dp)
-                        ) {
-                            items(4) {
-                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
-                            }
+                if (!isDataReady) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(4) {
+                            SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
                         }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
+                    }
+                } else if (filteredItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Inventory,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(56.dp),
-                                    tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
-                                )
-                                Text(
-                                    text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = textSecondary
-                                )
-                                Text(
-                                    text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
-                                    fontSize = 13.sp,
-                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Inventory,
+                                contentDescription = null,
+                                modifier = Modifier.size(56.dp),
+                                tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
+                            )
+                            Text(
+                                text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textSecondary
+                            )
+                            Text(
+                                text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
+                                fontSize = 13.sp,
+                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                            )
                         }
                     }
                 } else {
@@ -699,141 +638,11 @@ fun InventoryManagementDialog(
                 )
             },
             text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "This will recalculate all stock levels based on total bookings, overwriting any manual adjustments. Continue?",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // Diagnostic Section for DBG item
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.BugReport,
-                                    contentDescription = null,
-                                    tint = Color(0xFFF59E0B),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "DBG Diagnostic Report",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = if (isDark) Color(0xFFFCD34D) else Color(0xFFB45309)
-                                )
-                            }
-
-                            if (isLoadingDiagnostics) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                ) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                    Text("Analyzing DBG booking matches...", fontSize = 12.sp, color = textSecondary)
-                                }
-                            } else {
-                                val target = dbgItemFound
-                                if (target != null) {
-                                    Text(
-                                        text = "Target Item: ${target.itemName} (SKU: ${target.sku}, Cat: ${target.category})\nInitial: ${target.initialQuantity} | Current: ${target.currentQuantity}",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = textPrimary
-                                    )
-                                } else {
-                                    Text(
-                                        text = "Target Item: No item with 'DBG' found in catalog.",
-                                        fontSize = 11.5.sp,
-                                        color = textSecondary
-                                    )
-                                }
-
-                                val totalMatchedQty = dbgDiagnostics.sumOf { it.quantity }
-                                Text(
-                                    text = "Matched Deductible Bookings: ${dbgDiagnostics.size} (Total Qty: $totalMatchedQty)",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (totalMatchedQty > 0) Color(0xFFEF4444) else Color(0xFF10B981)
-                                )
-
-                                if (dbgDiagnostics.isNotEmpty()) {
-                                    HorizontalDivider(
-                                        color = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        thickness = 0.5.dp
-                                    )
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        dbgDiagnostics.forEachIndexed { index, b ->
-                                            Column(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(
-                                                        color = if (isDark) Color(0xFF0F172A) else Color.White,
-                                                        shape = RoundedCornerShape(8.dp)
-                                                    )
-                                                    .border(
-                                                        1.dp,
-                                                        if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                                                        RoundedCornerShape(8.dp)
-                                                    )
-                                                    .padding(8.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${index + 1}. Serial: ${b.serialNumber.ifEmpty { "ID #${b.id}" }}",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 11.5.sp,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Text(
-                                                    text = "Farmer: ${b.farmerName}",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = textPrimary
-                                                )
-                                                Text(
-                                                    text = "Variety: '${b.plantVariety}' | Rootstock: '${b.rootstock}'",
-                                                    fontSize = 11.sp,
-                                                    color = textSecondary
-                                                )
-                                                Text(
-                                                    text = "Service: ${b.serviceType} | Qty: ${b.quantity} (Status: ${b.paymentStatus})",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = textPrimary
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Text(
-                                        text = "No bookings currently matched to DBG by findMatchingInventoryItem.",
-                                        fontSize = 11.5.sp,
-                                        color = textSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                Text(
+                    text = "This will recalculate all stock levels based on total bookings, overwriting any manual adjustments. Continue?",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             },
             confirmButton = {
                 Button(

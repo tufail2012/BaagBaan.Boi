@@ -246,7 +246,8 @@ fun AgriCropMainScreen(
                 viewModel.dismissInventoryManagement()
             },
             db = db,
-            isDark = isDark
+            isDark = isDark,
+            viewModel = viewModel
         )
     }
 
