@@ -99,7 +99,6 @@ class MainActivity : FragmentActivity() {
                 val syncManager = FirestoreSyncManager()
                 syncManager.syncFromCloudToLocal(database.cropRecordDao(), database.attendanceDao())
                 syncManager.syncInventoryFromCloudToLocal(database.inventoryDao())
-                com.example.data.InventoryStockManager.recalculateAllStock(database, syncManager, this@MainActivity)
             } catch (e: Exception) {
                 // Log or ignore network error during initial offline sync
             }
