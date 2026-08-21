@@ -922,6 +922,8 @@ fun FarmerFormScreen(
         val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
         val isSiteVisit = serviceType.equals("Site Visit", ignoreCase = true)
         val isPruning = serviceType.equals("Pruning", ignoreCase = true)
+        val isGardenPlanning = serviceType.equals("Garden Planning", ignoreCase = true) || serviceType.equals("Garden", ignoreCase = true)
+        val isMultiVarietyApplicable = !isPruning && !isSiteVisit && !isGardenPlanning
 
         val specTitle = when {
             isImportedPlants -> "IMPORTED PLANTS SPECIFICATION"
@@ -941,7 +943,7 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        if (varietyLines.isNotEmpty()) {
+        if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
@@ -1756,21 +1758,23 @@ fun FarmerFormScreen(
             }
         }
 
-        // Switch to Multi-Variety Button (shown on EVERY booking tab/field by default when currently in single-variety mode)
-        OutlinedButton(
-            onClick = {
-                viewModel.enableMultiVarietyForCurrentTab()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .testTag("add_multiple_varieties_button"),
-            shape = textFieldShape,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-        ) {
-            Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("+ Add Multiple Varieties to this Booking", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        if (isMultiVarietyApplicable) {
+            // Switch to Multi-Variety Button (shown on EVERY applicable booking tab/field by default when currently in single-variety mode)
+            OutlinedButton(
+                onClick = {
+                    viewModel.enableMultiVarietyForCurrentTab()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .testTag("add_multiple_varieties_button"),
+                shape = textFieldShape,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("+ Add Multiple Varieties to this Booking", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 
@@ -1847,7 +1851,7 @@ fun FarmerFormScreen(
             }
         }
 
-        if (varietyLines.isNotEmpty()) {
+        if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
             val totalMultiQty = varietyLines.sumOf { it.quantity }
             val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
             Surface(

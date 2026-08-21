@@ -341,11 +341,25 @@ class CropViewModel(
         varietyLines.value = tabVarietyLines[key] ?: emptyList()
     }
 
+    fun isMultiVarietyApplicableForService(service: String): Boolean {
+        return !service.equals("Pruning", ignoreCase = true) &&
+               !service.equals("Site Visit", ignoreCase = true) &&
+               !service.equals("Garden Planning", ignoreCase = true) &&
+               !service.equals("Garden", ignoreCase = true) &&
+               !service.equals("Attendance", ignoreCase = true) &&
+               !service.equals("Bookings", ignoreCase = true)
+    }
+
+    fun isMultiVarietyApplicableForCurrentTab(): Boolean {
+        return isMultiVarietyApplicableForService(_selectedService.value)
+    }
+
     fun isMultiVarietyEnabledForCurrentTab(): Boolean {
-        return tabMultiVarietyEnabled[getCurrentTabKey()] ?: false
+        return isMultiVarietyApplicableForCurrentTab() && (tabMultiVarietyEnabled[getCurrentTabKey()] ?: false)
     }
 
     fun enableMultiVarietyForCurrentTab(initialLines: List<VarietyLine>? = null) {
+        if (!isMultiVarietyApplicableForCurrentTab()) return
         val key = getCurrentTabKey()
         val lines = if (!initialLines.isNullOrEmpty()) {
             initialLines
