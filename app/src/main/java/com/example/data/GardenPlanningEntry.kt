@@ -16,6 +16,7 @@ data class GardenPlanningEntry(
     val costPerPlant: Double = 0.0,
     val plantVariety: String = "",
     val rootStock: String = "",
+    val feathers: String = "",
     val saplingAge: String = "1 Year",
     val plantOrigin: String = "Local Plants",
     val totalCost: Double = 0.0,

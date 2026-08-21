@@ -107,6 +107,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material.icons.filled.Yard
@@ -465,6 +466,7 @@ fun GardenPlanningFormTab(
     val plantVariety by viewModel.plantVariety.collectAsState()
     val rootStock by viewModel.rootStock.collectAsState()
     val saplingAge by viewModel.saplingAge.collectAsState()
+    val feathers by viewModel.feathers.collectAsState()
     val plantOrigin by viewModel.plantOrigin.collectAsState()
     val amountPaid by viewModel.amountPaid.collectAsState()
     val paymentStatus by viewModel.paymentStatus.collectAsState()
@@ -1029,6 +1031,33 @@ fun GardenPlanningFormTab(
                 }
             }
         }
+
+        // Feathers (Full-Width Standard Text Specification Field)
+        OutlinedTextField(
+            value = feathers,
+            onValueChange = { viewModel.feathers.value = it },
+            label = { Text("Feathers", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            placeholder = { Text("Branches / shoots (e.g. 3, 3F, 5A, 2-3, 3+)") },
+            shape = textFieldShape,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                capitalization = KeyboardCapitalization.Characters
+            ),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Nature,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .boundedFormFieldRipple(shape = textFieldShape)
+                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                .testTag("garden_feathers_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
+        )
 
         // Section Header: COST & QUANTITY DETAILS
         Text(
@@ -2685,6 +2714,9 @@ fun GardenBookingRecordDetailDialog(
                     if (currentEntry.rootStock.isNotBlank()) {
                         DetailRowItem(label = "Rootstock Variety", value = currentEntry.rootStock, isDark = isDark)
                     }
+                    if (currentEntry.feathers.isNotBlank()) {
+                        DetailRowItem(label = "Feathers", value = if (currentEntry.feathers.all { it.isDigit() }) "${currentEntry.feathers} branches" else currentEntry.feathers, isDark = isDark)
+                    }
 
                     DetailRowItem(
                         label = "Total Amount",
@@ -3091,6 +3123,7 @@ fun GardenBookingRecordDetailDialog(
                                 paymentStatus = currentEntry.paymentStatus,
                                 expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
                                 plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                feathers = currentEntry.feathers,
                                 recordType = "gardenplanning",
                                 recordId = currentEntry.id
                             )

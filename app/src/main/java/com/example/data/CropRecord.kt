@@ -14,6 +14,7 @@ data class CropRecord(
     val serviceType: String, // e.g., "Local Plants", "Imported", "Rootstocks", "Site Visit", "Pruning"
     val plantVariety: String, // e.g., "Apple - Red Delicious", "Gala", "Cherry", "Wheat"
     val rootstock: String = "", // e.g., "M9", "MM106", "Seedling"
+    val feathers: String = "", // Branches/shoots e.g. "3", "3F", "5A", "2-3", "3+"
     val quantity: Int = 1,
     val landAreaAcres: Double = 1.0,
     val soilType: String = "Loamy",

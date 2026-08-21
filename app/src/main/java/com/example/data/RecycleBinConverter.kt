@@ -14,6 +14,7 @@ object RecycleBinConverter {
         json.put("serviceType", record.serviceType)
         json.put("plantVariety", record.plantVariety)
         json.put("rootstock", record.rootstock)
+        json.put("feathers", record.feathers)
         json.put("quantity", record.quantity)
         json.put("landAreaAcres", record.landAreaAcres)
         json.put("soilType", record.soilType)
@@ -41,6 +42,7 @@ object RecycleBinConverter {
             serviceType = json.optString("serviceType", "Local Plants"),
             plantVariety = json.optString("plantVariety", ""),
             rootstock = json.optString("rootstock", ""),
+            feathers = json.optString("feathers", ""),
             quantity = json.optInt("quantity", 1),
             landAreaAcres = json.optDouble("landAreaAcres", 1.0),
             soilType = json.optString("soilType", "Loamy"),
@@ -92,7 +94,14 @@ object RecycleBinConverter {
         json.put("totalKanalArea", entry.totalKanalArea)
         json.put("plantsPerKanal", entry.plantsPerKanal)
         json.put("costPerPlant", entry.costPerPlant)
+        json.put("plantVariety", entry.plantVariety)
+        json.put("rootStock", entry.rootStock)
+        json.put("feathers", entry.feathers)
+        json.put("saplingAge", entry.saplingAge)
+        json.put("plantOrigin", entry.plantOrigin)
         json.put("totalCost", entry.totalCost)
+        json.put("amountPaid", entry.amountPaid)
+        json.put("remainingBalance", entry.remainingBalance)
         json.put("paymentStatus", entry.paymentStatus)
         json.put("bookingDate", entry.bookingDate)
         json.put("expectedDelivery", entry.expectedDelivery)
@@ -113,6 +122,11 @@ object RecycleBinConverter {
             totalKanalArea = json.optDouble("totalKanalArea", 0.0),
             plantsPerKanal = json.optInt("plantsPerKanal", 0),
             costPerPlant = json.optDouble("costPerPlant", 0.0),
+            plantVariety = json.optString("plantVariety", ""),
+            rootStock = json.optString("rootStock", ""),
+            feathers = json.optString("feathers", ""),
+            saplingAge = json.optString("saplingAge", "1 Year"),
+            plantOrigin = json.optString("plantOrigin", "Local Plants"),
             totalCost = json.optDouble("totalCost", 0.0),
             amountPaid = json.optDouble("amountPaid", 0.0),
             remainingBalance = json.optDouble("remainingBalance", 0.0),

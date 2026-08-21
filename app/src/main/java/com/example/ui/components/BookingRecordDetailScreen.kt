@@ -388,6 +388,9 @@ fun BookingRecordDetailDialog(
                     if (record.rootstock.isNotBlank()) {
                         DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
                     }
+                    if (record.feathers.isNotBlank()) {
+                        DetailRowItem(label = "Feathers", value = if (record.feathers.all { it.isDigit() }) "${record.feathers} branches" else record.feathers, isDark = isDark)
+                    }
                     DetailRowItem(
                         label = if (isImportedRootstocks) "Quantity / Roots" else "Quantity / Trees",
                         value = "${record.quantity}",
@@ -851,6 +854,7 @@ fun BookingRecordDetailDialog(
                                 paymentStatus = record.paymentStatus,
                                 expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
                                 rootstock = actualRs,
+                                feathers = record.feathers,
                                 rootDiameter = actualDiam,
                                 scionVariety = actualScion,
                                 recordType = "croprecord",

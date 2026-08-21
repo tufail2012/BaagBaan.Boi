@@ -339,6 +339,7 @@ class CropViewModel(
     val serviceType = MutableStateFlow("Local Plants")
     val plantVariety = MutableStateFlow("")
     val rootstock = MutableStateFlow("")
+    val feathers = MutableStateFlow("")
     val importCountry = MutableStateFlow("Italy")
     val rootDiameter = MutableStateFlow("9 to 12 mm")
     val quantity = MutableStateFlow("100")
@@ -637,6 +638,7 @@ class CropViewModel(
         serviceType.value = currentSvc
         plantVariety.value = ""
         rootstock.value = ""
+        feathers.value = ""
         importCountry.value = "Italy"
         rootDiameter.value = "9 to 12 mm"
         quantity.value = "100"
@@ -689,6 +691,7 @@ class CropViewModel(
         serviceType.value = record.serviceType
         plantVariety.value = record.plantVariety
         rootstock.value = record.rootstock
+        feathers.value = record.feathers
         quantity.value = record.quantity.toString()
         landAreaAcres.value = record.landAreaAcres.toString()
         soilType.value = record.soilType
@@ -824,6 +827,7 @@ class CropViewModel(
                 serviceType = serviceType.value,
                 plantVariety = finalPlantVariety,
                 rootstock = if (isSiteVisit || isPruning) "" else rootstock.value,
+                feathers = if (isSiteVisit || isPruning) "" else feathers.value.trim(),
                 quantity = quantity.value.toIntOrNull() ?: 1,
                 landAreaAcres = landAreaAcres.value.toDoubleOrNull() ?: 1.0,
                 soilType = soilType.value,

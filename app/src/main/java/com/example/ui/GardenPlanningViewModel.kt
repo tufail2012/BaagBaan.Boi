@@ -83,6 +83,7 @@ class GardenPlanningViewModel(
     val costPerPlant = MutableStateFlow("")
     val plantVariety = MutableStateFlow("")
     val rootStock = MutableStateFlow("")
+    val feathers = MutableStateFlow("")
     val saplingAge = MutableStateFlow("1 Year")
     val plantOrigin = MutableStateFlow("Local Plants")
     val amountPaid = MutableStateFlow("0")
@@ -244,6 +245,7 @@ class GardenPlanningViewModel(
         costPerPlant.value = if (entry.costPerPlant > 0) entry.costPerPlant.toString() else ""
         plantVariety.value = entry.plantVariety
         rootStock.value = entry.rootStock
+        feathers.value = entry.feathers
         saplingAge.value = entry.saplingAge.ifBlank { "1 Year" }
         plantOrigin.value = entry.plantOrigin.ifBlank { "Local Plants" }
         val paidVal = if (entry.amountPaid > 0) entry.amountPaid else if (entry.paymentStatus == "Fully Paid") entry.totalCost else 0.0
@@ -267,6 +269,7 @@ class GardenPlanningViewModel(
         costPerPlant.value = ""
         plantVariety.value = ""
         rootStock.value = ""
+        feathers.value = ""
         saplingAge.value = "1 Year"
         plantOrigin.value = "Local Plants"
         amountPaid.value = "0"
@@ -303,6 +306,7 @@ class GardenPlanningViewModel(
             costPerPlant = cost,
             plantVariety = plantVariety.value.trim(),
             rootStock = rootStock.value.trim(),
+            feathers = feathers.value.trim(),
             saplingAge = saplingAge.value.trim(),
             plantOrigin = plantOrigin.value.trim(),
             totalCost = calcTotalCost,

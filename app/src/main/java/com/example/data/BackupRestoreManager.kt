@@ -84,6 +84,7 @@ class BackupRestoreManager {
                             serviceType = doc.getString("serviceType") ?: "Local Plants",
                             plantVariety = doc.getString("plantVariety") ?: "",
                             rootstock = doc.getString("rootstock") ?: "",
+                            feathers = doc.getString("feathers") ?: (doc.getLong("feathers")?.let { if (it > 0) it.toString() else "" } ?: ""),
                             quantity = (doc.getLong("quantity") ?: 1L).toInt(),
                             landAreaAcres = doc.getDouble("landAreaAcres") ?: 1.0,
                             soilType = doc.getString("soilType") ?: "Loamy",
@@ -116,6 +117,7 @@ class BackupRestoreManager {
                 obj.put("serviceType", record.serviceType)
                 obj.put("plantVariety", record.plantVariety)
                 obj.put("rootstock", record.rootstock)
+                obj.put("feathers", record.feathers)
                 obj.put("quantity", record.quantity)
                 obj.put("landAreaAcres", record.landAreaAcres)
                 obj.put("soilType", record.soilType)
@@ -413,6 +415,7 @@ class BackupRestoreManager {
                         serviceType = obj.optString("serviceType", "Local Plants"),
                         plantVariety = obj.optString("plantVariety", ""),
                         rootstock = obj.optString("rootstock", ""),
+                        feathers = obj.optString("feathers", ""),
                         quantity = obj.optInt("quantity", 1),
                         landAreaAcres = obj.optDouble("landAreaAcres", 1.0),
                         soilType = obj.optString("soilType", "Loamy"),
@@ -443,6 +446,7 @@ class BackupRestoreManager {
                                 "serviceType" to record.serviceType,
                                 "plantVariety" to record.plantVariety,
                                 "rootstock" to record.rootstock,
+                                "feathers" to record.feathers,
                                 "quantity" to record.quantity,
                                 "landAreaAcres" to record.landAreaAcres,
                                 "soilType" to record.soilType,

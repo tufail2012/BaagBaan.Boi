@@ -32,6 +32,7 @@ data class ReceiptData(
     val paymentStatus: String,
     val expectedDelivery: String,
     val rootstock: String = "",
+    val feathers: String = "",
     val rootDiameter: String = "",
     val scionVariety: String = "",
     val plantOrigin: String = "",
@@ -284,6 +285,9 @@ object ReceiptGenerator {
                 data.plantVariety.ifBlank { data.serviceCategory }
             }
             list.add("Item / Variety" to itemVariety)
+            if (data.feathers.isNotBlank()) {
+                list.add("Feathers" to if (data.feathers.all { it.isDigit() }) "${data.feathers} branches" else data.feathers)
+            }
             list.add("Quantity / Units" to "${data.quantity} Plants")
             list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
             list

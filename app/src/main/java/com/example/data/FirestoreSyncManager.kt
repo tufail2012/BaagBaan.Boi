@@ -84,6 +84,7 @@ class FirestoreSyncManager {
                 "serviceType" to record.serviceType,
                 "plantVariety" to record.plantVariety,
                 "rootstock" to record.rootstock,
+                "feathers" to record.feathers,
                 "quantity" to record.quantity,
                 "landAreaAcres" to record.landAreaAcres,
                 "soilType" to record.soilType,
@@ -158,6 +159,11 @@ class FirestoreSyncManager {
                 "totalKanalArea" to entry.totalKanalArea,
                 "plantsPerKanal" to entry.plantsPerKanal,
                 "costPerPlant" to entry.costPerPlant,
+                "plantVariety" to entry.plantVariety,
+                "rootStock" to entry.rootStock,
+                "feathers" to entry.feathers,
+                "saplingAge" to entry.saplingAge,
+                "plantOrigin" to entry.plantOrigin,
                 "totalCost" to entry.totalCost,
                 "amountPaid" to entry.amountPaid,
                 "remainingBalance" to entry.remainingBalance,
@@ -359,6 +365,11 @@ class FirestoreSyncManager {
                         val totalKanalArea = doc.getDouble("totalKanalArea") ?: 0.0
                         val plantsPerKanal = (doc.getLong("plantsPerKanal") ?: 0L).toInt()
                         val costPerPlant = doc.getDouble("costPerPlant") ?: 0.0
+                        val plantVariety = doc.getString("plantVariety") ?: ""
+                        val rootStock = doc.getString("rootStock") ?: ""
+                        val feathers = doc.getString("feathers") ?: (doc.getLong("feathers")?.let { if (it > 0) it.toString() else "" } ?: "")
+                        val saplingAge = doc.getString("saplingAge") ?: "1 Year"
+                        val plantOrigin = doc.getString("plantOrigin") ?: "Local Plants"
                         val totalCost = doc.getDouble("totalCost") ?: (totalKanalArea * plantsPerKanal * costPerPlant)
                         val amountPaid = doc.getDouble("amountPaid") ?: 0.0
                         val remainingBalance = doc.getDouble("remainingBalance") ?: (totalCost - amountPaid).coerceAtLeast(0.0)
@@ -378,6 +389,11 @@ class FirestoreSyncManager {
                             totalKanalArea = totalKanalArea,
                             plantsPerKanal = plantsPerKanal,
                             costPerPlant = costPerPlant,
+                            plantVariety = plantVariety,
+                            rootStock = rootStock,
+                            feathers = feathers,
+                            saplingAge = saplingAge,
+                            plantOrigin = plantOrigin,
                             totalCost = totalCost,
                             amountPaid = amountPaid,
                             remainingBalance = remainingBalance,
@@ -424,6 +440,7 @@ class FirestoreSyncManager {
                 val serviceType = doc.getString("serviceType") ?: "Local Plants"
                 val plantVariety = doc.getString("plantVariety") ?: ""
                 val rootstock = doc.getString("rootstock") ?: ""
+                val feathers = doc.getString("feathers") ?: (doc.getLong("feathers")?.let { if (it > 0) it.toString() else "" } ?: "")
                 val quantity = (doc.getLong("quantity") ?: 1L).toInt()
                 val landAreaAcres = doc.getDouble("landAreaAcres") ?: 1.0
                 val soilType = doc.getString("soilType") ?: "Loamy"
@@ -447,6 +464,7 @@ class FirestoreSyncManager {
                     serviceType = serviceType,
                     plantVariety = plantVariety,
                     rootstock = rootstock,
+                    feathers = feathers,
                     quantity = quantity,
                     landAreaAcres = landAreaAcres,
                     soilType = soilType,
