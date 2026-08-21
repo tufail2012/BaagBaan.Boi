@@ -296,9 +296,14 @@ class CropViewModel(
     val serialNumber = MutableStateFlow("")
     val isSerialLocked = MutableStateFlow(false)
 
-    // Tab-independent serial number cache
+    // Tab-independent serial number, locks, and multi-variety caches
     private val tabSerialNumbers = mutableMapOf<String, String>()
     private val tabSerialLocks = mutableMapOf<String, Boolean>()
+    private val tabVarietyLines = mutableMapOf<String, List<VarietyLine>>()
+    private val tabMultiVarietyEnabled = mutableMapOf<String, Boolean>()
+
+    val isMultiVarietyEnabled = MutableStateFlow(false)
+    val varietyLines = MutableStateFlow<List<VarietyLine>>(emptyList())
 
     private fun getCurrentTabKey(): String {
         val service = _selectedService.value
@@ -319,16 +324,57 @@ class CropViewModel(
         }
     }
 
-    private fun saveCurrentTabSerialState() {
+    private fun saveCurrentTabState() {
         val key = getCurrentTabKey()
         tabSerialNumbers[key] = serialNumber.value
         tabSerialLocks[key] = isSerialLocked.value
+        tabVarietyLines[key] = varietyLines.value
+        tabMultiVarietyEnabled[key] = isMultiVarietyEnabled.value
     }
 
-    private fun loadTabSerialState() {
+    private fun loadTabState() {
         val key = getCurrentTabKey()
         serialNumber.value = tabSerialNumbers[key] ?: ""
         isSerialLocked.value = tabSerialLocks[key] ?: false
+        val enabled = tabMultiVarietyEnabled[key] ?: false
+        isMultiVarietyEnabled.value = enabled
+        varietyLines.value = tabVarietyLines[key] ?: emptyList()
+    }
+
+    fun isMultiVarietyEnabledForCurrentTab(): Boolean {
+        return tabMultiVarietyEnabled[getCurrentTabKey()] ?: false
+    }
+
+    fun enableMultiVarietyForCurrentTab(initialLines: List<VarietyLine>? = null) {
+        val key = getCurrentTabKey()
+        val lines = if (!initialLines.isNullOrEmpty()) {
+            initialLines
+        } else {
+            val currentQty = quantity.value.toIntOrNull() ?: 100
+            val currentPrice = landAreaAcres.value.toDoubleOrNull() ?: 250.0
+            val isImportedRootstocks = serviceType.value.equals("Rootstocks", ignoreCase = true)
+            val currentVar = (if (isImportedRootstocks) scionVariety.value else plantVariety.value).ifBlank { "" }
+            val currentRs = rootstock.value
+            val currentF = feathers.value
+            listOf(
+                VarietyLine(variety = currentVar, quantity = currentQty, unitPrice = currentPrice, rootstock = currentRs, feathers = currentF),
+                VarietyLine(variety = "", quantity = 0, unitPrice = currentPrice, rootstock = currentRs, feathers = "")
+            )
+        }
+        tabMultiVarietyEnabled[key] = true
+        tabVarietyLines[key] = lines
+        isMultiVarietyEnabled.value = true
+        varietyLines.value = lines
+        recalculatePaymentStatus()
+    }
+
+    fun disableMultiVarietyForCurrentTab() {
+        val key = getCurrentTabKey()
+        tabMultiVarietyEnabled[key] = false
+        tabVarietyLines[key] = emptyList()
+        isMultiVarietyEnabled.value = false
+        varietyLines.value = emptyList()
+        recalculatePaymentStatus()
     }
 
     fun updateSerialNumber(newSerial: String) {
@@ -360,35 +406,44 @@ class CropViewModel(
     val graftingCharges = MutableStateFlow("")
     val notes = MutableStateFlow("")
 
-    // Multi-variety support for Local Plants, Imported, and Rootstocks
-    val varietyLines = MutableStateFlow<List<VarietyLine>>(emptyList())
-
     fun addVarietyLine(line: VarietyLine = VarietyLine("", 100, 250.0, "", "")) {
-        varietyLines.value = varietyLines.value + line
+        val key = getCurrentTabKey()
+        val updated = varietyLines.value + line
+        varietyLines.value = updated
+        tabVarietyLines[key] = updated
+        tabMultiVarietyEnabled[key] = true
+        isMultiVarietyEnabled.value = true
         recalculatePaymentStatus()
     }
 
     fun updateVarietyLine(index: Int, line: VarietyLine) {
+        val key = getCurrentTabKey()
         if (index in varietyLines.value.indices) {
             val updated = varietyLines.value.toMutableList()
             updated[index] = line
             varietyLines.value = updated
+            tabVarietyLines[key] = updated
             recalculatePaymentStatus()
         }
     }
 
     fun removeVarietyLine(index: Int) {
+        val key = getCurrentTabKey()
         if (index in varietyLines.value.indices) {
             val updated = varietyLines.value.toMutableList()
             updated.removeAt(index)
             varietyLines.value = updated
+            tabVarietyLines[key] = updated
+            if (updated.isEmpty()) {
+                tabMultiVarietyEnabled[key] = false
+                isMultiVarietyEnabled.value = false
+            }
             recalculatePaymentStatus()
         }
     }
 
     fun clearVarietyLines() {
-        varietyLines.value = emptyList()
-        recalculatePaymentStatus()
+        disableMultiVarietyForCurrentTab()
     }
 
     private fun getDefaultExpectedDeliveryDate(): String {
@@ -538,7 +593,7 @@ class CropViewModel(
 
 
     fun selectServiceCategory(service: String) {
-        saveCurrentTabSerialState()
+        saveCurrentTabState()
         _selectedService.value = service
         _recordsSearchQuery.value = ""
         _viewMode.value = 0
@@ -553,22 +608,22 @@ class CropViewModel(
         } else {
             rootstock.value = ""
         }
-        loadTabSerialState()
+        loadTabState()
         recalculatePaymentStatus()
     }
 
     fun selectPruningSubTab(subTab: String) {
-        saveCurrentTabSerialState()
+        saveCurrentTabState()
         _selectedPruningSubTab.value = subTab
         _recordsSearchQuery.value = ""
         if (_selectedService.value.equals("Pruning", ignoreCase = true)) {
             rootstock.value = subTab
         }
-        loadTabSerialState()
+        loadTabState()
     }
 
     fun selectRootstockSubTab(subTab: String, genevaSubOption: String? = null) {
-        saveCurrentTabSerialState()
+        saveCurrentTabState()
         _selectedRootstockSubTab.value = subTab
         _recordsSearchQuery.value = ""
         if (genevaSubOption != null) {
@@ -583,7 +638,7 @@ class CropViewModel(
             }
             rootstock.value = rootstockName
         }
-        loadTabSerialState()
+        loadTabState()
     }
 
     fun setViewMode(mode: Int) {
@@ -666,11 +721,14 @@ class CropViewModel(
         editingRecordId.value = null
         editingPaymentHistoryJson.value = ""
         editingOldRecord = null
+        val currentKey = getCurrentTabKey()
+        tabVarietyLines[currentKey] = emptyList()
+        tabMultiVarietyEnabled[currentKey] = false
+        isMultiVarietyEnabled.value = false
         varietyLines.value = emptyList()
         val currentSvc = _selectedService.value
         serialNumber.value = ""
         isSerialLocked.value = false
-        val currentKey = getCurrentTabKey()
         tabSerialNumbers[currentKey] = ""
         tabSerialLocks[currentKey] = false
         farmerName.value = ""
@@ -707,10 +765,15 @@ class CropViewModel(
         editingRecordId.value = record.id
         editingOldRecord = record
         editingPaymentHistoryJson.value = record.paymentHistoryJson
-        varietyLines.value = parseVarietyLines(record.varietyLinesJson)
+        val parsedLines = parseVarietyLines(record.varietyLinesJson)
+        val hasMulti = parsedLines.isNotEmpty()
+        val currentKey = getCurrentTabKey()
+        tabVarietyLines[currentKey] = parsedLines
+        tabMultiVarietyEnabled[currentKey] = hasMulti
+        isMultiVarietyEnabled.value = hasMulti
+        varietyLines.value = parsedLines
         serialNumber.value = record.serialNumber
         isSerialLocked.value = true
-        val currentKey = getCurrentTabKey()
         tabSerialNumbers[currentKey] = record.serialNumber
         tabSerialLocks[currentKey] = true
         farmerName.value = record.farmerName

@@ -941,388 +941,389 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        if (isSiteVisit) {
-            // 1. Visit Date
-            OutlinedTextField(
-                value = visitDateTFV,
-                onValueChange = { newVal ->
-                    val formatted = formatAutoSlashDate(visitDateTFV.text, newVal.text)
-                    val newPos = if (formatted.length > visitDateTFV.text.length && formatted.endsWith("/")) {
-                        formatted.length
-                    } else if (newVal.selection.end <= formatted.length) {
-                        newVal.selection.end
-                    } else {
-                        formatted.length
-                    }
-                    visitDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
-                    viewModel.visitDate.value = formatted
-                },
-                label = { Text("Visit Date *") },
-                placeholder = { Text("DD/MM/YYYY") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Event,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            showDatePicker(visitDate.ifBlank { bookingDate }) { selected ->
-                                viewModel.visitDate.value = selected
-                                if (viewModel.bookingDate.value.isBlank()) {
-                                    viewModel.bookingDate.value = selected
-                                }
-                            }
-                        },
-                        modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Visit Date",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("visit_date_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // 2. Soil Health Observations
-            OutlinedTextField(
-                value = soilHealthObservations,
-                onValueChange = { viewModel.soilHealthObservations.value = capitalizeWordsNaturally(it) },
-                label = { Text("Soil Health Observations") },
-                placeholder = { Text("e.g. Good organic content, pH 6.5, well drained") },
-                shape = textFieldShape,
-                singleLine = false,
-                maxLines = 3,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Landscape,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("soil_health_observations_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // 3. Plant Health Observations
-            OutlinedTextField(
-                value = plantHealthObservations,
-                onValueChange = { viewModel.plantHealthObservations.value = capitalizeWordsNaturally(it) },
-                label = { Text("Plant Health Observations") },
-                placeholder = { Text("e.g. Healthy foliage, minor pest damage on lower leaves") },
-                shape = textFieldShape,
-                singleLine = false,
-                maxLines = 3,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.HealthAndSafety,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("plant_health_observations_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // 4. Orchard/Site Location
-            OutlinedTextField(
-                value = location,
-                onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
-                label = { Text("Orchard/Site Location *") },
-                placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("orchard_site_location_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-        } else if (isPruning) {
-            // Orchard Location (Single field for Pruning Specification)
-            OutlinedTextField(
-                value = location,
-                onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
-                label = { Text("Orchard Location *") },
-                placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("orchard_location_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-        } else {
-            if (varietyLines.isNotEmpty()) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                    modifier = Modifier.fillMaxWidth()
+        if (varietyLines.isNotEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Layers,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = "Booking Varieties (${varietyLines.size})",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            TextButton(
-                                onClick = { viewModel.clearVarietyLines() },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Booking Varieties (${varietyLines.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
+                        TextButton(
+                            onClick = { viewModel.clearVarietyLines() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
 
-                        varietyLines.forEachIndexed { index, line ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isDark) Color(0xFF0F172A) else Color.White,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-                                modifier = Modifier.fillMaxWidth()
+                    varietyLines.forEachIndexed { index, line ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) Color(0xFF0F172A) else Color.White,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Item #${index + 1}",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        if (varietyLines.size > 1) {
-                                            IconButton(
-                                                onClick = { viewModel.removeVarietyLine(index) },
-                                                modifier = Modifier.size(24.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.DeleteOutline,
-                                                    contentDescription = "Remove Variety Line",
-                                                    tint = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
+                                    Text(
+                                        text = "Item #${index + 1}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    if (varietyLines.size > 1) {
+                                        IconButton(
+                                            onClick = { viewModel.removeVarietyLine(index) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DeleteOutline,
+                                                contentDescription = "Remove Variety Line",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
                                         }
                                     }
+                                }
 
-                                    // Variety Name
+                                // Variety Name
+                                OutlinedTextField(
+                                    value = line.variety,
+                                    onValueChange = { newVar ->
+                                        viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
+                                    },
+                                    label = { Text("Variety Name *") },
+                                    placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
+                                    shape = textFieldShape,
+                                    singleLine = true,
+                                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("variety_line_name_${index}"),
+                                    colors = elevatedInputFieldColors(isDark = isDark)
+                                )
+
+                                // Rootstock & Feathers Row (Feathers allows mixed letters/numbers/symbols like "3F", "2-3")
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     OutlinedTextField(
-                                        value = line.variety,
-                                        onValueChange = { newVar ->
-                                            viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
+                                        value = line.rootstock,
+                                        onValueChange = { newRs ->
+                                            viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
                                         },
-                                        label = { Text("Variety Name *") },
-                                        placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
+                                        label = { Text("Rootstock") },
+                                        placeholder = { Text("e.g. M9, MM106") },
                                         shape = textFieldShape,
                                         singleLine = true,
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
                                         leadingIcon = {
-                                            Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                         },
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .testTag("variety_line_name_${index}"),
+                                            .weight(1f)
+                                            .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
 
-                                    // Rootstock & Feathers Row (Feathers allows mixed letters/numbers/symbols like "3F", "2-3")
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = line.rootstock,
-                                            onValueChange = { newRs ->
-                                                viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
-                                            },
-                                            label = { Text("Rootstock") },
-                                            placeholder = { Text("e.g. M9, MM106") },
-                                            shape = textFieldShape,
-                                            singleLine = true,
-                                            keyboardOptions = AppDefaultWordKeyboardOptions,
-                                            leadingIcon = {
-                                                Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .testTag("variety_line_rootstock_${index}"),
-                                            colors = elevatedInputFieldColors(isDark = isDark)
-                                        )
+                                    OutlinedTextField(
+                                        value = line.feathers,
+                                        onValueChange = { newF ->
+                                            viewModel.updateVarietyLine(index, line.copy(feathers = newF))
+                                        },
+                                        label = { Text("Feathers") },
+                                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Text,
+                                            capitalization = KeyboardCapitalization.Characters
+                                        ),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("variety_line_feathers_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+                                }
 
-                                        OutlinedTextField(
-                                            value = line.feathers,
-                                            onValueChange = { newF ->
-                                                viewModel.updateVarietyLine(index, line.copy(feathers = newF))
-                                            },
-                                            label = { Text("Feathers") },
-                                            placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
-                                            shape = textFieldShape,
-                                            singleLine = true,
-                                            keyboardOptions = KeyboardOptions(
-                                                keyboardType = KeyboardType.Text,
-                                                capitalization = KeyboardCapitalization.Characters
-                                            ),
-                                            leadingIcon = {
-                                                Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .testTag("variety_line_feathers_${index}"),
-                                            colors = elevatedInputFieldColors(isDark = isDark)
-                                        )
-                                    }
+                                // Quantity & Unit Price Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = if (line.quantity == 0) "" else line.quantity.toString(),
+                                        onValueChange = { newQ ->
+                                            val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
+                                            viewModel.updateVarietyLine(index, line.copy(quantity = q))
+                                        },
+                                        label = { Text("Quantity *") },
+                                        placeholder = { Text("Qty") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("variety_line_qty_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
 
-                                    // Quantity & Unit Price Row
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        OutlinedTextField(
-                                            value = if (line.quantity == 0) "" else line.quantity.toString(),
-                                            onValueChange = { newQ ->
-                                                val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                                viewModel.updateVarietyLine(index, line.copy(quantity = q))
-                                            },
-                                            label = { Text("Quantity *") },
-                                            placeholder = { Text("Qty") },
-                                            shape = textFieldShape,
-                                            singleLine = true,
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            leadingIcon = {
-                                                Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .testTag("variety_line_qty_${index}"),
-                                            colors = elevatedInputFieldColors(isDark = isDark)
-                                        )
+                                    OutlinedTextField(
+                                        value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
+                                        onValueChange = { newP ->
+                                            val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+                                            viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
+                                        },
+                                        label = { Text("Rate (₹) *") },
+                                        placeholder = { Text("Price") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("variety_line_price_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+                                }
 
-                                        OutlinedTextField(
-                                            value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
-                                            onValueChange = { newP ->
-                                                val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
-                                                viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
-                                            },
-                                            label = { Text("Rate (₹) *") },
-                                            placeholder = { Text("Price") },
-                                            shape = textFieldShape,
-                                            singleLine = true,
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                            leadingIcon = {
-                                                Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .testTag("variety_line_price_${index}"),
-                                            colors = elevatedInputFieldColors(isDark = isDark)
-                                        )
-                                    }
-
-                                    // Subtotal
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        Text(
-                                            text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
+                                // Subtotal
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
+                    }
 
-                        Button(
-                            onClick = {
-                                val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
-                                val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
-                                viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(42.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
+                    Button(
+                        onClick = {
+                            val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
+                            val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
+                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .testTag("add_another_variety_button"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
+            }
+        } else {
+            if (isSiteVisit) {
+                // 1. Visit Date
+                OutlinedTextField(
+                    value = visitDateTFV,
+                    onValueChange = { newVal ->
+                        val formatted = formatAutoSlashDate(visitDateTFV.text, newVal.text)
+                        val newPos = if (formatted.length > visitDateTFV.text.length && formatted.endsWith("/")) {
+                            formatted.length
+                        } else if (newVal.selection.end <= formatted.length) {
+                            newVal.selection.end
+                        } else {
+                            formatted.length
+                        }
+                        visitDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                        viewModel.visitDate.value = formatted
+                    },
+                    label = { Text("Visit Date *") },
+                    placeholder = { Text("DD/MM/YYYY") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                showDatePicker(visitDate.ifBlank { bookingDate }) { selected ->
+                                    viewModel.visitDate.value = selected
+                                    if (viewModel.bookingDate.value.isBlank()) {
+                                        viewModel.bookingDate.value = selected
+                                    }
+                                }
+                            },
+                            modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = "Select Visit Date",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("visit_date_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // 2. Soil Health Observations
+                OutlinedTextField(
+                    value = soilHealthObservations,
+                    onValueChange = { viewModel.soilHealthObservations.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Soil Health Observations") },
+                    placeholder = { Text("e.g. Good organic content, pH 6.5, well drained") },
+                    shape = textFieldShape,
+                    singleLine = false,
+                    maxLines = 3,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Landscape,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("soil_health_observations_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // 3. Plant Health Observations
+                OutlinedTextField(
+                    value = plantHealthObservations,
+                    onValueChange = { viewModel.plantHealthObservations.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Plant Health Observations") },
+                    placeholder = { Text("e.g. Healthy foliage, minor pest damage on lower leaves") },
+                    shape = textFieldShape,
+                    singleLine = false,
+                    maxLines = 3,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.HealthAndSafety,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("plant_health_observations_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // 4. Orchard/Site Location
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Orchard/Site Location *") },
+                    placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("orchard_site_location_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            } else if (isPruning) {
+                // Orchard Location (Single field for Pruning Specification)
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Orchard Location *") },
+                    placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("orchard_location_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
             } else {
             // 1. Plant Variety (Manual Input Text Field) - Removed for Imported Rootstocks
             if (!isImportedRootstocks) {
@@ -1754,25 +1755,15 @@ fun FarmerFormScreen(
                 }
             }
 
-            // Switch to Multi-Variety Button (shown when currently in single-variety mode)
+            // Switch to Multi-Variety Button (shown on EVERY booking tab when currently in single-variety mode)
             OutlinedButton(
                 onClick = {
-                    val currentQty = quantity.toIntOrNull() ?: 1
-                    val currentPrice = landAreaAcres.toDoubleOrNull() ?: 0.0
-                    val v1 = VarietyLine(
-                        variety = (if (isImportedRootstocks) scionVariety else plantVariety).ifBlank { "" },
-                        quantity = currentQty,
-                        unitPrice = currentPrice,
-                        rootstock = rootstock,
-                        feathers = feathers
-                    )
-                    val v2 = VarietyLine(variety = "", quantity = 0, unitPrice = currentPrice, rootstock = rootstock, feathers = "")
-                    viewModel.addVarietyLine(v1)
-                    viewModel.addVarietyLine(v2)
+                    viewModel.enableMultiVarietyForCurrentTab()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
+                    .height(44.dp)
+                    .testTag("add_multiple_varieties_button"),
                 shape = textFieldShape,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
             ) {
