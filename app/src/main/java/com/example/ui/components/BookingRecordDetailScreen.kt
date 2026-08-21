@@ -370,6 +370,8 @@ fun BookingRecordDetailDialog(
                         record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
                         record.serviceType.equals("Imported Rootstock", ignoreCase = true)
 
+                val parsedVarietyLines = remember(record.varietyLinesJson) { com.example.data.parseVarietyLines(record.varietyLinesJson) }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -377,26 +379,89 @@ fun BookingRecordDetailDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
-                    DetailRowItem(
-                        label = if (isImportedRootstocks) "Scion Variety" else "Variety / Type",
-                        value = record.plantVariety,
-                        isDark = isDark
-                    )
-                    if (!isImportedRootstocks && record.healthStage.isNotBlank()) {
-                        DetailRowItem(label = "Sapling Age", value = record.healthStage, isDark = isDark)
-                    }
-                    if (record.rootstock.isNotBlank()) {
-                        DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
-                    }
-                    if (record.feathers.isNotBlank()) {
-                        DetailRowItem(label = "Feathers", value = if (record.feathers.all { it.isDigit() }) "${record.feathers} branches" else record.feathers, isDark = isDark)
+                    
+                    if (parsedVarietyLines.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Itemized Varieties (${parsedVarietyLines.size})",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                parsedVarietyLines.forEachIndexed { idx, line ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "${idx + 1}. ${line.variety}",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                            )
+                                            val subInfo = buildString {
+                                                if (line.rootstock.isNotBlank()) append("RS: ${line.rootstock}")
+                                                if (line.feathers.isNotBlank()) {
+                                                    if (isNotEmpty()) append(" • ")
+                                                    append("Feathers: ${line.feathers}")
+                                                }
+                                            }
+                                            if (subInfo.isNotBlank()) {
+                                                Text(
+                                                    text = subInfo,
+                                                    fontSize = 11.sp,
+                                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = "${line.quantity} × ₹${line.unitPrice.toInt()} = ₹${(line.quantity * line.unitPrice).toInt()}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (idx < parsedVarietyLines.size - 1) {
+                                        Divider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        DetailRowItem(
+                            label = if (isImportedRootstocks) "Scion Variety" else "Variety / Type",
+                            value = record.plantVariety,
+                            isDark = isDark
+                        )
+                        if (!isImportedRootstocks && record.healthStage.isNotBlank()) {
+                            DetailRowItem(label = "Sapling Age", value = record.healthStage, isDark = isDark)
+                        }
+                        if (record.rootstock.isNotBlank()) {
+                            DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
+                        }
+                        if (record.feathers.isNotBlank()) {
+                            DetailRowItem(label = "Feathers", value = if (record.feathers.all { it.isDigit() }) "${record.feathers} branches" else record.feathers, isDark = isDark)
+                        }
                     }
                     DetailRowItem(
                         label = if (isImportedRootstocks) "Quantity / Roots" else "Quantity / Trees",
                         value = "${record.quantity}",
                         isDark = isDark
                     )
-                    DetailRowItem(label = "Rate (₹)", value = "₹${record.landAreaAcres.toInt()}", isDark = isDark)
+                    if (parsedVarietyLines.isEmpty()) {
+                        DetailRowItem(label = "Rate (₹)", value = "₹${record.landAreaAcres.toInt()}", isDark = isDark)
+                    }
                     
                     DetailRowItem(
                         label = "Total Amount",
@@ -858,7 +923,8 @@ fun BookingRecordDetailDialog(
                                 rootDiameter = actualDiam,
                                 scionVariety = actualScion,
                                 recordType = "croprecord",
-                                recordId = record.id
+                                recordId = record.id,
+                                varietyLinesJson = record.varietyLinesJson
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp

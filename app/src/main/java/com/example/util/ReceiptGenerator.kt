@@ -37,7 +37,8 @@ data class ReceiptData(
     val scionVariety: String = "",
     val plantOrigin: String = "",
     val recordType: String = "",
-    val recordId: Long = 0L
+    val recordId: Long = 0L,
+    val varietyLinesJson: String = ""
 )
 
 object ReceiptGenerator {
@@ -49,8 +50,10 @@ object ReceiptGenerator {
     ): Bitmap {
         val info = businessInfo ?: BusinessInfoRepository.currentBusinessInfo
 
+        val parsedLines = com.example.data.parseVarietyLines(data.varietyLinesJson)
+        val extraHeight = if (parsedLines.size > 1) ((parsedLines.size - 1) * 55) else 0
         val width = 1080
-        val height = 1720
+        val height = 1720 + extraHeight
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
@@ -243,60 +246,187 @@ object ReceiptGenerator {
             )
         )
 
-        // Section 2: Order & Service Details
-        val isRootstock = data.serviceCategory.equals("Rootstocks", ignoreCase = true) ||
-                data.serviceCategory.contains("Rootstock", ignoreCase = true) ||
-                data.serviceCategory.equals("Imported Rootstocks", ignoreCase = true) ||
-                data.serviceCategory.equals("Imported Rootstock", ignoreCase = true)
+        // Section 2: Order & Service Details (Itemized Table if multi-variety, else standard card)
+        if (parsedLines.isNotEmpty()) {
+            val startY = currentY
+            val tableRowHeight = 36f
+            val headerHeight = 70f
+            val tableHeaderHeight = 32f
+            val footerHeight = 45f
+            val cardHeight = headerHeight + tableHeaderHeight + (parsedLines.size * tableRowHeight) + footerHeight + 20f
 
-        val orderDetailsItems = if (isRootstock) {
-            val actualRootstock = data.rootstock.ifBlank { "M9-T337" }
-            val rawDiam = data.rootDiameter.ifBlank { "9 to 12 mm" }
-            val formattedDiam = if (rawDiam.lowercase().contains("mm")) rawDiam else "$rawDiam mm"
-            val actualScion = data.scionVariety.ifBlank { data.plantVariety.ifBlank { "N/A" } }
-            val qtyStr = if (data.quantity.lowercase().endsWith("plants") || data.quantity.lowercase().endsWith("rootstocks")) {
-                data.quantity
-            } else {
-                "${data.quantity} Rootstocks"
-            }
+            val cardRect = RectF(60f, startY, width - 60f, startY + cardHeight)
 
-            listOf(
-                "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
-                "Rootstock" to actualRootstock,
-                "Root Diameter (mm)" to formattedDiam,
-                "Scion Variety" to actualScion,
-                "Quantity / Units" to qtyStr,
-                "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
-            )
-        } else {
-            val list = mutableListOf<Pair<String, String>>()
-            list.add("Service Category" to data.serviceCategory.ifBlank { "N/A" })
-            if (data.plantOrigin.isNotBlank()) {
-                list.add("Plant Origin" to data.plantOrigin)
-            }
-            val itemVariety = if (data.rootstock.isNotBlank()) {
-                val baseVariety = data.plantVariety.ifBlank { data.serviceCategory }
-                if (baseVariety.contains(data.rootstock) || baseVariety.contains("/")) {
-                    baseVariety
-                } else {
-                    "$baseVariety / ${data.rootstock}"
+            paint.style = Paint.Style.FILL
+            paint.color = creamCard
+            canvas.drawRoundRect(cardRect, 16f, 16f, paint)
+
+            paint.style = Paint.Style.STROKE
+            paint.color = cardBorder
+            paint.strokeWidth = 2.5f
+            canvas.drawRoundRect(cardRect, 16f, 16f, paint)
+
+            // Section Title
+            paint.style = Paint.Style.FILL
+            paint.color = darkGreen
+            paint.textSize = 25f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.textAlign = Paint.Align.LEFT
+            canvas.drawText("🌱 ORDER & VARIETIES BREAKDOWN", 90f, startY + 44f, paint)
+
+            // Category tag on right
+            paint.color = textGray
+            paint.textSize = 19f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText(data.serviceCategory.ifBlank { "Plant Booking" }, width - 90f, startY + 44f, paint)
+
+            // Title Underline
+            paint.color = cardBorder
+            paint.strokeWidth = 2f
+            canvas.drawLine(90f, startY + 58f, width - 90f, startY + 58f, paint)
+
+            // Table Column Headers: Variety | Qty | Unit Price | Subtotal
+            val tableHeadY = startY + 86f
+            paint.textSize = 18f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.color = textGray
+
+            paint.textAlign = Paint.Align.LEFT
+            canvas.drawText("Variety / Item", 90f, tableHeadY, paint)
+
+            paint.textAlign = Paint.Align.CENTER
+            canvas.drawText("Qty", 520f, tableHeadY, paint)
+
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText("Unit Price", 750f, tableHeadY, paint)
+
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText("Subtotal", width - 90f, tableHeadY, paint)
+
+            // Header line
+            paint.color = cardBorder
+            paint.strokeWidth = 1.5f
+            canvas.drawLine(90f, tableHeadY + 8f, width - 90f, tableHeadY + 8f, paint)
+
+            var rowY = tableHeadY + 34f
+            var totalQtySum = 0
+            var subtotalSum = 0.0
+
+            parsedLines.forEach { line ->
+                totalQtySum += line.quantity
+                val lineTotal = line.quantity * line.unitPrice
+                subtotalSum += lineTotal
+
+                val varietyLabel = buildString {
+                    append(line.variety.ifBlank { "Plant Sapling" })
+                    if (line.rootstock.isNotBlank()) append(" (${line.rootstock})")
+                    if (line.feathers.isNotBlank()) append(" [${line.feathers}]")
                 }
-            } else {
-                data.plantVariety.ifBlank { data.serviceCategory }
-            }
-            list.add("Item / Variety" to itemVariety)
-            if (data.feathers.isNotBlank()) {
-                list.add("Feathers" to if (data.feathers.all { it.isDigit() }) "${data.feathers} branches" else data.feathers)
-            }
-            list.add("Quantity / Units" to "${data.quantity} Plants")
-            list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
-            list
-        }
 
-        drawSectionCard(
-            title = "🌱 ORDER & SERVICE DETAILS",
-            items = orderDetailsItems
-        )
+                paint.color = textDark
+                paint.textSize = 20f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+
+                paint.textAlign = Paint.Align.LEFT
+                canvas.drawText(varietyLabel, 90f, rowY, paint)
+
+                paint.textAlign = Paint.Align.CENTER
+                canvas.drawText("${line.quantity}", 520f, rowY, paint)
+
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText("₹${line.unitPrice.toInt()}", 750f, rowY, paint)
+
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(currencyFmt.format(lineTotal), width - 90f, rowY, paint)
+
+                rowY += tableRowHeight
+            }
+
+            // Summary Divider
+            paint.color = cardBorder
+            paint.strokeWidth = 1.5f
+            canvas.drawLine(90f, rowY - 6f, width - 90f, rowY - 6f, paint)
+
+            // Total Row
+            paint.color = darkGreen
+            paint.textSize = 20f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+
+            paint.textAlign = Paint.Align.LEFT
+            canvas.drawText("Total (${totalQtySum} Plants)", 90f, rowY + 22f, paint)
+
+            if (data.expectedDelivery.isNotBlank()) {
+                paint.color = textGray
+                paint.textSize = 17f
+                paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+                paint.textAlign = Paint.Align.CENTER
+                canvas.drawText("Exp. Delivery: ${data.expectedDelivery}", 520f, rowY + 22f, paint)
+            }
+
+            paint.color = darkGreen
+            paint.textSize = 20f
+            paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText(currencyFmt.format(subtotalSum), width - 90f, rowY + 22f, paint)
+
+            currentY = startY + cardHeight + 20f
+        } else {
+            val isRootstock = data.serviceCategory.equals("Rootstocks", ignoreCase = true) ||
+                    data.serviceCategory.contains("Rootstock", ignoreCase = true) ||
+                    data.serviceCategory.equals("Imported Rootstocks", ignoreCase = true) ||
+                    data.serviceCategory.equals("Imported Rootstock", ignoreCase = true)
+
+            val orderDetailsItems = if (isRootstock) {
+                val actualRootstock = data.rootstock.ifBlank { "M9-T337" }
+                val rawDiam = data.rootDiameter.ifBlank { "9 to 12 mm" }
+                val formattedDiam = if (rawDiam.lowercase().contains("mm")) rawDiam else "$rawDiam mm"
+                val actualScion = data.scionVariety.ifBlank { data.plantVariety.ifBlank { "N/A" } }
+                val qtyStr = if (data.quantity.lowercase().endsWith("plants") || data.quantity.lowercase().endsWith("rootstocks")) {
+                    data.quantity
+                } else {
+                    "${data.quantity} Rootstocks"
+                }
+
+                listOf(
+                    "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
+                    "Rootstock" to actualRootstock,
+                    "Root Diameter (mm)" to formattedDiam,
+                    "Scion Variety" to actualScion,
+                    "Quantity / Units" to qtyStr,
+                    "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
+                )
+            } else {
+                val list = mutableListOf<Pair<String, String>>()
+                list.add("Service Category" to data.serviceCategory.ifBlank { "N/A" })
+                if (data.plantOrigin.isNotBlank()) {
+                    list.add("Plant Origin" to data.plantOrigin)
+                }
+                val itemVariety = if (data.rootstock.isNotBlank()) {
+                    val baseVariety = data.plantVariety.ifBlank { data.serviceCategory }
+                    if (baseVariety.contains(data.rootstock) || baseVariety.contains("/")) {
+                        baseVariety
+                    } else {
+                        "$baseVariety / ${data.rootstock}"
+                    }
+                } else {
+                    data.plantVariety.ifBlank { data.serviceCategory }
+                }
+                list.add("Item / Variety" to itemVariety)
+                if (data.feathers.isNotBlank()) {
+                    list.add("Feathers" to if (data.feathers.all { it.isDigit() }) "${data.feathers} branches" else data.feathers)
+                }
+                list.add("Quantity / Units" to "${data.quantity} Plants")
+                list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
+                list
+            }
+
+            drawSectionCard(
+                title = "🌱 ORDER & SERVICE DETAILS",
+                items = orderDetailsItems
+            )
+        }
 
         // Section 3: Payment Breakdown
         val paymentBreakdownItems = mutableListOf(

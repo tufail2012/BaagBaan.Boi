@@ -27,6 +27,7 @@ object RecycleBinConverter {
         json.put("expectedDelivery", record.expectedDelivery)
         json.put("paymentProofUri", record.paymentProofUri)
         json.put("paymentHistoryJson", record.paymentHistoryJson)
+        json.put("varietyLinesJson", record.varietyLinesJson)
         json.put("timestamp", record.timestamp)
         return json.toString()
     }
@@ -55,6 +56,7 @@ object RecycleBinConverter {
             expectedDelivery = json.optString("expectedDelivery", ""),
             paymentProofUri = json.optString("paymentProofUri", ""),
             paymentHistoryJson = json.optString("paymentHistoryJson", ""),
+            varietyLinesJson = json.optString("varietyLinesJson", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }

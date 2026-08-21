@@ -67,7 +67,14 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalShipping
+import com.example.data.VarietyLine
+import com.example.data.calculateTotalAmountMultiVariety
+import com.example.data.serializeVarietyLines
+import com.example.data.parseVarietyLines
 import androidx.compose.material.icons.filled.Nature
 import androidx.compose.material.icons.filled.Note
 import androidx.compose.material.icons.filled.Payments
@@ -411,6 +418,7 @@ fun FarmerFormScreen(
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
+    val varietyLines by viewModel.varietyLines.collectAsState()
 
     val inventoryItems by remember { com.example.data.AppDatabase.getDatabase(context).inventoryDao().getAllItems() }.collectAsState(initial = emptyList())
     val isStockApplicable = !serviceType.contains("Site Visit", ignoreCase = true) && !serviceType.contains("Pruning", ignoreCase = true)
@@ -1087,6 +1095,235 @@ fun FarmerFormScreen(
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
         } else {
+            if (varietyLines.isNotEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Layers,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Booking Varieties (${varietyLines.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            TextButton(
+                                onClick = { viewModel.clearVarietyLines() },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+
+                        varietyLines.forEachIndexed { index, line ->
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (isDark) Color(0xFF0F172A) else Color.White,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Item #${index + 1}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (varietyLines.size > 1) {
+                                            IconButton(
+                                                onClick = { viewModel.removeVarietyLine(index) },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.DeleteOutline,
+                                                    contentDescription = "Remove Variety Line",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Variety Name
+                                    OutlinedTextField(
+                                        value = line.variety,
+                                        onValueChange = { newVar ->
+                                            viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
+                                        },
+                                        label = { Text("Variety Name *") },
+                                        placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = AppDefaultWordKeyboardOptions,
+                                        leadingIcon = {
+                                            Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("variety_line_name_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+
+                                    // Rootstock & Feathers Row (Feathers allows mixed letters/numbers/symbols like "3F", "2-3")
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = line.rootstock,
+                                            onValueChange = { newRs ->
+                                                viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
+                                            },
+                                            label = { Text("Rootstock") },
+                                            placeholder = { Text("e.g. M9, MM106") },
+                                            shape = textFieldShape,
+                                            singleLine = true,
+                                            keyboardOptions = AppDefaultWordKeyboardOptions,
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("variety_line_rootstock_${index}"),
+                                            colors = elevatedInputFieldColors(isDark = isDark)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = line.feathers,
+                                            onValueChange = { newF ->
+                                                viewModel.updateVarietyLine(index, line.copy(feathers = newF))
+                                            },
+                                            label = { Text("Feathers") },
+                                            placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                            shape = textFieldShape,
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(
+                                                keyboardType = KeyboardType.Text,
+                                                capitalization = KeyboardCapitalization.Characters
+                                            ),
+                                            leadingIcon = {
+                                                Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("variety_line_feathers_${index}"),
+                                            colors = elevatedInputFieldColors(isDark = isDark)
+                                        )
+                                    }
+
+                                    // Quantity & Unit Price Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = if (line.quantity == 0) "" else line.quantity.toString(),
+                                            onValueChange = { newQ ->
+                                                val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
+                                                viewModel.updateVarietyLine(index, line.copy(quantity = q))
+                                            },
+                                            label = { Text("Quantity *") },
+                                            placeholder = { Text("Qty") },
+                                            shape = textFieldShape,
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            leadingIcon = {
+                                                Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("variety_line_qty_${index}"),
+                                            colors = elevatedInputFieldColors(isDark = isDark)
+                                        )
+
+                                        OutlinedTextField(
+                                            value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
+                                            onValueChange = { newP ->
+                                                val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+                                                viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
+                                            },
+                                            label = { Text("Rate (₹) *") },
+                                            placeholder = { Text("Price") },
+                                            shape = textFieldShape,
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                            leadingIcon = {
+                                                Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .testTag("variety_line_price_${index}"),
+                                            colors = elevatedInputFieldColors(isDark = isDark)
+                                        )
+                                    }
+
+                                    // Subtotal
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        Text(
+                                            text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
+                                val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
+                                viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            } else {
             // 1. Plant Variety (Manual Input Text Field) - Removed for Imported Rootstocks
             if (!isImportedRootstocks) {
                 OutlinedTextField(
@@ -1516,7 +1753,35 @@ fun FarmerFormScreen(
                     }
                 }
             }
+
+            // Switch to Multi-Variety Button (shown when currently in single-variety mode)
+            OutlinedButton(
+                onClick = {
+                    val currentQty = quantity.toIntOrNull() ?: 1
+                    val currentPrice = landAreaAcres.toDoubleOrNull() ?: 0.0
+                    val v1 = VarietyLine(
+                        variety = (if (isImportedRootstocks) scionVariety else plantVariety).ifBlank { "" },
+                        quantity = currentQty,
+                        unitPrice = currentPrice,
+                        rootstock = rootstock,
+                        feathers = feathers
+                    )
+                    val v2 = VarietyLine(variety = "", quantity = 0, unitPrice = currentPrice, rootstock = rootstock, feathers = "")
+                    viewModel.addVarietyLine(v1)
+                    viewModel.addVarietyLine(v2)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                shape = textFieldShape,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("+ Add Multiple Varieties to this Booking", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
         }
+    }
 
         // Section Title: PRICING & QUANTITY / PRICING & VISIT DETAILS
         Text(
@@ -1591,7 +1856,64 @@ fun FarmerFormScreen(
             }
         }
 
-        if (isImportedRootstocks) {
+        if (varietyLines.isNotEmpty()) {
+            val totalMultiQty = varietyLines.sumOf { it.quantity }
+            val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Varieties:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("${varietyLines.size} items", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Quantity:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("$totalMultiQty units", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Items Subtotal:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("₹${totalMultiPrice.toInt()}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+
+                    if (isImportedRootstocks) {
+                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)))
+                        OutlinedTextField(
+                            value = perUnitGraftingCharge,
+                            onValueChange = { 
+                                viewModel.perUnitGraftingCharge.value = sanitizeCurrencyInput(it)
+                                viewModel.updateQuantityOrPrice()
+                            },
+                            label = { Text("Graft Charge / Unit (₹)") },
+                            placeholder = { Text("Per unit charge") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            shape = pillShape,
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("grafting_charges_input"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
+                    }
+                }
+            }
+        } else if (isImportedRootstocks) {
             val isUnitPriceError = landAreaAcres.isNotBlank() && (landAreaAcres.toDoubleOrNull() ?: 0.0) <= 0.0
             val isGraftChargeError = perUnitGraftingCharge.isNotBlank() && (perUnitGraftingCharge.toDoubleOrNull() ?: -1.0) < 0.0
 
@@ -1803,10 +2125,12 @@ fun FarmerFormScreen(
         }
 
         // Automatic Calculation: Total Payment = (Quantity * Unit Price) + Grafting Charges (if entered)
-        val qtyNum = quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0
+        val isMultiVariety = varietyLines.isNotEmpty()
+        val multiVarietySum = if (isMultiVariety) calculateTotalAmountMultiVariety(varietyLines) else 0.0
+        val qtyNum = if (isMultiVariety) varietyLines.sumOf { it.quantity } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
         val priceNum = landAreaAcres.toDoubleOrNull() ?: 0.0
         val graftingChargesNum = if (isImportedRootstocks && graftingCharges.isNotBlank()) (graftingCharges.toDoubleOrNull() ?: 0.0) else 0.0
-        val totalPayment = (qtyNum * priceNum) + graftingChargesNum
+        val totalPayment = if (isMultiVariety) multiVarietySum + graftingChargesNum else (qtyNum * priceNum) + graftingChargesNum
         val paidAmountNum = amountPaid.toDoubleOrNull() ?: 0.0
         val remainingBalance = maxOf(0.0, totalPayment - paidAmountNum)
 
@@ -2314,8 +2638,8 @@ fun FarmerFormScreen(
                 address = if (farmerAddress.isBlank()) "N/A" else farmerAddress,
                 orchardLocation = if (location.isBlank()) "N/A" else location,
                 serviceCategory = if (isRootstockForm) "Imported Rootstocks" else selectedService,
-                plantVariety = if (isRootstockForm) actualScionVal.ifBlank { "N/A" } else if (plantVariety.isBlank()) selectedService else plantVariety,
-                quantity = if (quantity.isBlank()) "0" else quantity,
+                plantVariety = if (isRootstockForm) actualScionVal.ifBlank { "N/A" } else if (varietyLines.isNotEmpty()) "${varietyLines.size} Varieties" else if (plantVariety.isBlank()) selectedService else plantVariety,
+                quantity = if (varietyLines.isNotEmpty()) "${varietyLines.sumOf { it.quantity }}" else (if (quantity.isBlank()) "0" else quantity),
                 totalAmount = totalPayment,
                 amountPaid = paidAmountNum,
                 remainingBalance = remainingBalance,
@@ -2326,7 +2650,8 @@ fun FarmerFormScreen(
                 rootDiameter = actualDiamVal,
                 scionVariety = actualScionVal,
                 recordType = "croprecord",
-                recordId = editingId ?: 0L
+                recordId = editingId ?: 0L,
+                varietyLinesJson = if (varietyLines.isNotEmpty()) serializeVarietyLines(varietyLines.filter { it.variety.isNotBlank() || it.quantity > 0 }) else ""
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)

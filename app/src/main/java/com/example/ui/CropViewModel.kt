@@ -11,6 +11,10 @@ import com.example.data.GlobalSearchResult
 import com.example.data.InventoryItem
 import com.example.data.InventoryStockManager
 import com.example.data.StockValidationResult
+import com.example.data.VarietyLine
+import com.example.data.parseVarietyLines
+import com.example.data.serializeVarietyLines
+import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
 import com.example.ui.components.BookingConfirmationState
 import com.example.util.SerialNumberUtils
@@ -356,6 +360,37 @@ class CropViewModel(
     val graftingCharges = MutableStateFlow("")
     val notes = MutableStateFlow("")
 
+    // Multi-variety support for Local Plants, Imported, and Rootstocks
+    val varietyLines = MutableStateFlow<List<VarietyLine>>(emptyList())
+
+    fun addVarietyLine(line: VarietyLine = VarietyLine("", 100, 250.0, "", "")) {
+        varietyLines.value = varietyLines.value + line
+        recalculatePaymentStatus()
+    }
+
+    fun updateVarietyLine(index: Int, line: VarietyLine) {
+        if (index in varietyLines.value.indices) {
+            val updated = varietyLines.value.toMutableList()
+            updated[index] = line
+            varietyLines.value = updated
+            recalculatePaymentStatus()
+        }
+    }
+
+    fun removeVarietyLine(index: Int) {
+        if (index in varietyLines.value.indices) {
+            val updated = varietyLines.value.toMutableList()
+            updated.removeAt(index)
+            varietyLines.value = updated
+            recalculatePaymentStatus()
+        }
+    }
+
+    fun clearVarietyLines() {
+        varietyLines.value = emptyList()
+        recalculatePaymentStatus()
+    }
+
     private fun getDefaultExpectedDeliveryDate(): String {
         val cal = Calendar.getInstance()
         cal.add(Calendar.DAY_OF_MONTH, 30)
@@ -604,11 +639,16 @@ class CropViewModel(
     }
 
     fun recalculatePaymentStatus() {
-        val qtyNum = quantity.value.toDoubleOrNull() ?: quantity.value.toIntOrNull()?.toDouble() ?: 0.0
-        val priceNum = landAreaAcres.value.toDoubleOrNull() ?: 0.0
         val isImportedRootstocks = serviceType.value.equals("Rootstocks", ignoreCase = true)
         val graftingChargesNum = if (isImportedRootstocks && graftingCharges.value.isNotBlank()) (graftingCharges.value.toDoubleOrNull() ?: 0.0) else 0.0
-        val totalAmount = (qtyNum * priceNum) + graftingChargesNum
+        val vLines = varietyLines.value
+        val totalAmount = if (vLines.isNotEmpty()) {
+            calculateTotalAmountMultiVariety(vLines) + graftingChargesNum
+        } else {
+            val qtyNum = quantity.value.toDoubleOrNull() ?: quantity.value.toIntOrNull()?.toDouble() ?: 0.0
+            val priceNum = landAreaAcres.value.toDoubleOrNull() ?: 0.0
+            (qtyNum * priceNum) + graftingChargesNum
+        }
         val paidNum = amountPaid.value.toDoubleOrNull() ?: 0.0
 
         paymentStatus.value = when {
@@ -626,6 +666,7 @@ class CropViewModel(
         editingRecordId.value = null
         editingPaymentHistoryJson.value = ""
         editingOldRecord = null
+        varietyLines.value = emptyList()
         val currentSvc = _selectedService.value
         serialNumber.value = ""
         isSerialLocked.value = false
@@ -666,6 +707,7 @@ class CropViewModel(
         editingRecordId.value = record.id
         editingOldRecord = record
         editingPaymentHistoryJson.value = record.paymentHistoryJson
+        varietyLines.value = parseVarietyLines(record.varietyLinesJson)
         serialNumber.value = record.serialNumber
         isSerialLocked.value = true
         val currentKey = getCurrentTabKey()
@@ -805,11 +847,40 @@ class CropViewModel(
             }
 
             val isPruning = serviceType.value.equals("Pruning", ignoreCase = true)
+            val vLines = varietyLines.value.filter { it.variety.isNotBlank() || it.quantity > 0 }
+            val isMultiVariety = vLines.isNotEmpty()
+
             val finalPlantVariety = when {
+                isMultiVariety -> vLines.joinToString(", ") { it.variety.ifBlank { "Standard" } }
                 serviceType.value.equals("Rootstocks", ignoreCase = true) && scionVariety.value.isNotBlank() -> scionVariety.value.trim()
                 isSiteVisit -> "Site Visit"
                 isPruning -> _selectedPruningSubTab.value
                 else -> plantVariety.value.ifBlank { "Standard Variety" }.trim()
+            }
+
+            val finalRootstock = when {
+                isMultiVariety -> vLines.firstOrNull()?.rootstock ?: (if (isSiteVisit || isPruning) "" else rootstock.value)
+                isSiteVisit || isPruning -> ""
+                else -> rootstock.value
+            }
+
+            val finalFeathers = when {
+                isMultiVariety -> vLines.firstOrNull()?.feathers ?: (if (isSiteVisit || isPruning) "" else feathers.value.trim())
+                isSiteVisit || isPruning -> ""
+                else -> feathers.value.trim()
+            }
+
+            val finalQuantity = if (isMultiVariety) {
+                vLines.sumOf { it.quantity }
+            } else {
+                quantity.value.toIntOrNull() ?: 1
+            }
+
+            val finalUnitPrice = if (isMultiVariety) {
+                val totalQty = vLines.sumOf { it.quantity }
+                if (totalQty > 0) vLines.sumOf { it.quantity * it.unitPrice } / totalQty else (vLines.firstOrNull()?.unitPrice ?: 1.0)
+            } else {
+                landAreaAcres.value.toDoubleOrNull() ?: 1.0
             }
 
             val finalBookingDate = if (isSiteVisit && visitDate.value.isNotBlank()) {
@@ -826,10 +897,10 @@ class CropViewModel(
                 contactNumber = contactNumber.value.trim(),
                 serviceType = serviceType.value,
                 plantVariety = finalPlantVariety,
-                rootstock = if (isSiteVisit || isPruning) "" else rootstock.value,
-                feathers = if (isSiteVisit || isPruning) "" else feathers.value.trim(),
-                quantity = quantity.value.toIntOrNull() ?: 1,
-                landAreaAcres = landAreaAcres.value.toDoubleOrNull() ?: 1.0,
+                rootstock = finalRootstock,
+                feathers = finalFeathers,
+                quantity = finalQuantity,
+                landAreaAcres = finalUnitPrice,
                 soilType = soilType.value,
                 healthStage = healthStage.value,
                 location = location.value.trim(),
@@ -840,6 +911,7 @@ class CropViewModel(
                 expectedDelivery = expectedDelivery.value,
                 paymentProofUri = paymentProofUri.value,
                 paymentHistoryJson = editingPaymentHistoryJson.value,
+                varietyLinesJson = if (isMultiVariety) serializeVarietyLines(vLines) else "",
                 timestamp = System.currentTimeMillis()
             )
 

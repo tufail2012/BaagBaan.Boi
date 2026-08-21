@@ -97,6 +97,7 @@ class BackupRestoreManager {
                             expectedDelivery = doc.getString("expectedDelivery") ?: "",
                             paymentProofUri = doc.getString("paymentProofUri") ?: "",
                             paymentHistoryJson = doc.getString("paymentHistoryJson") ?: "",
+                            varietyLinesJson = doc.getString("varietyLinesJson") ?: "",
                             timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                         )
                     )
@@ -130,6 +131,7 @@ class BackupRestoreManager {
                 obj.put("expectedDelivery", record.expectedDelivery)
                 obj.put("paymentProofUri", record.paymentProofUri)
                 obj.put("paymentHistoryJson", record.paymentHistoryJson)
+                obj.put("varietyLinesJson", record.varietyLinesJson)
                 obj.put("timestamp", record.timestamp)
                 cropRecordsJson.put(obj)
             }
@@ -428,6 +430,7 @@ class BackupRestoreManager {
                         expectedDelivery = obj.optString("expectedDelivery", ""),
                         paymentProofUri = obj.optString("paymentProofUri", ""),
                         paymentHistoryJson = obj.optString("paymentHistoryJson", ""),
+                        varietyLinesJson = obj.optString("varietyLinesJson", ""),
                         timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                     )
 
@@ -459,6 +462,7 @@ class BackupRestoreManager {
                                 "expectedDelivery" to record.expectedDelivery,
                                 "paymentProofUri" to record.paymentProofUri,
                                 "paymentHistoryJson" to record.paymentHistoryJson,
+                                "varietyLinesJson" to record.varietyLinesJson,
                                 "timestamp" to record.timestamp
                             )
                             cropRef

@@ -97,6 +97,7 @@ class FirestoreSyncManager {
                 "expectedDelivery" to record.expectedDelivery,
                 "paymentProofUri" to record.paymentProofUri,
                 "paymentHistoryJson" to record.paymentHistoryJson,
+                "varietyLinesJson" to record.varietyLinesJson,
                 "timestamp" to record.timestamp
             )
 
@@ -453,6 +454,7 @@ class FirestoreSyncManager {
                 val expectedDelivery = doc.getString("expectedDelivery") ?: ""
                 val paymentProofUri = doc.getString("paymentProofUri") ?: ""
                 val paymentHistoryJson = doc.getString("paymentHistoryJson") ?: ""
+                val varietyLinesJson = doc.getString("varietyLinesJson") ?: ""
                 val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                 val cloudRecord = CropRecord(
@@ -477,6 +479,7 @@ class FirestoreSyncManager {
                     expectedDelivery = expectedDelivery,
                     paymentProofUri = paymentProofUri,
                     paymentHistoryJson = paymentHistoryJson,
+                    varietyLinesJson = varietyLinesJson,
                     timestamp = timestamp
                 )
 
