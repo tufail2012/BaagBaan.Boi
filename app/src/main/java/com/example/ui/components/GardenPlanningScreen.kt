@@ -1721,6 +1721,7 @@ fun GardenPlanningFormTab(
                     val totalPlants = Math.round(area * plants).toInt()
                     val totalAmount = calculatedCost
 
+                    val cost = costPerPlant.toDoubleOrNull() ?: 0.0
                     val receiptData = ReceiptData(
                         serialNumber = serialNumber,
                         bookingDate = bookingDate,
@@ -1729,14 +1730,19 @@ fun GardenPlanningFormTab(
                         address = farmerAddress,
                         orchardLocation = farmerAddress,
                         serviceCategory = "Garden Planning",
-                        plantVariety = "$area Kanals ($plants Plants/Kanal)",
+                        plantVariety = plantVariety.ifBlank { "Apple Plants" },
                         quantity = totalPlants.toString(),
                         totalAmount = totalAmount,
                         amountPaid = amountPaidDouble,
                         remainingBalance = remainingBalance,
                         paymentStatus = paymentStatus,
                         expectedDelivery = expectedDelivery,
-                        plantOrigin = plantOrigin.ifBlank { "Local Plants" }
+                        plantOrigin = plantOrigin.ifBlank { "Local Plants" },
+                        feathers = feathers,
+                        rootstock = rootStock,
+                        recordType = "gardenplanning",
+                        totalKanalArea = area,
+                        costPerPlant = cost
                     )
 
                     val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
@@ -3115,7 +3121,7 @@ fun GardenBookingRecordDetailDialog(
                                 address = currentEntry.farmerAddress,
                                 orchardLocation = currentEntry.farmerAddress,
                                 serviceCategory = "Garden Planning",
-                                plantVariety = if (currentEntry.plantVariety.isNotBlank()) "${currentEntry.plantVariety} (${if (currentEntry.rootStock.isNotBlank()) currentEntry.rootStock else "N/A"})" else "${currentEntry.totalKanalArea} Kanals (${currentEntry.plantsPerKanal} Plants/Kanal)",
+                                plantVariety = currentEntry.plantVariety.ifBlank { "Apple Plants" },
                                 quantity = "$totalPlants",
                                 totalAmount = totalRecordValue,
                                 amountPaid = totalPaidSoFar,
@@ -3124,8 +3130,11 @@ fun GardenBookingRecordDetailDialog(
                                 expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
                                 plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
                                 feathers = currentEntry.feathers,
+                                rootstock = currentEntry.rootStock,
                                 recordType = "gardenplanning",
-                                recordId = currentEntry.id
+                                recordId = currentEntry.id,
+                                totalKanalArea = currentEntry.totalKanalArea,
+                                costPerPlant = currentEntry.costPerPlant
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp

@@ -104,7 +104,9 @@ object PdfReceiptManager {
             rootstock = rootstock,
             plantOrigin = gardenMatch?.plantOrigin ?: "",
             recordType = item.source,
-            recordId = item.id
+            recordId = item.id,
+            totalKanalArea = gardenMatch?.totalKanalArea ?: 0.0,
+            costPerPlant = gardenMatch?.costPerPlant ?: 0.0
         )
     }
 

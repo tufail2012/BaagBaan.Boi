@@ -38,7 +38,9 @@ data class ReceiptData(
     val plantOrigin: String = "",
     val recordType: String = "",
     val recordId: Long = 0L,
-    val varietyLinesJson: String = ""
+    val varietyLinesJson: String = "",
+    val totalKanalArea: Double = 0.0,
+    val costPerPlant: Double = 0.0
 )
 
 object ReceiptGenerator {
@@ -373,12 +375,53 @@ object ReceiptGenerator {
 
             currentY = startY + cardHeight + 20f
         } else {
+            val isGardenPlanning = data.serviceCategory.equals("Garden Planning", ignoreCase = true) ||
+                    data.recordType.equals("gardenplanning", ignoreCase = true) ||
+                    data.serviceCategory.contains("Garden", ignoreCase = true)
+
             val isRootstock = data.serviceCategory.equals("Rootstocks", ignoreCase = true) ||
                     data.serviceCategory.contains("Rootstock", ignoreCase = true) ||
                     data.serviceCategory.equals("Imported Rootstocks", ignoreCase = true) ||
                     data.serviceCategory.equals("Imported Rootstock", ignoreCase = true)
 
-            val orderDetailsItems = if (isRootstock) {
+            val orderDetailsItems = if (isGardenPlanning) {
+                val list = mutableListOf<Pair<String, String>>()
+                list.add("Service Category" to "Garden Planning")
+                if (data.plantOrigin.isNotBlank()) {
+                    list.add("Plant Origin" to data.plantOrigin)
+                }
+                val itemVariety = if (data.rootstock.isNotBlank()) {
+                    val baseVariety = data.plantVariety.ifBlank { "Apple Plants" }
+                    if (baseVariety.contains(data.rootstock) || baseVariety.contains("/")) {
+                        baseVariety
+                    } else {
+                        "$baseVariety / ${data.rootstock}"
+                    }
+                } else {
+                    data.plantVariety.ifBlank { "Apple Plants" }
+                }
+                list.add("Item / Variety" to itemVariety)
+                if (data.feathers.isNotBlank()) {
+                    list.add("Feathers" to if (data.feathers.all { it.isDigit() }) "${data.feathers} branches" else data.feathers)
+                }
+                val kanalAreaStr = if (data.totalKanalArea > 0.0) {
+                    val areaFormatted = if (data.totalKanalArea % 1.0 == 0.0) "${data.totalKanalArea.toInt()}" else "${data.totalKanalArea}"
+                    "$areaFormatted Kanals"
+                } else {
+                    "N/A"
+                }
+                list.add("Kanal Area" to kanalAreaStr)
+
+                val qtyRateStr = if (data.costPerPlant > 0.0) {
+                    val rateFormatted = if (data.costPerPlant % 1.0 == 0.0) "${data.costPerPlant}" else "${data.costPerPlant}"
+                    "${data.quantity} Plants @ ₹$rateFormatted"
+                } else {
+                    "${data.quantity} Plants"
+                }
+                list.add("Quantity / Units" to qtyRateStr)
+                list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
+                list
+            } else if (isRootstock) {
                 val actualRootstock = data.rootstock.ifBlank { "M9-T337" }
                 val rawDiam = data.rootDiameter.ifBlank { "9 to 12 mm" }
                 val formattedDiam = if (rawDiam.lowercase().contains("mm")) rawDiam else "$rawDiam mm"
