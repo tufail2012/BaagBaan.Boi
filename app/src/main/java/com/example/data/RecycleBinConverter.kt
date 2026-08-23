@@ -109,6 +109,7 @@ object RecycleBinConverter {
         json.put("expectedDelivery", entry.expectedDelivery)
         json.put("notes", entry.notes)
         json.put("installmentHistoryJson", entry.installmentHistoryJson)
+        json.put("varietyLinesJson", entry.varietyLinesJson)
         json.put("timestamp", entry.timestamp)
         return json.toString()
     }
@@ -137,6 +138,7 @@ object RecycleBinConverter {
             expectedDelivery = json.optString("expectedDelivery", ""),
             notes = json.optString("notes", ""),
             installmentHistoryJson = json.optString("installmentHistoryJson", ""),
+            varietyLinesJson = json.optString("varietyLinesJson", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }

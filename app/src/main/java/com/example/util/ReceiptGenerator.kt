@@ -412,11 +412,12 @@ object ReceiptGenerator {
                 }
                 list.add("Kanal Area" to kanalAreaStr)
 
+                val cleanQty = data.quantity.replace("Plants", "", ignoreCase = true).trim()
                 val qtyRateStr = if (data.costPerPlant > 0.0) {
                     val rateFormatted = if (data.costPerPlant % 1.0 == 0.0) "${data.costPerPlant}" else "${data.costPerPlant}"
-                    "${data.quantity} Plants @ ₹$rateFormatted"
+                    "$cleanQty Plants @ ₹$rateFormatted"
                 } else {
-                    "${data.quantity} Plants"
+                    "$cleanQty Plants"
                 }
                 list.add("Quantity / Units" to qtyRateStr)
                 list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })

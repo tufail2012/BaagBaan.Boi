@@ -27,5 +27,6 @@ data class GardenPlanningEntry(
     val expectedDelivery: String = "",
     val notes: String = "",
     val installmentHistoryJson: String = "",
+    val varietyLinesJson: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )

@@ -5,6 +5,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.GardenPlanningEntry
 import com.example.data.GardenPlanningRepository
+import com.example.data.VarietyLine
+import com.example.data.parseVarietyLines
+import com.example.data.serializeVarietyLines
+import com.example.data.calculateTotalAmountMultiVariety
 import com.example.util.MessageTemplateHelper
 import com.example.util.SerialNumberUtils
 import com.example.ui.components.BookingConfirmationState
@@ -95,6 +99,67 @@ class GardenPlanningViewModel(
     val userMessage = MutableStateFlow<String?>(null)
     val selectedTabIndex = MutableStateFlow(0)
 
+    val varietyLines = MutableStateFlow<List<VarietyLine>>(emptyList())
+    val isMultiVarietyEnabled = MutableStateFlow(false)
+
+    fun enableMultiVariety(initialLines: List<VarietyLine>? = null) {
+        val lines = if (!initialLines.isNullOrEmpty()) {
+            initialLines
+        } else {
+            val currentQty = totalPlants.value.toIntOrNull()
+                ?: ((totalKanalArea.value.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.value.toDoubleOrNull() ?: 0.0)).toInt().let { if (it > 0) it else 100 }
+            val currentPrice = costPerPlant.value.toDoubleOrNull() ?: 250.0
+            val currentVar = plantVariety.value.ifBlank { "" }
+            val currentRs = rootStock.value
+            val currentF = feathers.value
+            listOf(
+                VarietyLine(variety = currentVar, quantity = currentQty, unitPrice = currentPrice, rootstock = currentRs, feathers = currentF),
+                VarietyLine(variety = "", quantity = 0, unitPrice = currentPrice, rootstock = currentRs, feathers = "")
+            )
+        }
+        isMultiVarietyEnabled.value = true
+        varietyLines.value = lines
+        recalculatePaymentStatus()
+    }
+
+    fun disableMultiVariety() {
+        isMultiVarietyEnabled.value = false
+        varietyLines.value = emptyList()
+        recalculatePaymentStatus()
+    }
+
+    fun clearVarietyLines() {
+        disableMultiVariety()
+    }
+
+    fun addVarietyLine(line: VarietyLine = VarietyLine("", 0, costPerPlant.value.toDoubleOrNull() ?: 250.0, rootStock.value, "")) {
+        val updated = varietyLines.value + line
+        varietyLines.value = updated
+        isMultiVarietyEnabled.value = true
+        recalculatePaymentStatus()
+    }
+
+    fun updateVarietyLine(index: Int, line: VarietyLine) {
+        if (index in varietyLines.value.indices) {
+            val updated = varietyLines.value.toMutableList()
+            updated[index] = line
+            varietyLines.value = updated
+            recalculatePaymentStatus()
+        }
+    }
+
+    fun removeVarietyLine(index: Int) {
+        if (index in varietyLines.value.indices) {
+            val updated = varietyLines.value.toMutableList()
+            updated.removeAt(index)
+            varietyLines.value = updated
+            if (updated.isEmpty()) {
+                isMultiVarietyEnabled.value = false
+            }
+            recalculatePaymentStatus()
+        }
+    }
+
     fun resetToNewEntry() {
         selectedTabIndex.value = 0
     }
@@ -115,6 +180,9 @@ class GardenPlanningViewModel(
     }
 
     fun calculateTotalCost(): Double {
+        if (varietyLines.value.isNotEmpty()) {
+            return calculateTotalAmountMultiVariety(varietyLines.value)
+        }
         val count = totalPlants.value.toDoubleOrNull() ?: ((totalKanalArea.value.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.value.toDoubleOrNull() ?: 0.0))
         val cost = costPerPlant.value.toDoubleOrNull() ?: 0.0
         return count * cost
@@ -241,7 +309,16 @@ class GardenPlanningViewModel(
         contactNumber.value = entry.contactNumber
         totalKanalArea.value = if (entry.totalKanalArea > 0) entry.totalKanalArea.toString() else ""
         plantsPerKanal.value = if (entry.plantsPerKanal > 0) entry.plantsPerKanal.toString() else ""
-        totalPlants.value = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) Math.round(entry.totalKanalArea * entry.plantsPerKanal).toInt().toString() else ""
+        val parsedLines = parseVarietyLines(entry.varietyLinesJson)
+        if (parsedLines.isNotEmpty()) {
+            varietyLines.value = parsedLines
+            isMultiVarietyEnabled.value = true
+            totalPlants.value = parsedLines.sumOf { it.quantity }.toString()
+        } else {
+            varietyLines.value = emptyList()
+            isMultiVarietyEnabled.value = false
+            totalPlants.value = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) Math.round(entry.totalKanalArea * entry.plantsPerKanal).toInt().toString() else ""
+        }
         costPerPlant.value = if (entry.costPerPlant > 0) entry.costPerPlant.toString() else ""
         plantVariety.value = entry.plantVariety
         rootStock.value = entry.rootStock
@@ -260,6 +337,8 @@ class GardenPlanningViewModel(
 
     fun clearForm() {
         editingEntryId.value = null
+        isMultiVarietyEnabled.value = false
+        varietyLines.value = emptyList()
         farmerName.value = ""
         farmerAddress.value = ""
         contactNumber.value = ""
@@ -286,12 +365,38 @@ class GardenPlanningViewModel(
             return false
         }
 
+        val vLines = varietyLines.value
+        val isMulti = vLines.isNotEmpty()
         val area = totalKanalArea.value.toDoubleOrNull() ?: 0.0
         val plants = plantsPerKanal.value.toDoubleOrNull()?.toInt() ?: plantsPerKanal.value.toIntOrNull() ?: 0
         val cost = costPerPlant.value.toDoubleOrNull() ?: 0.0
-        val calcTotalCost = area * plants * cost
+        val calcTotalCost = if (isMulti) {
+            calculateTotalAmountMultiVariety(vLines)
+        } else {
+            val count = totalPlants.value.toDoubleOrNull() ?: (area * plants)
+            count * cost
+        }
         val paid = amountPaid.value.toDoubleOrNull() ?: 0.0
         val rem = (calcTotalCost - paid).coerceAtLeast(0.0)
+        val vLinesJson = if (isMulti) serializeVarietyLines(vLines.filter { it.variety.isNotBlank() || it.quantity > 0 }) else ""
+        val primaryVariety = if (isMulti) {
+            val nonBlank = vLines.filter { it.variety.isNotBlank() }
+            if (nonBlank.isNotEmpty()) nonBlank.joinToString(", ") { it.variety } else plantVariety.value.trim()
+        } else {
+            plantVariety.value.trim()
+        }
+        val primaryRootstock = if (isMulti) {
+            val nonBlank = vLines.filter { it.rootstock.isNotBlank() }
+            if (nonBlank.isNotEmpty()) nonBlank.map { it.rootstock }.distinct().joinToString(", ") else rootStock.value.trim()
+        } else {
+            rootStock.value.trim()
+        }
+        val primaryFeathers = if (isMulti) {
+            val nonBlank = vLines.filter { it.feathers.isNotBlank() }
+            if (nonBlank.isNotEmpty()) nonBlank.map { it.feathers }.distinct().joinToString(", ") else feathers.value.trim()
+        } else {
+            feathers.value.trim()
+        }
 
         val sn = serialNumber.value.ifBlank { generateNextSerialNumber("GP-01", allEntries.value) }
 
@@ -304,9 +409,9 @@ class GardenPlanningViewModel(
             totalKanalArea = area,
             plantsPerKanal = plants,
             costPerPlant = cost,
-            plantVariety = plantVariety.value.trim(),
-            rootStock = rootStock.value.trim(),
-            feathers = feathers.value.trim(),
+            plantVariety = primaryVariety,
+            rootStock = primaryRootstock,
+            feathers = primaryFeathers,
             saplingAge = saplingAge.value.trim(),
             plantOrigin = plantOrigin.value.trim(),
             totalCost = calcTotalCost,
@@ -316,6 +421,7 @@ class GardenPlanningViewModel(
             bookingDate = bookingDate.value,
             expectedDelivery = expectedDelivery.value,
             notes = notes.value.trim(),
+            varietyLinesJson = vLinesJson,
             timestamp = System.currentTimeMillis()
         )
 
@@ -358,22 +464,32 @@ class GardenPlanningViewModel(
     }
 
     fun getGeneratedPreviewMessage(): String {
+        val vLines = varietyLines.value
+        val isMulti = vLines.isNotEmpty()
         val area = totalKanalArea.value.toDoubleOrNull() ?: 0.0
         val plants = plantsPerKanal.value.toIntOrNull() ?: 0
-        val totalPlants = (area * plants).toInt()
+        val totalPlants = if (isMulti) vLines.sumOf { it.quantity } else (area * plants).toInt().let { if (it > 0) it else (this.totalPlants.value.toIntOrNull() ?: 0) }
         val totalAmount = calculateTotalCost()
         val paid = calculateAmountPaid()
         val rem = calculateRemainingBalance()
 
-        val varietyInfo = buildString {
-            if (plantVariety.value.isNotBlank()) {
-                append(plantVariety.value.trim())
-                if (rootStock.value.isNotBlank()) {
-                    append(" (${rootStock.value.trim()})")
+        val varietyInfo = if (isMulti) {
+            val nonBlank = vLines.filter { it.variety.isNotBlank() }
+            val varSummary = if (nonBlank.isNotEmpty()) nonBlank.joinToString(", ") { "${it.variety} (${it.quantity})" } else "Multiple Varieties"
+            if (area > 0) "$varSummary • $area Kanals" else varSummary
+        } else {
+            buildString {
+                if (plantVariety.value.isNotBlank()) {
+                    append(plantVariety.value.trim())
+                    if (rootStock.value.isNotBlank()) {
+                        append(" (${rootStock.value.trim()})")
+                    }
+                    if (area > 0) append(" • ")
                 }
-                append(" • ")
+                if (area > 0) {
+                    append("$area Kanals ($plants/Kanal)")
+                }
             }
-            append("$area Kanals ($plants/Kanal)")
         }
 
         return MessageTemplateHelper.generateMessage(

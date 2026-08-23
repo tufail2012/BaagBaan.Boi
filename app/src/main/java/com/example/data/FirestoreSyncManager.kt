@@ -173,6 +173,7 @@ class FirestoreSyncManager {
                 "expectedDelivery" to entry.expectedDelivery,
                 "notes" to entry.notes,
                 "installmentHistoryJson" to entry.installmentHistoryJson,
+                "varietyLinesJson" to entry.varietyLinesJson,
                 "timestamp" to entry.timestamp
             )
 
@@ -379,6 +380,7 @@ class FirestoreSyncManager {
                         val expectedDelivery = doc.getString("expectedDelivery") ?: ""
                         val notes = doc.getString("notes") ?: ""
                         val installmentHistoryJson = doc.getString("installmentHistoryJson") ?: ""
+                        val varietyLinesJson = doc.getString("varietyLinesJson") ?: ""
                         val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                         val cloudEntry = GardenPlanningEntry(
@@ -403,6 +405,7 @@ class FirestoreSyncManager {
                             expectedDelivery = expectedDelivery,
                             notes = notes,
                             installmentHistoryJson = installmentHistoryJson,
+                            varietyLinesJson = varietyLinesJson,
                             timestamp = timestamp
                         )
 

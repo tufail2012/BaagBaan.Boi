@@ -89,6 +89,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Info
@@ -177,6 +179,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.data.GardenPlanningEntry
+import com.example.data.VarietyLine
+import com.example.data.calculateTotalAmountMultiVariety
+import com.example.data.parseVarietyLines
+import com.example.data.serializeVarietyLines
 import com.example.ui.GardenPlanningViewModel
 import com.example.util.MessagePreviewComponent
 import com.example.util.ReceiptData
@@ -475,6 +481,8 @@ fun GardenPlanningFormTab(
     val notes by viewModel.notes.collectAsState()
     val selectedTemplate by viewModel.selectedTemplate.collectAsState()
     val editingEntryId by viewModel.editingEntryId.collectAsState()
+    val varietyLines by viewModel.varietyLines.collectAsState()
+    val isMultiVarietyEnabled by viewModel.isMultiVarietyEnabled.collectAsState()
 
     var isSaving by remember { mutableStateOf(false) }
 
@@ -874,190 +882,450 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Row 1: Plant Variety (left) | Rootstock (right)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Plant Variety
+        if (isMultiVarietyEnabled) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("garden_multi_variety_section")
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Booking Varieties (${varietyLines.size})",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        TextButton(
+                            onClick = { viewModel.clearVarietyLines() },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+
+                    varietyLines.forEachIndexed { index, line ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) Color(0xFF0F172A) else Color.White,
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Item #${index + 1}",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    if (varietyLines.size > 1) {
+                                        IconButton(
+                                            onClick = { viewModel.removeVarietyLine(index) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.DeleteOutline,
+                                                contentDescription = "Remove Variety Line",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Variety Name
+                                OutlinedTextField(
+                                    value = line.variety,
+                                    onValueChange = { newVar ->
+                                        viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
+                                    },
+                                    label = { Text("Variety Name *") },
+                                    placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
+                                    shape = textFieldShape,
+                                    singleLine = true,
+                                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("garden_variety_line_name_${index}"),
+                                    colors = elevatedInputFieldColors(isDark = isDark)
+                                )
+
+                                // Rootstock & Feathers Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = line.rootstock,
+                                        onValueChange = { newRs ->
+                                            viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
+                                        },
+                                        label = { Text("Rootstock") },
+                                        placeholder = { Text("e.g. M9, MM106") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = AppDefaultWordKeyboardOptions,
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("garden_variety_line_rootstock_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+
+                                    OutlinedTextField(
+                                        value = line.feathers,
+                                        onValueChange = { newF ->
+                                            viewModel.updateVarietyLine(index, line.copy(feathers = newF))
+                                        },
+                                        label = { Text("Feathers") },
+                                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
+                                            keyboardType = KeyboardType.Text,
+                                            capitalization = KeyboardCapitalization.Characters
+                                        ),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("garden_variety_line_feathers_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+                                }
+
+                                // Quantity & Unit Price Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = if (line.quantity == 0) "" else line.quantity.toString(),
+                                        onValueChange = { newQ ->
+                                            val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
+                                            viewModel.updateVarietyLine(index, line.copy(quantity = q))
+                                        },
+                                        label = { Text("Quantity *") },
+                                        placeholder = { Text("Qty") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("garden_variety_line_qty_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+
+                                    OutlinedTextField(
+                                        value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
+                                        onValueChange = { newP ->
+                                            val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+                                            viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
+                                        },
+                                        label = { Text("Rate (₹) *") },
+                                        placeholder = { Text("Price") },
+                                        shape = textFieldShape,
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        leadingIcon = {
+                                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("garden_variety_line_price_${index}"),
+                                        colors = elevatedInputFieldColors(isDark = isDark)
+                                    )
+                                }
+
+                                // Subtotal
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = {
+                            val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
+                            val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
+                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .testTag("garden_add_another_variety_button"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        } else {
+            // Row 1: Plant Variety (left) | Rootstock (right)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Plant Variety
+                OutlinedTextField(
+                    value = plantVariety,
+                    onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Plant Variety", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. Gala") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.LocalFlorist,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_plant_variety_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Rootstock
+                OutlinedTextField(
+                    value = rootStock,
+                    onValueChange = { viewModel.rootStock.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Rootstock", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. M9") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Spa,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_root_stock_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            }
+
+            // Row 2: Sapling Age (left) | Plant Origin (right)
+            var ageDropdownExpanded by remember { mutableStateOf(false) }
+            val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "Grafted / Budded")
+
+            var originDropdownExpanded by remember { mutableStateOf(false) }
+            val plantOriginOptions = listOf("Local Plants", "Imported Plants")
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Sapling Age Dropdown
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = saplingAge,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        placeholder = { Text("Select Age") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.HourglassTop,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
+                            }
+                        },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { ageDropdownExpanded = true }
+                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                            .testTag("garden_sapling_age_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                    DropdownMenu(
+                        expanded = ageDropdownExpanded,
+                        onDismissRequest = { ageDropdownExpanded = false }
+                    ) {
+                        saplingAgeOptions.forEach { age ->
+                            DropdownMenuItem(
+                                text = { Text(age) },
+                                onClick = {
+                                    viewModel.saplingAge.value = age
+                                    ageDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Plant Origin Dropdown
+                Box(modifier = Modifier.weight(1f)) {
+                    OutlinedTextField(
+                        value = plantOrigin,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        placeholder = { Text("Select Origin") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Yard,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
+                            }
+                        },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { originDropdownExpanded = true }
+                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                            .testTag("garden_plant_origin_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                    DropdownMenu(
+                        expanded = originDropdownExpanded,
+                        onDismissRequest = { originDropdownExpanded = false }
+                    ) {
+                        plantOriginOptions.forEach { originOption ->
+                            DropdownMenuItem(
+                                text = { Text(originOption) },
+                                onClick = {
+                                    viewModel.plantOrigin.value = originOption
+                                    originDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Feathers (Full-Width Standard Text Specification Field)
             OutlinedTextField(
-                value = plantVariety,
-                onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
-                label = { Text("Plant Variety", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("e.g. Gala") },
+                value = feathers,
+                onValueChange = { viewModel.feathers.value = it },
+                label = { Text("Feathers", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                placeholder = { Text("Branches / shoots (e.g. 3, 3F, 5A, 2-3, 3+)") },
                 shape = textFieldShape,
                 singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.Characters
+                ),
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.LocalFlorist,
+                        imageVector = Icons.Default.Nature,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_plant_variety_input"),
+                    .testTag("garden_feathers_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
-            // Rootstock
-            OutlinedTextField(
-                value = rootStock,
-                onValueChange = { viewModel.rootStock.value = capitalizeWordsNaturally(it) },
-                label = { Text("Rootstock", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("e.g. M9") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Spa,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+            // Switch to Multi-Variety Button
+            OutlinedButton(
+                onClick = {
+                    viewModel.enableMultiVariety()
                 },
                 modifier = Modifier
-                    .weight(1f)
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_root_stock_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-        }
-
-        // Row 2: Sapling Age (left) | Plant Origin (right)
-        var ageDropdownExpanded by remember { mutableStateOf(false) }
-        val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "Grafted / Budded")
-
-        var originDropdownExpanded by remember { mutableStateOf(false) }
-        val plantOriginOptions = listOf("Local Plants", "Imported Plants")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Sapling Age Dropdown
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = saplingAge,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    placeholder = { Text("Select Age") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.HourglassTop,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
-                        }
-                    },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { ageDropdownExpanded = true }
-                        .boundedFormFieldRipple(shape = textFieldShape)
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("garden_sapling_age_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-                DropdownMenu(
-                    expanded = ageDropdownExpanded,
-                    onDismissRequest = { ageDropdownExpanded = false }
-                ) {
-                    saplingAgeOptions.forEach { age ->
-                        DropdownMenuItem(
-                            text = { Text(age) },
-                            onClick = {
-                                viewModel.saplingAge.value = age
-                                ageDropdownExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Plant Origin Dropdown
-            Box(modifier = Modifier.weight(1f)) {
-                OutlinedTextField(
-                    value = plantOrigin,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    placeholder = { Text("Select Origin") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Yard,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
-                        }
-                    },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { originDropdownExpanded = true }
-                        .boundedFormFieldRipple(shape = textFieldShape)
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("garden_plant_origin_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-                DropdownMenu(
-                    expanded = originDropdownExpanded,
-                    onDismissRequest = { originDropdownExpanded = false }
-                ) {
-                    plantOriginOptions.forEach { originOption ->
-                        DropdownMenuItem(
-                            text = { Text(originOption) },
-                            onClick = {
-                                viewModel.plantOrigin.value = originOption
-                                originDropdownExpanded = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        // Feathers (Full-Width Standard Text Specification Field)
-        OutlinedTextField(
-            value = feathers,
-            onValueChange = { viewModel.feathers.value = it },
-            label = { Text("Feathers", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            placeholder = { Text("Branches / shoots (e.g. 3, 3F, 5A, 2-3, 3+)") },
-            shape = textFieldShape,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                capitalization = KeyboardCapitalization.Characters
-            ),
-            leadingIcon = {
+                    .fillMaxWidth()
+                    .height(44.dp)
+                    .testTag("add_multiple_varieties_button"),
+                shape = textFieldShape,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Nature,
+                    Icons.Default.Layers,
                     contentDescription = null,
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_feathers_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "+ Add Multiple Varieties to this Booking",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         // Section Header: COST & QUANTITY DETAILS
         Text(
@@ -1069,54 +1337,166 @@ fun GardenPlanningFormTab(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // 3-Field Row: Total Kanal Area, Plants per Kanal, Total Plants
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Field 1: Total Kanal Area
+        if (isMultiVarietyEnabled && varietyLines.isNotEmpty()) {
+            val totalMultiQty = varietyLines.sumOf { it.quantity }
+            val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
+
+            // Optional Kanal Area field for Garden Planning multi-variety booking
             OutlinedTextField(
                 value = totalKanalArea,
                 onValueChange = { newArea ->
                     viewModel.totalKanalArea.value = newArea
                     lastEdited = LastEditedField.AREA
-                    val area = newArea.toDoubleOrNull()
-                    val density = plantsPerKanal.toDoubleOrNull()
-                    if (newArea.isBlank()) {
-                        viewModel.totalPlants.value = ""
-                    } else if (density == null || density <= 0) {
-                        viewModel.totalPlants.value = "—"
-                    } else if (area != null) {
-                        val calcPlants = Math.round(area * density).toInt()
-                        viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
-                    } else {
-                        viewModel.totalPlants.value = "—"
-                    }
-                    viewModel.recalculatePaymentStatus()
                 },
-                label = { Text("Kanal Area *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                label = { Text("Kanal Area (Optional)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 placeholder = { Text("e.g. 1.2") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 shape = textFieldShape,
                 singleLine = true,
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .boundedFormFieldRipple(shape = textFieldShape)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("garden_kanal_area_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
-            // Field 2: Plants per Kanal
-            OutlinedTextField(
-                value = plantsPerKanal,
-                onValueChange = { newDensityStr ->
-                    viewModel.plantsPerKanal.value = newDensityStr
-                    val density = newDensityStr.toDoubleOrNull()
-                    if (lastEdited == LastEditedField.TOTAL_PLANTS) {
-                        // Recompute Kanal Area = totalPlants / plantsPerKanal (2 decimals), leave Total Plants untouched
-                        val plants = totalPlants.toDoubleOrNull()
-                        if (totalPlants.isBlank()) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isDark) Color(0xFF1E293B) else Color.White,
+                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("garden_multi_variety_pricing_card")
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Varieties:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("${varietyLines.size} items", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Total Quantity:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("$totalMultiQty Plants", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Items Subtotal:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("₹${totalMultiPrice.toInt()}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        } else {
+            // 3-Field Row: Total Kanal Area, Plants per Kanal, Total Plants
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Field 1: Total Kanal Area
+                OutlinedTextField(
+                    value = totalKanalArea,
+                    onValueChange = { newArea ->
+                        viewModel.totalKanalArea.value = newArea
+                        lastEdited = LastEditedField.AREA
+                        val area = newArea.toDoubleOrNull()
+                        val density = plantsPerKanal.toDoubleOrNull()
+                        if (newArea.isBlank()) {
+                            viewModel.totalPlants.value = ""
+                        } else if (density == null || density <= 0) {
+                            viewModel.totalPlants.value = "—"
+                        } else if (area != null) {
+                            val calcPlants = Math.round(area * density).toInt()
+                            viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
+                        } else {
+                            viewModel.totalPlants.value = "—"
+                        }
+                        viewModel.recalculatePaymentStatus()
+                    },
+                    label = { Text("Kanal Area *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 1.2") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_kanal_area_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Field 2: Plants per Kanal
+                OutlinedTextField(
+                    value = plantsPerKanal,
+                    onValueChange = { newDensityStr ->
+                        viewModel.plantsPerKanal.value = newDensityStr
+                        val density = newDensityStr.toDoubleOrNull()
+                        if (lastEdited == LastEditedField.TOTAL_PLANTS) {
+                            // Recompute Kanal Area = totalPlants / plantsPerKanal (2 decimals), leave Total Plants untouched
+                            val plants = totalPlants.toDoubleOrNull()
+                            if (totalPlants.isBlank()) {
+                                viewModel.totalKanalArea.value = ""
+                            } else if (density == null || density <= 0) {
+                                viewModel.totalKanalArea.value = "—"
+                            } else if (plants != null) {
+                                val calcArea = plants / density
+                                val formattedKanal = if (calcArea % 1.0 == 0.0) {
+                                    calcArea.toInt().toString()
+                                } else {
+                                    String.format(java.util.Locale.US, "%.2f", calcArea)
+                                }
+                                viewModel.totalKanalArea.value = formattedKanal
+                            } else {
+                                viewModel.totalKanalArea.value = "—"
+                            }
+                        } else {
+                            // lastEdited == AREA or NONE (default): recompute Total Plants = round(kanalArea * plantsPerKanal), leave Kanal Area untouched
+                            val area = totalKanalArea.toDoubleOrNull()
+                            if (totalKanalArea.isBlank()) {
+                                viewModel.totalPlants.value = ""
+                            } else if (density == null || density <= 0) {
+                                viewModel.totalPlants.value = "—"
+                            } else if (area != null) {
+                                val calcPlants = Math.round(area * density).toInt()
+                                viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
+                            } else {
+                                viewModel.totalPlants.value = "—"
+                            }
+                        }
+                        viewModel.recalculatePaymentStatus()
+                    },
+                    label = { Text("Plants/Kanal *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 100") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_plants_per_kanal_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Field 3: Total Plants
+                OutlinedTextField(
+                    value = totalPlants,
+                    onValueChange = { newPlantsStr ->
+                        viewModel.totalPlants.value = newPlantsStr
+                        lastEdited = LastEditedField.TOTAL_PLANTS
+                        val plants = newPlantsStr.toDoubleOrNull()
+                        val density = plantsPerKanal.toDoubleOrNull()
+                        if (newPlantsStr.isBlank()) {
                             viewModel.totalKanalArea.value = ""
                         } else if (density == null || density <= 0) {
                             viewModel.totalKanalArea.value = "—"
@@ -1131,161 +1511,110 @@ fun GardenPlanningFormTab(
                         } else {
                             viewModel.totalKanalArea.value = "—"
                         }
-                    } else {
-                        // lastEdited == AREA or NONE (default): recompute Total Plants = round(kanalArea * plantsPerKanal), leave Kanal Area untouched
-                        val area = totalKanalArea.toDoubleOrNull()
-                        if (totalKanalArea.isBlank()) {
-                            viewModel.totalPlants.value = ""
-                        } else if (density == null || density <= 0) {
-                            viewModel.totalPlants.value = "—"
-                        } else if (area != null) {
-                            val calcPlants = Math.round(area * density).toInt()
-                            viewModel.totalPlants.value = if (calcPlants > 0) calcPlants.toString() else "0"
-                        } else {
-                            viewModel.totalPlants.value = "—"
-                        }
-                    }
-                    viewModel.recalculatePaymentStatus()
-                },
-                label = { Text("Plants/Kanal *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("e.g. 100") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = textFieldShape,
-                singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_plants_per_kanal_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // Field 3: Total Plants
-            OutlinedTextField(
-                value = totalPlants,
-                onValueChange = { newPlantsStr ->
-                    viewModel.totalPlants.value = newPlantsStr
-                    lastEdited = LastEditedField.TOTAL_PLANTS
-                    val plants = newPlantsStr.toDoubleOrNull()
-                    val density = plantsPerKanal.toDoubleOrNull()
-                    if (newPlantsStr.isBlank()) {
-                        viewModel.totalKanalArea.value = ""
-                    } else if (density == null || density <= 0) {
-                        viewModel.totalKanalArea.value = "—"
-                    } else if (plants != null) {
-                        val calcArea = plants / density
-                        val formattedKanal = if (calcArea % 1.0 == 0.0) {
-                            calcArea.toInt().toString()
-                        } else {
-                            String.format(java.util.Locale.US, "%.2f", calcArea)
-                        }
-                        viewModel.totalKanalArea.value = formattedKanal
-                    } else {
-                        viewModel.totalKanalArea.value = "—"
-                    }
-                    viewModel.recalculatePaymentStatus()
-                },
-                label = { Text("Total Plants *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("e.g. 120") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = textFieldShape,
-                singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_total_plants_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-        }
-
-        // Field 4: Unit Price per Plant
-        OutlinedTextField(
-            value = costPerPlant,
-            onValueChange = { 
-                viewModel.costPerPlant.value = it
-                viewModel.recalculatePaymentStatus()
-            },
-            label = { Text("Unit Price per Plant *") },
-            placeholder = { Text("e.g. 150") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = textFieldShape,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.CurrencyRupee,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                        viewModel.recalculatePaymentStatus()
+                    },
+                    label = { Text("Total Plants *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 120") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                        .testTag("garden_total_plants_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
                 )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("garden_cost_per_plant_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
+            }
 
-        // Computed Total Cost & Summary Box (displayed when total plants and unit price are filled)
-        val areaVal = totalKanalArea.toDoubleOrNull()
-        val plantsVal = plantsPerKanal.toDoubleOrNull()
-        val totalPVal = totalPlants.toDoubleOrNull() ?: (if (areaVal != null && plantsVal != null) areaVal * plantsVal else null)
-        val costVal = costPerPlant.toDoubleOrNull()
-        val isAllCostFieldsFilled = totalPVal != null && totalPVal > 0 && costVal != null && costVal > 0
-
-        if (isAllCostFieldsFilled) {
-            val calcTotalCost = totalPVal!! * costVal!!
-            val calculatedTotalPlants = Math.round(totalPVal).toInt()
-            val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
-            val formattedTotalCost = currencyFormat.format(calcTotalCost)
-
-            val areaDisplay = areaVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
-            val plantsDisplay = plantsVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
-
-            Surface(
+            // Field 4: Unit Price per Plant
+            OutlinedTextField(
+                value = costPerPlant,
+                onValueChange = { 
+                    viewModel.costPerPlant.value = it
+                    viewModel.recalculatePaymentStatus()
+                },
+                label = { Text("Unit Price per Plant *") },
+                placeholder = { Text("e.g. 150") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = textFieldShape,
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.CurrencyRupee,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .elevated3dShadow(shape = RoundedCornerShape(16.dp), isDark = isDark)
-                    .testTag("garden_total_cost_card"),
-                shape = RoundedCornerShape(16.dp),
-                color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
-                border = BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
-            ) {
-                Row(
+                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
+                    .testTag("garden_cost_per_plant_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
+            // Computed Total Cost & Summary Box (displayed when total plants and unit price are filled)
+            val areaVal = totalKanalArea.toDoubleOrNull()
+            val plantsVal = plantsPerKanal.toDoubleOrNull()
+            val totalPVal = totalPlants.toDoubleOrNull() ?: (if (areaVal != null && plantsVal != null) areaVal * plantsVal else null)
+            val costVal = costPerPlant.toDoubleOrNull()
+            val isAllCostFieldsFilled = totalPVal != null && totalPVal > 0 && costVal != null && costVal > 0
+
+            if (isAllCostFieldsFilled) {
+                val calcTotalCost = totalPVal!! * costVal!!
+                val calculatedTotalPlants = Math.round(totalPVal).toInt()
+                val formattedTotalPlants = NumberFormat.getIntegerInstance(Locale("en", "IN")).format(calculatedTotalPlants)
+                val formattedTotalCost = currencyFormat.format(calcTotalCost)
+
+                val areaDisplay = areaVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
+                val plantsDisplay = plantsVal?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() } ?: "N/A"
+
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .elevated3dShadow(shape = RoundedCornerShape(16.dp), isDark = isDark)
+                        .testTag("garden_total_cost_card"),
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
+                    border = BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
                 ) {
-                    Column(
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 12.dp)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 12.dp)
+                        ) {
+                            Text(
+                                text = "TOTAL COST",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         Text(
-                            text = "TOTAL COST",
-                            fontSize = 11.sp,
+                            text = formattedTotalCost,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "$areaDisplay Kanals × $plantsDisplay/Kanal = $formattedTotalPlants Total Plants",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            maxLines = 1
                         )
                     }
-
-                    Text(
-                        text = formattedTotalCost,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1
-                    )
                 }
             }
         }
@@ -1718,8 +2047,10 @@ fun GardenPlanningFormTab(
                 onClick = {
                     val area = totalKanalArea.toDoubleOrNull() ?: 0.0
                     val plants = plantsPerKanal.toDoubleOrNull()?.toInt() ?: plantsPerKanal.toIntOrNull() ?: 0
-                    val totalPlants = Math.round(area * plants).toInt()
+                    val isMulti = isMultiVarietyEnabled && varietyLines.isNotEmpty()
+                    val totalPlantsCount = if (isMulti) varietyLines.sumOf { it.quantity } else Math.round(area * plants).toInt()
                     val totalAmount = calculatedCost
+                    val vLinesJson = if (isMulti) serializeVarietyLines(varietyLines.filter { it.variety.isNotBlank() || it.quantity > 0 }) else ""
 
                     val cost = costPerPlant.toDoubleOrNull() ?: 0.0
                     val receiptData = ReceiptData(
@@ -1731,7 +2062,7 @@ fun GardenPlanningFormTab(
                         orchardLocation = farmerAddress,
                         serviceCategory = "Garden Planning",
                         plantVariety = plantVariety.ifBlank { "Apple Plants" },
-                        quantity = totalPlants.toString(),
+                        quantity = totalPlantsCount.toString(),
                         totalAmount = totalAmount,
                         amountPaid = amountPaidDouble,
                         remainingBalance = remainingBalance,
@@ -1742,7 +2073,8 @@ fun GardenPlanningFormTab(
                         rootstock = rootStock,
                         recordType = "gardenplanning",
                         totalKanalArea = area,
-                        costPerPlant = cost
+                        costPerPlant = cost,
+                        varietyLinesJson = vLinesJson
                     )
 
                     val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
@@ -2709,19 +3041,78 @@ fun GardenBookingRecordDetailDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DetailRowItem(label = "Category", value = "Garden Planning", isDark = isDark)
-                    DetailRowItem(label = "Total Area", value = "${currentEntry.totalKanalArea} Kanals", isDark = isDark)
-                    DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
+                    if (currentEntry.totalKanalArea > 0) {
+                        DetailRowItem(label = "Total Area", value = "${currentEntry.totalKanalArea} Kanals", isDark = isDark)
+                    }
+                    if (currentEntry.plantsPerKanal > 0) {
+                        DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
+                    }
                     DetailRowItem(label = "Total Calculated Plants", value = "$totalPlants Plants", isDark = isDark)
-                    DetailRowItem(label = "Rate / Unit Price", value = "₹${currentEntry.costPerPlant.toInt()}", isDark = isDark)
+                    if (currentEntry.costPerPlant > 0) {
+                        DetailRowItem(label = "Rate / Unit Price", value = "₹${currentEntry.costPerPlant.toInt()}", isDark = isDark)
+                    }
                     DetailRowItem(label = "Plant Origin", value = currentEntry.plantOrigin.ifBlank { "Local Plants" }, isDark = isDark)
-                    if (currentEntry.plantVariety.isNotBlank()) {
-                        DetailRowItem(label = "Plant Variety", value = currentEntry.plantVariety, isDark = isDark)
-                    }
-                    if (currentEntry.rootStock.isNotBlank()) {
-                        DetailRowItem(label = "Rootstock Variety", value = currentEntry.rootStock, isDark = isDark)
-                    }
-                    if (currentEntry.feathers.isNotBlank()) {
-                        DetailRowItem(label = "Feathers", value = if (currentEntry.feathers.all { it.isDigit() }) "${currentEntry.feathers} branches" else currentEntry.feathers, isDark = isDark)
+
+                    val entryVarietyLines = parseVarietyLines(currentEntry.varietyLinesJson)
+                    if (entryVarietyLines.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Booked Varieties Breakdown (${entryVarietyLines.size})",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                entryVarietyLines.forEachIndexed { idx, vl ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "${idx + 1}. ${vl.variety.ifBlank { "Variety" }}${if (vl.rootstock.isNotBlank()) " (${vl.rootstock})" else ""}${if (vl.feathers.isNotBlank()) " [${vl.feathers}]" else ""}",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                            )
+                                            Text(
+                                                text = "${vl.quantity} Plants @ ₹${vl.unitPrice.toInt()}",
+                                                fontSize = 12.sp,
+                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                            )
+                                        }
+                                        Text(
+                                            text = "₹${(vl.quantity * vl.unitPrice).toInt()}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    if (idx < entryVarietyLines.size - 1) {
+                                        HorizontalDivider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        if (currentEntry.plantVariety.isNotBlank()) {
+                            DetailRowItem(label = "Plant Variety", value = currentEntry.plantVariety, isDark = isDark)
+                        }
+                        if (currentEntry.rootStock.isNotBlank()) {
+                            DetailRowItem(label = "Rootstock Variety", value = currentEntry.rootStock, isDark = isDark)
+                        }
+                        if (currentEntry.feathers.isNotBlank()) {
+                            DetailRowItem(label = "Feathers", value = if (currentEntry.feathers.all { it.isDigit() }) "${currentEntry.feathers} branches" else currentEntry.feathers, isDark = isDark)
+                        }
                     }
 
                     DetailRowItem(
@@ -3134,7 +3525,8 @@ fun GardenBookingRecordDetailDialog(
                                 recordType = "gardenplanning",
                                 recordId = currentEntry.id,
                                 totalKanalArea = currentEntry.totalKanalArea,
-                                costPerPlant = currentEntry.costPerPlant
+                                costPerPlant = currentEntry.costPerPlant,
+                                varietyLinesJson = currentEntry.varietyLinesJson
                             )
                             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
                             receiptPreviewBitmap = bmp

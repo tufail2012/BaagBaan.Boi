@@ -106,7 +106,8 @@ object PdfReceiptManager {
             recordType = item.source,
             recordId = item.id,
             totalKanalArea = gardenMatch?.totalKanalArea ?: 0.0,
-            costPerPlant = gardenMatch?.costPerPlant ?: 0.0
+            costPerPlant = gardenMatch?.costPerPlant ?: 0.0,
+            varietyLinesJson = cropMatch?.varietyLinesJson ?: gardenMatch?.varietyLinesJson ?: ""
         )
     }
 
