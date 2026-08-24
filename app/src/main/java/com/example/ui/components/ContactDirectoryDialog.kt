@@ -98,6 +98,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
+import com.example.data.GardenPlanningEntry
 import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -238,11 +239,14 @@ fun ContactDirectoryDialog(
     // Load Crop Records to aggregate farmer contacts automatically
     val cropRecords by db.cropRecordDao().getAllRecords().collectAsState(initial = emptyList())
 
+    // Load Garden Planning entries to aggregate farmer contacts and serial numbers
+    val gardenPlanningEntries by db.gardenPlanningDao().getAllEntries().collectAsState(initial = emptyList())
+
     var deletedContactKeys by remember { mutableStateOf(setOf<String>()) }
 
-    // Auto-sync crop booking farmer contacts to DB contacts table
-    LaunchedEffect(cropRecords, deletedContactKeys) {
-        if (cropRecords.isNotEmpty()) {
+    // Auto-sync crop booking & garden planning farmer contacts to DB contacts table
+    LaunchedEffect(cropRecords, gardenPlanningEntries, deletedContactKeys) {
+        if (cropRecords.isNotEmpty() || gardenPlanningEntries.isNotEmpty()) {
             withContext(Dispatchers.IO) {
                 cropRecords.forEach { record ->
                     val cleanPhone = record.contactNumber.replace(Regex("[^0-9]"), "")
@@ -261,12 +265,29 @@ fun ContactDirectoryDialog(
                         }
                     }
                 }
+                gardenPlanningEntries.forEach { entry ->
+                    val cleanPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
+                    val key = if (cleanPhone.isNotEmpty()) cleanPhone else entry.farmerName.trim().lowercase()
+                    if ((entry.farmerName.isNotBlank() || entry.contactNumber.isNotBlank()) && !deletedContactKeys.contains(key)) {
+                        val existing = db.farmerContactDao().getContactByPhoneOrName(entry.contactNumber, entry.farmerName)
+                        if (existing == null) {
+                            db.farmerContactDao().insertContact(
+                                FarmerContact(
+                                    name = entry.farmerName.ifBlank { "Farmer" },
+                                    phone = entry.contactNumber,
+                                    address = entry.farmerAddress,
+                                    category = "Farmer"
+                                )
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 
     // Aggregated list
-    val allContactsList = remember(dbContacts, cropRecords, searchQuery, deletedContactKeys) {
+    val allContactsList = remember(dbContacts, cropRecords, gardenPlanningEntries, searchQuery, deletedContactKeys) {
         val list = mutableListOf<ContactDisplayItem>()
         val phoneSet = mutableSetOf<String>()
 
@@ -281,6 +302,23 @@ fun ContactDirectoryDialog(
                     (cleanPhone.isNotEmpty() && crClean.isNotEmpty() && crClean == cleanPhone) ||
                             (fc.name.isNotBlank() && cr.farmerName.trim().equals(fc.name.trim(), ignoreCase = true))
                 }
+                // Find matching gardenPlanningEntry by phone or name to retrieve actual serialNumber
+                val matchingGardenEntry = gardenPlanningEntries.firstOrNull { ge ->
+                    val geClean = ge.contactNumber.replace(Regex("[^0-9]"), "")
+                    (cleanPhone.isNotEmpty() && geClean.isNotEmpty() && geClean == cleanPhone) ||
+                            (fc.name.isNotBlank() && ge.farmerName.trim().equals(fc.name.trim(), ignoreCase = true))
+                }
+
+                val matchedSerial = when {
+                    fc.category.contains("Garden", ignoreCase = true) && !matchingGardenEntry?.serialNumber.isNullOrBlank() ->
+                        matchingGardenEntry!!.serialNumber
+                    !matchingRecord?.serialNumber.isNullOrBlank() ->
+                        matchingRecord!!.serialNumber
+                    !matchingGardenEntry?.serialNumber.isNullOrBlank() ->
+                        matchingGardenEntry!!.serialNumber
+                    else -> ""
+                }
+
                 list.add(
                     ContactDisplayItem(
                         id = fc.id,
@@ -288,7 +326,7 @@ fun ContactDirectoryDialog(
                         phone = fc.phone,
                         address = fc.address,
                         category = fc.category,
-                        serialNumber = matchingRecord?.serialNumber ?: ""
+                        serialNumber = matchedSerial
                     )
                 )
                 if (cleanPhone.isNotEmpty()) phoneSet.add(cleanPhone)
@@ -314,6 +352,30 @@ fun ContactDirectoryDialog(
                         totalAmount = record.quantity * record.landAreaAcres,
                         amountPaid = record.amountPaid,
                         paymentStatus = record.paymentStatus
+                    )
+                )
+            }
+        }
+
+        // 3. Add contacts from Garden Planning entries if not already present
+        gardenPlanningEntries.forEach { entry ->
+            val cleanPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
+            val key = if (cleanPhone.isNotEmpty()) cleanPhone else entry.farmerName.trim().lowercase()
+            if (!deletedContactKeys.contains(key) && cleanPhone.isNotEmpty() && !phoneSet.contains(cleanPhone)) {
+                phoneSet.add(cleanPhone)
+                list.add(
+                    ContactDisplayItem(
+                        id = entry.id,
+                        name = entry.farmerName,
+                        phone = entry.contactNumber,
+                        address = entry.farmerAddress,
+                        category = "Farmer (Garden Planning)",
+                        serialNumber = entry.serialNumber,
+                        isFromCropRecords = false,
+                        associatedService = "Garden Planning",
+                        totalAmount = entry.totalCost,
+                        amountPaid = entry.amountPaid,
+                        paymentStatus = entry.paymentStatus
                     )
                 )
             }
@@ -690,6 +752,7 @@ fun ContactDirectoryDialog(
         ContactDetailsDialog(
             contact = contactItem,
             cropRecords = cropRecords,
+            gardenPlanningEntries = gardenPlanningEntries,
             isSavedInPhone = isContactSavedInPhone,
             onDismiss = { selectedContactForDetails = null },
             onMakeCall = { makePhoneCall(contactItem.phone) },
@@ -773,6 +836,7 @@ fun ContactDirectoryDialog(
 fun ContactDetailsDialog(
     contact: ContactDisplayItem,
     cropRecords: List<CropRecord>,
+    gardenPlanningEntries: List<GardenPlanningEntry> = emptyList(),
     isSavedInPhone: Boolean,
     onDismiss: () -> Unit,
     onMakeCall: () -> Unit,
@@ -790,12 +854,23 @@ fun ContactDetailsDialog(
         }.sortedWith(SerialNumberUtils.cropRecordComparator)
     }
 
-    val totalBookings = relatedRecords.size
+    // Filter related garden planning entries for this farmer
+    val relatedGardenEntries = remember(contact, gardenPlanningEntries) {
+        val cleanContactPhone = contact.phone.replace(Regex("[^0-9]"), "")
+        val contactNameLower = contact.name.trim().lowercase()
+        gardenPlanningEntries.filter { entry ->
+            val cleanEntryPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
+            (cleanContactPhone.isNotEmpty() && cleanEntryPhone == cleanContactPhone) ||
+                    (contactNameLower.isNotEmpty() && entry.farmerName.trim().lowercase() == contactNameLower)
+        }.sortedByDescending { it.timestamp }
+    }
+
+    val totalBookings = relatedRecords.size + relatedGardenEntries.size
     val totalAmount = relatedRecords.sumOf { record ->
         val amt = record.quantity * record.landAreaAcres
         if (amt > 0) amt else record.amountPaid
-    }
-    val totalPaid = relatedRecords.sumOf { it.amountPaid }
+    } + relatedGardenEntries.sumOf { it.totalCost }
+    val totalPaid = relatedRecords.sumOf { it.amountPaid } + relatedGardenEntries.sumOf { it.amountPaid }
     val balanceDue = maxOf(0.0, totalAmount - totalPaid)
 
     Dialog(
@@ -1026,20 +1101,20 @@ fun ContactDetailsDialog(
                     // Related Bookings Title
                     item {
                         Text(
-                            text = "Related Bookings & History (${relatedRecords.size})",
+                            text = "Related Bookings & History ($totalBookings)",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
 
-                    if (relatedRecords.isEmpty()) {
+                    if (relatedRecords.isEmpty() && relatedGardenEntries.isEmpty()) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                                 )
                             ) {
                                 Column(
@@ -1143,6 +1218,88 @@ fun ContactDetailsDialog(
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = "Booking Date: ${record.bookingDate}",
+                                            fontSize = 11.5.sp,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        items(relatedGardenEntries, key = { "detail_garden_${it.id}" }) { entry ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                                        ) {
+                                            Text(
+                                                text = entry.serialNumber.ifEmpty { "GP-#${entry.id}" },
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.secondary,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = if (entry.paymentStatus == "Cleared" || entry.paymentStatus == "Fully Paid") Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                                        ) {
+                                            Text(
+                                                text = entry.paymentStatus,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = if (entry.paymentStatus == "Cleared" || entry.paymentStatus == "Fully Paid") Color(0xFF2E7D32) else Color(0xFFE65100),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Text(
+                                        text = "Garden Planning • ${entry.plantVariety.ifBlank { entry.plantOrigin }}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Area: ${entry.totalKanalArea} Kanals | ${entry.plantsPerKanal} Pl/K",
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+
+                                        Text(
+                                            text = "Paid: ₹${String.format("%.0f", entry.amountPaid)}",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    if (entry.bookingDate.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Booking Date: ${entry.bookingDate}",
                                             fontSize = 11.5.sp,
                                             color = MaterialTheme.colorScheme.outline
                                         )

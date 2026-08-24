@@ -2850,6 +2850,7 @@ fun GardenBookingRecordDetailDialog(
     var isSavingInstallment by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var receiptPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showShareReceiptConfirm by remember { mutableStateOf(false) }
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
     var showSmsConfirm by remember { mutableStateOf(false) }
     var showTrackingWaConfirm by remember { mutableStateOf(false) }
@@ -3761,105 +3762,179 @@ fun GardenBookingRecordDetailDialog(
         )
     }
 
-    // Receipt Preview Dialog
-    if (receiptPreviewBitmap != null) {
-        Dialog(
-            onDismissRequest = { receiptPreviewBitmap = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
+    // Receipt Image Preview Dialog
+    receiptPreviewBitmap?.let { bmp ->
+        Dialog(onDismissRequest = { receiptPreviewBitmap = null }) {
             Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = if (isDark) Color(0xFF1E293B) else Color.White
+                color = if (isDark) Color(0xFF1E293B) else Color.White,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Digital Receipt Preview", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        IconButton(onClick = { receiptPreviewBitmap = null }) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
-                        }
-                    }
-
-                    Image(
-                        bitmap = receiptPreviewBitmap!!.asImageBitmap(),
-                        contentDescription = "Receipt Image",
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp)
+                    Text(
+                        text = "Digital Receipt Preview",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
                     )
 
-                    Row(
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "Receipt Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(380.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { receiptPreviewBitmap = null },
-                            modifier = Modifier.weight(0.8f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Close")
+                            Button(
+                                onClick = {
+                                    ReceiptGenerator.printReceiptBitmap(context, bmp, currentEntry.serialNumber)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("print_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+
+                            Button(
+                                onClick = {
+                                    showShareReceiptConfirm = true
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .testTag("share_whatsapp_receipt_button"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF25D366),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
 
-                        Button(
-                            onClick = {
-                                if (receiptPreviewBitmap != null) {
-                                    ReceiptGenerator.printReceiptBitmap(context, receiptPreviewBitmap!!, currentEntry.serialNumber)
-                                }
-                            },
-                            modifier = Modifier.weight(1.1f).testTag("print_receipt_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Print Receipt", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
-                        }
-
-                        Button(
-                            onClick = {
-                                val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
-                                val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, receiptPreviewBitmap!!, currentEntry.serialNumber)
-                                val msgText = "Dear ${currentEntry.farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning (#${currentEntry.serialNumber})."
-                                if (uri != null) {
-                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/*"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        putExtra(Intent.EXTRA_TEXT, msgText)
-                                        if (cleanPhone.isNotBlank()) {
-                                            setPackage("com.whatsapp")
-                                            putExtra("jid", "$cleanPhone@s.whatsapp.net")
-                                        }
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    try {
-                                        context.startActivity(shareIntent)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
-                            modifier = Modifier.weight(1.2f).testTag("share_whatsapp_receipt_button"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))
-                        ) {
-                            Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Send via WhatsApp", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                            OutlinedButton(
+                                onClick = { receiptPreviewBitmap = null },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (isDark) Color.White else Color(0xFF0F172A)
+                                )
+                            ) {
+                                Text("Close", fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Share Receipt Confirmation Dialog
+    if (showShareReceiptConfirm) {
+        AlertDialog(
+            onDismissRequest = { showShareReceiptConfirm = false },
+            title = { Text("Share Digital Receipt", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to share the digital receipt image to ${currentEntry.farmerName} (${currentEntry.contactNumber.ifBlank { "N/A" }}) on WhatsApp?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showShareReceiptConfirm = false
+                        val bmp = receiptPreviewBitmap
+                        if (bmp != null) {
+                            val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, currentEntry.serialNumber)
+                            if (uri != null) {
+                                var cleanDigits = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
+                                if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
+                                    cleanDigits = cleanDigits.takeLast(10)
+                                } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
+                                    cleanDigits = cleanDigits.substring(1)
+                                }
+                                if (cleanDigits.length > 10) {
+                                    cleanDigits = cleanDigits.takeLast(10)
+                                }
+                                val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
+
+                                if (formattedPhone.isNotEmpty()) {
+                                    val waIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "image/png"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        putExtra("jid", "$formattedPhone@s.whatsapp.net")
+                                        putExtra(Intent.EXTRA_TEXT, "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber}).")
+                                        setPackage("com.whatsapp")
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    try {
+                                        context.startActivity(waIntent)
+                                    } catch (_: Exception) {
+                                        try {
+                                            val waBusinessIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "image/png"
+                                                putExtra(Intent.EXTRA_STREAM, uri)
+                                                putExtra("jid", "$formattedPhone@s.whatsapp.net")
+                                                putExtra(Intent.EXTRA_TEXT, "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber}).")
+                                                setPackage("com.whatsapp.w4b")
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            context.startActivity(waBusinessIntent)
+                                        } catch (_: Exception) {
+                                            Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Please enter a valid phone number for the farmer to share on WhatsApp", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Could not generate receipt image URI", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                ) {
+                    Text("Share", color = Color(0xFF25D366), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showShareReceiptConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

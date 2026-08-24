@@ -255,6 +255,9 @@ fun WhatsAppTemplateDialog(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
+        val targetName = farmerName.ifBlank { "the farmer" }
+        Toast.makeText(context, "Select ${targetName}'s chat to send the receipt", Toast.LENGTH_SHORT).show()
+
         try {
             context.startActivity(waIntent)
         } catch (_: Exception) {
