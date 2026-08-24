@@ -60,6 +60,7 @@ object InventoryStockManager {
     }
 
     fun isStockDeductible(record: CropRecord): Boolean {
+        if (record.isCancelled) return false
         return isStockDeductible(record.serviceType, record.paymentStatus, record.notes)
     }
 

@@ -28,6 +28,10 @@ object RecycleBinConverter {
         json.put("paymentProofUri", record.paymentProofUri)
         json.put("paymentHistoryJson", record.paymentHistoryJson)
         json.put("varietyLinesJson", record.varietyLinesJson)
+        json.put("isReceived", record.isReceived)
+        json.put("receivedDate", record.receivedDate)
+        json.put("isCancelled", record.isCancelled)
+        json.put("cancelledDate", record.cancelledDate)
         json.put("timestamp", record.timestamp)
         return json.toString()
     }
@@ -57,6 +61,10 @@ object RecycleBinConverter {
             paymentProofUri = json.optString("paymentProofUri", ""),
             paymentHistoryJson = json.optString("paymentHistoryJson", ""),
             varietyLinesJson = json.optString("varietyLinesJson", ""),
+            isReceived = json.optBoolean("isReceived", false),
+            receivedDate = json.optString("receivedDate", ""),
+            isCancelled = json.optBoolean("isCancelled", false),
+            cancelledDate = json.optString("cancelledDate", ""),
             timestamp = json.optLong("timestamp", System.currentTimeMillis())
         )
     }

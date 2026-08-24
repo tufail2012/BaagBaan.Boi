@@ -98,6 +98,10 @@ class FirestoreSyncManager {
                 "paymentProofUri" to record.paymentProofUri,
                 "paymentHistoryJson" to record.paymentHistoryJson,
                 "varietyLinesJson" to record.varietyLinesJson,
+                "isReceived" to record.isReceived,
+                "receivedDate" to record.receivedDate,
+                "isCancelled" to record.isCancelled,
+                "cancelledDate" to record.cancelledDate,
                 "timestamp" to record.timestamp
             )
 
@@ -458,6 +462,10 @@ class FirestoreSyncManager {
                 val paymentProofUri = doc.getString("paymentProofUri") ?: ""
                 val paymentHistoryJson = doc.getString("paymentHistoryJson") ?: ""
                 val varietyLinesJson = doc.getString("varietyLinesJson") ?: ""
+                val isReceived = doc.getBoolean("isReceived") ?: false
+                val receivedDate = doc.getString("receivedDate") ?: ""
+                val isCancelled = doc.getBoolean("isCancelled") ?: false
+                val cancelledDate = doc.getString("cancelledDate") ?: ""
                 val timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
 
                 val cloudRecord = CropRecord(
@@ -483,6 +491,10 @@ class FirestoreSyncManager {
                     paymentProofUri = paymentProofUri,
                     paymentHistoryJson = paymentHistoryJson,
                     varietyLinesJson = varietyLinesJson,
+                    isReceived = isReceived,
+                    receivedDate = receivedDate,
+                    isCancelled = isCancelled,
+                    cancelledDate = cancelledDate,
                     timestamp = timestamp
                 )
 

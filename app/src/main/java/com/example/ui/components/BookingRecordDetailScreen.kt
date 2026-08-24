@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -180,6 +181,8 @@ fun BookingRecordDetailDialog(
     var isSavingInstallment by remember { mutableStateOf(false) }
     val isDark = isAppInDarkMode()
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showCancelConfirm by remember { mutableStateOf(false) }
+    var isCancelling by remember { mutableStateOf(false) }
     var receiptPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
     var showSmsConfirm by remember { mutableStateOf(false) }
@@ -229,17 +232,38 @@ fun BookingRecordDetailDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primary
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Text(
+                                text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+
+                        if (record.isCancelled) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF991B1B) else Color(0xFFFCA5A5))
+                            ) {
+                                Text(
+                                    text = "CANCELLED",
+                                    color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
                     }
 
                     Row(
@@ -524,6 +548,7 @@ fun BookingRecordDetailDialog(
                             }
 
                             val (statusText, statusBg) = when {
+                                record.isCancelled -> "Cancelled" to Color(0xFFDC2626)
                                 remainingBalance <= 0.01 -> "Fully Paid" to (if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
                                 totalPaidSoFar > 0 -> "Advance Paid" to Color(0xFFE65100)
                                 else -> "Pending" to MaterialTheme.colorScheme.primary
@@ -988,6 +1013,39 @@ fun BookingRecordDetailDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
+
+                    // Button 5: Cancel Booking (Visible only when booking is not cancelled and not received)
+                    if (!record.isCancelled && !record.isReceived) {
+                        OutlinedButton(
+                            onClick = {
+                                showCancelConfirm = true
+                            },
+                            enabled = !isCancelling,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("cancel_booking_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            if (isCancelling) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.error,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            } else {
+                                Icon(imageVector = Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+                    }
                 }
 
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
@@ -1008,6 +1066,74 @@ fun BookingRecordDetailDialog(
                 onDelete(record)
             },
             onDismiss = { showDeleteConfirm = false }
+        )
+    }
+
+    // Cancel Booking Confirmation Dialog
+    if (showCancelConfirm) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isCancelling) showCancelConfirm = false 
+            },
+            title = { 
+                Text(
+                    text = "Confirm Cancel?", 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                ) 
+            },
+            text = { 
+                Text("Are you sure you want to cancel this booking? This will restore allocated stock back to inventory and mark the booking as cancelled.") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelConfirm = false
+                        coroutineScope.launch {
+                            isCancelling = true
+                            try {
+                                val db = com.example.data.AppDatabase.getDatabase(context)
+                                val inventoryDao = db.inventoryDao()
+                                val firestoreSyncManager = com.example.data.FirestoreSyncManager()
+
+                                // 1. Restore stock to inventory directly using applyBookingDelete without deleting Room row
+                                com.example.data.InventoryStockManager.applyBookingDelete(
+                                    inventoryDao = inventoryDao,
+                                    firestoreSyncManager = firestoreSyncManager,
+                                    record = record,
+                                    context = context
+                                )
+
+                                // 2. Update booking record status to isCancelled = true
+                                val today = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+                                val updatedRecord = record.copy(
+                                    isCancelled = true,
+                                    cancelledDate = today,
+                                    timestamp = System.currentTimeMillis()
+                                )
+
+                                onUpdateRecord(updatedRecord)
+                                Toast.makeText(context, "Booking cancelled and stock restored to inventory", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error cancelling booking: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isCancelling = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Confirm", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCancelConfirm = false },
+                    enabled = !isCancelling
+                ) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 

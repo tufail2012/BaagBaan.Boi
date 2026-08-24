@@ -28,6 +28,10 @@ data class CropRecord(
     val paymentProofUri: String = "",
     val paymentHistoryJson: String = "",
     val varietyLinesJson: String = "",
+    val isReceived: Boolean = false,
+    val receivedDate: String = "",
+    val isCancelled: Boolean = false,
+    val cancelledDate: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )
 

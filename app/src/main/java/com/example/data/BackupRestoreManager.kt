@@ -98,6 +98,10 @@ class BackupRestoreManager {
                             paymentProofUri = doc.getString("paymentProofUri") ?: "",
                             paymentHistoryJson = doc.getString("paymentHistoryJson") ?: "",
                             varietyLinesJson = doc.getString("varietyLinesJson") ?: "",
+                            isReceived = doc.getBoolean("isReceived") ?: false,
+                            receivedDate = doc.getString("receivedDate") ?: "",
+                            isCancelled = doc.getBoolean("isCancelled") ?: false,
+                            cancelledDate = doc.getString("cancelledDate") ?: "",
                             timestamp = doc.getLong("timestamp") ?: System.currentTimeMillis()
                         )
                     )
@@ -132,6 +136,10 @@ class BackupRestoreManager {
                 obj.put("paymentProofUri", record.paymentProofUri)
                 obj.put("paymentHistoryJson", record.paymentHistoryJson)
                 obj.put("varietyLinesJson", record.varietyLinesJson)
+                obj.put("isReceived", record.isReceived)
+                obj.put("receivedDate", record.receivedDate)
+                obj.put("isCancelled", record.isCancelled)
+                obj.put("cancelledDate", record.cancelledDate)
                 obj.put("timestamp", record.timestamp)
                 cropRecordsJson.put(obj)
             }
@@ -431,6 +439,10 @@ class BackupRestoreManager {
                         paymentProofUri = obj.optString("paymentProofUri", ""),
                         paymentHistoryJson = obj.optString("paymentHistoryJson", ""),
                         varietyLinesJson = obj.optString("varietyLinesJson", ""),
+                        isReceived = obj.optBoolean("isReceived", false),
+                        receivedDate = obj.optString("receivedDate", ""),
+                        isCancelled = obj.optBoolean("isCancelled", false),
+                        cancelledDate = obj.optString("cancelledDate", ""),
                         timestamp = obj.optLong("timestamp", System.currentTimeMillis())
                     )
 

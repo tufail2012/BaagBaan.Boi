@@ -521,12 +521,14 @@ private fun FarmerRecordCard(
     val avatarBgColor = MaterialTheme.colorScheme.primary
 
     val statusLabel = when {
+        record.isCancelled -> "Cancelled"
         record.isPaymentCleared() -> "Fully Paid"
         record.amountPaid > 0 -> "Advance Paid"
         else -> "Pending"
     }
 
     val (statusBadgeBg, statusBadgeText) = when {
+        record.isCancelled -> Pair(if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2), if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626))
         record.isPaymentCleared() -> Pair(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7), if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D))
         record.amountPaid > 0 -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
         else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
