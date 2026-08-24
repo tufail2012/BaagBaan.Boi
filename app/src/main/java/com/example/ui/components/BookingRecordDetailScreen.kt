@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -217,15 +219,20 @@ fun BookingRecordDetailDialog(
             modifier = Modifier.fillMaxSize(),
             color = if (isDark) Color(0xFF121826) else Color(0xFFF8FAFC)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding()
-                    .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (record.isCancelled) {
+                    CancelledWatermark(isDark = isDark)
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding()
+                        .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 // 1. Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1051,6 +1058,7 @@ fun BookingRecordDetailDialog(
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
                 Spacer(modifier = Modifier.height(32.dp))
             }
+            }
         }
     }
 
@@ -1602,3 +1610,42 @@ private fun sendWhatsAppTrackingDetails(
         Toast.makeText(context, "Contact number is not available", Toast.LENGTH_SHORT).show()
     }
 }
+
+@Composable
+fun CancelledWatermark(
+    modifier: Modifier = Modifier,
+    isDark: Boolean = false
+) {
+    val watermarkColor = if (isDark) {
+        Color(0xFFEF4444).copy(alpha = 0.16f)
+    } else {
+        Color(0xFFDC2626).copy(alpha = 0.10f)
+    }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .rotate(-30f)
+                .border(
+                    width = 4.dp,
+                    color = watermarkColor,
+                    shape = RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 28.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "CANCELLED",
+                fontSize = 46.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 8.sp,
+                color = watermarkColor,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+

@@ -61,6 +61,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.AccountBalance
@@ -2500,6 +2501,7 @@ private fun GardenPlanningRecordCard(
     val avatarBgColor = MaterialTheme.colorScheme.primary
 
     val (statusBadgeBg, statusBadgeText) = when (entry.paymentStatus) {
+        "Cancelled" -> Pair(if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2), if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626))
         "Fully Paid" -> Pair(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7), if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D))
         "Advance Paid" -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
         else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
@@ -2848,7 +2850,9 @@ fun GardenBookingRecordDetailDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isSavingInstallment by remember { mutableStateOf(false) }
+    var isCancelling by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showCancelConfirm by remember { mutableStateOf(false) }
     var receiptPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showShareReceiptConfirm by remember { mutableStateOf(false) }
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
@@ -2885,31 +2889,57 @@ fun GardenBookingRecordDetailDialog(
             modifier = Modifier.fillMaxSize(),
             color = if (isDark) Color(0xFF121826) else Color(0xFFF8FAFC)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .navigationBarsPadding()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (currentEntry.paymentStatus.equals("Cancelled", ignoreCase = true)) {
+                    CancelledWatermark(isDark = isDark)
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .navigationBarsPadding()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 // 1. Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.primary
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Serial No. ${currentEntry.serialNumber.ifBlank { "01" }}",
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Text(
+                                text = "Serial No. ${currentEntry.serialNumber.ifBlank { "01" }}",
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+
+                        if (currentEntry.paymentStatus.equals("Cancelled", ignoreCase = true)) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF991B1B) else Color(0xFFFCA5A5))
+                            ) {
+                                Text(
+                                    text = "CANCELLED",
+                                    color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
                     }
 
                     Row(
@@ -3590,10 +3620,44 @@ fun GardenBookingRecordDetailDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF25D366))
                     }
+
+                    // Button 5: Cancel Booking (Visible only when booking is not cancelled)
+                    if (!currentEntry.paymentStatus.equals("Cancelled", ignoreCase = true)) {
+                        OutlinedButton(
+                            onClick = {
+                                showCancelConfirm = true
+                            },
+                            enabled = !isCancelling,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("cancel_booking_button"),
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            if (isCancelling) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.error,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            } else {
+                                Icon(imageVector = Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+                        }
+                    }
                 }
 
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
                 Spacer(modifier = Modifier.height(32.dp))
+            }
             }
         }
     }
@@ -3715,6 +3779,59 @@ fun GardenBookingRecordDetailDialog(
             },
             dismissButton = {
                 TextButton(onClick = { showSmsConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Cancel Booking Confirmation Dialog
+    if (showCancelConfirm) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isCancelling) showCancelConfirm = false 
+            },
+            title = { 
+                Text(
+                    text = "Confirm Cancel?", 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                ) 
+            },
+            text = { 
+                Text("Are you sure you want to cancel this booking? This will mark the booking as cancelled.") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelConfirm = false
+                        coroutineScope.launch {
+                            isCancelling = true
+                            try {
+                                val updatedEntry = currentEntry.copy(
+                                    paymentStatus = "Cancelled",
+                                    timestamp = System.currentTimeMillis()
+                                )
+                                currentEntry = updatedEntry
+                                viewModel.updateEntrySync(updatedEntry)
+                                Toast.makeText(context, "Booking marked as cancelled", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error cancelling booking: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isCancelling = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Confirm", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCancelConfirm = false },
+                    enabled = !isCancelling
+                ) {
                     Text("Cancel")
                 }
             }
