@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -185,6 +187,8 @@ fun BookingRecordDetailDialog(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showCancelConfirm by remember { mutableStateOf(false) }
     var isCancelling by remember { mutableStateOf(false) }
+    var showReceivedConfirm by remember { mutableStateOf(false) }
+    var isMarkingReceived by remember { mutableStateOf(false) }
     var receiptPreviewBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showWhatsAppConfirm by remember { mutableStateOf(false) }
     var showSmsConfirm by remember { mutableStateOf(false) }
@@ -222,6 +226,8 @@ fun BookingRecordDetailDialog(
             Box(modifier = Modifier.fillMaxSize()) {
                 if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
+                } else if (record.isReceived) {
+                    ReceivedWatermark(isDark = isDark)
                 }
 
                 Column(
@@ -265,6 +271,20 @@ fun BookingRecordDetailDialog(
                                 Text(
                                     text = "CANCELLED",
                                     color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
+                            }
+                        } else if (record.isReceived) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5),
+                                border = BorderStroke(1.dp, if (isDark) Color(0xFF059669) else Color(0xFF6EE7B7))
+                            ) {
+                                Text(
+                                    text = "RECEIVED",
+                                    color = if (isDark) Color(0xFF6EE7B7) else Color(0xFF059669),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -1021,35 +1041,81 @@ fun BookingRecordDetailDialog(
                         Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
 
-                    // Button 5: Cancel Booking (Visible only when booking is not cancelled and not received)
+                    // Actions: Received & Cancel Booking (Visible only when booking is not cancelled and not received)
                     if (!record.isCancelled && !record.isReceived) {
-                        OutlinedButton(
-                            onClick = {
-                                showCancelConfirm = true
-                            },
-                            enabled = !isCancelling,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp)
-                                .testTag("cancel_booking_button"),
-                            shape = RoundedCornerShape(26.dp),
-                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (isCancelling) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.error,
-                                    strokeWidth = 2.dp
+                            // Button: Received
+                            OutlinedButton(
+                                onClick = {
+                                    showReceivedConfirm = true
+                                },
+                                enabled = !isCancelling && !isMarkingReceived,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                                    .testTag("received_booking_button"),
+                                shape = RoundedCornerShape(26.dp),
+                                border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            } else {
-                                Icon(imageVector = Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            ) {
+                                if (isMarkingReceived) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Received", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            }
+
+                            // Button: Cancel Booking
+                            OutlinedButton(
+                                onClick = {
+                                    showCancelConfirm = true
+                                },
+                                enabled = !isCancelling && !isMarkingReceived,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(52.dp)
+                                    .testTag("cancel_booking_button"),
+                                shape = RoundedCornerShape(26.dp),
+                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                if (isCancelling) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.error,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Cancel,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
                             }
                         }
                     }
@@ -1138,6 +1204,65 @@ fun BookingRecordDetailDialog(
                 TextButton(
                     onClick = { showCancelConfirm = false },
                     enabled = !isCancelling
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Mark Booking as Received Confirmation Dialog
+    if (showReceivedConfirm) {
+        AlertDialog(
+            onDismissRequest = { 
+                if (!isMarkingReceived) showReceivedConfirm = false 
+            },
+            title = { 
+                Text(
+                    text = "Mark Booking as Received?", 
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
+                ) 
+            },
+            text = { 
+                Text("Are you sure you want to mark this booking as Received?") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReceivedConfirm = false
+                        coroutineScope.launch {
+                            isMarkingReceived = true
+                            try {
+                                val today = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+                                val updatedRecord = record.copy(
+                                    isReceived = true,
+                                    receivedDate = today,
+                                    timestamp = System.currentTimeMillis()
+                                )
+
+                                onUpdateRecord(updatedRecord)
+                                Toast.makeText(context, "Booking marked as Received", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error updating booking: ${e.message}", Toast.LENGTH_LONG).show()
+                            } finally {
+                                isMarkingReceived = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDark) Color(0xFF16A34A) else Color(0xFF22C55E)
+                    ),
+                    modifier = Modifier.testTag("confirm_received_button")
+                ) {
+                    Text("Confirm", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showReceivedConfirm = false },
+                    enabled = !isMarkingReceived,
+                    modifier = Modifier.testTag("cancel_received_button")
                 ) {
                     Text("Cancel")
                 }
@@ -1622,6 +1747,44 @@ fun CancelledWatermark(
         ) {
             Text(
                 text = "CANCELLED",
+                fontSize = 46.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 8.sp,
+                color = watermarkColor,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun ReceivedWatermark(
+    modifier: Modifier = Modifier,
+    isDark: Boolean = false
+) {
+    val watermarkColor = if (isDark) {
+        Color(0xFF22C55E).copy(alpha = 0.16f)
+    } else {
+        Color(0xFF16A34A).copy(alpha = 0.10f)
+    }
+
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .rotate(-30f)
+                .border(
+                    width = 4.dp,
+                    color = watermarkColor,
+                    shape = RoundedCornerShape(14.dp)
+                )
+                .padding(horizontal = 28.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "RECEIVED",
                 fontSize = 46.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 8.sp,

@@ -168,8 +168,8 @@ object WhatsAppHelper {
     }
 
     /**
-     * Directly shares media (e.g., Digital Receipt image) directly to the contact's 1-on-1 chat
-     * using the phone number's WhatsApp JID ($normalized@s.whatsapp.net), falling back cleanly to direct chat.
+     * Sends Digital Receipt to the WhatsApp chat using the exact same destination
+     * and number normalization mechanism as openWhatsAppChat / Send WhatsApp Confirmation.
      */
     fun sendWhatsAppMedia(
         context: Context,
@@ -178,46 +178,26 @@ object WhatsAppHelper {
         mimeType: String = "image/png",
         messageText: String = ""
     ): Boolean {
-        val normalized = normalizePhoneNumber(rawPhone)
-        if (normalized != null && normalized.length >= 7) {
-            val jid = "$normalized@s.whatsapp.net"
-            // 1. Try standard WhatsApp with target JID
-            try {
-                val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = mimeType
-                    putExtra(Intent.EXTRA_STREAM, mediaUri)
-                    if (messageText.isNotEmpty()) {
-                        putExtra(Intent.EXTRA_TEXT, messageText)
-                    }
-                    putExtra("jid", jid)
-                    setPackage("com.whatsapp")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(sendIntent)
-                return true
-            } catch (_: Exception) {
-                // 2. Try WhatsApp Business with target JID
-                try {
-                    val sendBusinessIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = mimeType
-                        putExtra(Intent.EXTRA_STREAM, mediaUri)
-                        if (messageText.isNotEmpty()) {
-                            putExtra(Intent.EXTRA_TEXT, messageText)
-                        }
-                        putExtra("jid", jid)
-                        setPackage("com.whatsapp.w4b")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(sendBusinessIntent)
-                    return true
-                } catch (_: Exception) {
-                    // Fallback to direct chat
-                    return openWhatsAppChat(context, rawPhone, messageText)
-                }
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            if (clipboard != null) {
+                val clip = android.content.ClipData.newUri(context.contentResolver, "Receipt Image", mediaUri)
+                clipboard.setPrimaryClip(clip)
             }
-        } else {
-            // General share if no valid phone
-            return openWhatsAppChat(context, rawPhone, messageText)
+        } catch (_: Exception) {}
+
+        val opened = openWhatsAppChat(
+            context = context,
+            rawPhone = rawPhone,
+            messageText = messageText
+        )
+        if (opened) {
+            Toast.makeText(
+                context,
+                "Receipt image copied — paste it into the chat and send",
+                Toast.LENGTH_SHORT
+            ).show()
         }
+        return opened
     }
 }
