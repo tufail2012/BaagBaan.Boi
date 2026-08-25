@@ -226,81 +226,12 @@ fun WhatsAppTemplateDialog(
     }
 
     fun launchWhatsAppText(phone: String, text: String) {
-        var cleanPhone = phone.replace(Regex("[^0-9]"), "")
-        if (cleanPhone.length == 10) {
-            cleanPhone = "91$cleanPhone"
-        }
-
-        try {
-            val url = "https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(text)}"
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                data = Uri.parse(url)
-                setPackage("com.whatsapp")
-            }
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            try {
-                val url = "https://api.whatsapp.com/send?phone=$cleanPhone&text=${Uri.encode(text)}"
-                val fallbackIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(fallbackIntent)
-            } catch (ex: Exception) {
-                Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-            }
-        }
+        com.example.util.WhatsAppHelper.openWhatsAppChat(context, phone, text)
     }
 
     fun launchWhatsAppImage(phone: String, uri: Uri, caption: String) {
-        var cleanDigits = phone.replace(Regex("[^0-9]"), "")
-        if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-            cleanDigits = cleanDigits.takeLast(10)
-        } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-            cleanDigits = cleanDigits.substring(1)
-        }
-        if (cleanDigits.length > 10) {
-            cleanDigits = cleanDigits.takeLast(10)
-        }
-        val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-
-        val waIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "image/png"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            if (formattedPhone.isNotEmpty()) {
-                putExtra("jid", "$formattedPhone@s.whatsapp.net")
-            }
-            putExtra(Intent.EXTRA_TEXT, caption)
-            setPackage("com.whatsapp")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-
-        val targetName = farmerName.ifBlank { "the farmer" }
-        Toast.makeText(context, "Select ${targetName}'s chat to send the receipt", Toast.LENGTH_SHORT).show()
-
-        try {
-            context.startActivity(waIntent)
-        } catch (_: Exception) {
-            try {
-                val waBusinessIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "image/png"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    if (formattedPhone.isNotEmpty()) {
-                        putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                    }
-                    putExtra(Intent.EXTRA_TEXT, caption)
-                    setPackage("com.whatsapp.w4b")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(waBusinessIntent)
-            } catch (_: Exception) {
-                // Fallback to chooser
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "image/png"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_TEXT, caption)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                context.startActivity(Intent.createChooser(shareIntent, "Share Digital Receipt"))
-            }
-        }
+        // Direct WhatsApp deep link to the chat of the specific phone number
+        com.example.util.WhatsAppHelper.openWhatsAppChat(context, phone, caption)
     }
 
     ModalBottomSheet(

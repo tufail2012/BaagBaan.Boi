@@ -486,16 +486,18 @@ private fun SummaryCardItem(
 
 private fun openWhatsApp(context: Context, phoneNumber: String) {
     if (phoneNumber.isNotBlank()) {
-        val cleanNumber = phoneNumber.replace("[^0-9]".toRegex(), "")
-        val formattedNumber = if (cleanNumber.length == 10) "91$cleanNumber" else cleanNumber
-        val url = "https://api.whatsapp.com/send?phone=$formattedNumber"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        try {
-            context.startActivity(intent)
-        } catch (_: Exception) {
-            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
-            context.startActivity(dialIntent)
-        }
+        com.example.util.WhatsAppHelper.openWhatsAppChat(
+            context = context,
+            rawPhone = phoneNumber,
+            onInvalidNumber = {
+                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
+                try {
+                    context.startActivity(dialIntent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Cannot open dialer or WhatsApp", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 }
 

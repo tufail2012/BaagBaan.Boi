@@ -948,14 +948,14 @@ class CropViewModel(
             }
 
             val finalQuantity = if (isMultiVariety) {
-                vLines.sumOf { it.quantity }
+                vLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants }
             } else {
                 quantity.value.toIntOrNull() ?: 1
             }
 
             val finalUnitPrice = if (isMultiVariety) {
-                val totalQty = vLines.sumOf { it.quantity }
-                if (totalQty > 0) vLines.sumOf { it.quantity * it.unitPrice } / totalQty else (vLines.firstOrNull()?.unitPrice ?: 1.0)
+                val totalQty = vLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants }
+                if (totalQty > 0) vLines.sumOf { (if (it.quantity > 0) it.quantity else it.totalPlants) * it.unitPrice } / totalQty else (vLines.firstOrNull()?.unitPrice ?: 1.0)
             } else {
                 landAreaAcres.value.toDoubleOrNull() ?: 1.0
             }

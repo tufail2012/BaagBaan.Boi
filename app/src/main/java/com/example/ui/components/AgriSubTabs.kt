@@ -60,15 +60,15 @@ fun PruningSubTabs(
     val containerGlassGradient = if (!isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.70f),
+                Color.White.copy(alpha = 0.55f),
                 Color(0xFFE2E8F0).copy(alpha = 0.50f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.65f),
-                Color(0xFF0F172A).copy(alpha = 0.78f)
+                Color(0xFF1E293B).copy(alpha = 0.55f),
+                Color(0xFF0F172A).copy(alpha = 0.52f)
             )
         )
     }
@@ -76,15 +76,15 @@ fun PruningSubTabs(
     val containerGlassBorder = if (!isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.95f),
-                Color.White.copy(alpha = 0.40f)
+                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.25f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color.White.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.15f)
             )
         )
     }
@@ -109,7 +109,7 @@ fun PruningSubTabs(
             .clip(containerShape)
             .background(containerGlassGradient)
             .border(
-                width = 1.2.dp,
+                width = 1.5.dp,
                 brush = containerGlassBorder,
                 shape = containerShape
             )
@@ -164,15 +164,15 @@ fun RootstockSubTabs(
     val containerGlassGradient = if (!isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.70f),
+                Color.White.copy(alpha = 0.55f),
                 Color(0xFFE2E8F0).copy(alpha = 0.50f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.65f),
-                Color(0xFF0F172A).copy(alpha = 0.78f)
+                Color(0xFF1E293B).copy(alpha = 0.55f),
+                Color(0xFF0F172A).copy(alpha = 0.52f)
             )
         )
     }
@@ -180,15 +180,15 @@ fun RootstockSubTabs(
     val containerGlassBorder = if (!isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.95f),
-                Color.White.copy(alpha = 0.40f)
+                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.25f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color.White.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.15f)
             )
         )
     }
@@ -213,7 +213,7 @@ fun RootstockSubTabs(
             .clip(containerShape)
             .background(containerGlassGradient)
             .border(
-                width = 1.2.dp,
+                width = 1.5.dp,
                 brush = containerGlassBorder,
                 shape = containerShape
             )

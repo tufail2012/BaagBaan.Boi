@@ -634,15 +634,27 @@ fun FarmerFormScreen(
     val textFieldShape = RoundedCornerShape(16.dp)
     val isDark = isAppInDarkMode()
 
-    val totalPayment = (quantity.toDoubleOrNull() ?: 0.0) * (landAreaAcres.toDoubleOrNull() ?: 0.0)
+    val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
+    val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
+    val isSiteVisit = serviceType.equals("Site Visit", ignoreCase = true)
+    val isPruning = serviceType.equals("Pruning", ignoreCase = true)
+    val isGardenPlanning = serviceType.equals("Garden Planning", ignoreCase = true) || serviceType.equals("Garden", ignoreCase = true)
+    val isMultiVarietyApplicable = !isPruning && !isSiteVisit && !isGardenPlanning
+
+    val isMultiVariety = isMultiVarietyApplicable && varietyLines.isNotEmpty()
+    val multiVarietySum = if (isMultiVariety) calculateTotalAmountMultiVariety(varietyLines) else 0.0
+    val qtyNum = if (isMultiVariety) varietyLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
+    val priceNum = landAreaAcres.toDoubleOrNull() ?: 0.0
+    val graftingChargesNum = if (isImportedRootstocks && graftingCharges.isNotBlank()) (graftingCharges.toDoubleOrNull() ?: 0.0) else 0.0
+    val totalPayment = if (isMultiVariety) multiVarietySum + graftingChargesNum else (qtyNum * priceNum) + graftingChargesNum
     val paidAmountNum = amountPaid.toDoubleOrNull() ?: 0.0
     val remainingBalance = maxOf(0.0, totalPayment - paidAmountNum)
 
     val farmerNameStr = if (farmerName.isBlank()) "Valued Farmer" else farmerName
     val contactNumberStr = if (contactNumber.isBlank()) "N/A" else contactNumber
     val serialStr = if (serialNumber.isBlank()) "N/A" else serialNumber
-    val varietyStr = if (plantVariety.isNotBlank()) plantVariety else if (rootstock.isNotBlank()) rootstock else selectedService
-    val qtyStr = quantity
+    val varietyStr = if (isMultiVariety) "${varietyLines.size} Varieties" else if (plantVariety.isNotBlank()) plantVariety else if (rootstock.isNotBlank()) rootstock else selectedService
+    val qtyStr = if (isMultiVariety) qtyNum.toString() else quantity
     val totalAmtFormatted = "₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(totalPayment.toLong())}"
     val paidAmtFormatted = "₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(paidAmountNum.toLong())}"
     val remBalFormatted = "₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}"
@@ -1134,7 +1146,14 @@ fun FarmerFormScreen(
                                         value = if (line.quantity == 0) "" else line.quantity.toString(),
                                         onValueChange = { newQ ->
                                             val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                            viewModel.updateVarietyLine(index, line.copy(quantity = q))
+                                            viewModel.updateVarietyLine(
+                                                index,
+                                                line.copy(
+                                                    quantity = q,
+                                                    totalPlants = q,
+                                                    totalPlantsStr = if (q > 0) q.toString() else ""
+                                                )
+                                            )
                                         },
                                         label = { Text("Quantity *") },
                                         placeholder = { Text("Qty") },
@@ -1154,7 +1173,13 @@ fun FarmerFormScreen(
                                         value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
                                         onValueChange = { newP ->
                                             val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
-                                            viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
+                                            viewModel.updateVarietyLine(
+                                                index,
+                                                line.copy(
+                                                    unitPrice = p,
+                                                    unitPriceStr = if (p > 0.0) p.toString() else ""
+                                                )
+                                            )
                                         },
                                         label = { Text("Rate (₹) *") },
                                         placeholder = { Text("Price") },
@@ -1176,8 +1201,9 @@ fun FarmerFormScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.End
                                 ) {
+                                    val lineQty = if (line.quantity > 0) line.quantity else line.totalPlants
                                     Text(
-                                        text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
+                                        text = "Subtotal: ₹${(lineQty * line.unitPrice).toInt()}",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -1191,7 +1217,7 @@ fun FarmerFormScreen(
                         onClick = {
                             val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
                             val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
-                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
+                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = "", totalPlants = 0))
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2157,9 +2183,9 @@ fun FarmerFormScreen(
         }
 
         // Automatic Calculation: Total Payment = (Quantity * Unit Price) + Grafting Charges (if entered)
-        val isMultiVariety = varietyLines.isNotEmpty()
+        val isMultiVariety = isMultiVarietyApplicable && varietyLines.isNotEmpty()
         val multiVarietySum = if (isMultiVariety) calculateTotalAmountMultiVariety(varietyLines) else 0.0
-        val qtyNum = if (isMultiVariety) varietyLines.sumOf { it.quantity } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
+        val qtyNum = if (isMultiVariety) varietyLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
         val priceNum = landAreaAcres.toDoubleOrNull() ?: 0.0
         val graftingChargesNum = if (isImportedRootstocks && graftingCharges.isNotBlank()) (graftingCharges.toDoubleOrNull() ?: 0.0) else 0.0
         val totalPayment = if (isMultiVariety) multiVarietySum + graftingChargesNum else (qtyNum * priceNum) + graftingChargesNum
@@ -3077,43 +3103,11 @@ fun FarmerFormScreen(
                 TextButton(
                     onClick = {
                         showWaFormConfirmDialog = false
-                        var cleanDigits = contactNumber.replace("[^0-9]".toRegex(), "")
-                        if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-                            cleanDigits = cleanDigits.takeLast(10)
-                        } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-                            cleanDigits = cleanDigits.substring(1)
-                        }
-                        if (cleanDigits.length > 10) {
-                            cleanDigits = cleanDigits.takeLast(10)
-                        }
-                        val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-                        val encodedMsg = Uri.encode(generatedMessage)
-
-                        if (formattedPhone.isNotEmpty()) {
-                            val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=$encodedMsg")
-                            val waIntent = Intent(Intent.ACTION_VIEW, waUri).apply {
-                                setPackage("com.whatsapp")
-                            }
-                            try {
-                                context.startActivity(waIntent)
-                            } catch (e: Exception) {
-                                try {
-                                    val waBusinessIntent = Intent(Intent.ACTION_VIEW, waUri).apply {
-                                        setPackage("com.whatsapp.w4b")
-                                    }
-                                    context.startActivity(waBusinessIntent)
-                                } catch (ex: Exception) {
-                                    try {
-                                        val directWaUri = Uri.parse("whatsapp://send?phone=$formattedPhone&text=$encodedMsg")
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, directWaUri))
-                                    } catch (exc: Exception) {
-                                        Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Invalid phone number format", Toast.LENGTH_SHORT).show()
-                        }
+                        com.example.util.WhatsAppHelper.openWhatsAppChat(
+                            context = context,
+                            rawPhone = contactNumber,
+                            messageText = generatedMessage
+                        )
                     }
                 ) {
                     Text("Send", color = Color(0xFF25D366), fontWeight = FontWeight.Bold)
@@ -3183,52 +3177,19 @@ fun FarmerFormScreen(
         AlertDialog(
             onDismissRequest = { showShareFormReceiptConfirmDialog = false },
             title = { Text("Share Digital Receipt", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to share the digital receipt image to ${farmerName.ifBlank { "the farmer" }} (${contactNumber.ifBlank { "N/A" }}) on WhatsApp?") },
+            text = { Text("Are you sure you want to share the digital receipt image to ${farmerName.ifBlank { "the farmer" }} (${contactNumber.ifBlank { "N/A" }})?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showShareFormReceiptConfirmDialog = false
                         if (generatedReceiptUri != null) {
-                            var cleanDigits = contactNumber.replace("[^0-9]".toRegex(), "")
-                            if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-                                cleanDigits = cleanDigits.takeLast(10)
-                            } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-                                cleanDigits = cleanDigits.substring(1)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(Intent.EXTRA_STREAM, generatedReceiptUri)
+                                putExtra(Intent.EXTRA_TEXT, "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}.")
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            if (cleanDigits.length > 10) {
-                                cleanDigits = cleanDigits.takeLast(10)
-                            }
-                            val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-
-                            if (formattedPhone.isNotEmpty()) {
-                                val waIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/png"
-                                    putExtra(Intent.EXTRA_STREAM, generatedReceiptUri)
-                                    putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                    putExtra(Intent.EXTRA_TEXT, "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}.")
-                                    setPackage("com.whatsapp")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                try {
-                                    context.startActivity(waIntent)
-                                } catch (_: Exception) {
-                                    try {
-                                        val waBusinessIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/png"
-                                            putExtra(Intent.EXTRA_STREAM, generatedReceiptUri)
-                                            putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                            putExtra(Intent.EXTRA_TEXT, "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}.")
-                                            setPackage("com.whatsapp.w4b")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(waBusinessIntent)
-                                    } catch (_: Exception) {
-                                        Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "Please enter a valid contact phone number for the farmer", Toast.LENGTH_SHORT).show()
-                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Digital Receipt"))
                         } else {
                             Toast.makeText(context, "Failed to load receipt file", Toast.LENGTH_SHORT).show()
                         }
@@ -3250,54 +3211,25 @@ fun FarmerFormScreen(
         AlertDialog(
             onDismissRequest = { showWaFormReceiptConfirmDialog = false },
             title = { Text("Send Receipt via WhatsApp", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to send the digital receipt image to ${farmerName.ifBlank { "the farmer" }} (${contactNumber}) on WhatsApp?") },
+            text = { Text("Are you sure you want to send the digital receipt to ${farmerName.ifBlank { "the farmer" }} (${contactNumber}) on WhatsApp?") },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showWaFormReceiptConfirmDialog = false
+                        val caption = "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}."
                         if (generatedReceiptUri != null) {
-                            var cleanDigits = contactNumber.replace("[^0-9]".toRegex(), "")
-                            if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-                                cleanDigits = cleanDigits.takeLast(10)
-                            } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-                                cleanDigits = cleanDigits.substring(1)
-                            }
-                            if (cleanDigits.length > 10) {
-                                cleanDigits = cleanDigits.takeLast(10)
-                            }
-                            val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-
-                            if (formattedPhone.isNotEmpty()) {
-                                val waIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "image/png"
-                                    putExtra(Intent.EXTRA_STREAM, generatedReceiptUri)
-                                    putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                    putExtra(Intent.EXTRA_TEXT, "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}.")
-                                    setPackage("com.whatsapp")
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                try {
-                                    context.startActivity(waIntent)
-                                } catch (_: Exception) {
-                                    try {
-                                        val waBusinessIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "image/png"
-                                            putExtra(Intent.EXTRA_STREAM, generatedReceiptUri)
-                                            putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                            putExtra(Intent.EXTRA_TEXT, "Dear ${if (farmerName.isBlank()) "Farmer" else farmerName}, here is your official digital receipt from Baagbaan Boi${if (serialNumber.isNotBlank()) " (Serial #$serialNumber)" else ""}.")
-                                            setPackage("com.whatsapp.w4b")
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }
-                                        context.startActivity(waBusinessIntent)
-                                    } catch (_: Exception) {
-                                        Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } else {
-                                Toast.makeText(context, "Please enter a valid contact phone number for the farmer", Toast.LENGTH_SHORT).show()
-                            }
+                            com.example.util.WhatsAppHelper.sendWhatsAppMedia(
+                                context = context,
+                                rawPhone = contactNumber,
+                                mediaUri = generatedReceiptUri!!,
+                                messageText = caption
+                            )
                         } else {
-                            Toast.makeText(context, "Failed to load receipt image file", Toast.LENGTH_SHORT).show()
+                            com.example.util.WhatsAppHelper.openWhatsAppChat(
+                                context = context,
+                                rawPhone = contactNumber,
+                                messageText = caption
+                            )
                         }
                     }
                 ) {

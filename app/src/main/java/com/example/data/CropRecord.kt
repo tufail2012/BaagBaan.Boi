@@ -49,6 +49,8 @@ data class VarietyLine(
     val totalPlantsStr: String = if (totalPlants > 0) totalPlants.toString() else if (quantity > 0) quantity.toString() else "",
     val unitPriceStr: String = if (unitPrice > 0.0) (if (unitPrice % 1.0 == 0.0) unitPrice.toInt().toString() else unitPrice.toString()) else ""
 ) {
+    val effectiveQuantity: Int get() = if (quantity > 0) quantity else totalPlants
+
     // Secondary constructor for backward compatibility with 5-arg positional calls: (variety, quantity, unitPrice, rootstock, feathers)
     constructor(
         variety: String,
@@ -64,7 +66,9 @@ data class VarietyLine(
         plantsPerKanal = 0,
         totalPlants = quantity,
         unitPrice = unitPrice,
-        quantity = quantity
+        quantity = quantity,
+        totalPlantsStr = if (quantity > 0) quantity.toString() else "",
+        unitPriceStr = if (unitPrice > 0.0) (if (unitPrice % 1.0 == 0.0) unitPrice.toInt().toString() else unitPrice.toString()) else ""
     )
 }
 
@@ -83,7 +87,7 @@ fun parseVarietyLines(json: String): List<VarietyLine> {
             val rawQty = obj.optInt("quantity", 0)
             val totalPlants = obj.optInt("totalPlants", rawQty)
             val unitPrice = obj.optDouble("unitPrice", 0.0)
-            val effectivePlants = if (totalPlants > 0) totalPlants else rawQty
+            val effectivePlants = if (rawQty > 0) rawQty else if (totalPlants > 0) totalPlants else 0
             val effectiveKanalArea = if (kanalArea > 0.0) kanalArea else if (plantsPerKanal > 0 && effectivePlants > 0) effectivePlants.toDouble() / plantsPerKanal else 0.0
             if (variety.isNotBlank() || effectivePlants > 0) {
                 list.add(
@@ -95,7 +99,9 @@ fun parseVarietyLines(json: String): List<VarietyLine> {
                         plantsPerKanal = plantsPerKanal,
                         totalPlants = effectivePlants,
                         unitPrice = unitPrice,
-                        quantity = effectivePlants
+                        quantity = effectivePlants,
+                        totalPlantsStr = if (effectivePlants > 0) effectivePlants.toString() else "",
+                        unitPriceStr = if (unitPrice > 0.0) (if (unitPrice % 1.0 == 0.0) unitPrice.toInt().toString() else unitPrice.toString()) else ""
                     )
                 )
             }
@@ -111,7 +117,7 @@ fun formatVarietyLinesJson(lines: List<VarietyLine>): String {
     val array = org.json.JSONArray()
     for (line in lines) {
         val obj = org.json.JSONObject()
-        val plantCount = if (line.totalPlants > 0) line.totalPlants else line.quantity
+        val plantCount = if (line.quantity > 0) line.quantity else if (line.totalPlants > 0) line.totalPlants else 0
         obj.put("variety", line.variety)
         obj.put("rootstock", line.rootstock)
         obj.put("feathers", line.feathers)
@@ -128,10 +134,16 @@ fun formatVarietyLinesJson(lines: List<VarietyLine>): String {
 fun serializeVarietyLines(lines: List<VarietyLine>): String = formatVarietyLinesJson(lines)
 
 fun calculateTotalAmountMultiVariety(lines: List<VarietyLine>): Double {
-    return lines.sumOf { (if (it.totalPlants > 0) it.totalPlants else it.quantity) * it.unitPrice }
+    return lines.sumOf { (if (it.quantity > 0) it.quantity else it.totalPlants) * it.unitPrice }
 }
 
 fun CropRecord.calculateTotalAmount(): Double {
+    if (varietyLinesJson.isNotBlank()) {
+        val lines = parseVarietyLines(varietyLinesJson)
+        if (lines.isNotEmpty()) {
+            return calculateTotalAmountMultiVariety()
+        }
+    }
     val base = quantity * landAreaAcres
     val isRootstock = serviceType.equals("Rootstocks", ignoreCase = true) || serviceType.contains("Rootstock", ignoreCase = true) || serviceType.equals("Imported", ignoreCase = true)
     val graftMatch = if (isRootstock) Regex("Grafting Charges:\\s*₹?\\s*([0-9.]+)").find(notes) else null
@@ -141,8 +153,14 @@ fun CropRecord.calculateTotalAmount(): Double {
 
 fun CropRecord.calculateTotalAmountMultiVariety(): Double {
     val lines = parseVarietyLines(varietyLinesJson)
-    if (lines.isEmpty()) return calculateTotalAmount() // exact existing behavior, untouched
-    val base = lines.sumOf { it.quantity * it.unitPrice }
+    if (lines.isEmpty()) {
+        val base = quantity * landAreaAcres
+        val isRootstock = serviceType.equals("Rootstocks", ignoreCase = true) || serviceType.contains("Rootstock", ignoreCase = true) || serviceType.equals("Imported", ignoreCase = true)
+        val graftMatch = if (isRootstock) Regex("Grafting Charges:\\s*₹?\\s*([0-9.]+)").find(notes) else null
+        val graftAmount = graftMatch?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0
+        return base + graftAmount
+    }
+    val base = lines.sumOf { (if (it.quantity > 0) it.quantity else it.totalPlants) * it.unitPrice }
     val isRootstock = serviceType.equals("Rootstocks", ignoreCase = true) || serviceType.contains("Rootstock", ignoreCase = true) || serviceType.equals("Imported", ignoreCase = true)
     val graftMatch = if (isRootstock) Regex("Grafting Charges:\\s*₹?\\s*([0-9.]+)").find(notes) else null
     val graftAmount = graftMatch?.groupValues?.get(1)?.toDoubleOrNull() ?: 0.0

@@ -201,23 +201,6 @@ fun PaymentRemindersDialog(
     }
 
     fun openWhatsAppReminder(item: PendingPaymentItem) {
-        val phone = item.contactNumber.trim()
-        var cleanDigits = phone.replace(Regex("[^0-9]"), "")
-        if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-            cleanDigits = cleanDigits.takeLast(10)
-        } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-            cleanDigits = cleanDigits.substring(1)
-        }
-        if (cleanDigits.length > 10) {
-            cleanDigits = cleanDigits.takeLast(10)
-        }
-        val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-
-        if (formattedPhone.isEmpty()) {
-            Toast.makeText(context, "No valid phone number for ${item.farmerName}", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val formattedDue = numberFormat.format(item.amountDue)
         val farmerDisplayName = if (item.farmerName.isBlank()) "Valued Customer" else item.farmerName
         val message = com.example.data.MessageTemplateRepository.renderTemplate(
@@ -230,29 +213,14 @@ fun PaymentRemindersDialog(
             )
         )
 
-        val encodedMsg = Uri.encode(message)
-        val waUri = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=$encodedMsg")
-        val waIntent = Intent(Intent.ACTION_VIEW, waUri).apply {
-            setPackage("com.whatsapp")
-        }
-
-        try {
-            context.startActivity(waIntent)
-        } catch (e: Exception) {
-            try {
-                val waBusinessIntent = Intent(Intent.ACTION_VIEW, waUri).apply {
-                    setPackage("com.whatsapp.w4b")
-                }
-                context.startActivity(waBusinessIntent)
-            } catch (ex: Exception) {
-                try {
-                    val directWaUri = Uri.parse("whatsapp://send?phone=$formattedPhone&text=$encodedMsg")
-                    context.startActivity(Intent(Intent.ACTION_VIEW, directWaUri))
-                } catch (exc: Exception) {
-                    Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-                }
+        com.example.util.WhatsAppHelper.openWhatsAppChat(
+            context = context,
+            rawPhone = item.contactNumber,
+            messageText = message,
+            onInvalidNumber = {
+                Toast.makeText(context, "No valid phone number for ${item.farmerName}", Toast.LENGTH_SHORT).show()
             }
-        }
+        )
     }
 
     fun makePhoneCall(phone: String) {

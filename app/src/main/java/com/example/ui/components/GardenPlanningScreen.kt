@@ -1920,31 +1920,11 @@ fun GardenPlanningFormTab(
                         varietyLinesJson = vLinesJson
                     )
 
-                    val bitmap = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
-                    val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bitmap, serialNumber)
-                    if (uri != null) {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "image/*"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            putExtra(Intent.EXTRA_TEXT, "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber).")
-                            setPackage("com.whatsapp")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        try {
-                            context.startActivity(shareIntent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-                            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "image/*"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                putExtra(Intent.EXTRA_TEXT, "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber).")
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(Intent.createChooser(fallbackIntent, "Share Digital Receipt"))
-                        }
-                    } else {
-                        Toast.makeText(context, "Failed to generate receipt image", Toast.LENGTH_SHORT).show()
-                    }
+                    com.example.util.WhatsAppHelper.openWhatsAppChat(
+                        context = context,
+                        rawPhone = contactNumber,
+                        messageText = "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber)."
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3844,53 +3824,29 @@ fun GardenBookingRecordDetailDialog(
                 TextButton(
                     onClick = {
                         showShareReceiptConfirm = false
-                        val bmp = receiptPreviewBitmap
-                        if (bmp != null) {
-                            val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, currentEntry.serialNumber)
+                        val caption = "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber})."
+                        if (receiptPreviewBitmap != null) {
+                            val uri = com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, receiptPreviewBitmap!!, currentEntry.serialNumber)
                             if (uri != null) {
-                                var cleanDigits = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
-                                if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
-                                    cleanDigits = cleanDigits.takeLast(10)
-                                } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
-                                    cleanDigits = cleanDigits.substring(1)
-                                }
-                                if (cleanDigits.length > 10) {
-                                    cleanDigits = cleanDigits.takeLast(10)
-                                }
-                                val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
-
-                                if (formattedPhone.isNotEmpty()) {
-                                    val waIntent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "image/png"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                        putExtra(Intent.EXTRA_TEXT, "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber}).")
-                                        setPackage("com.whatsapp")
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    try {
-                                        context.startActivity(waIntent)
-                                    } catch (_: Exception) {
-                                        try {
-                                            val waBusinessIntent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "image/png"
-                                                putExtra(Intent.EXTRA_STREAM, uri)
-                                                putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                                                putExtra(Intent.EXTRA_TEXT, "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber}).")
-                                                setPackage("com.whatsapp.w4b")
-                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                            }
-                                            context.startActivity(waBusinessIntent)
-                                        } catch (_: Exception) {
-                                            Toast.makeText(context, "WhatsApp is not installed on this device", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                } else {
-                                    Toast.makeText(context, "Please enter a valid phone number for the farmer to share on WhatsApp", Toast.LENGTH_SHORT).show()
-                                }
+                                com.example.util.WhatsAppHelper.sendWhatsAppMedia(
+                                    context = context,
+                                    rawPhone = currentEntry.contactNumber,
+                                    mediaUri = uri,
+                                    messageText = caption
+                                )
                             } else {
-                                Toast.makeText(context, "Could not generate receipt image URI", Toast.LENGTH_SHORT).show()
+                                com.example.util.WhatsAppHelper.openWhatsAppChat(
+                                    context = context,
+                                    rawPhone = currentEntry.contactNumber,
+                                    messageText = caption
+                                )
                             }
+                        } else {
+                            com.example.util.WhatsAppHelper.openWhatsAppChat(
+                                context = context,
+                                rawPhone = currentEntry.contactNumber,
+                                messageText = caption
+                            )
                         }
                     }
                 ) {
