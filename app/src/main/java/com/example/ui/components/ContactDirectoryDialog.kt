@@ -248,12 +248,29 @@ fun ContactDirectoryDialog(
     LaunchedEffect(cropRecords, gardenPlanningEntries, deletedContactKeys) {
         if (cropRecords.isNotEmpty() || gardenPlanningEntries.isNotEmpty()) {
             withContext(Dispatchers.IO) {
+                val allContacts = db.farmerContactDao().getAllContactsSync()
+                val existingPhones = allContacts.mapNotNull { 
+                    val clean = it.phone.filter { c -> c.isDigit() }.takeLast(10)
+                    if (clean.isNotEmpty()) clean else null
+                }.toMutableSet()
+                val existingNamesWithoutPhone = allContacts.filter { 
+                    it.phone.isBlank() 
+                }.map { it.name.trim().lowercase() }.toMutableSet()
+
                 cropRecords.forEach { record ->
-                    val cleanPhone = record.contactNumber.replace(Regex("[^0-9]"), "")
-                    val key = if (cleanPhone.isNotEmpty()) cleanPhone else record.farmerName.trim().lowercase()
+                    val cleanPhone = record.contactNumber.filter { it.isDigit() }.takeLast(10)
+                    val key = if (cleanPhone.isNotEmpty()) cleanPhone else "name_${record.farmerName.trim().lowercase()}"
                     if ((record.farmerName.isNotBlank() || record.contactNumber.isNotBlank()) && !deletedContactKeys.contains(key)) {
-                        val existing = db.farmerContactDao().getContactByPhoneOrName(record.contactNumber, record.farmerName)
-                        if (existing == null) {
+                        val alreadyExists = if (cleanPhone.isNotEmpty()) {
+                            existingPhones.contains(cleanPhone)
+                        } else {
+                            existingNamesWithoutPhone.contains(record.farmerName.trim().lowercase())
+                        }
+
+                        if (!alreadyExists) {
+                            if (cleanPhone.isNotEmpty()) existingPhones.add(cleanPhone)
+                            else existingNamesWithoutPhone.add(record.farmerName.trim().lowercase())
+
                             db.farmerContactDao().insertContact(
                                 FarmerContact(
                                     name = record.farmerName.ifBlank { "Farmer" },
@@ -266,11 +283,19 @@ fun ContactDirectoryDialog(
                     }
                 }
                 gardenPlanningEntries.forEach { entry ->
-                    val cleanPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
-                    val key = if (cleanPhone.isNotEmpty()) cleanPhone else entry.farmerName.trim().lowercase()
+                    val cleanPhone = entry.contactNumber.filter { it.isDigit() }.takeLast(10)
+                    val key = if (cleanPhone.isNotEmpty()) cleanPhone else "name_${entry.farmerName.trim().lowercase()}"
                     if ((entry.farmerName.isNotBlank() || entry.contactNumber.isNotBlank()) && !deletedContactKeys.contains(key)) {
-                        val existing = db.farmerContactDao().getContactByPhoneOrName(entry.contactNumber, entry.farmerName)
-                        if (existing == null) {
+                        val alreadyExists = if (cleanPhone.isNotEmpty()) {
+                            existingPhones.contains(cleanPhone)
+                        } else {
+                            existingNamesWithoutPhone.contains(entry.farmerName.trim().lowercase())
+                        }
+
+                        if (!alreadyExists) {
+                            if (cleanPhone.isNotEmpty()) existingPhones.add(cleanPhone)
+                            else existingNamesWithoutPhone.add(entry.farmerName.trim().lowercase())
+
                             db.farmerContactDao().insertContact(
                                 FarmerContact(
                                     name = entry.farmerName.ifBlank { "Farmer" },
@@ -290,23 +315,34 @@ fun ContactDirectoryDialog(
     val allContactsList = remember(dbContacts, cropRecords, gardenPlanningEntries, searchQuery, deletedContactKeys) {
         val list = mutableListOf<ContactDisplayItem>()
         val phoneSet = mutableSetOf<String>()
+        val nameWithoutPhoneSet = mutableSetOf<String>()
 
         // 1. First add saved contacts from DB
         dbContacts.forEach { fc ->
-            val cleanPhone = fc.phone.replace(Regex("[^0-9]"), "")
-            val key = if (cleanPhone.isNotEmpty()) cleanPhone else fc.name.trim().lowercase()
+            val cleanPhone = fc.phone.filter { it.isDigit() }.takeLast(10)
+            val key = if (cleanPhone.isNotEmpty()) cleanPhone else "name_${fc.name.trim().lowercase()}"
             if (!deletedContactKeys.contains(key)) {
-                // Find matching cropRecord by phone or name to retrieve actual serialNumber
+                // Find matching cropRecord by phone when present, or by name if both lack phone
                 val matchingRecord = cropRecords.firstOrNull { cr ->
-                    val crClean = cr.contactNumber.replace(Regex("[^0-9]"), "")
-                    (cleanPhone.isNotEmpty() && crClean.isNotEmpty() && crClean == cleanPhone) ||
-                            (fc.name.isNotBlank() && cr.farmerName.trim().equals(fc.name.trim(), ignoreCase = true))
+                    val crClean = cr.contactNumber.filter { it.isDigit() }.takeLast(10)
+                    if (cleanPhone.isNotEmpty() && crClean.isNotEmpty()) {
+                        crClean == cleanPhone
+                    } else if (cleanPhone.isEmpty() && crClean.isEmpty() && fc.name.isNotBlank()) {
+                        cr.farmerName.trim().equals(fc.name.trim(), ignoreCase = true)
+                    } else {
+                        false
+                    }
                 }
-                // Find matching gardenPlanningEntry by phone or name to retrieve actual serialNumber
+                // Find matching gardenPlanningEntry by phone when present, or by name if both lack phone
                 val matchingGardenEntry = gardenPlanningEntries.firstOrNull { ge ->
-                    val geClean = ge.contactNumber.replace(Regex("[^0-9]"), "")
-                    (cleanPhone.isNotEmpty() && geClean.isNotEmpty() && geClean == cleanPhone) ||
-                            (fc.name.isNotBlank() && ge.farmerName.trim().equals(fc.name.trim(), ignoreCase = true))
+                    val geClean = ge.contactNumber.filter { it.isDigit() }.takeLast(10)
+                    if (cleanPhone.isNotEmpty() && geClean.isNotEmpty()) {
+                        geClean == cleanPhone
+                    } else if (cleanPhone.isEmpty() && geClean.isEmpty() && fc.name.isNotBlank()) {
+                        ge.farmerName.trim().equals(fc.name.trim(), ignoreCase = true)
+                    } else {
+                        false
+                    }
                 }
 
                 val matchedSerial = when {
@@ -329,16 +365,30 @@ fun ContactDirectoryDialog(
                         serialNumber = matchedSerial
                     )
                 )
-                if (cleanPhone.isNotEmpty()) phoneSet.add(cleanPhone)
+                if (cleanPhone.isNotEmpty()) {
+                    phoneSet.add(cleanPhone)
+                } else if (fc.name.isNotBlank()) {
+                    nameWithoutPhoneSet.add(fc.name.trim().lowercase())
+                }
             }
         }
 
         // 2. Add contacts from Crop / Booking Records if not already present
         cropRecords.forEach { record ->
-            val cleanPhone = record.contactNumber.replace(Regex("[^0-9]"), "")
-            val key = if (cleanPhone.isNotEmpty()) cleanPhone else record.farmerName.trim().lowercase()
-            if (!deletedContactKeys.contains(key) && cleanPhone.isNotEmpty() && !phoneSet.contains(cleanPhone)) {
-                phoneSet.add(cleanPhone)
+            val cleanPhone = record.contactNumber.filter { it.isDigit() }.takeLast(10)
+            val key = if (cleanPhone.isNotEmpty()) cleanPhone else "name_${record.farmerName.trim().lowercase()}"
+            val isAlreadyPresent = if (cleanPhone.isNotEmpty()) {
+                phoneSet.contains(cleanPhone)
+            } else {
+                nameWithoutPhoneSet.contains(record.farmerName.trim().lowercase())
+            }
+
+            if (!deletedContactKeys.contains(key) && !isAlreadyPresent && (cleanPhone.isNotEmpty() || record.farmerName.isNotBlank())) {
+                if (cleanPhone.isNotEmpty()) {
+                    phoneSet.add(cleanPhone)
+                } else {
+                    nameWithoutPhoneSet.add(record.farmerName.trim().lowercase())
+                }
                 list.add(
                     ContactDisplayItem(
                         id = record.id,
@@ -359,10 +409,20 @@ fun ContactDirectoryDialog(
 
         // 3. Add contacts from Garden Planning entries if not already present
         gardenPlanningEntries.forEach { entry ->
-            val cleanPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
-            val key = if (cleanPhone.isNotEmpty()) cleanPhone else entry.farmerName.trim().lowercase()
-            if (!deletedContactKeys.contains(key) && cleanPhone.isNotEmpty() && !phoneSet.contains(cleanPhone)) {
-                phoneSet.add(cleanPhone)
+            val cleanPhone = entry.contactNumber.filter { it.isDigit() }.takeLast(10)
+            val key = if (cleanPhone.isNotEmpty()) cleanPhone else "name_${entry.farmerName.trim().lowercase()}"
+            val isAlreadyPresent = if (cleanPhone.isNotEmpty()) {
+                phoneSet.contains(cleanPhone)
+            } else {
+                nameWithoutPhoneSet.contains(entry.farmerName.trim().lowercase())
+            }
+
+            if (!deletedContactKeys.contains(key) && !isAlreadyPresent && (cleanPhone.isNotEmpty() || entry.farmerName.isNotBlank())) {
+                if (cleanPhone.isNotEmpty()) {
+                    phoneSet.add(cleanPhone)
+                } else {
+                    nameWithoutPhoneSet.add(entry.farmerName.trim().lowercase())
+                }
                 list.add(
                     ContactDisplayItem(
                         id = entry.id,
@@ -845,23 +905,33 @@ fun ContactDetailsDialog(
 ) {
     // Filter related crop records for this farmer
     val relatedRecords = remember(contact, cropRecords) {
-        val cleanContactPhone = contact.phone.replace(Regex("[^0-9]"), "")
+        val cleanContactPhone = contact.phone.filter { it.isDigit() }.takeLast(10)
         val contactNameLower = contact.name.trim().lowercase()
         cropRecords.filter { record ->
-            val cleanRecordPhone = record.contactNumber.replace(Regex("[^0-9]"), "")
-            (cleanContactPhone.isNotEmpty() && cleanRecordPhone == cleanContactPhone) ||
-                    (contactNameLower.isNotEmpty() && record.farmerName.trim().lowercase() == contactNameLower)
+            val cleanRecordPhone = record.contactNumber.filter { it.isDigit() }.takeLast(10)
+            if (cleanContactPhone.isNotEmpty() && cleanRecordPhone.isNotEmpty()) {
+                cleanRecordPhone == cleanContactPhone
+            } else if (cleanContactPhone.isEmpty() && cleanRecordPhone.isEmpty() && contactNameLower.isNotEmpty()) {
+                record.farmerName.trim().lowercase() == contactNameLower
+            } else {
+                false
+            }
         }.sortedWith(SerialNumberUtils.cropRecordComparator)
     }
 
     // Filter related garden planning entries for this farmer
     val relatedGardenEntries = remember(contact, gardenPlanningEntries) {
-        val cleanContactPhone = contact.phone.replace(Regex("[^0-9]"), "")
+        val cleanContactPhone = contact.phone.filter { it.isDigit() }.takeLast(10)
         val contactNameLower = contact.name.trim().lowercase()
         gardenPlanningEntries.filter { entry ->
-            val cleanEntryPhone = entry.contactNumber.replace(Regex("[^0-9]"), "")
-            (cleanContactPhone.isNotEmpty() && cleanEntryPhone == cleanContactPhone) ||
-                    (contactNameLower.isNotEmpty() && entry.farmerName.trim().lowercase() == contactNameLower)
+            val cleanEntryPhone = entry.contactNumber.filter { it.isDigit() }.takeLast(10)
+            if (cleanContactPhone.isNotEmpty() && cleanEntryPhone.isNotEmpty()) {
+                cleanEntryPhone == cleanContactPhone
+            } else if (cleanContactPhone.isEmpty() && cleanEntryPhone.isEmpty() && contactNameLower.isNotEmpty()) {
+                entry.farmerName.trim().lowercase() == contactNameLower
+            } else {
+                false
+            }
         }.sortedByDescending { it.timestamp }
     }
 

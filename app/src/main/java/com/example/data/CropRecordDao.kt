@@ -33,10 +33,10 @@ interface CropRecordDao {
     @Query("SELECT * FROM crop_records WHERE id = :id")
     fun getRecordById(id: Long): Flow<CropRecord?>
 
-    @Query("SELECT COUNT(*) FROM crop_records WHERE (:phone != '' AND contactNumber = :phone) OR (:name != '' AND farmerName = :name)")
+    @Query("SELECT COUNT(*) FROM crop_records WHERE (:phone != '' AND contactNumber = :phone) OR (:phone = '' AND :name != '' AND farmerName = :name AND (contactNumber = '' OR contactNumber IS NULL))")
     suspend fun countRecordsByFarmer(phone: String, name: String): Int
 
-    @Query("SELECT * FROM crop_records WHERE (:phone != '' AND contactNumber = :phone) OR (:name != '' AND farmerName = :name) ORDER BY timestamp DESC")
+    @Query("SELECT * FROM crop_records WHERE (:phone != '' AND contactNumber = :phone) OR (:phone = '' AND :name != '' AND farmerName = :name AND (contactNumber = '' OR contactNumber IS NULL)) ORDER BY timestamp DESC")
     suspend fun getRecordsByFarmer(phone: String, name: String): List<CropRecord>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

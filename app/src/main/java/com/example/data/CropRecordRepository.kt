@@ -110,9 +110,29 @@ class CropRecordRepository(
         }
     }
 
+    private suspend fun findContact(phone: String, name: String): FarmerContact? {
+        if (farmerContactDao == null) return null
+        val cleanPhone = phone.filter { it.isDigit() }.takeLast(10)
+        if (cleanPhone.isNotEmpty()) {
+            val direct = farmerContactDao.getContactByPhone(phone)
+            if (direct != null) return direct
+
+            val all = farmerContactDao.getAllContactsSync()
+            val match = all.firstOrNull { it.phone.filter { c -> c.isDigit() }.takeLast(10) == cleanPhone }
+            if (match != null) return match
+
+            // When phone is present, do NOT fall back to matching by name.
+            // Different bookings with identical names but different contact numbers must be separate directory entries.
+            return null
+        } else if (name.isNotBlank()) {
+            return farmerContactDao.getContactByNameWithoutPhone(name.trim())
+        }
+        return null
+    }
+
     private suspend fun syncFarmerContactOnSave(record: CropRecord) {
         if (farmerContactDao != null && (record.farmerName.isNotBlank() || record.contactNumber.isNotBlank())) {
-            val existing = farmerContactDao.getContactByPhoneOrName(record.contactNumber, record.farmerName)
+            val existing = findContact(record.contactNumber, record.farmerName)
             if (existing == null) {
                 farmerContactDao.insertContact(
                     FarmerContact(
@@ -124,9 +144,9 @@ class CropRecordRepository(
                 )
             } else {
                 val updated = existing.copy(
-                    name = if (existing.name.isBlank()) record.farmerName else existing.name,
-                    phone = if (existing.phone.isBlank()) record.contactNumber else existing.phone,
-                    address = if (existing.address.isBlank()) record.farmerAddress else existing.address
+                    name = if (record.farmerName.isNotBlank()) record.farmerName else existing.name,
+                    phone = if (existing.phone.isBlank() && record.contactNumber.isNotBlank()) record.contactNumber else existing.phone,
+                    address = if (record.farmerAddress.isNotBlank()) record.farmerAddress else existing.address
                 )
                 farmerContactDao.updateContact(updated)
             }
@@ -135,9 +155,18 @@ class CropRecordRepository(
 
     private suspend fun syncFarmerContactOnDelete(record: CropRecord) {
         if (farmerContactDao != null && (record.contactNumber.isNotBlank() || record.farmerName.isNotBlank())) {
-            val remainingCount = dao.countRecordsByFarmer(record.contactNumber, record.farmerName)
+            val cleanPhone = record.contactNumber.filter { it.isDigit() }.takeLast(10)
+            val remainingCount = if (cleanPhone.isNotEmpty()) {
+                val allRecords = dao.getAllRecordsList()
+                allRecords.count { it.contactNumber.filter { c -> c.isDigit() }.takeLast(10) == cleanPhone }
+            } else {
+                dao.countRecordsByFarmer("", record.farmerName)
+            }
             if (remainingCount == 0) {
-                farmerContactDao.deleteContactByPhoneOrName(record.contactNumber, record.farmerName)
+                val existing = findContact(record.contactNumber, record.farmerName)
+                if (existing != null) {
+                    farmerContactDao.deleteContactById(existing.id)
+                }
             }
         }
     }

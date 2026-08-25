@@ -67,9 +67,29 @@ class GardenPlanningRepository(
         }
     }
 
+    private suspend fun findContact(phone: String, name: String): FarmerContact? {
+        if (farmerContactDao == null) return null
+        val cleanPhone = phone.filter { it.isDigit() }.takeLast(10)
+        if (cleanPhone.isNotEmpty()) {
+            val direct = farmerContactDao.getContactByPhone(phone)
+            if (direct != null) return direct
+
+            val all = farmerContactDao.getAllContactsSync()
+            val match = all.firstOrNull { it.phone.filter { c -> c.isDigit() }.takeLast(10) == cleanPhone }
+            if (match != null) return match
+
+            // When phone is present, do NOT fall back to matching by name.
+            // Different bookings with identical names but different contact numbers must be separate directory entries.
+            return null
+        } else if (name.isNotBlank()) {
+            return farmerContactDao.getContactByNameWithoutPhone(name.trim())
+        }
+        return null
+    }
+
     private suspend fun syncFarmerContactOnSave(entry: GardenPlanningEntry) {
         if (farmerContactDao != null && (entry.farmerName.isNotBlank() || entry.contactNumber.isNotBlank())) {
-            val existing = farmerContactDao.getContactByPhoneOrName(entry.contactNumber, entry.farmerName)
+            val existing = findContact(entry.contactNumber, entry.farmerName)
             if (existing == null) {
                 farmerContactDao.insertContact(
                     FarmerContact(
@@ -81,9 +101,9 @@ class GardenPlanningRepository(
                 )
             } else {
                 val updated = existing.copy(
-                    name = if (existing.name.isBlank()) entry.farmerName else existing.name,
-                    phone = if (existing.phone.isBlank()) entry.contactNumber else existing.phone,
-                    address = if (existing.address.isBlank()) entry.farmerAddress else existing.address
+                    name = if (entry.farmerName.isNotBlank()) entry.farmerName else existing.name,
+                    phone = if (existing.phone.isBlank() && entry.contactNumber.isNotBlank()) entry.contactNumber else existing.phone,
+                    address = if (entry.farmerAddress.isNotBlank()) entry.farmerAddress else existing.address
                 )
                 farmerContactDao.updateContact(updated)
             }
