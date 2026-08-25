@@ -9,12 +9,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -42,19 +44,67 @@ fun AgriSegmentedControl(
     val containerShape = RoundedCornerShape(32.dp)
     val isDark = isAppInDarkMode()
 
-    Surface(
+    val containerGlassGradient = if (!isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.70f),
+                Color(0xFFE2E8F0).copy(alpha = 0.50f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1E293B).copy(alpha = 0.65f),
+                Color(0xFF0F172A).copy(alpha = 0.78f)
+            )
+        )
+    }
+
+    val containerGlassBorder = if (!isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.95f),
+                Color.White.copy(alpha = 0.40f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.28f),
+                Color.White.copy(alpha = 0.08f)
+            )
+        )
+    }
+
+    val containerShadowColor = if (!isDark) {
+        Color(0xFF0F172A).copy(alpha = 0.12f)
+    } else {
+        Color.Black.copy(alpha = 0.55f)
+    }
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .height(52.dp),
-        shape = containerShape,
-        color = if (isDark) Color.Black else Color(0xFFECEFF1),
-        border = if (isDark) BorderStroke(1.dp, Color(0xFF262626)) else null,
-        tonalElevation = 0.dp
+            .height(52.dp)
+            .shadow(
+                elevation = 12.dp,
+                shape = containerShape,
+                clip = false,
+                ambientColor = containerShadowColor,
+                spotColor = containerShadowColor
+            )
+            .clip(containerShape)
+            .background(containerGlassGradient)
+            .border(
+                width = 1.2.dp,
+                brush = containerGlassBorder,
+                shape = containerShape
+            )
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -96,18 +146,12 @@ private fun SegmentedTabItem(
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     val onPrimaryColor = MaterialTheme.colorScheme.onPrimary
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            if (isDark) primaryColor else Color.White
-        } else Color.Transparent,
-        label = "tab_bg"
-    )
 
     val textColor by animateColorAsState(
         targetValue = if (isSelected) {
             if (isDark) onPrimaryColor else primaryColor
         } else {
-            if (isDark) Color(0xFFAAAAAA) else Color(0xFF546E7A)
+            if (isDark) Color(0xFF94A3B8) else Color(0xFF455A64)
         },
         label = "tab_text"
     )
@@ -115,11 +159,56 @@ private fun SegmentedTabItem(
     val itemShape = RoundedCornerShape(28.dp)
     val haptic = LocalHapticFeedback.current
 
+    val itemShadowColor = if (!isDark) {
+        Color(0xFF0F172A).copy(alpha = 0.12f)
+    } else {
+        Color.Black.copy(alpha = 0.45f)
+    }
+
+    val selectedGlassGradient = if (!isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.95f),
+                Color(0xFFF1F5F9).copy(alpha = 0.90f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                primaryColor.copy(alpha = 0.95f),
+                primaryColor.copy(alpha = 0.85f)
+            )
+        )
+    }
+
+    val selectedBorder = if (!isDark) {
+        BorderStroke(1.dp, Color.White)
+    } else {
+        BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+    }
+
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .clip(itemShape)
-            .background(backgroundColor)
+            .then(
+                if (isSelected) {
+                    Modifier
+                        .shadow(
+                            elevation = if (isDark) 4.dp else 3.dp,
+                            shape = itemShape,
+                            clip = false,
+                            ambientColor = itemShadowColor,
+                            spotColor = itemShadowColor
+                        )
+                        .clip(itemShape)
+                        .background(selectedGlassGradient)
+                        .border(selectedBorder, shape = itemShape)
+                } else {
+                    Modifier
+                        .clip(itemShape)
+                        .background(Color.Transparent)
+                }
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true, color = primaryColor.copy(alpha = 0.20f)),
