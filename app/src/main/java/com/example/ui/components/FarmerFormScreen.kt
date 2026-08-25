@@ -98,6 +98,13 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -432,6 +439,38 @@ fun FarmerFormScreen(
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
     val varietyLines by viewModel.varietyLines.collectAsState()
+    val allRecords by viewModel.allRecords.collectAsState()
+
+    val normalizedEnteredPhone = remember(contactNumber) {
+        var clean = contactNumber.trim()
+        if (clean.startsWith("+91")) clean = clean.removePrefix("+91").trim()
+        else if (clean.startsWith("91") && clean.length > 10) clean = clean.removePrefix("91").trim()
+        else if (clean.startsWith("+")) clean = clean.removePrefix("+").trim()
+        else if (clean.startsWith("0") && clean.length == 11) clean = clean.substring(1).trim()
+        val digits = clean.filter { it.isDigit() }
+        if (digits.length >= 10) digits.takeLast(10) else ""
+    }
+
+    val matchingPreviousBookings by remember(normalizedEnteredPhone, allRecords, editingId) {
+        derivedStateOf {
+            if (normalizedEnteredPhone.length >= 10) {
+                allRecords.filter { rec ->
+                    (editingId == null || rec.id != editingId) &&
+                    run {
+                        var recClean = rec.contactNumber.trim()
+                        if (recClean.startsWith("+91")) recClean = recClean.removePrefix("+91").trim()
+                        else if (recClean.startsWith("91") && recClean.length > 10) recClean = recClean.removePrefix("91").trim()
+                        else if (recClean.startsWith("+")) recClean = recClean.removePrefix("+").trim()
+                        else if (recClean.startsWith("0") && recClean.length == 11) recClean = recClean.substring(1).trim()
+                        val recDigits = recClean.filter { it.isDigit() }
+                        recDigits.length >= 10 && recDigits.takeLast(10) == normalizedEnteredPhone
+                    }
+                }.sortedByDescending { it.id }
+            } else {
+                emptyList()
+            }
+        }
+    }
 
     val inventoryItems by remember { com.example.data.AppDatabase.getDatabase(context).inventoryDao().getAllItems() }.collectAsState(initial = emptyList())
     val isStockApplicable = !serviceType.contains("Site Visit", ignoreCase = true) && !serviceType.contains("Pruning", ignoreCase = true)
@@ -965,6 +1004,213 @@ fun FarmerFormScreen(
                 .testTag("contact_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
         )
+
+        // Existing Booking(s) Lookup Result Section
+        AnimatedVisibility(
+            visible = matchingPreviousBookings.isNotEmpty(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp, bottom = 4.dp)
+                    .testTag("existing_bookings_lookup_section")
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Header Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Existing Booking(s)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = "${matchingPreviousBookings.size} Found",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    // Compact scrollable list of matching booking cards
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        matchingPreviousBookings.forEach { rec ->
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isDark) Color(0xFF0F172A) else Color.White,
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("existing_booking_item_${rec.serialNumber}")
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    // Top Row: Serial Number • Service Category • Booking Date
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                            ) {
+                                                Text(
+                                                    text = rec.serialNumber,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = "•",
+                                                fontSize = 11.sp,
+                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                            )
+                                            Text(
+                                                text = rec.serviceType,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (rec.bookingDate.isNotBlank()) {
+                                                Text(
+                                                    text = "•",
+                                                    fontSize = 11.sp,
+                                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                )
+                                                Text(
+                                                    text = rec.bookingDate,
+                                                    fontSize = 11.sp,
+                                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Bottom Row: Customer Name & Status Badge
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (rec.farmerName.isNotBlank()) {
+                                            Text(
+                                                text = "Customer: ${rec.farmerName}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Normal,
+                                                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+
+                                        val statusLabel = when {
+                                            rec.isCancelled -> "Cancelled"
+                                            rec.isReceived -> "Received"
+                                            rec.paymentStatus.isNotBlank() -> rec.paymentStatus
+                                            else -> "Pending"
+                                        }
+
+                                        val (badgeBg, badgeFg) = when (statusLabel.lowercase().trim()) {
+                                            "fully paid", "cleared" -> Pair(
+                                                if (isDark) Color(0xFF14532D) else Color(0xFFE8F5E9),
+                                                if (isDark) Color(0xFF86EFAC) else Color(0xFF2E7D32)
+                                            )
+                                            "advance paid" -> Pair(
+                                                if (isDark) Color(0xFF1E3A8A) else Color(0xFFE3F2FD),
+                                                if (isDark) Color(0xFF93C5FD) else Color(0xFF1565C0)
+                                            )
+                                            "received", "completed" -> Pair(
+                                                if (isDark) Color(0xFF134E4A) else Color(0xFFE0F2F1),
+                                                if (isDark) Color(0xFF5EEAD4) else Color(0xFF00695C)
+                                            )
+                                            "cancelled" -> Pair(
+                                                if (isDark) Color(0xFF7F1D1D) else Color(0xFFFFEBEE),
+                                                if (isDark) Color(0xFFFCA5A5) else Color(0xFFC62828)
+                                            )
+                                            else -> Pair(
+                                                if (isDark) Color(0xFF7C2D12) else Color(0xFFFFF3E0),
+                                                if (isDark) Color(0xFFFDBA74) else Color(0xFFE65100)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = badgeBg
+                                        ) {
+                                            Text(
+                                                text = "Status: $statusLabel",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = badgeFg,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 
         val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
