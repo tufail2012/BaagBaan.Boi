@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.content.Context
 import androidx.compose.material3.LocalTextStyle
 
 import android.Manifest
@@ -152,6 +153,17 @@ import androidx.compose.ui.window.Dialog
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
 import com.example.ui.CropViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "agri_crop_preferences")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -160,6 +172,7 @@ fun FarmerFormScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var multiplePhoneNumbers by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var selectedContactNameForDialog by remember { mutableStateOf<String?>(null) }
@@ -599,6 +612,19 @@ fun FarmerFormScreen(
         scrollState.scrollTo(0)
     }
 
+    // Read DataStore saved serial number per service type on screen load / service switch
+    LaunchedEffect(serviceType, editingId) {
+        if (editingId == null) {
+            val key = stringPreferencesKey("saved_serial_number_$serviceType")
+            val savedSerial = context.dataStore.data.map { preferences ->
+                preferences[key]
+            }.firstOrNull()
+            if (!savedSerial.isNullOrBlank() && viewModel.serialNumber.value.isBlank()) {
+                viewModel.updateSerialNumber(savedSerial)
+            }
+        }
+    }
+
     var soilMenuExpanded by remember { mutableStateOf(false) }
     var saplingAgeMenuExpanded by remember { mutableStateOf(false) }
 
@@ -744,7 +770,18 @@ fun FarmerFormScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!isSerialLocked) {
                         IconButton(
-                            onClick = { viewModel.lockSerialNumber() },
+                            onClick = {
+                                val currentSerial = serialNumber
+                                if (currentSerial.isNotBlank()) {
+                                    coroutineScope.launch {
+                                        val key = stringPreferencesKey("saved_serial_number_$serviceType")
+                                        context.dataStore.edit { preferences ->
+                                            preferences[key] = currentSerial
+                                        }
+                                    }
+                                }
+                                viewModel.lockSerialNumber()
+                            },
                             modifier = Modifier.testTag("save_serial_button")
                         ) {
                             Icon(

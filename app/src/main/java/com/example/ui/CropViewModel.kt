@@ -929,7 +929,7 @@ class CropViewModel(
 
             val finalPlantVariety = when {
                 isMultiVariety -> vLines.joinToString(", ") { it.variety.ifBlank { "Standard" } }
-                serviceType.value.equals("Rootstocks", ignoreCase = true) && scionVariety.value.isNotBlank() -> scionVariety.value.trim()
+                serviceType.value.equals("Rootstocks", ignoreCase = true) -> scionVariety.value.trim()
                 isSiteVisit -> "Site Visit"
                 isPruning -> _selectedPruningSubTab.value
                 else -> plantVariety.value.ifBlank { "Standard Variety" }.trim()

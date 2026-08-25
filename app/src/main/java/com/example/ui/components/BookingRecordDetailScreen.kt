@@ -933,7 +933,7 @@ fun BookingRecordDetailDialog(
 
                             val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
                             val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
-                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "N/A" } }
+                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "" } }
 
                             val rData = ReceiptData(
                                 serialNumber = record.serialNumber,
@@ -1147,6 +1147,10 @@ fun BookingRecordDetailDialog(
 
     // WhatsApp Confirmation Dialog with Templates
     if (showWhatsAppConfirm) {
+        val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
         WhatsAppTemplateDialog(
             farmerName = record.farmerName.ifBlank { "Farmer" },
             contactNumber = record.contactNumber,
@@ -1156,6 +1160,14 @@ fun BookingRecordDetailDialog(
             remainingBalance = remainingBalance,
             paymentStatus = record.paymentStatus,
             serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
+            plantVariety = record.plantVariety,
+            scionVariety = extScion.ifBlank { record.plantVariety.ifBlank { "" } },
+            rootstock = extRootstock,
+            rootDiameter = extDiameter,
+            quantity = "${record.quantity}",
+            notes = record.notes,
+            varietyLinesJson = record.varietyLinesJson,
+            expectedDelivery = record.expectedDelivery,
             onDismiss = { showWhatsAppConfirm = false }
         )
     }

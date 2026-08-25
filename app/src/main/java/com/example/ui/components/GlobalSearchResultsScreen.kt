@@ -635,17 +635,57 @@ private fun SwipeableSearchResultItem(
             else -> "Pending"
         }
 
-        WhatsAppTemplateDialog(
-            farmerName = item.farmerName.ifBlank { "Farmer" },
-            contactNumber = item.contactNumber,
-            serviceType = item.serviceType,
-            amountPaid = amountPaid,
-            totalAmount = totalAmount,
-            remainingBalance = remBalance,
-            paymentStatus = statusLabel,
-            serialNumber = if (item.serialNumber.isBlank()) "N/A" else item.serialNumber,
-            onDismiss = { showWhatsAppDialog = false }
-        )
+        when (item) {
+            is GlobalSearchResult.Crop -> {
+                val record = item.record
+                val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                WhatsAppTemplateDialog(
+                    farmerName = record.farmerName.ifBlank { "Farmer" },
+                    contactNumber = record.contactNumber,
+                    serviceType = record.serviceType,
+                    amountPaid = amountPaid,
+                    totalAmount = totalAmount,
+                    remainingBalance = remBalance,
+                    paymentStatus = statusLabel,
+                    serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
+                    plantVariety = record.plantVariety,
+                    scionVariety = extScion.ifBlank { record.plantVariety.ifBlank { "" } },
+                    rootstock = extRootstock,
+                    rootDiameter = extDiameter,
+                    quantity = "${record.quantity}",
+                    notes = record.notes,
+                    varietyLinesJson = record.varietyLinesJson,
+                    expectedDelivery = record.expectedDelivery,
+                    onDismiss = { showWhatsAppDialog = false }
+                )
+            }
+            is GlobalSearchResult.Garden -> {
+                val entry = item.entry
+                val totalPlantsCalculated = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) (entry.totalKanalArea * entry.plantsPerKanal).toInt() else 0
+
+                WhatsAppTemplateDialog(
+                    farmerName = entry.farmerName.ifBlank { "Farmer" },
+                    contactNumber = entry.contactNumber,
+                    serviceType = "Garden Planning",
+                    amountPaid = amountPaid,
+                    totalAmount = totalAmount,
+                    remainingBalance = remBalance,
+                    paymentStatus = statusLabel,
+                    serialNumber = if (entry.serialNumber.isBlank()) "N/A" else entry.serialNumber,
+                    plantVariety = entry.plantVariety,
+                    scionVariety = "",
+                    rootstock = entry.rootStock,
+                    quantity = if (totalPlantsCalculated > 0) "$totalPlantsCalculated" else "1",
+                    notes = entry.notes,
+                    varietyLinesJson = entry.varietyLinesJson,
+                    expectedDelivery = entry.expectedDelivery,
+                    onDismiss = { showWhatsAppDialog = false }
+                )
+            }
+        }
     }
 }
 

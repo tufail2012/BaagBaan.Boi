@@ -426,21 +426,24 @@ object ReceiptGenerator {
                 val actualRootstock = data.rootstock.ifBlank { "M9-T337" }
                 val rawDiam = data.rootDiameter.ifBlank { "9 to 12 mm" }
                 val formattedDiam = if (rawDiam.lowercase().contains("mm")) rawDiam else "$rawDiam mm"
-                val actualScion = data.scionVariety.ifBlank { data.plantVariety.ifBlank { "N/A" } }
+                val actualScion = data.scionVariety.ifBlank { data.plantVariety }
                 val qtyStr = if (data.quantity.lowercase().endsWith("plants") || data.quantity.lowercase().endsWith("rootstocks")) {
                     data.quantity
                 } else {
                     "${data.quantity} Rootstocks"
                 }
 
-                listOf(
+                val list = mutableListOf(
                     "Service Category" to data.serviceCategory.ifBlank { "Imported Rootstocks" },
                     "Rootstock" to actualRootstock,
-                    "Root Diameter (mm)" to formattedDiam,
-                    "Scion Variety" to actualScion,
-                    "Quantity / Units" to qtyStr,
-                    "Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" }
+                    "Root Diameter (mm)" to formattedDiam
                 )
+                if (actualScion.isNotBlank()) {
+                    list.add("Scion Variety" to actualScion)
+                }
+                list.add("Quantity / Units" to qtyStr)
+                list.add("Expected Delivery" to data.expectedDelivery.ifBlank { "To be scheduled" })
+                list
             } else {
                 val list = mutableListOf<Pair<String, String>>()
                 list.add("Service Category" to data.serviceCategory.ifBlank { "N/A" })

@@ -36,12 +36,37 @@ data class CropRecord(
 )
 
 data class VarietyLine(
-    val variety: String,
-    val quantity: Int,
-    val unitPrice: Double,
+    val variety: String = "",
     val rootstock: String = "",
-    val feathers: String = ""
-)
+    val feathers: String = "",
+    val kanalArea: Double = 0.0,
+    val plantsPerKanal: Int = 0,
+    val totalPlants: Int = 0,
+    val unitPrice: Double = 0.0,
+    val quantity: Int = if (totalPlants > 0) totalPlants else 0,
+    val kanalAreaStr: String = if (kanalArea > 0) (if (kanalArea % 1.0 == 0.0) kanalArea.toInt().toString() else kanalArea.toString()) else "",
+    val plantsPerKanalStr: String = if (plantsPerKanal > 0) plantsPerKanal.toString() else "",
+    val totalPlantsStr: String = if (totalPlants > 0) totalPlants.toString() else if (quantity > 0) quantity.toString() else "",
+    val unitPriceStr: String = if (unitPrice > 0.0) (if (unitPrice % 1.0 == 0.0) unitPrice.toInt().toString() else unitPrice.toString()) else ""
+) {
+    // Secondary constructor for backward compatibility with 5-arg positional calls: (variety, quantity, unitPrice, rootstock, feathers)
+    constructor(
+        variety: String,
+        quantity: Int,
+        unitPrice: Double,
+        rootstock: String = "",
+        feathers: String = ""
+    ) : this(
+        variety = variety,
+        rootstock = rootstock,
+        feathers = feathers,
+        kanalArea = 0.0,
+        plantsPerKanal = 0,
+        totalPlants = quantity,
+        unitPrice = unitPrice,
+        quantity = quantity
+    )
+}
 
 fun parseVarietyLines(json: String): List<VarietyLine> {
     if (json.isBlank()) return emptyList()
@@ -51,18 +76,26 @@ fun parseVarietyLines(json: String): List<VarietyLine> {
         for (i in 0 until array.length()) {
             val obj = array.getJSONObject(i)
             val variety = obj.optString("variety", "")
-            val quantity = obj.optInt("quantity", 0)
-            val unitPrice = obj.optDouble("unitPrice", 0.0)
             val rootstock = obj.optString("rootstock", "")
             val feathers = obj.optString("feathers", "")
-            if (variety.isNotBlank() || quantity > 0) {
+            val kanalArea = obj.optDouble("kanalArea", 0.0)
+            val plantsPerKanal = obj.optInt("plantsPerKanal", 0)
+            val rawQty = obj.optInt("quantity", 0)
+            val totalPlants = obj.optInt("totalPlants", rawQty)
+            val unitPrice = obj.optDouble("unitPrice", 0.0)
+            val effectivePlants = if (totalPlants > 0) totalPlants else rawQty
+            val effectiveKanalArea = if (kanalArea > 0.0) kanalArea else if (plantsPerKanal > 0 && effectivePlants > 0) effectivePlants.toDouble() / plantsPerKanal else 0.0
+            if (variety.isNotBlank() || effectivePlants > 0) {
                 list.add(
                     VarietyLine(
                         variety = variety,
-                        quantity = quantity,
-                        unitPrice = unitPrice,
                         rootstock = rootstock,
-                        feathers = feathers
+                        feathers = feathers,
+                        kanalArea = effectiveKanalArea,
+                        plantsPerKanal = plantsPerKanal,
+                        totalPlants = effectivePlants,
+                        unitPrice = unitPrice,
+                        quantity = effectivePlants
                     )
                 )
             }
@@ -78,11 +111,15 @@ fun formatVarietyLinesJson(lines: List<VarietyLine>): String {
     val array = org.json.JSONArray()
     for (line in lines) {
         val obj = org.json.JSONObject()
+        val plantCount = if (line.totalPlants > 0) line.totalPlants else line.quantity
         obj.put("variety", line.variety)
-        obj.put("quantity", line.quantity)
-        obj.put("unitPrice", line.unitPrice)
         obj.put("rootstock", line.rootstock)
         obj.put("feathers", line.feathers)
+        obj.put("kanalArea", line.kanalArea)
+        obj.put("plantsPerKanal", line.plantsPerKanal)
+        obj.put("totalPlants", plantCount)
+        obj.put("quantity", plantCount)
+        obj.put("unitPrice", line.unitPrice)
         array.put(obj)
     }
     return array.toString()
@@ -91,7 +128,7 @@ fun formatVarietyLinesJson(lines: List<VarietyLine>): String {
 fun serializeVarietyLines(lines: List<VarietyLine>): String = formatVarietyLinesJson(lines)
 
 fun calculateTotalAmountMultiVariety(lines: List<VarietyLine>): Double {
-    return lines.sumOf { it.quantity * it.unitPrice }
+    return lines.sumOf { (if (it.totalPlants > 0) it.totalPlants else it.quantity) * it.unitPrice }
 }
 
 fun CropRecord.calculateTotalAmount(): Double {

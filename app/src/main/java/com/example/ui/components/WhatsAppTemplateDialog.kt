@@ -98,6 +98,14 @@ fun WhatsAppTemplateDialog(
     remainingBalance: Double = 0.0,
     paymentStatus: String = "Pending",
     serialNumber: String = "N/A",
+    plantVariety: String = "",
+    scionVariety: String = "",
+    rootstock: String = "",
+    rootDiameter: String = "",
+    quantity: String = "",
+    notes: String = "",
+    varietyLinesJson: String = "",
+    expectedDelivery: String = "",
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -129,6 +137,14 @@ fun WhatsAppTemplateDialog(
                     serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
                     serviceType.equals("Imported Rootstock", ignoreCase = true)
 
+            val extScion = if (scionVariety.isNotBlank()) scionVariety else (Regex("Scion:\\s*([^|\\]\n]+)").find(notes)?.groupValues?.get(1)?.trim() ?: "")
+            val actualScion = extScion.ifBlank { plantVariety.ifBlank { "" } }
+            val extDiameter = if (rootDiameter.isNotBlank()) rootDiameter else (Regex("Root Diameter:\\s*([^|\\]\n]+)").find(notes)?.groupValues?.get(1)?.trim() ?: "")
+            val extRootstock = if (rootstock.isNotBlank()) rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(notes)?.groupValues?.get(1)?.trim() ?: "")
+
+            val actualRs = if (extRootstock.isNotBlank()) extRootstock else (if (isRootstockSvc) "M9-T337" else "")
+            val actualDiam = if (extDiameter.isNotBlank()) extDiameter else (if (isRootstockSvc) "9 to 12 mm" else "")
+
             val rData = ReceiptData(
                 serialNumber = effectiveSerialNumber,
                 bookingDate = currentDateStr,
@@ -137,16 +153,17 @@ fun WhatsAppTemplateDialog(
                 address = "Jammu & Kashmir",
                 orchardLocation = "Apple Orchard",
                 serviceCategory = if (isRootstockSvc) "Imported Rootstocks" else serviceType,
-                plantVariety = serviceType,
-                quantity = "1",
+                plantVariety = if (isRootstockSvc) actualScion else if (plantVariety.isNotBlank()) plantVariety else serviceType,
+                quantity = if (quantity.isNotBlank()) quantity else "1",
                 totalAmount = totalAmount,
                 amountPaid = amountPaid,
                 remainingBalance = calculatedBalance,
                 paymentStatus = paymentStatus,
-                expectedDelivery = "Scheduled As Agreed",
-                rootstock = if (isRootstockSvc) "M9-T337" else "",
-                rootDiameter = if (isRootstockSvc) "9 to 12 mm" else "",
-                scionVariety = if (isRootstockSvc) "Standard Variety" else ""
+                expectedDelivery = expectedDelivery.ifBlank { "Scheduled As Agreed" },
+                rootstock = actualRs,
+                rootDiameter = actualDiam,
+                scionVariety = actualScion,
+                varietyLinesJson = varietyLinesJson
             )
             val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
             val uri = ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, effectiveSerialNumber)

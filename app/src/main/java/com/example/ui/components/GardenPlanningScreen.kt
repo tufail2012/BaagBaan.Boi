@@ -927,176 +927,38 @@ fun GardenPlanningFormTab(
                     }
 
                     varietyLines.forEachIndexed { index, line ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isDark) Color(0xFF0F172A) else Color.White,
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Item #${index + 1}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    if (varietyLines.size > 1) {
-                                        IconButton(
-                                            onClick = { viewModel.removeVarietyLine(index) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.DeleteOutline,
-                                                contentDescription = "Remove Variety Line",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Variety Name
-                                OutlinedTextField(
-                                    value = line.variety,
-                                    onValueChange = { newVar ->
-                                        viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
-                                    },
-                                    label = { Text("Variety Name *") },
-                                    placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
-                                    shape = textFieldShape,
-                                    singleLine = true,
-                                    keyboardOptions = AppDefaultWordKeyboardOptions,
-                                    leadingIcon = {
-                                        Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("garden_variety_line_name_${index}"),
-                                    colors = elevatedInputFieldColors(isDark = isDark)
-                                )
-
-                                // Rootstock & Feathers Row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = line.rootstock,
-                                        onValueChange = { newRs ->
-                                            viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
-                                        },
-                                        label = { Text("Rootstock") },
-                                        placeholder = { Text("e.g. M9, MM106") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = AppDefaultWordKeyboardOptions,
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("garden_variety_line_rootstock_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
-
-                                    OutlinedTextField(
-                                        value = line.feathers,
-                                        onValueChange = { newF ->
-                                            viewModel.updateVarietyLine(index, line.copy(feathers = newF))
-                                        },
-                                        label = { Text("Feathers") },
-                                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(
-                                            keyboardType = KeyboardType.Text,
-                                            capitalization = KeyboardCapitalization.Characters
-                                        ),
-                                        leadingIcon = {
-                                            Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("garden_variety_line_feathers_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
-                                }
-
-                                // Quantity & Unit Price Row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = if (line.quantity == 0) "" else line.quantity.toString(),
-                                        onValueChange = { newQ ->
-                                            val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                            viewModel.updateVarietyLine(index, line.copy(quantity = q))
-                                        },
-                                        label = { Text("Quantity *") },
-                                        placeholder = { Text("Qty") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        leadingIcon = {
-                                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("garden_variety_line_qty_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
-
-                                    OutlinedTextField(
-                                        value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
-                                        onValueChange = { newP ->
-                                            val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
-                                            viewModel.updateVarietyLine(index, line.copy(unitPrice = p))
-                                        },
-                                        label = { Text("Rate (₹) *") },
-                                        placeholder = { Text("Price") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        leadingIcon = {
-                                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .testTag("garden_variety_line_price_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
-                                }
-
-                                // Subtotal
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        text = "Subtotal: ₹${(line.quantity * line.unitPrice).toInt()}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                        GardenPlanningVarietyLineCard(
+                            index = index,
+                            line = line,
+                            totalLinesCount = varietyLines.size,
+                            isDark = isDark,
+                            textFieldShape = textFieldShape,
+                            onUpdate = { updatedLine ->
+                                viewModel.updateVarietyLine(index, updatedLine)
+                            },
+                            onRemove = {
+                                viewModel.removeVarietyLine(index)
                             }
-                        }
+                        )
                     }
 
                     Button(
                         onClick = {
-                            val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
-                            val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
-                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = ""))
+                            val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: viewModel.costPerPlant.value.toDoubleOrNull() ?: 250.0
+                            val defaultRs = varietyLines.lastOrNull()?.rootstock ?: viewModel.rootStock.value
+                            val defaultDensity = varietyLines.lastOrNull()?.plantsPerKanal ?: viewModel.plantsPerKanal.value.toIntOrNull() ?: 0
+                            viewModel.addVarietyLine(
+                                VarietyLine(
+                                    variety = "",
+                                    rootstock = defaultRs,
+                                    feathers = "",
+                                    kanalArea = 0.0,
+                                    plantsPerKanal = defaultDensity,
+                                    totalPlants = 0,
+                                    unitPrice = defaultPrice,
+                                    quantity = 0
+                                )
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1339,28 +1201,8 @@ fun GardenPlanningFormTab(
         )
 
         if (isMultiVarietyEnabled && varietyLines.isNotEmpty()) {
-            val totalMultiQty = varietyLines.sumOf { it.quantity }
+            val totalMultiPlants = varietyLines.sumOf { if (it.totalPlants > 0) it.totalPlants else it.quantity }
             val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
-
-            // Optional Kanal Area field for Garden Planning multi-variety booking
-            OutlinedTextField(
-                value = totalKanalArea,
-                onValueChange = { newArea ->
-                    viewModel.totalKanalArea.value = newArea
-                    lastEdited = LastEditedField.AREA
-                },
-                label = { Text("Kanal Area (Optional)", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("e.g. 1.2") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                shape = textFieldShape,
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("garden_kanal_area_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
 
             Surface(
                 shape = RoundedCornerShape(14.dp),
@@ -1385,8 +1227,8 @@ fun GardenPlanningFormTab(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Total Quantity:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
-                        Text("$totalMultiQty Plants", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
+                        Text("Total Plants:", fontSize = 13.sp, color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                        Text("$totalMultiPlants Plants", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color(0xFF0F172A))
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -2473,6 +2315,8 @@ private fun SwipeableGardenPlanningItem(
         val amountPaid = entry.amountPaid
         val remBalance = if (entry.remainingBalance > 0) entry.remainingBalance else maxOf(0.0, totalCost - amountPaid)
 
+        val totalPlantsCalculated = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) (entry.totalKanalArea * entry.plantsPerKanal).toInt() else 0
+
         WhatsAppTemplateDialog(
             farmerName = entry.farmerName.ifBlank { "Farmer" },
             contactNumber = entry.contactNumber,
@@ -2482,6 +2326,13 @@ private fun SwipeableGardenPlanningItem(
             remainingBalance = remBalance,
             paymentStatus = entry.paymentStatus,
             serialNumber = if (entry.serialNumber.isBlank()) "N/A" else entry.serialNumber,
+            plantVariety = entry.plantVariety,
+            scionVariety = "",
+            rootstock = entry.rootStock,
+            quantity = if (totalPlantsCalculated > 0) "$totalPlantsCalculated" else "1",
+            notes = entry.notes,
+            varietyLinesJson = entry.varietyLinesJson,
+            expectedDelivery = entry.expectedDelivery,
             onDismiss = { showWhatsAppDialog = false }
         )
     }
@@ -4282,6 +4133,318 @@ private fun GardenSummaryCardItem(
                     color = accentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun GardenPlanningVarietyLineCard(
+    index: Int,
+    line: VarietyLine,
+    totalLinesCount: Int,
+    isDark: Boolean,
+    textFieldShape: RoundedCornerShape,
+    onUpdate: (VarietyLine) -> Unit,
+    onRemove: () -> Unit
+) {
+    var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (isDark) Color(0xFF0F172A) else Color.White,
+        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Item #${index + 1}",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (totalLinesCount > 1) {
+                    IconButton(
+                        onClick = onRemove,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Remove Variety Line",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            // Variety Name
+            OutlinedTextField(
+                value = line.variety,
+                onValueChange = { newVar ->
+                    onUpdate(line.copy(variety = capitalizeWordsNaturally(newVar)))
+                },
+                label = { Text("Variety Name *") },
+                placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
+                shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
+                leadingIcon = {
+                    Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("garden_variety_line_name_${index}"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
+            // Rootstock & Feathers Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = line.rootstock,
+                    onValueChange = { newRs ->
+                        onUpdate(line.copy(rootstock = capitalizeWordsNaturally(newRs)))
+                    },
+                    label = { Text("Rootstock") },
+                    placeholder = { Text("e.g. M9, MM106") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    leadingIcon = {
+                        Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("garden_variety_line_rootstock_${index}"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                OutlinedTextField(
+                    value = line.feathers,
+                    onValueChange = { newF ->
+                        onUpdate(line.copy(feathers = newF))
+                    },
+                    label = { Text("Feathers") },
+                    placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        capitalization = KeyboardCapitalization.Characters
+                    ),
+                    leadingIcon = {
+                        Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("garden_variety_line_feathers_${index}"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            }
+
+            // 3-Field Row: Kanal Area, Plants/Kanal, Total Plants (Bidirectional Calculation)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Field 1: Kanal Area
+                OutlinedTextField(
+                    value = line.kanalAreaStr,
+                    onValueChange = { newArea ->
+                        lastEdited = LastEditedField.AREA
+                        val area = newArea.toDoubleOrNull()
+                        val density = line.plantsPerKanalStr.toDoubleOrNull()
+                        val newTotalPlantsStr = if (newArea.isBlank()) {
+                            ""
+                        } else if (density == null || density <= 0) {
+                            "—"
+                        } else if (area != null) {
+                            val calcPlants = Math.round(area * density).toInt()
+                            if (calcPlants > 0) calcPlants.toString() else "0"
+                        } else {
+                            "—"
+                        }
+                        val calcPlantsInt = newTotalPlantsStr.toIntOrNull() ?: 0
+                        onUpdate(
+                            line.copy(
+                                kanalArea = area ?: 0.0,
+                                kanalAreaStr = newArea,
+                                totalPlants = calcPlantsInt,
+                                totalPlantsStr = newTotalPlantsStr,
+                                quantity = calcPlantsInt
+                            )
+                        )
+                    },
+                    label = { Text("Kanal Area *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 1.2") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("garden_variety_line_kanal_area_${index}"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Field 2: Plants/Kanal
+                OutlinedTextField(
+                    value = line.plantsPerKanalStr,
+                    onValueChange = { newDensityStr ->
+                        val density = newDensityStr.toDoubleOrNull()
+                        if (lastEdited == LastEditedField.TOTAL_PLANTS) {
+                            val plants = line.totalPlantsStr.toDoubleOrNull()
+                            val newAreaStr = if (line.totalPlantsStr.isBlank()) {
+                                ""
+                            } else if (density == null || density <= 0) {
+                                "—"
+                            } else if (plants != null) {
+                                val calcArea = plants / density
+                                if (calcArea % 1.0 == 0.0) {
+                                    calcArea.toInt().toString()
+                                } else {
+                                    String.format(java.util.Locale.US, "%.2f", calcArea)
+                                }
+                            } else {
+                                "—"
+                            }
+                            val calcAreaDouble = newAreaStr.toDoubleOrNull() ?: 0.0
+                            val totalP = line.totalPlantsStr.toIntOrNull() ?: line.totalPlants
+                            onUpdate(
+                                line.copy(
+                                    plantsPerKanal = density?.toInt() ?: 0,
+                                    plantsPerKanalStr = newDensityStr,
+                                    kanalArea = calcAreaDouble,
+                                    kanalAreaStr = newAreaStr,
+                                    totalPlants = totalP,
+                                    quantity = totalP
+                                )
+                            )
+                        } else {
+                            val area = line.kanalAreaStr.toDoubleOrNull()
+                            val newTotalPlantsStr = if (line.kanalAreaStr.isBlank()) {
+                                ""
+                            } else if (density == null || density <= 0) {
+                                "—"
+                            } else if (area != null) {
+                                val calcPlants = Math.round(area * density).toInt()
+                                if (calcPlants > 0) calcPlants.toString() else "0"
+                            } else {
+                                "—"
+                            }
+                            val calcPlantsInt = newTotalPlantsStr.toIntOrNull() ?: 0
+                            val currentAreaVal = line.kanalAreaStr.toDoubleOrNull() ?: line.kanalArea
+                            onUpdate(
+                                line.copy(
+                                    plantsPerKanal = density?.toInt() ?: 0,
+                                    plantsPerKanalStr = newDensityStr,
+                                    totalPlants = calcPlantsInt,
+                                    totalPlantsStr = newTotalPlantsStr,
+                                    quantity = calcPlantsInt,
+                                    kanalArea = currentAreaVal
+                                )
+                            )
+                        }
+                    },
+                    label = { Text("Plants/Kanal *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 100") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("garden_variety_line_plants_per_kanal_${index}"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+
+                // Field 3: Total Plants
+                OutlinedTextField(
+                    value = line.totalPlantsStr,
+                    onValueChange = { newPlantsStr ->
+                        lastEdited = LastEditedField.TOTAL_PLANTS
+                        val plants = newPlantsStr.toDoubleOrNull()
+                        val density = line.plantsPerKanalStr.toDoubleOrNull()
+                        val newAreaStr = if (newPlantsStr.isBlank()) {
+                            ""
+                        } else if (density == null || density <= 0) {
+                            "—"
+                        } else if (plants != null) {
+                            val calcArea = plants / density
+                            if (calcArea % 1.0 == 0.0) {
+                                calcArea.toInt().toString()
+                            } else {
+                                String.format(java.util.Locale.US, "%.2f", calcArea)
+                            }
+                        } else {
+                            "—"
+                        }
+                        val calcPlantsInt = newPlantsStr.toIntOrNull() ?: 0
+                        val calcAreaDouble = newAreaStr.toDoubleOrNull() ?: 0.0
+                        onUpdate(
+                            line.copy(
+                                totalPlants = calcPlantsInt,
+                                totalPlantsStr = newPlantsStr,
+                                quantity = calcPlantsInt,
+                                kanalArea = calcAreaDouble,
+                                kanalAreaStr = newAreaStr
+                            )
+                        )
+                    },
+                    label = { Text("Total Plants *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 120") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = textFieldShape,
+                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("garden_variety_line_total_plants_${index}"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            }
+
+            // Unit Price per Plant Field
+            OutlinedTextField(
+                value = line.unitPriceStr,
+                onValueChange = { newPStr ->
+                    val p = newPStr.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+                    onUpdate(line.copy(unitPrice = p, unitPriceStr = newPStr))
+                },
+                label = { Text("Unit Price per Plant *") },
+                placeholder = { Text("e.g. 150") },
+                shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                leadingIcon = {
+                    Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("garden_variety_line_price_${index}"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
+            // Subtotal
+            val effectiveLinePlants = if (line.totalPlants > 0) line.totalPlants else line.quantity
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "Subtotal: ₹${(effectiveLinePlants * line.unitPrice).toInt()}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

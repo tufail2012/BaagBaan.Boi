@@ -814,6 +814,10 @@ private fun FarmerRecordCard(
     }
 
     if (showCardWhatsAppConfirm) {
+        val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
         WhatsAppTemplateDialog(
             farmerName = record.farmerName.ifBlank { "Farmer" },
             contactNumber = record.contactNumber,
@@ -823,6 +827,14 @@ private fun FarmerRecordCard(
             remainingBalance = remBalance,
             paymentStatus = statusLabel,
             serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
+            plantVariety = record.plantVariety,
+            scionVariety = extScion.ifBlank { record.plantVariety.ifBlank { "" } },
+            rootstock = extRootstock,
+            rootDiameter = extDiameter,
+            quantity = "${record.quantity}",
+            notes = record.notes,
+            varietyLinesJson = record.varietyLinesJson,
+            expectedDelivery = record.expectedDelivery,
             onDismiss = { showCardWhatsAppConfirm = false }
         )
     }
@@ -960,6 +972,9 @@ fun SwipeableRecordItem(
             record.amountPaid > 0 -> "Advance Paid"
             else -> "Pending"
         }
+        val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+        val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
 
         WhatsAppTemplateDialog(
             farmerName = record.farmerName.ifBlank { "Farmer" },
@@ -970,6 +985,14 @@ fun SwipeableRecordItem(
             remainingBalance = remBalance,
             paymentStatus = statusLabel,
             serialNumber = if (record.serialNumber.isBlank()) "N/A" else record.serialNumber,
+            plantVariety = record.plantVariety,
+            scionVariety = extScion.ifBlank { record.plantVariety.ifBlank { "" } },
+            rootstock = extRootstock,
+            rootDiameter = extDiameter,
+            quantity = "${record.quantity}",
+            notes = record.notes,
+            varietyLinesJson = record.varietyLinesJson,
+            expectedDelivery = record.expectedDelivery,
             onDismiss = { showWhatsAppDialog = false }
         )
     }

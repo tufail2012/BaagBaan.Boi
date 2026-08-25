@@ -106,15 +106,35 @@ class GardenPlanningViewModel(
         val lines = if (!initialLines.isNullOrEmpty()) {
             initialLines
         } else {
+            val currentArea = totalKanalArea.value.toDoubleOrNull() ?: 0.0
+            val currentDensity = plantsPerKanal.value.toIntOrNull() ?: 0
             val currentQty = totalPlants.value.toIntOrNull()
-                ?: ((totalKanalArea.value.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.value.toDoubleOrNull() ?: 0.0)).toInt().let { if (it > 0) it else 100 }
+                ?: ((totalKanalArea.value.toDoubleOrNull() ?: 0.0) * (plantsPerKanal.value.toDoubleOrNull() ?: 0.0)).toInt().let { if (it > 0) it else 0 }
             val currentPrice = costPerPlant.value.toDoubleOrNull() ?: 250.0
             val currentVar = plantVariety.value.ifBlank { "" }
             val currentRs = rootStock.value
             val currentF = feathers.value
             listOf(
-                VarietyLine(variety = currentVar, quantity = currentQty, unitPrice = currentPrice, rootstock = currentRs, feathers = currentF),
-                VarietyLine(variety = "", quantity = 0, unitPrice = currentPrice, rootstock = currentRs, feathers = "")
+                VarietyLine(
+                    variety = currentVar,
+                    rootstock = currentRs,
+                    feathers = currentF,
+                    kanalArea = currentArea,
+                    plantsPerKanal = currentDensity,
+                    totalPlants = currentQty,
+                    unitPrice = currentPrice,
+                    quantity = currentQty
+                ),
+                VarietyLine(
+                    variety = "",
+                    rootstock = currentRs,
+                    feathers = "",
+                    kanalArea = 0.0,
+                    plantsPerKanal = currentDensity,
+                    totalPlants = 0,
+                    unitPrice = currentPrice,
+                    quantity = 0
+                )
             )
         }
         isMultiVarietyEnabled.value = true
@@ -132,7 +152,7 @@ class GardenPlanningViewModel(
         disableMultiVariety()
     }
 
-    fun addVarietyLine(line: VarietyLine = VarietyLine("", 0, costPerPlant.value.toDoubleOrNull() ?: 250.0, rootStock.value, "")) {
+    fun addVarietyLine(line: VarietyLine = VarietyLine("", rootstock = rootStock.value, feathers = "", kanalArea = 0.0, plantsPerKanal = plantsPerKanal.value.toIntOrNull() ?: 0, totalPlants = 0, unitPrice = costPerPlant.value.toDoubleOrNull() ?: 250.0, quantity = 0)) {
         val updated = varietyLines.value + line
         varietyLines.value = updated
         isMultiVarietyEnabled.value = true
