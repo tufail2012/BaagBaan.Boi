@@ -147,6 +147,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -484,6 +485,19 @@ fun GardenPlanningFormTab(
     val editingEntryId by viewModel.editingEntryId.collectAsState()
     val varietyLines by viewModel.varietyLines.collectAsState()
     val isMultiVarietyEnabled by viewModel.isMultiVarietyEnabled.collectAsState()
+    val allGardenEntries by viewModel.allEntries.collectAsState()
+    val allCropRecords by remember { com.example.data.AppDatabase.getDatabase(context).cropRecordDao().getAllRecords() }.collectAsState(initial = emptyList())
+
+    val matchingPreviousBookings by remember(contactNumber, allCropRecords, allGardenEntries, editingEntryId) {
+        derivedStateOf {
+            BookingLookupHelper.findMatchingBookings(
+                rawInputPhone = contactNumber,
+                cropRecords = allCropRecords,
+                gardenEntries = allGardenEntries,
+                excludeGardenId = editingEntryId
+            )
+        }
+    }
 
     var isSaving by remember { mutableStateOf(false) }
 
@@ -871,6 +885,12 @@ fun GardenPlanningFormTab(
                 }
                 .testTag("garden_contact_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
+        )
+
+        // Existing Booking(s) Lookup Result Section (Shared Component)
+        ExistingBookingsLookupSection(
+            matchingBookings = matchingPreviousBookings,
+            isDark = isDark
         )
 
         // Section Header: GARDEN PLANNING SPECIFICATION

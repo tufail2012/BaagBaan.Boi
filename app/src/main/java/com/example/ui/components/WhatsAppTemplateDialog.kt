@@ -230,8 +230,40 @@ fun WhatsAppTemplateDialog(
     }
 
     fun launchWhatsAppImage(phone: String, uri: Uri, caption: String) {
-        // Direct WhatsApp deep link to the chat of the specific phone number
-        com.example.util.WhatsAppHelper.openWhatsAppChat(context, phone, caption)
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newUri(context.contentResolver, "Receipt Image", uri)
+        clipboard.setPrimaryClip(clip)
+
+        val cleanPhone = phone.trim()
+        var cleanDigits = cleanPhone.replace(Regex("[^0-9]"), "")
+        if (cleanDigits.startsWith("91") && cleanDigits.length > 10) {
+            cleanDigits = cleanDigits.takeLast(10)
+        } else if (cleanDigits.startsWith("0") && cleanDigits.length == 11) {
+            cleanDigits = cleanDigits.substring(1)
+        }
+        if (cleanDigits.length > 10) {
+            cleanDigits = cleanDigits.takeLast(10)
+        }
+        val formattedPhone = if (cleanDigits.isNotEmpty()) "91$cleanDigits" else ""
+
+        val encodedCaption = Uri.encode(caption)
+        val whatsappUri = Uri.parse("https://api.whatsapp.com/send?phone=$formattedPhone&text=$encodedCaption")
+        val intent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {
+            setPackage("com.whatsapp")
+        }
+        try {
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                intent.setPackage("com.whatsapp.w4b")
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                intent.setPackage(null)
+                context.startActivity(intent)
+            }
+        }
+
+        Toast.makeText(context, "Receipt image copied — long-press the chat input and paste it, then hit Send", Toast.LENGTH_LONG).show()
     }
 
     ModalBottomSheet(
