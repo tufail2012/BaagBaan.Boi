@@ -40,6 +40,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Place
+import com.example.util.MapHelper
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Print
@@ -411,6 +413,31 @@ fun BookingRecordDetailDialog(
                                 fontSize = 13.sp,
                                 color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
                             )
+                            if (MapHelper.isGoogleMapsUrl(record.location)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            MapHelper.openGoogleMaps(context, record.location)
+                                        }
+                                        .padding(vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Place,
+                                        contentDescription = "Open in Google Maps",
+                                        tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = "📍 Open Location in Google Maps",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -420,6 +447,7 @@ fun BookingRecordDetailDialog(
                         record.serviceType.contains("Rootstock", ignoreCase = true) ||
                         record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
                         record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+                val isSiteVisit = record.serviceType.equals("Site Visit", ignoreCase = true)
 
                 val parsedVarietyLines = remember(record.varietyLinesJson) { com.example.data.parseVarietyLines(record.varietyLinesJson) }
 
@@ -430,6 +458,53 @@ fun BookingRecordDetailDialog(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
+
+                    if (record.location.isNotBlank()) {
+                        if (MapHelper.isGoogleMapsUrl(record.location)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        MapHelper.openGoogleMaps(context, record.location)
+                                    }
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Place,
+                                        contentDescription = "Open in Google Maps",
+                                        tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "📍 Open Location in Google Maps",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+                            }
+                        } else {
+                            DetailRowItem(
+                                label = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
+                                value = record.location,
+                                isDark = isDark
+                            )
+                        }
+                    }
                     
                     if (parsedVarietyLines.isNotEmpty()) {
                         Surface(
@@ -1507,65 +1582,28 @@ fun BookingRecordDetailDialog(
                     onClick = {
                         showShareReceiptConfirm = false
                         val caption = "Dear ${if (record.farmerName.isBlank()) "Farmer" else record.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${record.serialNumber})."
-                        val bitmapToSend = receiptPreviewBitmap ?: run {
-                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
-
-                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
-
-                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
-                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
-                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "" } }
-
-                            val rData = ReceiptData(
-                                serialNumber = record.serialNumber,
-                                bookingDate = record.bookingDate.ifBlank { todayStr },
-                                farmerName = record.farmerName,
-                                contactNumber = record.contactNumber,
-                                address = record.farmerAddress,
-                                orchardLocation = record.location,
-                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
-                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
-                                quantity = "${record.quantity}",
-                                totalAmount = totalRecordValue,
-                                amountPaid = totalPaidSoFar,
-                                remainingBalance = remainingBalance,
-                                paymentStatus = record.paymentStatus,
-                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
-                                rootstock = actualRs,
-                                feathers = record.feathers,
-                                rootDiameter = actualDiam,
-                                scionVariety = actualScion,
-                                recordType = "croprecord",
-                                recordId = record.id,
-                                varietyLinesJson = record.varietyLinesJson
-                            )
-                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
-                            receiptPreviewBitmap = bmp
-                            bmp
-                        }
-
-                        val uri = bitmapToSend?.let {
-                            com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, it, record.serialNumber)
-                        }
-
-                        if (uri != null) {
-                            com.example.util.WhatsAppHelper.sendWhatsAppMedia(
+                        if (receiptPreviewBitmap != null) {
+                            val uri = com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, receiptPreviewBitmap!!, record.serialNumber)
+                            if (uri != null) {
+                                com.example.util.WhatsAppHelper.sendWhatsAppMedia(
+                                    context = context,
+                                    rawPhone = record.contactNumber,
+                                    mediaUri = uri,
+                                    messageText = caption
+                                )
+                            } else {
+                                com.example.util.WhatsAppHelper.openWhatsAppChat(
+                                    context = context,
+                                    rawPhone = record.contactNumber,
+                                    messageText = caption
+                                )
+                            }
+                        } else {
+                            com.example.util.WhatsAppHelper.openWhatsAppChat(
                                 context = context,
                                 rawPhone = record.contactNumber,
-                                mediaUri = uri,
                                 messageText = caption
                             )
-                        } else {
-                            Toast.makeText(
-                                context,
-                                "Unable to generate the digital receipt. Please try again.",
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
                     }
                 ) {

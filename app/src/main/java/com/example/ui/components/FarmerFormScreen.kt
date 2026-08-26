@@ -98,6 +98,9 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.ui.text.input.ImeAction
+import com.example.util.MapHelper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1371,12 +1374,28 @@ fun FarmerFormScreen(
                 // 4. Orchard/Site Location
                 OutlinedTextField(
                     value = location,
-                    onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
+                    onValueChange = { input ->
+                        viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
+                            input.startsWith("http://", ignoreCase = true) || 
+                            input.startsWith("https://", ignoreCase = true) || 
+                            input.startsWith("maps.", ignoreCase = true) || 
+                            input.startsWith("www.google.", ignoreCase = true) || 
+                            input.startsWith("goo.gl/", ignoreCase = true)) {
+                            input
+                        } else {
+                            capitalizeWordsNaturally(input)
+                        }
+                    },
                     label = { Text("Orchard/Site Location *") },
-                    placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
+                    placeholder = { Text("e.g. Block A, North Field or Maps link") },
                     shape = textFieldShape,
-                    singleLine = true,
-                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    singleLine = false,
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Place,
@@ -1384,6 +1403,21 @@ fun FarmerFormScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
+                    trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
+                        {
+                            IconButton(
+                                onClick = {
+                                    MapHelper.openGoogleMaps(context, location)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OpenInNew,
+                                    contentDescription = "Open in Google Maps",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    } else null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .boundedFormFieldRipple(shape = textFieldShape)
@@ -1395,12 +1429,28 @@ fun FarmerFormScreen(
                 // Orchard Location (Single field for Pruning Specification)
                 OutlinedTextField(
                     value = location,
-                    onValueChange = { viewModel.location.value = capitalizeWordsNaturally(it) },
+                    onValueChange = { input ->
+                        viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
+                            input.startsWith("http://", ignoreCase = true) || 
+                            input.startsWith("https://", ignoreCase = true) || 
+                            input.startsWith("maps.", ignoreCase = true) || 
+                            input.startsWith("www.google.", ignoreCase = true) || 
+                            input.startsWith("goo.gl/", ignoreCase = true)) {
+                            input
+                        } else {
+                            capitalizeWordsNaturally(input)
+                        }
+                    },
                     label = { Text("Orchard Location *") },
-                    placeholder = { Text("e.g. Block A, North Field, Village Green Valley") },
+                    placeholder = { Text("e.g. Block A, North Field or Maps link") },
                     shape = textFieldShape,
-                    singleLine = true,
-                    keyboardOptions = AppDefaultWordKeyboardOptions,
+                    singleLine = false,
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
+                    ),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Place,
@@ -1408,6 +1458,21 @@ fun FarmerFormScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
+                    trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
+                        {
+                            IconButton(
+                                onClick = {
+                                    MapHelper.openGoogleMaps(context, location)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OpenInNew,
+                                    contentDescription = "Open in Google Maps",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    } else null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .boundedFormFieldRipple(shape = textFieldShape)
@@ -3251,11 +3316,11 @@ fun FarmerFormScreen(
                                 messageText = caption
                             )
                         } else {
-                            Toast.makeText(
-                                context,
-                                "Unable to generate the digital receipt. Please try again.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            com.example.util.WhatsAppHelper.openWhatsAppChat(
+                                context = context,
+                                rawPhone = contactNumber,
+                                messageText = caption
+                            )
                         }
                     }
                 ) {

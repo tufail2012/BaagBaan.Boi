@@ -51,6 +51,8 @@ import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Place
+import com.example.util.MapHelper
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Spa
@@ -658,6 +660,59 @@ private fun FarmerRecordCard(
                         overflow = TextOverflow.Ellipsis,
                         isDark = isDark
                     )
+                }
+            }
+
+            val isSiteVisit = record.serviceType.equals("Site Visit", ignoreCase = true)
+
+            if (record.location.isNotBlank()) {
+                if (MapHelper.isGoogleMapsUrl(record.location)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                MapHelper.openGoogleMaps(context, record.location)
+                            }
+                            .padding(vertical = 1.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = "Open in Google Maps",
+                            tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = "📍 Open Location in Google Maps",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else if (isSiteVisit) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        HighlightedText(
+                            text = "Location: ${record.location}",
+                            query = searchQuery,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            isDark = isDark
+                        )
+                    }
                 }
             }
 
