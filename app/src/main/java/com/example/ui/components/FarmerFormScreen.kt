@@ -52,6 +52,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
@@ -510,6 +512,7 @@ fun FarmerFormScreen(
 
     var selectedTemplate by remember { mutableStateOf("Booking Confirmation") }
     var templateMenuExpanded by remember { mutableStateOf(false) }
+    var messagePreviewExpanded by remember { mutableStateOf(false) }
     val templateOptions = com.example.util.MessageTemplateHelper.TEMPLATE_OPTIONS
     val clipboardManager = LocalClipboardManager.current
 
@@ -2629,80 +2632,21 @@ fun FarmerFormScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Section Title: MESSAGE PREVIEW
-        Text(
-            text = "MESSAGE PREVIEW",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+        // Collapsible Message Preview Section (Collapsed by default)
+        val messageCardShape = RoundedCornerShape(16.dp)
 
-        // Select Template Dropdown
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
-        ) {
-            OutlinedTextField(
-                value = selectedTemplate,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Select Template") },
-                shape = pillShape,
-                trailingIcon = {
-                    IconButton(onClick = { templateMenuExpanded = true }) {
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .elevated3dShadow(shape = pillShape, isDark = isDark)
-                    .testTag("select_template_dropdown"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clickable { templateMenuExpanded = true }
-            )
-
-            DropdownMenu(
-                expanded = templateMenuExpanded,
-                onDismissRequest = { templateMenuExpanded = false },
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                templateOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = option,
-                                fontWeight = if (option == selectedTemplate) FontWeight.Bold else FontWeight.Normal,
-                                color = if (option == selectedTemplate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
-                        },
-                        onClick = {
-                            selectedTemplate = option
-                            templateMenuExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        // Preview Box Display
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
-                    elevation = if (isDark) 6.dp else 4.dp,
-                    shape = RoundedCornerShape(18.dp),
+                    elevation = if (isDark) 4.dp else 2.dp,
+                    shape = messageCardShape,
                     ambientColor = if (isDark) Color.Black else Color(0x20000000),
                     spotColor = if (isDark) Color.Black else Color(0x30000000)
-                ),
-            shape = RoundedCornerShape(18.dp),
+                )
+                .clip(messageCardShape)
+                .testTag("new_entry_message_preview_card"),
+            shape = messageCardShape,
             color = if (isDark) Color(0xFF1C1D22) else Color(0xFFF8F9FA),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
@@ -2710,62 +2654,195 @@ fun FarmerFormScreen(
             )
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
+                // Tappable Header Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { messagePreviewExpanded = !messagePreviewExpanded }
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .testTag("new_entry_message_preview_header"),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Template Preview ($selectedTemplate)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    IconButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(generatedMessage))
-                            Toast.makeText(context, "Preview text copied!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.size(28.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = "Copy Text",
+                            imageVector = Icons.Default.Message,
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
+                        Text(
+                            text = "MESSAGE PREVIEW",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.sp
+                        )
                     }
+
+                    Icon(
+                        imageVector = if (messagePreviewExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (messagePreviewExpanded) "Collapse Message Preview" else "Expand Message Preview",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isDark) Color(0xFF121316) else Color.White,
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isDark) Color(0xFF2E313A) else Color(0xFFE0E0E0)
-                    ),
-                    shadowElevation = if (isDark) 4.dp else 3.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(12.dp),
-                            ambientColor = if (isDark) Color.Black else Color(0x18000000),
-                            spotColor = if (isDark) Color.Black else Color(0x25000000)
-                        )
+                // Expandable Section Content
+                AnimatedVisibility(
+                    visible = messagePreviewExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
-                    Text(
-                        text = generatedMessage,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF111111),
-                        lineHeight = 18.sp,
-                        modifier = Modifier.padding(14.dp)
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        androidx.compose.material3.HorizontalDivider(
+                            color = if (isDark) Color(0xFF333540) else Color(0xFFE2E8F0),
+                            thickness = 1.dp
+                        )
+
+                        // Select Template Dropdown
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                        ) {
+                            OutlinedTextField(
+                                value = selectedTemplate,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Select Template") },
+                                shape = pillShape,
+                                trailingIcon = {
+                                    IconButton(onClick = { templateMenuExpanded = true }) {
+                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .elevated3dShadow(shape = pillShape, isDark = isDark)
+                                    .testTag("select_template_dropdown"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { templateMenuExpanded = true }
+                            )
+
+                            DropdownMenu(
+                                expanded = templateMenuExpanded,
+                                onDismissRequest = { templateMenuExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                templateOptions.forEach { option ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = option,
+                                                fontWeight = if (option == selectedTemplate) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (option == selectedTemplate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        },
+                                        onClick = {
+                                            selectedTemplate = option
+                                            templateMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Preview Box Display
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = if (isDark) 4.dp else 2.dp,
+                                    shape = RoundedCornerShape(14.dp),
+                                    ambientColor = if (isDark) Color.Black else Color(0x20000000),
+                                    spotColor = if (isDark) Color.Black else Color(0x30000000)
+                                ),
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isDark) Color(0xFF141518) else Color(0xFFFFFFFF),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isDark) Color(0xFF2E313A) else Color(0xFFE2E8F0)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Template Preview ($selectedTemplate)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+
+                                    IconButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(generatedMessage))
+                                            Toast.makeText(context, "Preview text copied!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "Copy Text",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isDark) Color(0xFF121316) else Color.White,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isDark) Color(0xFF2E313A) else Color(0xFFE0E0E0)
+                                    ),
+                                    shadowElevation = if (isDark) 4.dp else 3.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .shadow(
+                                            elevation = 4.dp,
+                                            shape = RoundedCornerShape(12.dp),
+                                            ambientColor = if (isDark) Color.Black else Color(0x18000000),
+                                            spotColor = if (isDark) Color.Black else Color(0x25000000)
+                                        )
+                                ) {
+                                    Text(
+                                        text = generatedMessage,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF111111),
+                                        lineHeight = 18.sp,
+                                        modifier = Modifier
+                                            .padding(14.dp)
+                                            .testTag("preview_message_text")
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
