@@ -11,6 +11,8 @@ sealed class GlobalSearchResult {
     abstract val totalAmount: Double
     abstract val amountPaid: Double
     abstract val isPaymentCleared: Boolean
+    abstract val isCancelled: Boolean
+    abstract val isReceived: Boolean
 
     data class Crop(val record: CropRecord) : GlobalSearchResult() {
         override val id: Long get() = record.id
@@ -23,6 +25,8 @@ sealed class GlobalSearchResult {
         override val totalAmount: Double get() = record.calculateTotalAmount()
         override val amountPaid: Double get() = record.amountPaid
         override val isPaymentCleared: Boolean get() = record.isPaymentCleared()
+        override val isCancelled: Boolean get() = record.isCancelled
+        override val isReceived: Boolean get() = record.isReceived
     }
 
     data class Garden(val entry: GardenPlanningEntry) : GlobalSearchResult() {
@@ -36,5 +40,7 @@ sealed class GlobalSearchResult {
         override val totalAmount: Double get() = entry.totalCost
         override val amountPaid: Double get() = entry.amountPaid
         override val isPaymentCleared: Boolean get() = entry.remainingBalance <= 0 || entry.paymentStatus.equals("Fully Paid", ignoreCase = true)
+        override val isCancelled: Boolean get() = false
+        override val isReceived: Boolean get() = false
     }
 }

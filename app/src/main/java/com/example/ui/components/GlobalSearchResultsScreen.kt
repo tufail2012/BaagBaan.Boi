@@ -739,7 +739,23 @@ private fun GlobalSearchResultCard(
         )
     }
 
+    val statusLabel = when {
+        item.isCancelled -> "Cancelled"
+        item.isReceived -> "Received"
+        item.isPaymentCleared -> "Fully Paid"
+        item.amountPaid > 0 -> "Advance Paid"
+        else -> "Pending"
+    }
+
     val (statusBg, statusTextColor) = when {
+        item.isCancelled -> {
+            if (isDark) Color(0xFF450A0A) to Color(0xFFFCA5A5)
+            else Color(0xFFFEE2E2) to Color(0xFFDC2626)
+        }
+        item.isReceived -> {
+            if (isDark) Color(0xFF134E4A) to Color(0xFF5EEAD4)
+            else Color(0xFFCCFBF1) to Color(0xFF0F766E)
+        }
         item.isPaymentCleared -> {
             if (isDark) Color(0xFF1B382B) to Color(0xFF6EE7B7)
             else Color(0xFFDCFCE7) to Color(0xFF15803D)
@@ -751,12 +767,6 @@ private fun GlobalSearchResultCard(
         else -> {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) to MaterialTheme.colorScheme.primary
         }
-    }
-
-    val statusLabel = when {
-        item.isPaymentCleared -> "Fully Paid"
-        item.amountPaid > 0 -> "Advance Paid"
-        else -> "Pending"
     }
 
     val avatarBgColor = MaterialTheme.colorScheme.primary
