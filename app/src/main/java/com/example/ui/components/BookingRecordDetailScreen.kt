@@ -1507,28 +1507,65 @@ fun BookingRecordDetailDialog(
                     onClick = {
                         showShareReceiptConfirm = false
                         val caption = "Dear ${if (record.farmerName.isBlank()) "Farmer" else record.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${record.serialNumber})."
-                        if (receiptPreviewBitmap != null) {
-                            val uri = com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, receiptPreviewBitmap!!, record.serialNumber)
-                            if (uri != null) {
-                                com.example.util.WhatsAppHelper.sendWhatsAppMedia(
-                                    context = context,
-                                    rawPhone = record.contactNumber,
-                                    mediaUri = uri,
-                                    messageText = caption
-                                )
-                            } else {
-                                com.example.util.WhatsAppHelper.openWhatsAppChat(
-                                    context = context,
-                                    rawPhone = record.contactNumber,
-                                    messageText = caption
-                                )
-                            }
-                        } else {
-                            com.example.util.WhatsAppHelper.openWhatsAppChat(
+                        val bitmapToSend = receiptPreviewBitmap ?: run {
+                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
+                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
+                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "" } }
+
+                            val rData = ReceiptData(
+                                serialNumber = record.serialNumber,
+                                bookingDate = record.bookingDate.ifBlank { todayStr },
+                                farmerName = record.farmerName,
+                                contactNumber = record.contactNumber,
+                                address = record.farmerAddress,
+                                orchardLocation = record.location,
+                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
+                                quantity = "${record.quantity}",
+                                totalAmount = totalRecordValue,
+                                amountPaid = totalPaidSoFar,
+                                remainingBalance = remainingBalance,
+                                paymentStatus = record.paymentStatus,
+                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                rootstock = actualRs,
+                                feathers = record.feathers,
+                                rootDiameter = actualDiam,
+                                scionVariety = actualScion,
+                                recordType = "croprecord",
+                                recordId = record.id,
+                                varietyLinesJson = record.varietyLinesJson
+                            )
+                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                            receiptPreviewBitmap = bmp
+                            bmp
+                        }
+
+                        val uri = bitmapToSend?.let {
+                            com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, it, record.serialNumber)
+                        }
+
+                        if (uri != null) {
+                            com.example.util.WhatsAppHelper.sendWhatsAppMedia(
                                 context = context,
                                 rawPhone = record.contactNumber,
+                                mediaUri = uri,
                                 messageText = caption
                             )
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Unable to generate the digital receipt. Please try again.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 ) {

@@ -1940,11 +1940,27 @@ fun GardenPlanningFormTab(
                         varietyLinesJson = vLinesJson
                     )
 
-                    com.example.util.WhatsAppHelper.openWhatsAppChat(
-                        context = context,
-                        rawPhone = contactNumber,
-                        messageText = "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber)."
-                    )
+                    val uri = try {
+                        val bmp = ReceiptGenerator.generateReceiptBitmap(receiptData, context)
+                        ReceiptGenerator.saveReceiptImageAndGetUri(context, bmp, serialNumber)
+                    } catch (_: Exception) {
+                        null
+                    }
+
+                    if (uri != null) {
+                        com.example.util.WhatsAppHelper.sendWhatsAppMedia(
+                            context = context,
+                            rawPhone = contactNumber,
+                            mediaUri = uri,
+                            messageText = "Dear ${farmerName.ifBlank { "Farmer" }}, here is your official digital receipt for Garden Planning ($serialNumber)."
+                        )
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Unable to generate the digital receipt. Please try again.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -3845,28 +3861,53 @@ fun GardenBookingRecordDetailDialog(
                     onClick = {
                         showShareReceiptConfirm = false
                         val caption = "Dear ${if (currentEntry.farmerName.isBlank()) "Farmer" else currentEntry.farmerName}, here is your official digital receipt from Baagbaan Boi (Serial #${currentEntry.serialNumber})."
-                        if (receiptPreviewBitmap != null) {
-                            val uri = com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, receiptPreviewBitmap!!, currentEntry.serialNumber)
-                            if (uri != null) {
-                                com.example.util.WhatsAppHelper.sendWhatsAppMedia(
-                                    context = context,
-                                    rawPhone = currentEntry.contactNumber,
-                                    mediaUri = uri,
-                                    messageText = caption
-                                )
-                            } else {
-                                com.example.util.WhatsAppHelper.openWhatsAppChat(
-                                    context = context,
-                                    rawPhone = currentEntry.contactNumber,
-                                    messageText = caption
-                                )
-                            }
-                        } else {
-                            com.example.util.WhatsAppHelper.openWhatsAppChat(
+                        val bitmapToSend = receiptPreviewBitmap ?: run {
+                            val rData = ReceiptData(
+                                serialNumber = currentEntry.serialNumber,
+                                bookingDate = currentEntry.bookingDate.ifBlank { todayStr },
+                                farmerName = currentEntry.farmerName,
+                                contactNumber = currentEntry.contactNumber,
+                                address = currentEntry.farmerAddress,
+                                orchardLocation = currentEntry.farmerAddress,
+                                serviceCategory = "Garden Planning",
+                                plantVariety = currentEntry.plantVariety.ifBlank { "Apple Plants" },
+                                quantity = "$totalPlants",
+                                totalAmount = totalRecordValue,
+                                amountPaid = totalPaidSoFar,
+                                remainingBalance = remainingBalance,
+                                paymentStatus = currentEntry.paymentStatus,
+                                expectedDelivery = currentEntry.expectedDelivery.ifBlank { "Not set" },
+                                plantOrigin = currentEntry.plantOrigin.ifBlank { "Local Plants" },
+                                feathers = currentEntry.feathers,
+                                rootstock = currentEntry.rootStock,
+                                recordType = "gardenplanning",
+                                recordId = currentEntry.id,
+                                totalKanalArea = currentEntry.totalKanalArea,
+                                costPerPlant = currentEntry.costPerPlant,
+                                varietyLinesJson = currentEntry.varietyLinesJson
+                            )
+                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                            receiptPreviewBitmap = bmp
+                            bmp
+                        }
+
+                        val uri = bitmapToSend?.let {
+                            com.example.util.ReceiptGenerator.saveReceiptImageAndGetUri(context, it, currentEntry.serialNumber)
+                        }
+
+                        if (uri != null) {
+                            com.example.util.WhatsAppHelper.sendWhatsAppMedia(
                                 context = context,
                                 rawPhone = currentEntry.contactNumber,
+                                mediaUri = uri,
                                 messageText = caption
                             )
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Unable to generate the digital receipt. Please try again.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 ) {

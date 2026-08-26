@@ -168,36 +168,89 @@ object WhatsAppHelper {
     }
 
     /**
-     * Sends Digital Receipt to the WhatsApp chat using the exact same destination
+     * Sends Digital Receipt image file to the WhatsApp chat using the exact same destination
      * and number normalization mechanism as openWhatsAppChat / Send WhatsApp Confirmation.
+     *
+     * Directly attaches the generated image file to the WhatsApp compose window with the
+     * phone number targeted via the WhatsApp JID (`[phone]@s.whatsapp.net`) so the receipt
+     * image is physically attached and ready to send.
      */
     fun sendWhatsAppMedia(
         context: Context,
         rawPhone: String?,
         mediaUri: Uri,
         mimeType: String = "image/png",
-        messageText: String = ""
+        messageText: String = "",
+        onInvalidNumber: (() -> Unit)? = null
     ): Boolean {
-        try {
-            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-            if (clipboard != null) {
-                val clip = android.content.ClipData.newUri(context.contentResolver, "Receipt Image", mediaUri)
-                clipboard.setPrimaryClip(clip)
+        val normalized = normalizePhoneNumber(rawPhone)
+        if (normalized == null || normalized.length < 7) {
+            if (onInvalidNumber != null) {
+                onInvalidNumber()
+            } else {
+                Toast.makeText(
+                    context,
+                    "Please enter a valid contact phone number for WhatsApp",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-        } catch (_: Exception) {}
-
-        val opened = openWhatsAppChat(
-            context = context,
-            rawPhone = rawPhone,
-            messageText = messageText
-        )
-        if (opened) {
-            Toast.makeText(
-                context,
-                "Receipt image copied — paste it into the chat and send",
-                Toast.LENGTH_SHORT
-            ).show()
+            return false
         }
-        return opened
+
+        val jid = "$normalized@s.whatsapp.net"
+
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = mimeType
+            putExtra(Intent.EXTRA_STREAM, mediaUri)
+            if (messageText.isNotBlank()) {
+                putExtra(Intent.EXTRA_TEXT, messageText)
+            }
+            putExtra("jid", jid)
+            clipData = android.content.ClipData.newUri(context.contentResolver, "Digital Receipt Image", mediaUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        // 1. Try direct ACTION_SEND targeting official WhatsApp
+        try {
+            val waIntent = Intent(sendIntent).apply {
+                setPackage("com.whatsapp")
+            }
+            context.startActivity(waIntent)
+            return true
+        } catch (_: Exception) {
+            // 2. Try direct ACTION_SEND targeting WhatsApp Business
+            try {
+                val w4bIntent = Intent(sendIntent).apply {
+                    setPackage("com.whatsapp.w4b")
+                }
+                context.startActivity(w4bIntent)
+                return true
+            } catch (_: Exception) {
+                // 3. Try ACTION_SEND without package restriction
+                try {
+                    val genericIntent = Intent(sendIntent)
+                    context.startActivity(genericIntent)
+                    return true
+                } catch (_: Exception) {
+                    // 4. Try standard chooser with image attachment
+                    try {
+                        val chooser = Intent.createChooser(sendIntent, "Send Receipt via WhatsApp").apply {
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(chooser)
+                        return true
+                    } catch (finalEx: Exception) {
+                        Toast.makeText(
+                            context,
+                            "WhatsApp is not installed on this device",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return false
+                    }
+                }
+            }
+        }
     }
 }

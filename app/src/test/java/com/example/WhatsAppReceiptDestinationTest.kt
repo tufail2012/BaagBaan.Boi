@@ -67,7 +67,7 @@ class WhatsAppReceiptDestinationTest {
             confirmUri.contains("919876543210")
         )
 
-        // 2. Test Send Digital Receipt Flow with the exact same unsaved number
+        // 2. Test Send Digital Receipt Flow with the exact same unsaved number and attached image
         val dummyMediaUri = Uri.parse("content://com.example.provider/receipts/LP-69.png")
         val receiptOpened = WhatsAppHelper.sendWhatsAppMedia(
             context = context,
@@ -79,11 +79,14 @@ class WhatsAppReceiptDestinationTest {
 
         val receiptIntent = shadowApp.nextStartedActivity
         assertNotNull(receiptIntent)
-        assertEquals(Intent.ACTION_VIEW, receiptIntent.action)
-        val receiptTargetUri = receiptIntent.data?.toString() ?: ""
+        assertEquals(Intent.ACTION_SEND, receiptIntent.action)
+        assertEquals("image/png", receiptIntent.type)
+        assertEquals(dummyMediaUri, receiptIntent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
+        assertEquals("919876543210@s.whatsapp.net", receiptIntent.getStringExtra("jid"))
+        assertEquals("com.whatsapp", receiptIntent.`package`)
         assertTrue(
-            "Digital receipt intent URI must target 919876543210 directly using the same mechanism as confirmation: $receiptTargetUri",
-            receiptTargetUri.contains("919876543210")
+            "Caption should be set in EXTRA_TEXT",
+            receiptIntent.getStringExtra(Intent.EXTRA_TEXT)?.contains("LP-69") == true
         )
     }
 
@@ -112,11 +115,9 @@ class WhatsAppReceiptDestinationTest {
         val shadowApp = shadowOf(ApplicationProvider.getApplicationContext() as android.app.Application)
         val receiptIntent = shadowApp.nextStartedActivity
         assertNotNull(receiptIntent)
-        assertEquals(Intent.ACTION_VIEW, receiptIntent.action)
-        val receiptTargetUri = receiptIntent.data?.toString() ?: ""
-        assertTrue(
-            "Garden planning digital receipt intent URI must target 919876543210 directly: $receiptTargetUri",
-            receiptTargetUri.contains("919876543210")
-        )
+        assertEquals(Intent.ACTION_SEND, receiptIntent.action)
+        assertEquals("image/png", receiptIntent.type)
+        assertEquals(dummyMediaUri, receiptIntent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java))
+        assertEquals("919876543210@s.whatsapp.net", receiptIntent.getStringExtra("jid"))
     }
 }

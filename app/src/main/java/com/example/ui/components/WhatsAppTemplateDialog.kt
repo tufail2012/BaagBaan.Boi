@@ -662,7 +662,7 @@ fun WhatsAppTemplateDialog(
                                         )
                                         onDismiss()
                                     } else {
-                                        Toast.makeText(context, "Receipt image still generating...", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Unable to generate the digital receipt. Please try again.", Toast.LENGTH_SHORT).show()
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),

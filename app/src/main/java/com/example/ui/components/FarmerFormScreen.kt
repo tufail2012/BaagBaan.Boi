@@ -3251,11 +3251,11 @@ fun FarmerFormScreen(
                                 messageText = caption
                             )
                         } else {
-                            com.example.util.WhatsAppHelper.openWhatsAppChat(
-                                context = context,
-                                rawPhone = contactNumber,
-                                messageText = caption
-                            )
+                            Toast.makeText(
+                                context,
+                                "Unable to generate the digital receipt. Please try again.",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 ) {
