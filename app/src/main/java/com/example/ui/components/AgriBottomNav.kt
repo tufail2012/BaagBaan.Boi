@@ -65,6 +65,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 
 data class AgriNavItem(
@@ -120,16 +121,19 @@ fun AgriBottomNav(
 
     // App Brand Purple Tint
     val brandPurple = MaterialTheme.colorScheme.primary
+    val screenBgColor = MaterialTheme.colorScheme.background
 
-    // Liquid Glass Tint & Material styling
-    val hazeStyle = remember(isDark, brandPurple) {
+    // Liquid Glass Tint & Material styling with explicit real background color
+    val hazeStyle = remember(isDark, brandPurple, screenBgColor) {
         if (!isDark) {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color.White.copy(alpha = 0.18f)),
                 blurRadius = 26.dp
             )
         } else {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
                 blurRadius = 26.dp
             )
