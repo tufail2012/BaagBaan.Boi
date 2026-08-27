@@ -46,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
@@ -87,45 +88,25 @@ fun AgriBottomNav(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
-    val containerGlassGradient = if (!isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.70f),
-                Color(0xFFE2E8F0).copy(alpha = 0.50f)
-            )
-        )
+    val containerGlassBg = if (!isDark) {
+        Color.White.copy(alpha = 0.6f)
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.65f),
-                Color(0xFF0F172A).copy(alpha = 0.78f)
-            )
-        )
+        Color(0xFF1E293B).copy(alpha = 0.6f)
     }
 
-    val containerGlassBorder = if (!isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.95f),
-                Color.White.copy(alpha = 0.40f)
-            )
-        )
+    val containerGlassBorderColor = if (!isDark) {
+        Color.White.copy(alpha = 0.6f)
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color.White.copy(alpha = 0.08f)
-            )
-        )
+        Color.White.copy(alpha = 0.15f)
     }
 
     val containerShadowColor = if (!isDark) {
-        Color(0xFF0F172A).copy(alpha = 0.16f)
+        Color(0xFF0F172A).copy(alpha = 0.12f)
     } else {
         Color.Black.copy(alpha = 0.60f)
     }
 
-    // Glassmorphism floating pill container
+    // iOS-style glassmorphism floating pill container
     Box(
         modifier = modifier
             .navigationBarsPadding()
@@ -139,13 +120,22 @@ fun AgriBottomNav(
                 spotColor = containerShadowColor
             )
             .clip(CircleShape)
-            .background(containerGlassGradient)
+            .background(containerGlassBg)
             .border(
-                width = 1.2.dp,
-                brush = containerGlassBorder,
+                width = 1.dp,
+                color = containerGlassBorderColor,
                 shape = CircleShape
             )
     ) {
+        // Localized 20.dp blur backdrop layer for content behind the navigation bar
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(CircleShape)
+                .blur(20.dp)
+                .background(containerGlassBg)
+        )
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
