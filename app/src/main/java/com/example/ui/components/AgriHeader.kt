@@ -97,17 +97,20 @@ import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.example.ui.AppThemeMode
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 
 import androidx.compose.material.icons.filled.AccountCircle
+import com.example.ui.theme.getSectionAccentColor
 
 @Composable
 fun AgriHeader(
     title: String,
     themeMode: AppThemeMode,
     onSelectThemeMode: (AppThemeMode) -> Unit,
+    accentColor: Color? = null,
     selectedColorHex: String = "#D32F2F",
     onSelectColorHex: (String) -> Unit = {},
     searchQuery: String = "",
@@ -164,6 +167,13 @@ fun AgriHeader(
     val isDark = isAppInDarkMode()
     val focusRequester = remember { FocusRequester() }
 
+    val sectionAccent = accentColor ?: getSectionAccentColor(title)
+    val animatedAccentColor by animateColorAsState(
+        targetValue = sectionAccent,
+        animationSpec = tween(durationMillis = 280),
+        label = "HeaderAccentColor"
+    )
+
     val isAttendanceScreen = title.equals("Worker Attendance", ignoreCase = true) || title.equals("Attendance", ignoreCase = true)
     val activeSearchMode = (isSearchActive || searchQuery.isNotEmpty()) && !isAttendanceScreen
 
@@ -183,13 +193,13 @@ fun AgriHeader(
                 horizontal = if (isAttendanceScreen) 12.dp else 16.dp,
                 vertical = 6.dp
             ),
-        color = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
+        color = if (isDark) MaterialTheme.colorScheme.surface else animatedAccentColor.copy(alpha = 0.08f),
         border = BorderStroke(
             width = 1.dp,
             color = if (isDark) {
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
             } else {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                animatedAccentColor.copy(alpha = 0.22f)
             }
         ),
         shadowElevation = if (isDark) 0.dp else 1.dp,
@@ -215,7 +225,7 @@ fun AgriHeader(
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Close Search",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = animatedAccentColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -236,7 +246,7 @@ fun AgriHeader(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = animatedAccentColor,
                             modifier = Modifier.size(18.dp)
                         )
                     },
@@ -254,7 +264,7 @@ fun AgriHeader(
                     },
                     shape = CircleShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedBorderColor = animatedAccentColor,
                         unfocusedBorderColor = if (isDark) Color(0xFF333333) else Color(0xFFDDDDDD),
                         focusedContainerColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFF8F9FA),
                         unfocusedContainerColor = if (isDark) Color(0xFF181818) else Color(0xFFF1F3F5),
@@ -331,7 +341,7 @@ fun AgriHeader(
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -366,13 +376,13 @@ fun AgriHeader(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(animatedAccentColor),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = headerBadgeIcon,
                                 contentDescription = "$title Icon",
-                                tint = if (isDark) Color.Black else Color.White,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -386,7 +396,7 @@ fun AgriHeader(
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -404,7 +414,7 @@ fun AgriHeader(
                                 badge = {
                                     if (unreadNotificationCount > 0) {
                                         Badge(
-                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            containerColor = animatedAccentColor,
                                             contentColor = Color.White
                                         ) {
                                             Text(
@@ -419,7 +429,7 @@ fun AgriHeader(
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = "Notification Center",
-                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -434,7 +444,7 @@ fun AgriHeader(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search Records",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
 

@@ -244,8 +244,6 @@ fun AgriBottomNav(
             .then(
                 if (hazeState != null && !isReduceTransparencyOrBatterySaver) {
                     Modifier.hazeEffect(state = hazeState, style = hazeStyle)
-                } else if (!isReduceTransparencyOrBatterySaver) {
-                    Modifier.blur(26.dp)
                 } else {
                     Modifier
                 }

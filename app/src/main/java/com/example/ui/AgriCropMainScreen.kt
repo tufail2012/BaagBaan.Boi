@@ -498,6 +498,7 @@ fun AgriCropMainScreen(
                             AgriHeader(
                                 title = displayHeaderTitle,
                                 themeMode = themeMode,
+                                accentColor = sectionAccentColor,
                                 selectedColorHex = accentColorHex,
                                 onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
                                 onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
