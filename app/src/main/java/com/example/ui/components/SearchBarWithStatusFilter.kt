@@ -135,43 +135,40 @@ fun SearchBarWithStatusFilter(
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
-                    .shadow(elevation = 2.dp, shape = searchShape)
                     .testTag("${testTagPrefix}_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
             // Filter Dropdown Anchor Button
             Box {
-                Surface(
-                    onClick = { dropdownExpanded = true },
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isFilterActive) {
-                        MaterialTheme.colorScheme.primary
-                    } else if (isDark) {
-                        Color(0xFF1E293B)
-                    } else {
-                        Color(0xFFF1F5F9)
-                    },
-                    border = if (isFilterActive) null else BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                Box(
                     modifier = Modifier
                         .height(52.dp)
-                        .testTag("${testTagPrefix}_filter_dropdown_btn")
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { dropdownExpanded = true }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .testTag("${testTagPrefix}_filter_dropdown_btn"),
+                    contentAlignment = Alignment.Center
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
                             contentDescription = "Filter Records",
-                            tint = if (isFilterActive) Color.White else MaterialTheme.colorScheme.primary,
+                            tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)),
                             modifier = Modifier.size(20.dp)
                         )
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = if (isFilterActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
                             modifier = Modifier.size(16.dp)
                         )
                     }

@@ -568,27 +568,29 @@ fun Modifier.glassCardBackground(
 ): Modifier {
     val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
 
-    val containerGradient = remember(isDark, isAmoled) {
+    val containerGradient = remember(isDark, isAmoled, accentColor) {
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF18181B).copy(alpha = 0.92f),
-                    Color(0xFF111113).copy(alpha = 0.88f),
-                    Color(0xFF000000).copy(alpha = 0.90f)
+                    Color(0xFF18181B).copy(alpha = 0.85f),
+                    accentColor.copy(alpha = 0.08f),
+                    Color(0xFF0A0A0C).copy(alpha = 0.90f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.90f),
-                    Color(0xFF182232).copy(alpha = 0.85f),
-                    Color(0xFF0F172A).copy(alpha = 0.88f)
+                    Color(0xFF1E293B).copy(alpha = 0.78f),
+                    Color(0xFF162032).copy(alpha = 0.72f),
+                    accentColor.copy(alpha = 0.06f),
+                    Color(0xFF0F172A).copy(alpha = 0.80f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.96f),
-                    Color.White.copy(alpha = 0.92f),
-                    Color.White.copy(alpha = 0.94f)
+                    Color.White.copy(alpha = 0.88f),
+                    Color.White.copy(alpha = 0.76f),
+                    accentColor.copy(alpha = 0.04f),
+                    Color.White.copy(alpha = 0.82f)
                 )
             )
         }
@@ -598,7 +600,7 @@ fun Modifier.glassCardBackground(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.50f),
+                    Color.White.copy(alpha = 0.65f),
                     accentColor.copy(alpha = 0.45f),
                     Color.White.copy(alpha = 0.15f),
                     Color(0xFF27272A).copy(alpha = 0.50f)
@@ -606,18 +608,18 @@ fun Modifier.glassCardBackground(
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.45f),
-                    accentColor.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.48f),
+                    accentColor.copy(alpha = 0.38f),
                     Color.White.copy(alpha = 0.12f),
-                    Color(0xFF334155).copy(alpha = 0.40f)
+                    Color(0xFF334155).copy(alpha = 0.45f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White,
-                    accentColor.copy(alpha = 0.35f),
-                    accentColor.copy(alpha = 0.15f),
-                    Color(0xFFCBD5E1).copy(alpha = 0.65f)
+                    Color.White.copy(alpha = 0.95f),
+                    accentColor.copy(alpha = 0.32f),
+                    accentColor.copy(alpha = 0.12f),
+                    Color.White.copy(alpha = 0.45f)
                 )
             )
         }
