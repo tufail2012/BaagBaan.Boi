@@ -1,9 +1,13 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -17,18 +21,28 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -132,7 +146,12 @@ fun AppOutlinedTextField(
     OutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
-        modifier = modifier.boundedFormFieldRipple(shape = shape),
+        modifier = modifier.boundedFormFieldRipple(
+            shape = shape,
+            accentColor = MaterialTheme.colorScheme.primary,
+            interactionSource = interactionSource,
+            enabled = enabled
+        ),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -202,7 +221,12 @@ fun AppOutlinedTextField(
     OutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
-        modifier = modifier.boundedFormFieldRipple(shape = shape),
+        modifier = modifier.boundedFormFieldRipple(
+            shape = shape,
+            accentColor = MaterialTheme.colorScheme.primary,
+            interactionSource = interactionSource,
+            enabled = enabled
+        ),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -248,9 +272,160 @@ fun isAppInDarkMode(): Boolean {
 }
 
 /**
- * Modifier extension to attach a smooth, bounded ripple effect animation to form fields.
- * The ripple originates from the point of tap, is contained strictly within [shape],
- * and provides responsive, lag-free visual feedback without overflowing or affecting surrounding UI.
+ * Interactive water-ripple wave effect on glass.
+ * When tapped/clicked, triggers a fluid water-droplet impact expanding from the exact
+ * horizontal center toward both the left and right edges simultaneously.
+ * The wave is soft, smooth, subtle, and strictly clipped within [shape].
+ */
+@Composable
+fun Modifier.centerWaterRipple(
+    shape: Shape = RoundedCornerShape(16.dp),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    interactionSource: MutableInteractionSource? = null,
+    enabled: Boolean = true
+): Modifier {
+    val coroutineScope = rememberCoroutineScope()
+    val isDark = isAppInDarkMode()
+    val animProgress = remember { Animatable(0f) }
+
+    val triggerWave: () -> Unit = remember(coroutineScope, enabled) {
+        {
+            if (enabled) {
+                coroutineScope.launch {
+                    animProgress.snapTo(0f)
+                    animProgress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 480,
+                            easing = CubicBezierEasing(0.18f, 0.70f, 0.20f, 1.0f)
+                        )
+                    )
+                    animProgress.snapTo(0f)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(interactionSource, enabled) {
+        if (interactionSource != null && enabled) {
+            interactionSource.interactions.collect { interaction ->
+                if (interaction is PressInteraction.Press) {
+                    triggerWave()
+                }
+            }
+        }
+    }
+
+    return this
+        .pointerInput(enabled) {
+            if (enabled) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.changedToDown() }) {
+                            triggerWave()
+                        }
+                    }
+                }
+            }
+        }
+        .drawWithContent {
+            drawContent()
+
+            val progress = animProgress.value
+            if (progress > 0f && progress < 1f) {
+                val outline = shape.createOutline(size, layoutDirection, this)
+                clipPath(
+                    path = Path().apply {
+                        addOutline(outline)
+                    }
+                ) {
+                    val centerX = size.width / 2f
+                    val centerY = size.height / 2f
+
+                    // Max horizontal spread reaches slightly past edges for full wash
+                    val maxSpread = (size.width / 2f) * 1.12f
+                    val currentSpread = maxSpread * progress
+
+                    val fadeAlpha = ((1f - progress) * (if (isDark) 0.50f else 0.60f)).coerceIn(0f, 1f)
+
+                    // 1. Center droplet impact ring / glow (fades quickly at start)
+                    val dropletDecay = (1f - (progress * 2.6f)).coerceIn(0f, 1f)
+                    if (dropletDecay > 0f) {
+                        val dropRadius = 22.dp.toPx() * (0.8f + progress * 1.6f)
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = dropletDecay * (if (isDark) 0.40f else 0.50f)),
+                                    accentColor.copy(alpha = dropletDecay * 0.30f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(centerX, centerY),
+                                radius = dropRadius
+                            ),
+                            radius = dropRadius,
+                            center = Offset(centerX, centerY)
+                        )
+                    }
+
+                    // 2. Horizontal water wave spreading left and right simultaneously
+                    if (currentSpread > 1f) {
+                        val leftEdge = (centerX - currentSpread).coerceAtLeast(0f)
+                        val rightEdge = (centerX + currentSpread).coerceAtMost(size.width)
+                        val waveWidth = rightEdge - leftEdge
+
+                        if (waveWidth > 0f) {
+                            val waveBrush = Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to Color.Transparent,
+                                    0.07f to Color.White.copy(alpha = fadeAlpha * 0.90f),
+                                    0.18f to accentColor.copy(alpha = fadeAlpha * 0.55f),
+                                    0.35f to Color.White.copy(alpha = fadeAlpha * 0.20f),
+                                    0.50f to accentColor.copy(alpha = fadeAlpha * 0.12f),
+                                    0.65f to Color.White.copy(alpha = fadeAlpha * 0.20f),
+                                    0.82f to accentColor.copy(alpha = fadeAlpha * 0.55f),
+                                    0.93f to Color.White.copy(alpha = fadeAlpha * 0.90f),
+                                    1.00f to Color.Transparent
+                                ),
+                                startX = leftEdge,
+                                endX = rightEdge
+                            )
+
+                            drawRect(
+                                brush = waveBrush,
+                                topLeft = Offset(leftEdge, 0f),
+                                size = Size(waveWidth, size.height)
+                            )
+
+                            // Upper specular crest highlight
+                            val crestHeight = 3.dp.toPx()
+                            val topCrestBrush = Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0.00f to Color.Transparent,
+                                    0.08f to Color.White.copy(alpha = fadeAlpha * 0.85f),
+                                    0.50f to Color.White.copy(alpha = fadeAlpha * 0.25f),
+                                    0.92f to Color.White.copy(alpha = fadeAlpha * 0.85f),
+                                    1.00f to Color.Transparent
+                                ),
+                                startX = leftEdge,
+                                endX = rightEdge
+                            )
+                            drawRect(
+                                brush = topCrestBrush,
+                                topLeft = Offset(leftEdge, 0f),
+                                size = Size(waveWidth, crestHeight)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+}
+
+/**
+ * Modifier extension to attach a smooth, center-origin horizontal water ripple effect to form fields.
+ * The water wave originates from the horizontal center of the field, expands towards both left and right edges,
+ * is contained strictly within [shape], and provides responsive, fluid visual feedback without overflowing.
  * Applies the centralized glassCardBackground modifier to ensure all input field cards/containers
  * receive the unified glass surface, section accent tint, specular border, and depth.
  */
@@ -265,25 +440,28 @@ fun Modifier.boundedFormFieldRipple(
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
-    val glassMod = this
+    val baseMod = this
         .bringIntoViewOnFocus()
         .glassCardBackground(
             isDark = isDark,
             accentColor = accentColor,
             shape = shape
         )
-    return if (onClick != null) {
-        glassMod.clickable(
+        .centerWaterRipple(
+            shape = shape,
+            accentColor = accentColor,
             interactionSource = interactionSource,
-            indication = ripple(bounded = true, color = rippleColor),
+            enabled = enabled
+        )
+    return if (onClick != null) {
+        baseMod.clickable(
+            interactionSource = interactionSource,
+            indication = null,
             enabled = enabled,
             onClick = onClick
         )
     } else {
-        glassMod.indication(
-            interactionSource = interactionSource,
-            indication = ripple(bounded = true, color = rippleColor)
-        )
+        baseMod
     }
 }
 

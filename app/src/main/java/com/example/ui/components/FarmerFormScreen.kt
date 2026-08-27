@@ -2366,12 +2366,15 @@ fun FarmerFormScreen(
             colors = elevatedInputFieldColors(isDark = isDark)
         )
 
-        // Calculated Payment Summary Box
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
-            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
+        // Calculated Payment Summary Box (Amount Breakdown)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassCardBackground(
+                    isDark = isDark,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(16.dp)
+                )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -2393,7 +2396,7 @@ fun FarmerFormScreen(
                     Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(paidAmountNum.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
                 }
 
-                androidx.compose.material3.Divider(color = if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
+                androidx.compose.material3.HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

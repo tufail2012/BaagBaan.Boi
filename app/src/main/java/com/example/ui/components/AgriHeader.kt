@@ -192,26 +192,21 @@ fun AgriHeader(
         }
     }
 
-    Surface(
+    val headerShape = if (isAttendanceScreen) RoundedCornerShape(16.dp) else CircleShape
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(
                 horizontal = if (isAttendanceScreen) 12.dp else 16.dp,
                 vertical = 6.dp
-            ),
-        color = if (isDark) MaterialTheme.colorScheme.surface else animatedAccentColor.copy(alpha = 0.08f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isDark) {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-            } else {
-                animatedAccentColor.copy(alpha = 0.22f)
-            }
-        ),
-        shadowElevation = if (isDark) 0.dp else 1.dp,
-        tonalElevation = 0.dp,
-        shape = if (isAttendanceScreen) RoundedCornerShape(12.dp) else CircleShape
+            )
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = animatedAccentColor,
+                shape = headerShape
+            )
     ) {
         if (activeSearchMode) {
             // Global Search Bar active in Header

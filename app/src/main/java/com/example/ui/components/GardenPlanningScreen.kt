@@ -1575,13 +1575,15 @@ fun GardenPlanningFormTab(
         val amountPaidDouble = viewModel.calculateAmountPaid()
         val remainingBalance = viewModel.calculateRemainingBalance()
 
-        Surface(
+        // Calculated Payment Summary Box (Amount Breakdown)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .elevated3dShadow(shape = RoundedCornerShape(16.dp), isDark = isDark),
-            shape = RoundedCornerShape(16.dp),
-            color = if (isDark) Color(0xFF22242B) else Color(0xFFF8F9FA),
-            border = BorderStroke(1.dp, if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
+                .glassCardBackground(
+                    isDark = isDark,
+                    accentColor = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(16.dp)
+                )
         ) {
             Column(
                 modifier = Modifier
@@ -1605,7 +1607,7 @@ fun GardenPlanningFormTab(
                     Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
                 }
 
-                HorizontalDivider(color = if (isDark) Color(0xFF373A45) else Color(0xFFE2E8F0))
+                HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
