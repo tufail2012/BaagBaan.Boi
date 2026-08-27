@@ -656,9 +656,11 @@ object ReceiptGenerator {
             stampPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             canvas.drawText("KASHMIR", stampCx, stampCy - 5f, stampPaint)
 
-            stampPaint.textSize = 12f
+            stampPaint.alpha = 255
+            stampPaint.textSize = 16f
             stampPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             canvas.drawText("Pioneering Kashmir's Orchard Future", stampCx, stampCy + 32f, stampPaint)
+            stampPaint.alpha = 160
 
             stampPaint.strokeWidth = 2f
             stampPaint.style = Paint.Style.STROKE
