@@ -376,7 +376,7 @@ private fun RecordSummaryCards(
                 formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = MaterialTheme.colorScheme.primary,
-                bgColor = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
 
@@ -387,7 +387,7 @@ private fun RecordSummaryCards(
                 formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.CheckCircle,
                 accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
-                bgColor = if (isDark) Color(0xFF1B2E1B) else Color(0xFFE8F5E9),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -403,7 +403,7 @@ private fun RecordSummaryCards(
                 formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.HourglassTop,
                 accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
-                bgColor = if (isDark) Color(0xFF331C1C) else Color(0xFFFFEBEE),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
 
@@ -415,7 +415,7 @@ private fun RecordSummaryCards(
                     formatter = { "${numberFmt.format(it.toInt())} Units" },
                     icon = Icons.Default.Inventory2,
                     accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
-                    bgColor = if (isDark) Color(0xFF1A2A38) else Color(0xFFE1F5FE),
+                    isDark = isDark,
                     modifier = Modifier.weight(1f)
                 )
             } else {
@@ -432,14 +432,16 @@ private fun SummaryCardItem(
     formatter: (Double) -> String,
     icon: ImageVector,
     accentColor: Color,
-    bgColor: Color,
+    isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = bgColor,
-        tonalElevation = 1.dp
+    Box(
+        modifier = modifier
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(14.dp)
+            )
     ) {
         Row(
             modifier = Modifier
@@ -452,7 +454,7 @@ private fun SummaryCardItem(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.15f)),
+                    .background(accentColor.copy(alpha = if (isDark) 0.22f else 0.14f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -540,17 +542,17 @@ private fun FarmerRecordCard(
         else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
     }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onOpenDetail() }
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp))
-            .testTag("farmer_record_card_${record.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            .testTag("farmer_record_card_${record.id}")
     ) {
         Column(
             modifier = Modifier

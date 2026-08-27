@@ -2384,16 +2384,16 @@ private fun GardenPlanningRecordCard(
         else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
     }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clip(RoundedCornerShape(16.dp))
             .clickable { onViewDetails() }
-            .shadow(elevation = 2.dp, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier
@@ -2865,10 +2865,14 @@ fun GardenBookingRecordDetailDialog(
                 }
 
                 // 2. Farmer Header Card (Profile Avatar in Theme Color + Category + Name in bold + Phone + Address)
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                 ) {
                     Row(
                         modifier = Modifier
@@ -2942,121 +2946,138 @@ fun GardenBookingRecordDetailDialog(
                 }
 
                 // 3. Specifications List
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                 ) {
-                    DetailRowItem(label = "Category", value = "Garden Planning", isDark = isDark)
-                    if (currentEntry.totalKanalArea > 0) {
-                        DetailRowItem(label = "Total Area", value = "${currentEntry.totalKanalArea} Kanals", isDark = isDark)
-                    }
-                    if (currentEntry.plantsPerKanal > 0) {
-                        DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
-                    }
-                    DetailRowItem(label = "Total Calculated Plants", value = "$totalPlants Plants", isDark = isDark)
-                    if (currentEntry.costPerPlant > 0) {
-                        DetailRowItem(label = "Rate / Unit Price", value = "₹${currentEntry.costPerPlant.toInt()}", isDark = isDark)
-                    }
-                    DetailRowItem(label = "Plant Origin", value = currentEntry.plantOrigin.ifBlank { "Local Plants" }, isDark = isDark)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DetailRowItem(label = "Category", value = "Garden Planning", isDark = isDark)
+                        if (currentEntry.totalKanalArea > 0) {
+                            DetailRowItem(label = "Total Area", value = "${currentEntry.totalKanalArea} Kanals", isDark = isDark)
+                        }
+                        if (currentEntry.plantsPerKanal > 0) {
+                            DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
+                        }
+                        DetailRowItem(label = "Total Calculated Plants", value = "$totalPlants Plants", isDark = isDark)
+                        if (currentEntry.costPerPlant > 0) {
+                            DetailRowItem(label = "Rate / Unit Price", value = "₹${currentEntry.costPerPlant.toInt()}", isDark = isDark)
+                        }
+                        DetailRowItem(label = "Plant Origin", value = currentEntry.plantOrigin.ifBlank { "Local Plants" }, isDark = isDark)
 
-                    val entryVarietyLines = parseVarietyLines(currentEntry.varietyLinesJson)
-                    if (entryVarietyLines.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                        val entryVarietyLines = parseVarietyLines(currentEntry.varietyLinesJson)
+                        if (entryVarietyLines.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .glassCardBackground(
+                                        isDark = isDark,
+                                        accentColor = MaterialTheme.colorScheme.primary,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(vertical = 2.dp)
                             ) {
-                                Text(
-                                    text = "Booked Varieties Breakdown (${entryVarietyLines.size})",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                entryVarietyLines.forEachIndexed { idx, vl ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Booked Varieties Breakdown (${entryVarietyLines.size})",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    entryVarietyLines.forEachIndexed { idx, vl ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${idx + 1}. ${vl.variety.ifBlank { "Variety" }}${if (vl.rootstock.isNotBlank()) " (${vl.rootstock})" else ""}${if (vl.feathers.isNotBlank()) " [${vl.feathers}]" else ""}",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                                                )
+                                                Text(
+                                                    text = "${vl.quantity} Plants @ ₹${vl.unitPrice.toInt()}",
+                                                    fontSize = 12.sp,
+                                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                )
+                                            }
                                             Text(
-                                                text = "${idx + 1}. ${vl.variety.ifBlank { "Variety" }}${if (vl.rootstock.isNotBlank()) " (${vl.rootstock})" else ""}${if (vl.feathers.isNotBlank()) " [${vl.feathers}]" else ""}",
+                                                text = "₹${(vl.quantity * vl.unitPrice).toInt()}",
                                                 fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                                            )
-                                            Text(
-                                                text = "${vl.quantity} Plants @ ₹${vl.unitPrice.toInt()}",
-                                                fontSize = 12.sp,
-                                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
-                                        Text(
-                                            text = "₹${(vl.quantity * vl.unitPrice).toInt()}",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    if (idx < entryVarietyLines.size - 1) {
-                                        HorizontalDivider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
+                                        if (idx < entryVarietyLines.size - 1) {
+                                            HorizontalDivider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
+                                        }
                                     }
                                 }
                             }
+                        } else {
+                            if (currentEntry.plantVariety.isNotBlank()) {
+                                DetailRowItem(label = "Plant Variety", value = currentEntry.plantVariety, isDark = isDark)
+                            }
+                            if (currentEntry.rootStock.isNotBlank()) {
+                                DetailRowItem(label = "Rootstock Variety", value = currentEntry.rootStock, isDark = isDark)
+                            }
+                            if (currentEntry.feathers.isNotBlank()) {
+                                DetailRowItem(label = "Feathers", value = if (currentEntry.feathers.all { it.isDigit() }) "${currentEntry.feathers} branches" else currentEntry.feathers, isDark = isDark)
+                            }
                         }
-                    } else {
-                        if (currentEntry.plantVariety.isNotBlank()) {
-                            DetailRowItem(label = "Plant Variety", value = currentEntry.plantVariety, isDark = isDark)
-                        }
-                        if (currentEntry.rootStock.isNotBlank()) {
-                            DetailRowItem(label = "Rootstock Variety", value = currentEntry.rootStock, isDark = isDark)
-                        }
-                        if (currentEntry.feathers.isNotBlank()) {
-                            DetailRowItem(label = "Feathers", value = if (currentEntry.feathers.all { it.isDigit() }) "${currentEntry.feathers} branches" else currentEntry.feathers, isDark = isDark)
-                        }
-                    }
 
-                    DetailRowItem(
-                        label = "Total Amount",
-                        value = "₹${totalRecordValue.toInt()}",
-                        valueColor = MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(
-                        label = "Amount Paid",
-                        value = "₹${totalPaidSoFar.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(
-                        label = "Remaining Balance",
-                        value = "₹${remainingBalance.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(label = "Booking Date", value = currentEntry.bookingDate.ifBlank { todayStr }, isDark = isDark)
-                    DetailRowItem(label = "Expected Delivery", value = currentEntry.expectedDelivery.ifBlank { "Not set" }, isDark = isDark)
-                    if (currentEntry.notes.isNotBlank()) {
-                        DetailRowItem(label = "Orchard / Notes", value = currentEntry.notes, isDark = isDark)
+                        DetailRowItem(
+                            label = "Total Amount",
+                            value = "₹${totalRecordValue.toInt()}",
+                            valueColor = MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(
+                            label = "Amount Paid",
+                            value = "₹${totalPaidSoFar.toInt()}",
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(
+                            label = "Remaining Balance",
+                            value = "₹${remainingBalance.toInt()}",
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(label = "Booking Date", value = currentEntry.bookingDate.ifBlank { todayStr }, isDark = isDark)
+                        DetailRowItem(label = "Expected Delivery", value = currentEntry.expectedDelivery.ifBlank { "Not set" }, isDark = isDark)
+                        if (currentEntry.notes.isNotBlank()) {
+                            DetailRowItem(label = "Orchard / Notes", value = currentEntry.notes, isDark = isDark)
+                        }
                     }
                 }
 
                 // 4. Installment Payment Tracking Section
-                Surface(
-                    shape = RoundedCornerShape(22.dp),
-                    color = if (isDark) Color(0xFF0F291E) else Color(0xFFF0FDF4),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(22.dp)
+                        )
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -3111,11 +3132,14 @@ fun GardenBookingRecordDetailDialog(
                         }
 
                         // Summary Box
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = if (isDark) Color(0xFF1E293B) else Color.White,
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .glassCardBackground(
+                                    isDark = isDark,
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
@@ -3315,11 +3339,14 @@ fun GardenBookingRecordDetailDialog(
                                 Text("No payment installments recorded yet.", fontSize = 12.sp, color = if (isDark) Color(0xFF94A3B8) else Color.Gray)
                             } else {
                                 installments.forEachIndexed { index, inst ->
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                                        modifier = Modifier.fillMaxWidth()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .glassCardBackground(
+                                                isDark = isDark,
+                                                accentColor = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
                                     ) {
                                         Row(
                                             modifier = Modifier
@@ -4068,7 +4095,7 @@ private fun GardenRecordSummaryCards(
                 value = "₹${numberFmt.format(totalPayment.toLong())}",
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = MaterialTheme.colorScheme.primary,
-                bgColor = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
 
@@ -4078,7 +4105,7 @@ private fun GardenRecordSummaryCards(
                 value = "₹${numberFmt.format(receivedPayment.toLong())}",
                 icon = Icons.Default.CheckCircle,
                 accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
-                bgColor = if (isDark) Color(0xFF1B2E1B) else Color(0xFFE8F5E9),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -4093,7 +4120,7 @@ private fun GardenRecordSummaryCards(
                 value = "₹${numberFmt.format(pendingPayment.toLong())}",
                 icon = Icons.Default.HourglassTop,
                 accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
-                bgColor = if (isDark) Color(0xFF331C1C) else Color(0xFFFFEBEE),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
 
@@ -4103,7 +4130,7 @@ private fun GardenRecordSummaryCards(
                 value = "${numberFmt.format(totalQuantity)} Plants",
                 icon = Icons.Default.Inventory2,
                 accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
-                bgColor = if (isDark) Color(0xFF1A2A38) else Color(0xFFE1F5FE),
+                isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -4116,14 +4143,16 @@ private fun GardenSummaryCardItem(
     value: String,
     icon: ImageVector,
     accentColor: Color,
-    bgColor: Color,
+    isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        color = bgColor,
-        tonalElevation = 1.dp
+    Box(
+        modifier = modifier
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(14.dp)
+            )
     ) {
         Row(
             modifier = Modifier

@@ -341,10 +341,14 @@ fun BookingRecordDetailDialog(
                 }
 
                 // 2. Farmer Header Card (Profile Avatar in Theme Color + Category + Name + Phone + Address)
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                 ) {
                     Row(
                         modifier = Modifier
@@ -451,175 +455,192 @@ fun BookingRecordDetailDialog(
 
                 val parsedVarietyLines = remember(record.varietyLinesJson) { com.example.data.parseVarietyLines(record.varietyLinesJson) }
 
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                 ) {
-                    DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
 
-                    if (record.location.isNotBlank()) {
-                        if (MapHelper.isGoogleMapsUrl(record.location)) {
-                            Row(
+                        if (record.location.isNotBlank()) {
+                            if (MapHelper.isGoogleMapsUrl(record.location)) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            MapHelper.openGoogleMaps(context, record.location)
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Place,
+                                            contentDescription = "Open in Google Maps",
+                                            tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "📍 Open Location in Google Maps",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
+                                            textAlign = TextAlign.End
+                                        )
+                                    }
+                                }
+                            } else {
+                                DetailRowItem(
+                                    label = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
+                                    value = record.location,
+                                    isDark = isDark
+                                )
+                            }
+                        }
+                    
+                        if (parsedVarietyLines.isNotEmpty()) {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        MapHelper.openGoogleMaps(context, record.location)
-                                    }
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Place,
-                                        contentDescription = "Open in Google Maps",
-                                        tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
-                                        modifier = Modifier.size(16.dp)
+                                    .glassCardBackground(
+                                        isDark = isDark,
+                                        accentColor = MaterialTheme.colorScheme.primary,
+                                        shape = RoundedCornerShape(12.dp)
                                     )
+                                    .padding(vertical = 2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
                                     Text(
-                                        text = "📍 Open Location in Google Maps",
+                                        text = "Itemized Varieties (${parsedVarietyLines.size})",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
-                                        textAlign = TextAlign.End
+                                        color = MaterialTheme.colorScheme.primary
                                     )
+                                    parsedVarietyLines.forEachIndexed { idx, line ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${idx + 1}. ${line.variety}",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                                                )
+                                                val subInfo = buildString {
+                                                    if (line.rootstock.isNotBlank()) append("RS: ${line.rootstock}")
+                                                    if (line.feathers.isNotBlank()) {
+                                                        if (isNotEmpty()) append(" • ")
+                                                        append("Feathers: ${line.feathers}")
+                                                    }
+                                                }
+                                                if (subInfo.isNotBlank()) {
+                                                    Text(
+                                                        text = subInfo,
+                                                        fontSize = 11.sp,
+                                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = "${line.quantity} × ₹${line.unitPrice.toInt()} = ₹${(line.quantity * line.unitPrice).toInt()}",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        if (idx < parsedVarietyLines.size - 1) {
+                                            Divider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
+                                        }
+                                    }
                                 }
                             }
                         } else {
                             DetailRowItem(
-                                label = if (isSiteVisit) "Orchard/Site Location" else "Orchard Location",
-                                value = record.location,
+                                label = if (isImportedRootstocks) "Scion Variety" else "Variety / Type",
+                                value = record.plantVariety,
                                 isDark = isDark
                             )
-                        }
-                    }
-                    
-                    if (parsedVarietyLines.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Itemized Varieties (${parsedVarietyLines.size})",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                parsedVarietyLines.forEachIndexed { idx, line ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "${idx + 1}. ${line.variety}",
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                                            )
-                                            val subInfo = buildString {
-                                                if (line.rootstock.isNotBlank()) append("RS: ${line.rootstock}")
-                                                if (line.feathers.isNotBlank()) {
-                                                    if (isNotEmpty()) append(" • ")
-                                                    append("Feathers: ${line.feathers}")
-                                                }
-                                            }
-                                            if (subInfo.isNotBlank()) {
-                                                Text(
-                                                    text = subInfo,
-                                                    fontSize = 11.sp,
-                                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                                                )
-                                            }
-                                        }
-                                        Text(
-                                            text = "${line.quantity} × ₹${line.unitPrice.toInt()} = ₹${(line.quantity * line.unitPrice).toInt()}",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    if (idx < parsedVarietyLines.size - 1) {
-                                        Divider(color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0), thickness = 0.5.dp)
-                                    }
-                                }
+                            if (!isImportedRootstocks && record.healthStage.isNotBlank()) {
+                                DetailRowItem(label = "Sapling Age", value = record.healthStage, isDark = isDark)
+                            }
+                            if (record.rootstock.isNotBlank()) {
+                                DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
+                            }
+                            if (record.feathers.isNotBlank()) {
+                                DetailRowItem(label = "Feathers", value = if (record.feathers.all { it.isDigit() }) "${record.feathers} branches" else record.feathers, isDark = isDark)
                             }
                         }
-                    } else {
                         DetailRowItem(
-                            label = if (isImportedRootstocks) "Scion Variety" else "Variety / Type",
-                            value = record.plantVariety,
+                            label = if (isImportedRootstocks) "Quantity / Roots" else "Quantity / Trees",
+                            value = "${record.quantity}",
                             isDark = isDark
                         )
-                        if (!isImportedRootstocks && record.healthStage.isNotBlank()) {
-                            DetailRowItem(label = "Sapling Age", value = record.healthStage, isDark = isDark)
+                        if (parsedVarietyLines.isEmpty()) {
+                            DetailRowItem(label = "Rate (₹)", value = "₹${record.landAreaAcres.toInt()}", isDark = isDark)
                         }
-                        if (record.rootstock.isNotBlank()) {
-                            DetailRowItem(label = "Rootstock Variety", value = record.rootstock, isDark = isDark)
-                        }
-                        if (record.feathers.isNotBlank()) {
-                            DetailRowItem(label = "Feathers", value = if (record.feathers.all { it.isDigit() }) "${record.feathers} branches" else record.feathers, isDark = isDark)
-                        }
-                    }
-                    DetailRowItem(
-                        label = if (isImportedRootstocks) "Quantity / Roots" else "Quantity / Trees",
-                        value = "${record.quantity}",
-                        isDark = isDark
-                    )
-                    if (parsedVarietyLines.isEmpty()) {
-                        DetailRowItem(label = "Rate (₹)", value = "₹${record.landAreaAcres.toInt()}", isDark = isDark)
-                    }
                     
-                    DetailRowItem(
-                        label = "Total Amount",
-                        value = "₹${totalRecordValue.toInt()}",
-                        valueColor = MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(
-                        label = "Amount Paid",
-                        value = "₹${totalPaidSoFar.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(
-                        label = "Remaining Balance",
-                        value = "₹${remainingBalance.toInt()}",
-                        valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
-                        isBold = true,
-                        isDark = isDark
-                    )
-                    DetailRowItem(label = "Booking Date", value = record.bookingDate.ifBlank { todayStr }, isDark = isDark)
-                    DetailRowItem(label = "Expected Delivery", value = record.expectedDelivery.ifBlank { "Not set" }, isDark = isDark)
+                        DetailRowItem(
+                            label = "Total Amount",
+                            value = "₹${totalRecordValue.toInt()}",
+                            valueColor = MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(
+                            label = "Amount Paid",
+                            value = "₹${totalPaidSoFar.toInt()}",
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(
+                            label = "Remaining Balance",
+                            value = "₹${remainingBalance.toInt()}",
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            isBold = true,
+                            isDark = isDark
+                        )
+                        DetailRowItem(label = "Booking Date", value = record.bookingDate.ifBlank { todayStr }, isDark = isDark)
+                        DetailRowItem(label = "Expected Delivery", value = record.expectedDelivery.ifBlank { "Not set" }, isDark = isDark)
+                    }
                 }
 
                 // 4. Installment Payment Tracking Section
-                Surface(
-                    shape = RoundedCornerShape(22.dp),
-                    color = if (isDark) Color(0xFF0F291E) else Color(0xFFF0FDF4),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(22.dp)
+                        )
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -675,11 +696,14 @@ fun BookingRecordDetailDialog(
                         }
 
                         // Summary Box (Total Value, Total Paid, Remaining Balance Due)
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = if (isDark) Color(0xFF1E293B) else Color.White,
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                            modifier = Modifier.fillMaxWidth()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .glassCardBackground(
+                                    isDark = isDark,
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    shape = RoundedCornerShape(14.dp)
+                                )
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
@@ -904,11 +928,14 @@ fun BookingRecordDetailDialog(
                                 Text("No payment installments recorded yet.", fontSize = 12.sp, color = if (isDark) Color(0xFF94A3B8) else Color.Gray)
                             } else {
                                 installments.forEachIndexed { index, inst ->
-                                    Surface(
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                                        modifier = Modifier.fillMaxWidth()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .glassCardBackground(
+                                                isDark = isDark,
+                                                accentColor = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
                                     ) {
                                         Row(
                                             modifier = Modifier
