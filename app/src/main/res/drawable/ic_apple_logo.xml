@@ -6,20 +6,20 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 1. Ambient Grounding Shadow Beneath Apple -->
-    <path android:pathData="M 34,79 C 34,75.5 74,75.5 74,79 C 74,82.5 34,82.5 34,79 Z">
+    <!-- 1. Soft Grounding Shadow Beneath Apple (Adapts smoothly across light and dark backgrounds) -->
+    <path android:pathData="M 34,79.5 C 34,76.5 74,76.5 74,79.5 C 74,82.5 34,82.5 34,79.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
                 android:centerX="54"
-                android:centerY="79"
+                android:centerY="79.5"
                 android:gradientRadius="20"
-                android:startColor="#40000000"
+                android:startColor="#38000000"
                 android:endColor="#00000000" />
         </aapt:attr>
     </path>
 
-    <!-- 2. Realistic Apple Body (Broad rounded body, two upper lobes, stem indentation, lower taper, bottom dimple) -->
+    <!-- 2. Glossy Apple Silhouette & Volumetric Base Body -->
     <path android:pathData="M 54.0,42.0
         C 49.0,40.0 43.5,36.5 38.0,36.5
         C 30.5,36.5 25.5,43.0 25.5,52.0
@@ -33,19 +33,19 @@
             <gradient
                 android:type="radial"
                 android:centerX="44.0"
-                android:centerY="48.0"
+                android:centerY="47.0"
                 android:gradientRadius="42.0">
-                <item android:offset="0.00" android:color="#FF4444" />
-                <item android:offset="0.22" android:color="#E51724" />
-                <item android:offset="0.50" android:color="#C20E1C" />
-                <item android:offset="0.72" android:color="#8C0714" />
-                <item android:offset="0.90" android:color="#5E030C" />
-                <item android:offset="1.00" android:color="#380106" />
+                <item android:offset="0.00" android:color="#FF4B4B" />
+                <item android:offset="0.20" android:color="#EB1A27" />
+                <item android:offset="0.50" android:color="#C40E1D" />
+                <item android:offset="0.75" android:color="#8E0715" />
+                <item android:offset="0.92" android:color="#5C020B" />
+                <item android:offset="1.00" android:color="#360105" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 3. Natural Volumetric Roundness on Right Flank -->
+    <!-- 3. Depth Gradient on Right Flank for Volumetric Form -->
     <path android:pathData="M 54.0,42.0
         C 59.0,40.0 64.5,36.5 70.0,36.5
         C 77.5,36.5 82.5,43.0 82.5,52.0
@@ -60,14 +60,14 @@
                 android:endX="82.5"
                 android:endY="65.0">
                 <item android:offset="0.00" android:color="#00000000" />
-                <item android:offset="0.45" android:color="#25200002" />
-                <item android:offset="0.80" android:color="#60180002" />
-                <item android:offset="1.00" android:color="#88120002" />
+                <item android:offset="0.45" android:color="#20200002" />
+                <item android:offset="0.80" android:color="#55180002" />
+                <item android:offset="1.00" android:color="#80120002" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 4. Stem Cavity Top Cleft Depression Shadow -->
+    <!-- 4. Stem Cavity Top Cleft Shadow -->
     <path android:pathData="M 46.5,41.5 C 50.5,45.5 57.5,45.5 61.5,41.5 C 57.5,47.0 50.5,47.0 46.5,41.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -75,14 +75,14 @@
                 android:centerX="54.0"
                 android:centerY="43.0"
                 android:gradientRadius="7.5">
-                <item android:offset="0.00" android:color="#A52A0004" />
-                <item android:offset="0.60" android:color="#502A0004" />
+                <item android:offset="0.00" android:color="#9E2A0004" />
+                <item android:offset="0.60" android:color="#482A0004" />
                 <item android:offset="1.00" android:color="#002A0004" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 5. Bottom Rim Ambient Glow -->
+    <!-- 5. Bottom Dimple Ambient Rim Sheen -->
     <path android:pathData="M 36.0,72.5 C 41.5,76.5 49.0,76.0 54.0,74.5 C 59.0,76.0 66.5,76.5 72.0,72.5 C 66.5,75.0 59.0,74.2 54.0,73.5 C 49.0,74.2 41.5,75.0 36.0,72.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -92,13 +92,13 @@
                 android:endX="72.0"
                 android:endY="74.0">
                 <item android:offset="0.00" android:color="#00FFA0A0" />
-                <item android:offset="0.50" android:color="#45FFB5AA" />
+                <item android:offset="0.50" android:color="#40FFB5AA" />
                 <item android:offset="1.00" android:color="#00FFA0A0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 6. Short Natural Brown Wooden Stem in Central Cleft -->
+    <!-- 6. Wooden Stem -->
     <path android:pathData="M 53.2,42.5 C 53.0,35.5 54.5,29.5 57.2,24.5 C 58.0,24.8 59.2,25.3 58.8,26.0 C 56.2,31.0 55.0,36.5 55.2,42.5 Z">
         <aapt:attr name="android:fillColor">
             <gradient
@@ -133,7 +133,7 @@
         </aapt:attr>
     </path>
 
-    <!-- 8. Fresh Green Leaf on the RIGHT Side extending naturally to UPPER-RIGHT with clearly Pointed Tip -->
+    <!-- 8. Fresh Natural Green Leaf -->
     <path android:pathData="M 55.6,38.5
         C 59.0,29.5 68.0,24.0 78.5,24.5
         C 76.0,30.5 68.5,37.0 55.6,38.5 Z">
@@ -153,28 +153,28 @@
         </aapt:attr>
     </path>
 
-    <!-- 9. Leaf Central Main Rib (Vein leading directly from stem to the Pointed Tip) -->
+    <!-- 9. Leaf Central Main Rib (Vein leading from base to pointed tip) -->
     <path
         android:pathData="M 55.6,38.5 C 64.0,32.5 71.5,27.5 78.5,24.5"
-        android:strokeWidth="0.8"
-        android:strokeColor="#D4EDDA"
+        android:strokeWidth="0.85"
+        android:strokeColor="#E8F5E9"
         android:strokeLineCap="round" />
 
-    <!-- 10. Leaf Secondary Branching Veins -->
+    <!-- 10. Leaf Secondary Branching Veins (Clean, visible natural structure) -->
     <path
         android:pathData="M 63.5,33.0 Q 65.5,28.5 69.0,26.5 M 70.0,28.5 Q 72.5,25.8 75.5,25.0 M 65.0,32.0 Q 68.0,35.0 71.8,34.5 M 71.5,27.8 Q 74.0,30.2 76.5,29.5"
-        android:strokeWidth="0.45"
-        android:strokeColor="#80C8E6C9"
+        android:strokeWidth="0.5"
+        android:strokeColor="#90C8E6C9"
         android:strokeLineCap="round" />
 
     <!-- 11. Leaf Upper Contour Sunlight Sheen -->
     <path
         android:pathData="M 59.5,31.5 C 65.0,26.0 72.0,24.5 77.5,24.5"
         android:strokeWidth="0.65"
-        android:strokeColor="#45FFFFFF"
+        android:strokeColor="#50FFFFFF"
         android:strokeLineCap="round" />
 
-    <!-- 12. Soft Specular Front Highlight (Upper-Left Shoulder) -->
+    <!-- 12. Primary Glossy Specular Surface Highlight (Soft polished reflection) -->
     <path android:pathData="M 38.0,41.5
         C 44.0,39.5 48.0,42.5 47.0,47.0
         C 46.0,51.5 39.0,53.0 35.5,50.0
@@ -185,13 +185,33 @@
                 android:centerX="40.0"
                 android:centerY="44.0"
                 android:gradientRadius="8.5">
-                <item android:offset="0.00" android:color="#A0FFFFFF" />
+                <item android:offset="0.00" android:color="#B0FFFFFF" />
+                <item android:offset="0.45" android:color="#50FFFFFF" />
                 <item android:offset="1.00" android:color="#00FFFFFF" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 13. Soft Ambient Left Edge Reflection -->
+    <!-- 13. Secondary Upper Crest Sheen -->
+    <path
+        android:pathData="M 35.0,41.0 C 39.0,38.0 45.0,38.5 49.0,41.0"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="35.0"
+                android:startY="40.0"
+                android:endX="49.0"
+                android:endY="40.0">
+                <item android:offset="0.00" android:color="#00FFFFFF" />
+                <item android:offset="0.50" android:color="#60FFFFFF" />
+                <item android:offset="1.00" android:color="#00FFFFFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 14. Soft Ambient Left Edge Rim Highlight -->
     <path
         android:pathData="M 29.5,46.5 C 27.5,51.5 28.0,58.0 31.0,63.5"
         android:strokeWidth="1.2"
@@ -204,13 +224,13 @@
                 android:endX="31.0"
                 android:endY="63.5">
                 <item android:offset="0.00" android:color="#00FFFFFF" />
-                <item android:offset="0.50" android:color="#28FFFFFF" />
+                <item android:offset="0.50" android:color="#30FFFFFF" />
                 <item android:offset="1.00" android:color="#00FFFFFF" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- 14. Subtle Soft Right-Side Rim Reflection -->
+    <!-- 15. Subtle Soft Right-Side Rim Glow -->
     <path
         android:pathData="M 77.5,46.5 C 79.8,51.5 79.2,58.5 76.5,64.0"
         android:strokeWidth="1.0"
@@ -223,11 +243,10 @@
                 android:endX="76.5"
                 android:endY="64.0">
                 <item android:offset="0.00" android:color="#00FFA0A0" />
-                <item android:offset="0.50" android:color="#25FFC4C4" />
+                <item android:offset="0.50" android:color="#28FFC4C4" />
                 <item android:offset="1.00" android:color="#00FFA0A0" />
             </gradient>
         </aapt:attr>
     </path>
 
 </vector>
-
