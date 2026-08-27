@@ -195,10 +195,23 @@ fun UserBookingsSection(
                 Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
             },
             trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                        }
                     }
+                    VoiceSearchIconButton(
+                        onQueryChange = { viewModel.setSearchQuery(it) },
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        isDark = isDark,
+                        buttonSize = 34.dp,
+                        iconSize = 18.dp,
+                        testTag = "bookings_voice_search_btn"
+                    )
                 }
             },
             singleLine = true,

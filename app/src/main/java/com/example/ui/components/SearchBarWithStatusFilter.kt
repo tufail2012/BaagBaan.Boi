@@ -103,14 +103,31 @@ fun SearchBarWithStatusFilter(
                     )
                 },
                 trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear Search",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(
+                                onClick = { onSearchQueryChange("") },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear Search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
+                        VoiceSearchIconButton(
+                            onQueryChange = onSearchQueryChange,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            isDark = isDark,
+                            buttonSize = 34.dp,
+                            iconSize = 18.dp,
+                            testTag = "${testTagPrefix}_voice_search_btn"
+                        )
                     }
                 },
                 shape = searchShape,

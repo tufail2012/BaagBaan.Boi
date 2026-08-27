@@ -412,10 +412,22 @@ fun AttendanceHomeScreen(
                                         Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                                     },
                                     trailingIcon = {
-                                        if (workerSearchQuery.isNotEmpty()) {
-                                            IconButton(onClick = { workerSearchQuery = "" }) {
-                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                        ) {
+                                            if (workerSearchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { workerSearchQuery = "" }) {
+                                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                                }
                                             }
+                                            com.example.ui.components.VoiceSearchIconButton(
+                                                onQueryChange = { workerSearchQuery = it },
+                                                accentColor = MaterialTheme.colorScheme.primary,
+                                                buttonSize = 34.dp,
+                                                iconSize = 18.dp,
+                                                testTag = "worker_voice_search_btn"
+                                            )
                                         }
                                     },
                                     singleLine = true,

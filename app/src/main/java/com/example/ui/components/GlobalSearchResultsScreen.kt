@@ -219,15 +219,30 @@ fun GlobalSearchResultsScreen(
                             )
                         },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { viewModel.setSearchQuery("") }, modifier = Modifier.size(32.dp)) {
-                                    Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear search",
-                                        tint = if (isDark) Color.White else Color.DarkGray,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(0.dp)
+                            ) {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.setSearchQuery("") }, modifier = Modifier.size(32.dp)) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "Clear search",
+                                            tint = if (isDark) Color.White else Color.DarkGray,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
+                                VoiceSearchIconButton(
+                                    onQueryChange = { recognizedText ->
+                                        viewModel.setSearchQuery(capitalizeWordsNaturally(recognizedText))
+                                    },
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    isDark = isDark,
+                                    buttonSize = 34.dp,
+                                    iconSize = 18.dp,
+                                    testTag = "global_search_screen_voice_btn"
+                                )
                             }
                         },
                         shape = CircleShape,

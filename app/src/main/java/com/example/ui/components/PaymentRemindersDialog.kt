@@ -384,14 +384,28 @@ fun PaymentRemindersDialog(
                             )
                         },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear search",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(0.dp)
+                            ) {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Clear,
+                                            contentDescription = "Clear search",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
+                                VoiceSearchIconButton(
+                                    onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    isDark = isDark,
+                                    buttonSize = 34.dp,
+                                    iconSize = 18.dp,
+                                    testTag = "payment_reminders_voice_btn"
+                                )
                             }
                         },
                         shape = searchShape,

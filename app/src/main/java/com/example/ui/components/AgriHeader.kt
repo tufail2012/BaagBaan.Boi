@@ -253,15 +253,33 @@ fun AgriHeader(
                         )
                     },
                     trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { onSearchQueryChange("") }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear search",
-                                    tint = if (isDark) Color.White else Color.DarkGray,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(0.dp)
+                        ) {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { onSearchQueryChange("") },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear search",
+                                        tint = if (isDark) Color.White else Color.DarkGray,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             }
+                            VoiceSearchIconButton(
+                                onQueryChange = { recognizedText ->
+                                    onSearchQueryChange(capitalizeWordsNaturally(recognizedText))
+                                },
+                                accentColor = animatedAccentColor,
+                                isDark = isDark,
+                                buttonSize = 34.dp,
+                                iconSize = 18.dp,
+                                testTag = "global_header_voice_search_button"
+                            )
                         }
                     },
                     shape = CircleShape,

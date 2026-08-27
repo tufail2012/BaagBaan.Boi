@@ -560,10 +560,22 @@ fun ContactDirectoryDialog(
                         placeholder = { Text("Search farmer name, phone, or address...") },
                         leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
                         trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(0.dp)
+                            ) {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                                    }
                                 }
+                                VoiceSearchIconButton(
+                                    onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    buttonSize = 34.dp,
+                                    iconSize = 18.dp,
+                                    testTag = "contact_directory_voice_btn"
+                                )
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
