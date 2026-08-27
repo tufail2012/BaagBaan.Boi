@@ -63,7 +63,7 @@ fun MyApplicationTheme(
             outline = Color(0xFF383838)
         )
         else -> {
-            val faintTintedBackground = lerp(accentColor, Color.White, 0.93f)
+            val faintTintedBackground = lerp(accentColor, Color.White, 0.87f)
             lightColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,

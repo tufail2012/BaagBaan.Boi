@@ -37,6 +37,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -331,3 +334,71 @@ fun elevatedInputFieldColors(
         unfocusedPlaceholderColor = if (isDark) Color(0xFF888888) else Color(0xFF888888)
     )
 }
+
+/**
+ * Reusable Glassmorphism Card Modifier.
+ * Provides translucent backdrop tinting, specular rim vertical gradients,
+ * 1.dp border stroke at 20-25% alpha, and soft ambient/spot depth.
+ */
+@Composable
+fun Modifier.glassCardBackground(
+    isDark: Boolean = isAppInDarkMode(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    shape: Shape = RoundedCornerShape(16.dp)
+): Modifier {
+    val containerGradient = remember(isDark, accentColor) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF1E293B).copy(alpha = 0.65f),
+                    accentColor.copy(alpha = 0.10f),
+                    Color(0xFF0F172A).copy(alpha = 0.60f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.75f),
+                    accentColor.copy(alpha = 0.08f),
+                    Color.White.copy(alpha = 0.65f)
+                )
+            )
+        }
+    }
+
+    val specularBorderBrush = remember(isDark, accentColor) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.35f),
+                    accentColor.copy(alpha = 0.20f),
+                    Color.White.copy(alpha = 0.10f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.90f),
+                    accentColor.copy(alpha = 0.22f),
+                    Color.White.copy(alpha = 0.25f)
+                )
+            )
+        }
+    }
+
+    return this
+        .elevated3dShadow(
+            shape = shape,
+            isDark = isDark,
+            offsetY = 3.dp,
+            blurRadius = 8.dp
+        )
+        .clip(shape)
+        .background(containerGradient)
+        .border(
+            width = 1.dp,
+            brush = specularBorderBrush,
+            shape = shape
+        )
+}
+
