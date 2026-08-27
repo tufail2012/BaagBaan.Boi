@@ -409,13 +409,14 @@ fun GardenPlanningScreen(
             )
             }
 
-            // Unified Segmented Control matching the app design system
+            // Unified Segmented Control matching the app design system with Liquid Glass material
             val isEditing = viewModel.editingEntryId.collectAsState().value != null
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
                 onModeSelected = { viewModel.selectedTabIndex.value = it },
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                recordsLabel = "Records (${allEntries.size})"
+                recordsLabel = "Records (${allEntries.size})",
+                accentColor = com.example.ui.theme.getSectionAccentColor("Garden Planning")
             )
 
             when (selectedTabIndex) {

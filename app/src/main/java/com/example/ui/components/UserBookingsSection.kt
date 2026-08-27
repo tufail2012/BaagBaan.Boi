@@ -356,13 +356,14 @@ fun BookingCardItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (typeColor, typeIcon) = when (booking.type) {
-        "Imported Plants" -> Pair(Color(0xFF1976D2), Icons.Default.LocalShipping)
-        "Imported Rootstock" -> Pair(Color(0xFF388E3C), Icons.Default.Spa)
-        "Garden Planning" -> Pair(Color(0xFF2E7D32), Icons.Default.Park)
-        "Pruning" -> Pair(Color(0xFFD32F2F), Icons.Default.EventNote)
-        "Site Visit" -> Pair(Color(0xFF7B1FA2), Icons.Outlined.Assignment)
-        else -> Pair(Color(0xFFE65100), Icons.Outlined.LocalFlorist)
+    val typeColor = com.example.ui.theme.getSectionAccentColor(booking.type)
+    val typeIcon = when (booking.type) {
+        "Imported Plants", "Imported" -> Icons.Default.LocalShipping
+        "Imported Rootstock", "Rootstocks" -> Icons.Default.Spa
+        "Garden Planning", "Garden" -> Icons.Default.Park
+        "Pruning" -> Icons.Default.EventNote
+        "Site Visit" -> Icons.Outlined.Assignment
+        else -> Icons.Outlined.LocalFlorist
     }
 
     Card(

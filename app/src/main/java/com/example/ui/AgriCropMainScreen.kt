@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
 import com.example.ui.components.AgriSegmentedControl
@@ -33,6 +34,7 @@ import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.GlobalSearchResultsScreen
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
+import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -482,6 +484,12 @@ fun AgriCropMainScreen(
                     else -> selectedService
                 }
 
+                val sectionAccentColor = remember(selectedService) {
+                    getSectionAccentColor(selectedService)
+                }
+
+                val hazeState = remember { HazeState() }
+
                 Scaffold(
                     modifier = modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background,
@@ -570,7 +578,9 @@ fun AgriCropMainScreen(
                                 AgriSegmentedControl(
                                     selectedMode = viewMode,
                                     onModeSelected = { viewModel.setViewMode(it) },
-                                    recordsLabel = "Records ($cropRecordsCount)"
+                                    recordsLabel = "Records ($cropRecordsCount)",
+                                    accentColor = sectionAccentColor,
+                                    hazeState = hazeState
                                 )
                             }
 
@@ -578,7 +588,9 @@ fun AgriCropMainScreen(
                             if (selectedService.equals("Pruning", ignoreCase = true)) {
                                 PruningSubTabs(
                                     selectedSubTab = selectedPruningSubTab,
-                                    onSelectSubTab = { viewModel.selectPruningSubTab(it) }
+                                    onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                                    accentColor = sectionAccentColor,
+                                    hazeState = hazeState
                                 )
                             } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
                                 RootstockSubTabs(
@@ -586,7 +598,9 @@ fun AgriCropMainScreen(
                                     selectedGenevaOption = selectedGenevaOption,
                                     onSelectSubTab = { subTab, genevaOpt ->
                                         viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                                    }
+                                    },
+                                    accentColor = sectionAccentColor,
+                                    hazeState = hazeState
                                 )
                             }
                         }
@@ -608,8 +622,6 @@ fun AgriCropMainScreen(
                         val idx = mainTabs.indexOfFirst { it.equals(selectedService, ignoreCase = true) }
                         if (idx >= 0) idx else 0
                     }
-
-                    val hazeState = remember { HazeState() }
 
                     val pagerState = rememberPagerState(
                         initialPage = initialTabIndex,
@@ -732,6 +744,7 @@ fun AgriCropMainScreen(
                                     }
                                 }
                             },
+                            accentColor = sectionAccentColor,
                             hazeState = hazeState,
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )

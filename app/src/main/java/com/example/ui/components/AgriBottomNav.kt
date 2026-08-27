@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -80,6 +81,7 @@ fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier,
+    accentColor: Color? = null,
     hazeState: HazeState? = null
 ) {
     val navItems = remember {
@@ -119,12 +121,21 @@ fun AgriBottomNav(
         if (idx >= 0) idx else 0
     }
 
-    // App Brand Purple Tint
-    val brandPurple = MaterialTheme.colorScheme.primary
+    // Dynamic Section Accent Color matching the active section
+    val activeSectionAccent = remember(selectedCategory, accentColor) {
+        accentColor ?: getSectionAccentColor(selectedCategory)
+    }
+
+    val animatedAccentColor by animateColorAsState(
+        targetValue = activeSectionAccent,
+        animationSpec = tween(durationMillis = 280),
+        label = "BottomNavAccentColor"
+    )
+
     val screenBgColor = MaterialTheme.colorScheme.background
 
     // Liquid Glass Tint & Material styling with explicit real background color
-    val hazeStyle = remember(isDark, brandPurple, screenBgColor) {
+    val hazeStyle = remember(isDark, screenBgColor) {
         if (!isDark) {
             HazeStyle(
                 backgroundColor = screenBgColor,
@@ -161,12 +172,12 @@ fun AgriBottomNav(
     val barShadowAmbient = if (!isDark) Color(0xFF1E1B4B).copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.45f)
     val barShadowSpot = if (!isDark) Color(0xFF1E1B4B).copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.60f)
 
-    // Base glass tint layer on top of blur (18-20% white + faint hint of brand purple)
+    // Base glass tint layer on top of blur (18-20% white + faint hint of section accent)
     val baseGlassOverlayBrush = if (!isDark) {
         Brush.verticalGradient(
             colors = listOf(
                 Color.White.copy(alpha = 0.20f),
-                brandPurple.copy(alpha = 0.07f),
+                animatedAccentColor.copy(alpha = 0.06f),
                 Color.White.copy(alpha = 0.15f)
             )
         )
@@ -174,7 +185,7 @@ fun AgriBottomNav(
         Brush.verticalGradient(
             colors = listOf(
                 Color(0xFF1E293B).copy(alpha = 0.40f),
-                brandPurple.copy(alpha = 0.12f),
+                animatedAccentColor.copy(alpha = 0.10f),
                 Color(0xFF0F172A).copy(alpha = 0.50f)
             )
         )
@@ -195,19 +206,8 @@ fun AgriBottomNav(
         previousIndex = selectedIndex
     }
 
-    // Squash & stretch width & scale during spring sliding motion
-    val blobTargetWidth = if (isMoving) 54.dp else 46.dp
-    val animatedBlobWidth by animateDpAsState(
-        targetValue = blobTargetWidth,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "BlobWidth"
-    )
-
     val blobStretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.12f else 1.0f,
+        targetValue = if (isMoving) 1.05f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -216,13 +216,16 @@ fun AgriBottomNav(
     )
 
     val blobSquashScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.90f else 1.0f,
+        targetValue = if (isMoving) 0.95f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
         ),
         label = "BlobScaleY"
     )
+
+    // Capsule / stadium shape with 50% radius on container (fully rounded left & right ends)
+    val capsuleShape = RoundedCornerShape(percent = 50)
 
     // Floating Placement: lifted off the bottom edge
     Box(
@@ -288,11 +291,24 @@ fun AgriBottomNav(
             val totalWidth = maxWidth
             val tabCount = navItems.size
             val tabWidth = totalWidth / tabCount
-            val blobHeight = 48.dp
-            val blobBaseWidth = 46.dp
+
+            // Active pill dimensions: Spans the tab slot width with subtle, clean margins
+            val horizontalMargin = 4.dp
+            val blobBaseWidth = (tabWidth - (horizontalMargin * 2)).coerceAtLeast(36.dp)
+            val blobTargetWidth = if (isMoving) (blobBaseWidth + 3.dp) else blobBaseWidth
+            val blobHeight = 54.dp
+
+            val animatedBlobWidth by animateDpAsState(
+                targetValue = blobTargetWidth,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "BlobWidth"
+            )
 
             // Calculate target horizontal offset for sliding liquid blob capsule
-            val targetOffset = (tabWidth * selectedIndex) + ((tabWidth - blobBaseWidth) / 2)
+            val targetOffset = (tabWidth * selectedIndex) + ((tabWidth - animatedBlobWidth) / 2)
             val animatedBlobOffset by animateDpAsState(
                 targetValue = targetOffset,
                 animationSpec = spring(
@@ -302,20 +318,20 @@ fun AgriBottomNav(
                 label = "SlidingBlobOffset"
             )
 
-            // Liquid Glass Blob Material & Refraction
+            // Liquid Glass Blob Material & Refraction tinted with active section accent
             val blobGradient = if (!isDark) {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.78f),
-                        brandPurple.copy(alpha = 0.16f),
-                        Color.White.copy(alpha = 0.60f)
+                        Color.White.copy(alpha = 0.85f),
+                        animatedAccentColor.copy(alpha = 0.22f),
+                        Color.White.copy(alpha = 0.65f)
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF38BDF8).copy(alpha = 0.28f),
-                        brandPurple.copy(alpha = 0.38f),
+                        animatedAccentColor.copy(alpha = 0.38f),
+                        animatedAccentColor.copy(alpha = 0.25f),
                         Color(0xFF0F172A).copy(alpha = 0.70f)
                     )
                 )
@@ -327,7 +343,7 @@ fun AgriBottomNav(
                 Color.White.copy(alpha = 0.35f)
             }
 
-            // 1. SIGNATURE SLIDING & SQUASHING/STRETCHING LIQUID CAPSULE BLOB
+            // 1. SIGNATURE SLIDING & SQUASHING/STRETCHING LIQUID CAPSULE / PILL
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -340,24 +356,24 @@ fun AgriBottomNav(
                     }
                     .shadow(
                         elevation = 6.dp,
-                        shape = CircleShape,
+                        shape = capsuleShape,
                         clip = false,
-                        ambientColor = brandPurple.copy(alpha = 0.18f),
-                        spotColor = brandPurple.copy(alpha = 0.28f)
+                        ambientColor = animatedAccentColor.copy(alpha = if (!isDark) 0.22f else 0.35f),
+                        spotColor = animatedAccentColor.copy(alpha = if (!isDark) 0.32f else 0.50f)
                     )
-                    .clip(CircleShape)
+                    .clip(capsuleShape)
                     .background(blobGradient)
                     .border(
                         width = 1.dp,
                         color = blobBorderColor,
-                        shape = CircleShape
+                        shape = capsuleShape
                     )
             ) {
                 // Internal soft reflection layer
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .clip(CircleShape)
+                        .clip(capsuleShape)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -368,14 +384,14 @@ fun AgriBottomNav(
                         )
                 )
 
-                // Pristine top curvature specular highlight on the liquid droplet
+                // Pristine top curvature specular highlight on the liquid capsule
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .fillMaxWidth(0.72f)
-                        .height(13.dp)
+                        .fillMaxWidth(0.76f)
+                        .height(10.dp)
                         .padding(top = 2.dp)
-                        .clip(CircleShape)
+                        .clip(capsuleShape)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -396,8 +412,9 @@ fun AgriBottomNav(
                 navItems.forEachIndexed { index, item ->
                     val isSelected = index == selectedIndex
                     val scale = remember { Animatable(1f) }
+                    val itemAccentColor = getSectionAccentColor(item.serviceCategory)
 
-                    // Inactive tabs: muted grey-violet; Selected tab: full brand purple
+                    // Inactive tabs: muted grey-violet; Selected tab: dynamic section accent
                     val inactiveColor = if (!isDark) {
                         Color(0xFF8E84A3) // Muted grey-violet for light theme
                     } else {
@@ -405,9 +422,9 @@ fun AgriBottomNav(
                     }
 
                     val animatedIconColor by animateColorAsState(
-                        targetValue = if (isSelected) brandPurple else inactiveColor,
+                        targetValue = if (isSelected) animatedAccentColor else inactiveColor,
                         animationSpec = tween(durationMillis = 260),
-                        label = "NavIconColor"
+                        label = "NavIconColor_$index"
                     )
 
                     val animatedIconScale by animateFloatAsState(
@@ -416,7 +433,7 @@ fun AgriBottomNav(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMediumLow
                         ),
-                        label = "NavIconScale"
+                        label = "NavIconScale_$index"
                     )
 
                     Box(
@@ -429,7 +446,7 @@ fun AgriBottomNav(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = ripple(
                                     bounded = true,
-                                    color = brandPurple.copy(alpha = 0.20f)
+                                    color = itemAccentColor.copy(alpha = 0.22f)
                                 ),
                                 onClick = {
                                     scope.launch {
