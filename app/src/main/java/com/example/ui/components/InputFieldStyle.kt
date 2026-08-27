@@ -289,35 +289,52 @@ fun Modifier.boundedFormFieldRipple(
 
 /**
  * Underlying canvas shadow drawer for glass containers.
+ * Employs dual-layer ambient and directional shadow with corner-radius compensation.
  */
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
     offsetY: Dp = 3.dp,
-    blurRadius: Dp = 8.dp
+    blurRadius: Dp = 10.dp
 ): Modifier = this.drawBehind {
-    val shadowColor = if (isDark) {
-        Color.White.copy(alpha = 0.12f)
-    } else {
-        Color.Black.copy(alpha = 0.10f)
-    }
+    val ambientAlpha = if (isDark) 0.20f else 0.08f
+    val spotAlpha = if (isDark) 0.35f else 0.12f
+
+    val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF1E293B).copy(alpha = ambientAlpha)
+    val spotColor = if (isDark) Color.Black.copy(alpha = spotAlpha) else Color(0xFF0F172A).copy(alpha = spotAlpha)
 
     drawIntoCanvas { canvas ->
-        val paint = Paint()
-        val frameworkPaint = paint.asFrameworkPaint()
-        frameworkPaint.color = shadowColor.toArgb()
-
-        val blurPx = blurRadius.toPx()
-        if (blurPx > 0f) {
-            frameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
-                blurPx,
+        // Ambient soft blur
+        val ambientPaint = Paint()
+        val ambientFrameworkPaint = ambientPaint.asFrameworkPaint()
+        ambientFrameworkPaint.color = ambientColor.toArgb()
+        val ambientBlurPx = (blurRadius * 1.2f).toPx()
+        if (ambientBlurPx > 0f) {
+            ambientFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
+                ambientBlurPx,
                 android.graphics.BlurMaskFilter.Blur.NORMAL
             )
         }
         val outline = shape.createOutline(size, layoutDirection, this)
         canvas.save()
+        canvas.translate(0f, 1.dp.toPx())
+        canvas.drawOutline(outline, ambientPaint)
+        canvas.restore()
+
+        // Directional key shadow
+        val spotPaint = Paint()
+        val spotFrameworkPaint = spotPaint.asFrameworkPaint()
+        spotFrameworkPaint.color = spotColor.toArgb()
+        val spotBlurPx = blurRadius.toPx()
+        if (spotBlurPx > 0f) {
+            spotFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
+                spotBlurPx,
+                android.graphics.BlurMaskFilter.Blur.NORMAL
+            )
+        }
+        canvas.save()
         canvas.translate(0f, offsetY.toPx())
-        canvas.drawOutline(outline, paint)
+        canvas.drawOutline(outline, spotPaint)
         canvas.restore()
     }
 }
@@ -341,7 +358,7 @@ fun elevatedInputFieldColors(
         focusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
         unfocusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
         disabledTextColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF777777),
-        focusedBorderColor = accentColor,
+        focusedBorderColor = accentColor.copy(alpha = 0.85f),
         unfocusedBorderColor = Color.Transparent,
         disabledBorderColor = Color.Transparent,
         errorBorderColor = MaterialTheme.colorScheme.error,
@@ -359,8 +376,11 @@ fun elevatedInputFieldColors(
 
 /**
  * Reusable Glassmorphism Card Modifier.
- * Provides translucent backdrop tinting, specular rim vertical gradients,
- * 1.dp border stroke at 20-25% alpha, and soft ambient/spot depth.
+ * Provides clear visual separation from tinted background canvas through:
+ * 1. Differentiated translucent surface fill with subtle accent depth and bright/clean glass tone
+ * 2. Multi-layer ambient/spot elevation shadows
+ * 3. 1.dp vertical specular border highlight (stronger at the top edge, softer at bottom)
+ * 4. Distinct boundary contrast in Light, Dark, and AMOLED modes.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -368,41 +388,57 @@ fun Modifier.glassCardBackground(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(16.dp)
 ): Modifier {
-    val containerGradient = remember(isDark, accentColor) {
-        if (isDark) {
-            Brush.verticalGradient(
+    val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
+
+    val containerGradient = remember(isDark, isAmoled, accentColor) {
+        when {
+            isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.65f),
-                    accentColor.copy(alpha = 0.10f),
-                    Color(0xFF0F172A).copy(alpha = 0.60f)
+                    Color(0xFF18181B).copy(alpha = 0.90f),
+                    accentColor.copy(alpha = 0.12f),
+                    Color(0xFF0D0D0E).copy(alpha = 0.85f)
                 )
             )
-        } else {
-            Brush.verticalGradient(
+            isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.75f),
-                    accentColor.copy(alpha = 0.08f),
-                    Color.White.copy(alpha = 0.65f)
+                    Color(0xFF283344).copy(alpha = 0.82f),
+                    accentColor.copy(alpha = 0.14f),
+                    Color(0xFF182232).copy(alpha = 0.78f)
+                )
+            )
+            else -> Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.96f),
+                    Color.White.copy(alpha = 0.91f),
+                    accentColor.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.88f)
                 )
             )
         }
     }
 
-    val specularBorderBrush = remember(isDark, accentColor) {
-        if (isDark) {
-            Brush.verticalGradient(
+    val specularBorderBrush = remember(isDark, isAmoled, accentColor) {
+        when {
+            isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.35f),
-                    accentColor.copy(alpha = 0.20f),
-                    Color.White.copy(alpha = 0.10f)
+                    Color.White.copy(alpha = 0.45f),
+                    accentColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.12f)
                 )
             )
-        } else {
-            Brush.verticalGradient(
+            isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.90f),
+                    Color.White.copy(alpha = 0.40f),
+                    accentColor.copy(alpha = 0.30f),
+                    Color.White.copy(alpha = 0.14f)
+                )
+            )
+            else -> Brush.verticalGradient(
+                colors = listOf(
+                    Color.White,
+                    Color.White.copy(alpha = 0.75f),
                     accentColor.copy(alpha = 0.22f),
-                    Color.White.copy(alpha = 0.25f)
+                    Color(0xFFCBD5E1).copy(alpha = 0.55f)
                 )
             )
         }
@@ -412,8 +448,8 @@ fun Modifier.glassCardBackground(
         .drawElevatedShadow(
             shape = shape,
             isDark = isDark,
-            offsetY = 3.dp,
-            blurRadius = 8.dp
+            offsetY = 3.5.dp,
+            blurRadius = 10.dp
         )
         .clip(shape)
         .background(containerGradient)
