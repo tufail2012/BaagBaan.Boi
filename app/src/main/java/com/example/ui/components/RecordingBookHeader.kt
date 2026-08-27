@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,12 +33,17 @@ fun RecordingBookHeader(
     count: Int,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
+    val isDark = isAppInDarkMode()
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 2.dp)
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(16.dp)
+            )
     ) {
         Row(
             modifier = Modifier

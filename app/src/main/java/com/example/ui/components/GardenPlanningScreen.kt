@@ -27,6 +27,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -2283,50 +2284,52 @@ private fun SwipeableGardenPlanningItem(
         modifier = modifier,
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
-            val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
-            val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
-            val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
-            val text = if (isStartToEnd) "WhatsApp" else "Delete"
+            if (direction != SwipeToDismissBoxValue.Settled) {
+                val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+                val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+                val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+                val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
+                val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(bgColor)
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                contentAlignment = alignment
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(bgColor)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    contentAlignment = alignment
                 ) {
-                    if (isStartToEnd) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Swipe to Send WhatsApp",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    } else {
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Swipe to Delete",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isStartToEnd) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "Swipe to Send WhatsApp",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = text,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            Text(
+                                text = text,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "Swipe to Delete",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -2429,7 +2432,7 @@ private fun GardenPlanningRecordCard(
                         text = entry.farmerName.ifBlank { "Farmer Name Not Specified" },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (isDark) Color.White else Color(0xFF0F172A),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -2439,13 +2442,14 @@ private fun GardenPlanningRecordCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            color = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1))
                         ) {
                             Text(
                                 text = "#${entry.serialNumber}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -2454,7 +2458,7 @@ private fun GardenPlanningRecordCard(
                             Text(
                                 text = "• ${entry.bookingDate}",
                                 fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
                             )
                         }
                     }
@@ -2495,7 +2499,7 @@ private fun GardenPlanningRecordCard(
                     Text(
                         text = entry.farmerAddress,
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -2536,8 +2540,8 @@ private fun GardenPlanningRecordCard(
                 Text(
                     text = "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
                 )
 
                 Text(
@@ -2567,6 +2571,7 @@ private fun GardenPlanningRecordCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
+                        .border(1.dp, if (isDark) Color(0xFF166534) else Color(0xFF86EFAC).copy(alpha = 0.5f), CircleShape)
                         .clickable {
                             val cleanPhone = entry.contactNumber.replace("[^0-9]".toRegex(), "")
                             val msg = com.example.data.MessageTemplateRepository.renderTemplate(
@@ -2603,8 +2608,10 @@ private fun GardenPlanningRecordCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
+                        .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF1F5F9).copy(alpha = 0.9f))
+                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
                         .clickable { onViewDetails() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
                 ) {
                     Text(
                         text = "View Details",
@@ -2626,13 +2633,14 @@ private fun GardenPlanningRecordCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
+                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), CircleShape)
                         .clickable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Record",
-                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -2643,6 +2651,7 @@ private fun GardenPlanningRecordCard(
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
+                        .border(1.dp, if (isDark) Color(0xFF7F1D1D) else Color(0xFFFECDD3), CircleShape)
                         .clickable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -4183,7 +4192,7 @@ private fun GardenSummaryCardItem(
                     text = title,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

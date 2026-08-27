@@ -587,50 +587,52 @@ private fun SwipeableSearchResultItem(
         modifier = modifier,
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
-            val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
-            val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
-            val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
-            val text = if (isStartToEnd) "WhatsApp" else "Delete"
+            if (direction != SwipeToDismissBoxValue.Settled) {
+                val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
+                val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+                val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+                val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
+                val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(bgColor)
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                contentAlignment = alignment
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(bgColor)
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    contentAlignment = alignment
                 ) {
-                    if (isStartToEnd) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Swipe to Send WhatsApp",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    } else {
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Swipe to Delete",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isStartToEnd) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "Swipe to Send WhatsApp",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Text(
+                                text = text,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        } else {
+                            Text(
+                                text = text,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "Swipe to Delete",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }

@@ -473,12 +473,12 @@ fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
     offsetY: Dp = 3.dp,
-    blurRadius: Dp = 10.dp
+    blurRadius: Dp = 8.dp
 ): Modifier = this.drawBehind {
-    val ambientAlpha = if (isDark) 0.20f else 0.08f
-    val spotAlpha = if (isDark) 0.35f else 0.12f
+    val ambientAlpha = if (isDark) 0.18f else 0.05f
+    val spotAlpha = if (isDark) 0.30f else 0.08f
 
-    val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF1E293B).copy(alpha = ambientAlpha)
+    val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF0F172A).copy(alpha = ambientAlpha)
     val spotColor = if (isDark) Color.Black.copy(alpha = spotAlpha) else Color(0xFF0F172A).copy(alpha = spotAlpha)
 
     drawIntoCanvas { canvas ->
@@ -533,8 +533,8 @@ fun elevatedInputFieldColors(
         focusedContainerColor = Color.Transparent,
         unfocusedContainerColor = Color.Transparent,
         disabledContainerColor = Color.Transparent,
-        focusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
-        unfocusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
+        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
         disabledTextColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF777777),
         focusedBorderColor = accentColor.copy(alpha = 0.85f),
         unfocusedBorderColor = Color.Transparent,
@@ -547,18 +547,18 @@ fun elevatedInputFieldColors(
         unfocusedLeadingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
         focusedTrailingIconColor = accentColor,
         unfocusedTrailingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
-        focusedPlaceholderColor = if (isDark) Color(0xFF888888) else Color(0xFF888888),
-        unfocusedPlaceholderColor = if (isDark) Color(0xFF888888) else Color(0xFF888888)
+        focusedPlaceholderColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        unfocusedPlaceholderColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
     )
 }
 
 /**
  * Reusable Glassmorphism Card Modifier.
  * Provides clear visual separation from tinted background canvas through:
- * 1. Differentiated translucent surface fill with subtle accent depth and bright/clean glass tone
+ * 1. Clean frosted translucent surface fill (predominantly white in Light Mode, slate in Dark Mode)
  * 2. Multi-layer ambient/spot elevation shadows
- * 3. 1.dp vertical specular border highlight (stronger at the top edge, softer at bottom)
- * 4. Distinct boundary contrast in Light, Dark, and AMOLED modes.
+ * 3. 1.dp vertical specular border highlight (stronger top specular white and subtle accent rim)
+ * 4. Distinct boundary contrast in Light, Dark, and AMOLED modes with zero color bleed over text.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -568,28 +568,27 @@ fun Modifier.glassCardBackground(
 ): Modifier {
     val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
 
-    val containerGradient = remember(isDark, isAmoled, accentColor) {
+    val containerGradient = remember(isDark, isAmoled) {
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF18181B).copy(alpha = 0.90f),
-                    accentColor.copy(alpha = 0.12f),
-                    Color(0xFF0D0D0E).copy(alpha = 0.85f)
+                    Color(0xFF18181B).copy(alpha = 0.92f),
+                    Color(0xFF111113).copy(alpha = 0.88f),
+                    Color(0xFF000000).copy(alpha = 0.90f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF283344).copy(alpha = 0.82f),
-                    accentColor.copy(alpha = 0.14f),
-                    Color(0xFF182232).copy(alpha = 0.78f)
+                    Color(0xFF1E293B).copy(alpha = 0.90f),
+                    Color(0xFF182232).copy(alpha = 0.85f),
+                    Color(0xFF0F172A).copy(alpha = 0.88f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
                     Color.White.copy(alpha = 0.96f),
-                    Color.White.copy(alpha = 0.91f),
-                    accentColor.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.88f)
+                    Color.White.copy(alpha = 0.92f),
+                    Color.White.copy(alpha = 0.94f)
                 )
             )
         }
@@ -599,24 +598,26 @@ fun Modifier.glassCardBackground(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.45f),
-                    accentColor.copy(alpha = 0.35f),
-                    Color.White.copy(alpha = 0.12f)
+                    Color.White.copy(alpha = 0.50f),
+                    accentColor.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.15f),
+                    Color(0xFF27272A).copy(alpha = 0.50f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.40f),
-                    accentColor.copy(alpha = 0.30f),
-                    Color.White.copy(alpha = 0.14f)
+                    Color.White.copy(alpha = 0.45f),
+                    accentColor.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.12f),
+                    Color(0xFF334155).copy(alpha = 0.40f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
                     Color.White,
-                    Color.White.copy(alpha = 0.75f),
-                    accentColor.copy(alpha = 0.22f),
-                    Color(0xFFCBD5E1).copy(alpha = 0.55f)
+                    accentColor.copy(alpha = 0.35f),
+                    accentColor.copy(alpha = 0.15f),
+                    Color(0xFFCBD5E1).copy(alpha = 0.65f)
                 )
             )
         }
@@ -626,8 +627,8 @@ fun Modifier.glassCardBackground(
         .drawElevatedShadow(
             shape = shape,
             isDark = isDark,
-            offsetY = 3.5.dp,
-            blurRadius = 10.dp
+            offsetY = 3.dp,
+            blurRadius = 8.dp
         )
         .clip(shape)
         .background(containerGradient)
