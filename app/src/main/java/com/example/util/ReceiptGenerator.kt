@@ -8,13 +8,59 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Bundle
+import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
+import android.os.ParcelFileDescriptor
+import android.print.PageRange
+import android.print.PrintAttributes
+import android.print.PrintDocumentAdapter
+import android.print.PrintDocumentInfo
+import android.print.PrintJob
+import android.print.PrintJobInfo
+import android.print.PrintManager
+import android.print.pdf.PrintedPdfDocument
+import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import com.example.data.BusinessInfo
 import com.example.data.BusinessInfoRepository
 import java.io.File
 import java.io.FileOutputStream
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
+
+object PrintDiagnosticTrace {
+    val logs = mutableStateListOf<String>()
+
+    fun log(msg: String) {
+        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+        val entry = "[$time] $msg"
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            logs.add(entry)
+        } else {
+            Handler(Looper.getMainLooper()).post {
+                logs.add(entry)
+            }
+        }
+    }
+
+    fun clear() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            logs.clear()
+        } else {
+            Handler(Looper.getMainLooper()).post {
+                logs.clear()
+            }
+        }
+    }
+
+    fun getTraceString(): String {
+        return logs.joinToString("\n")
+    }
+}
 
 data class ReceiptData(
     val serialNumber: String,
@@ -678,13 +724,194 @@ object ReceiptGenerator {
     }
 
     fun printReceiptBitmap(context: Context, bitmap: Bitmap, serialNumber: String = "Entry") {
-        try {
-            val printHelper = androidx.print.PrintHelper(context).apply {
-                scaleMode = androidx.print.PrintHelper.SCALE_MODE_FIT
-            }
-            printHelper.printBitmap("Receipt_${serialNumber.ifBlank { "Entry" }}", bitmap)
+        PrintDiagnosticTrace.clear()
+        PrintDiagnosticTrace.log("Initiating print for Receipt_${serialNumber.ifBlank { "Entry" }}...")
+
+        val printManager = try {
+            context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
         } catch (e: Exception) {
+            PrintDiagnosticTrace.log("Error obtaining PrintManager service: ${e.message}")
+            null
+        }
+
+        if (printManager == null) {
+            PrintDiagnosticTrace.log("PrintManager is null. Genuine 'No printer found' or print service unavailable on device.")
             android.widget.Toast.makeText(context, "No printer found. Please connect a printer and try again.", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        try {
+            val jobName = "Receipt_${serialNumber.ifBlank { "Entry" }}"
+            PrintDiagnosticTrace.log("Building PrintDocumentAdapter for '$jobName' (${bitmap.width}x${bitmap.height}px)...")
+
+            val printAdapter = object : PrintDocumentAdapter() {
+                private var printedPdfDoc: PrintedPdfDocument? = null
+
+                override fun onLayout(
+                    oldAttributes: PrintAttributes?,
+                    newAttributes: PrintAttributes?,
+                    cancellationSignal: CancellationSignal?,
+                    callback: LayoutResultCallback?,
+                    extras: Bundle?
+                ) {
+                    PrintDiagnosticTrace.log("Adapter: onLayout called. MediaSize: ${newAttributes?.mediaSize?.id ?: "default"}")
+                    if (cancellationSignal?.isCanceled == true) {
+                        PrintDiagnosticTrace.log("Adapter: onLayout cancelled by user/system")
+                        callback?.onLayoutCancelled()
+                        return
+                    }
+
+                    printedPdfDoc = PrintedPdfDocument(context, newAttributes ?: PrintAttributes.Builder().build())
+
+                    val info = PrintDocumentInfo.Builder("$jobName.pdf")
+                        .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                        .setPageCount(1)
+                        .build()
+
+                    val changed = newAttributes != oldAttributes
+                    PrintDiagnosticTrace.log("Adapter: onLayout finished successfully. PageCount: 1, Changed: $changed")
+                    callback?.onLayoutFinished(info, changed)
+                }
+
+                override fun onWrite(
+                    pages: Array<out PageRange>?,
+                    destination: ParcelFileDescriptor?,
+                    cancellationSignal: CancellationSignal?,
+                    callback: WriteResultCallback?
+                ) {
+                    PrintDiagnosticTrace.log("Adapter: onWrite called. Writing bitmap to PDF stream...")
+                    if (cancellationSignal?.isCanceled == true) {
+                        PrintDiagnosticTrace.log("Adapter: onWrite cancelled")
+                        callback?.onWriteCancelled()
+                        return
+                    }
+
+                    val pdfDoc = printedPdfDoc
+                    if (pdfDoc == null || destination == null) {
+                        PrintDiagnosticTrace.log("Adapter: onWrite failed - pdfDoc or destination is null")
+                        callback?.onWriteFailed("PDF document or file descriptor is null")
+                        return
+                    }
+
+                    val page = pdfDoc.startPage(0)
+                    try {
+                        val pdfCanvas = page.canvas
+                        val pageW = page.info.pageWidth.toFloat()
+                        val pageH = page.info.pageHeight.toFloat()
+
+                        val scale = Math.min(pageW / bitmap.width.toFloat(), pageH / bitmap.height.toFloat())
+                        val scaledW = bitmap.width.toFloat() * scale
+                        val scaledH = bitmap.height.toFloat() * scale
+                        val left = (pageW - scaledW) / 2f
+                        val top = (pageH - scaledH) / 2f
+
+                        val destRect = RectF(left, top, left + scaledW, top + scaledH)
+                        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+                        pdfCanvas.drawBitmap(bitmap, null, destRect, paint)
+
+                        pdfDoc.finishPage(page)
+
+                        FileOutputStream(destination.fileDescriptor).use { outStream ->
+                            pdfDoc.writeTo(outStream)
+                        }
+
+                        PrintDiagnosticTrace.log("Adapter: onWrite finished successfully (1 page written)")
+                        callback?.onWriteFinished(arrayOf(PageRange.ALL_PAGES))
+                    } catch (e: Exception) {
+                        PrintDiagnosticTrace.log("Adapter: onWrite exception: ${e.javaClass.simpleName}: ${e.message}")
+                        callback?.onWriteFailed(e.message)
+                    } finally {
+                        pdfDoc.close()
+                        printedPdfDoc = null
+                    }
+                }
+
+                override fun onFinish() {
+                    super.onFinish()
+                    PrintDiagnosticTrace.log("Adapter: onFinish completed")
+                }
+            }
+
+            val printAttributes = PrintAttributes.Builder()
+                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                .build()
+
+            PrintDiagnosticTrace.log("Submitting job '$jobName' to PrintManager.print()...")
+            val printJob: PrintJob? = printManager.print(jobName, printAdapter, printAttributes)
+
+            if (printJob == null) {
+                PrintDiagnosticTrace.log("PrintManager.print() returned NULL (Job creation failed or user cancelled dialog immediately)")
+                return
+            }
+
+            PrintDiagnosticTrace.log("PrintJob created! Initial state: ${getPrintJobStateName(printJob.info.state)} (id=${printJob.id})")
+
+            // Start 30-second polling on main thread
+            val handler = Handler(Looper.getMainLooper())
+            var pollCount = 0
+            var lastState = -1
+            var lastBlockedReason: String? = null
+
+            val pollRunnable = object : Runnable {
+                override fun run() {
+                    pollCount++
+                    try {
+                        val info: PrintJobInfo = printJob.info
+                        val currentState = info.state
+                        val stateName = getPrintJobStateName(currentState)
+
+                        if (currentState != lastState) {
+                            val stateDetails = buildString {
+                                append("STATE TRANSITION [Sec $pollCount]: $stateName")
+                                if (currentState == PrintJobInfo.STATE_BLOCKED) {
+                                    append(" (Blocked/Pending printer response)")
+                                } else if (currentState == PrintJobInfo.STATE_FAILED) {
+                                    append(" (Failed to deliver to printer)")
+                                }
+                            }
+                            PrintDiagnosticTrace.log(stateDetails)
+                            lastState = currentState
+                        }
+
+                        val isComplete = currentState == PrintJobInfo.STATE_COMPLETED ||
+                                currentState == PrintJobInfo.STATE_FAILED ||
+                                currentState == PrintJobInfo.STATE_CANCELED
+
+                        if (isComplete) {
+                            PrintDiagnosticTrace.log("Print job reached terminal state: $stateName at second $pollCount")
+                            return
+                        }
+
+                        if (pollCount < 30) {
+                            handler.postDelayed(this, 1000L)
+                        } else {
+                            PrintDiagnosticTrace.log("Polling completed (30s timeout). Current state remains: $stateName")
+                        }
+                    } catch (e: Exception) {
+                        PrintDiagnosticTrace.log("Error polling printJob status: ${e.message}")
+                    }
+                }
+            }
+
+            handler.postDelayed(pollRunnable, 1000L)
+
+        } catch (e: Exception) {
+            PrintDiagnosticTrace.log("Exception in printReceiptBitmap: ${e.javaClass.name}: ${e.message}")
+            android.widget.Toast.makeText(context, "Print error: ${e.localizedMessage ?: e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun getPrintJobStateName(state: Int): String {
+        return when (state) {
+            PrintJobInfo.STATE_CREATED -> "STATE_CREATED"
+            PrintJobInfo.STATE_QUEUED -> "STATE_QUEUED"
+            PrintJobInfo.STATE_STARTED -> "STATE_STARTED"
+            PrintJobInfo.STATE_BLOCKED -> "STATE_BLOCKED"
+            PrintJobInfo.STATE_COMPLETED -> "STATE_COMPLETED"
+            PrintJobInfo.STATE_FAILED -> "STATE_FAILED"
+            PrintJobInfo.STATE_CANCELED -> "STATE_CANCELED"
+            else -> "UNKNOWN_STATE($state)"
         }
     }
 }

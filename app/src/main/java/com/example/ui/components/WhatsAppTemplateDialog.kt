@@ -746,6 +746,12 @@ fun WhatsAppTemplateDialog(
                                     Text("Copy", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
                             }
+
+                            // Print Diagnostic Trace Box
+                            PrintDiagnosticTraceCard(
+                                isDark = isAppInDarkMode(),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
                         }
                     }
                 }
@@ -905,6 +911,11 @@ fun WhatsAppTemplateDialog(
                             Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1)
                         }
                     }
+
+                    PrintDiagnosticTraceCard(
+                        isDark = isAppInDarkMode(),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }

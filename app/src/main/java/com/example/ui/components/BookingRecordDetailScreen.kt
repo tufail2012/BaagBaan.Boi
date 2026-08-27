@@ -1565,6 +1565,11 @@ fun BookingRecordDetailDialog(
                                 Text("Close", fontWeight = FontWeight.SemiBold)
                             }
                         }
+
+                        PrintDiagnosticTraceCard(
+                            isDark = isDark,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
                 }
             }

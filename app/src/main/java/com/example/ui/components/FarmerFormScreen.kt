@@ -3256,6 +3256,11 @@ fun FarmerFormScreen(
                     TextButton(onClick = { showReceiptDialog = false }) {
                         Text("Done / Close", color = Color.Gray)
                     }
+
+                    PrintDiagnosticTraceCard(
+                        isDark = isDark,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }
