@@ -167,7 +167,14 @@ fun AgriHeader(
     val isDark = isAppInDarkMode()
     val focusRequester = remember { FocusRequester() }
 
-    val sectionAccent = accentColor ?: getSectionAccentColor(title)
+    val parsedPaletteColor = remember(selectedColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(selectedColorHex))
+        } catch (e: Exception) {
+            null
+        }
+    }
+    val sectionAccent = accentColor ?: getSectionAccentColor(title, customPaletteColor = parsedPaletteColor)
     val animatedAccentColor by animateColorAsState(
         targetValue = sectionAccent,
         animationSpec = tween(durationMillis = 280),

@@ -34,6 +34,7 @@ import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.GlobalSearchResultsScreen
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
+import com.example.ui.theme.AgriRedPrimary
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -484,8 +485,16 @@ fun AgriCropMainScreen(
                     else -> selectedService
                 }
 
-                val sectionAccentColor = remember(selectedService) {
-                    getSectionAccentColor(selectedService)
+                val parsedPaletteColor = remember(accentColorHex) {
+                    try {
+                        Color(android.graphics.Color.parseColor(accentColorHex))
+                    } catch (e: Exception) {
+                        AgriRedPrimary
+                    }
+                }
+
+                val sectionAccentColor = remember(selectedService, parsedPaletteColor) {
+                    getSectionAccentColor(selectedService, customPaletteColor = parsedPaletteColor)
                 }
 
                 val hazeState = remember { HazeState() }

@@ -410,7 +410,7 @@ fun AgriBottomNav(
                 navItems.forEachIndexed { index, item ->
                     val isSelected = index == selectedIndex
                     val scale = remember { Animatable(1f) }
-                    val itemAccentColor = getSectionAccentColor(item.serviceCategory)
+                    val itemAccentColor = getSectionAccentColor(item.serviceCategory, customPaletteColor = accentColor)
 
                     // Inactive tabs: muted grey-violet; Selected tab: dynamic section accent
                     val inactiveColor = if (!isDark) {

@@ -25,25 +25,12 @@ val SectionInventoryAccent = Color(0xFF0891B2)       // Cyan
  * This is the SINGLE SOURCE OF TRUTH used across Segmented Controls, Sub-Tabs, Headers,
  * Bottom Navigation, Badges, Glows, and Card Highlights.
  */
-fun getSectionAccentColor(serviceCategory: String, defaultColor: Color = SectionLocalPlantsAccent): Color {
-    val clean = serviceCategory.trim()
-    return when {
-        clean.contains("Pruning", ignoreCase = true) -> SectionPruningAccent
-        clean.contains("Rootstock", ignoreCase = true) ||
-                clean.equals("Rootstocks", ignoreCase = true) ||
-                clean.equals("M9-T337", ignoreCase = true) ||
-                clean.equals("MM111", ignoreCase = true) ||
-                clean.startsWith("Geneva", ignoreCase = true) -> SectionRootstocksAccent
-        clean.contains("Imported", ignoreCase = true) -> SectionImportedPlantsAccent
-        clean.contains("Local", ignoreCase = true) -> SectionLocalPlantsAccent
-        clean.contains("Site", ignoreCase = true) -> SectionSiteVisitAccent
-        clean.contains("Garden", ignoreCase = true) -> SectionGardenPlanningAccent
-        clean.contains("Booking", ignoreCase = true) -> SectionBookingsAccent
-        clean.contains("Attendance", ignoreCase = true) -> SectionAttendanceAccent
-        clean.contains("Inventory", ignoreCase = true) ||
-                clean.contains("Stock", ignoreCase = true) -> SectionInventoryAccent
-        else -> defaultColor
-    }
+fun getSectionAccentColor(
+    serviceCategory: String,
+    defaultColor: Color = SectionLocalPlantsAccent,
+    customPaletteColor: Color? = null
+): Color {
+    return customPaletteColor ?: defaultColor
 }
 
 val AgriBackground = Color(0xFFF8F9FA)
