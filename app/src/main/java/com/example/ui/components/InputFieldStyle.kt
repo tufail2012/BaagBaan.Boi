@@ -132,7 +132,7 @@ fun AppOutlinedTextField(
     OutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
-        modifier = modifier,
+        modifier = modifier.boundedFormFieldRipple(shape = shape),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -202,7 +202,7 @@ fun AppOutlinedTextField(
     OutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
-        modifier = modifier,
+        modifier = modifier.boundedFormFieldRipple(shape = shape),
         enabled = enabled,
         readOnly = readOnly,
         textStyle = textStyle,
@@ -251,42 +251,55 @@ fun isAppInDarkMode(): Boolean {
  * Modifier extension to attach a smooth, bounded ripple effect animation to form fields.
  * The ripple originates from the point of tap, is contained strictly within [shape],
  * and provides responsive, lag-free visual feedback without overflowing or affecting surrounding UI.
+ * Applies the centralized glassCardBackground modifier to ensure all input field cards/containers
+ * receive the unified glass surface, section accent tint, specular border, and depth.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
     shape: Shape = RoundedCornerShape(16.dp),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null
 ): Modifier {
-    val clipMod = this.bringIntoViewOnFocus().clip(shape)
+    val isDark = isAppInDarkMode()
+    val glassMod = this
+        .bringIntoViewOnFocus()
+        .glassCardBackground(
+            isDark = isDark,
+            accentColor = accentColor,
+            shape = shape
+        )
     return if (onClick != null) {
-        clipMod.clickable(
+        glassMod.clickable(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = rippleColor),
             enabled = enabled,
             onClick = onClick
         )
     } else {
-        clipMod.indication(
+        glassMod.indication(
             interactionSource = interactionSource,
             indication = ripple(bounded = true, color = rippleColor)
         )
     }
 }
 
-fun Modifier.elevated3dShadow(
+/**
+ * Underlying canvas shadow drawer for glass containers.
+ */
+fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
-    offsetY: Dp = 4.dp,
+    offsetY: Dp = 3.dp,
     blurRadius: Dp = 8.dp
 ): Modifier = this.drawBehind {
     val shadowColor = if (isDark) {
-        Color.White.copy(alpha = 0.15f)
+        Color.White.copy(alpha = 0.12f)
     } else {
-        Color.Black.copy(alpha = 0.12f)
+        Color.Black.copy(alpha = 0.10f)
     }
 
     drawIntoCanvas { canvas ->
@@ -309,26 +322,35 @@ fun Modifier.elevated3dShadow(
     }
 }
 
+fun Modifier.elevated3dShadow(
+    shape: Shape = RoundedCornerShape(16.dp),
+    isDark: Boolean,
+    offsetY: Dp = 4.dp,
+    blurRadius: Dp = 8.dp
+): Modifier = this
+
 @Composable
 fun elevatedInputFieldColors(
-    isDark: Boolean = isAppInDarkMode()
+    isDark: Boolean = isAppInDarkMode(),
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
-    val primaryColor = MaterialTheme.colorScheme.primary
     return OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFFAFAFA),
-        unfocusedContainerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else Color(0xFFFAFAFA),
-        disabledContainerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f) else Color(0xFFF2F2F2),
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        disabledContainerColor = Color.Transparent,
         focusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
         unfocusedTextColor = if (isDark) Color.White else Color(0xFF1C1B1F),
         disabledTextColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF777777),
-        focusedBorderColor = primaryColor,
-        unfocusedBorderColor = if (isDark) Color(0xFF4A4D58) else Color(0xFFC8C8C8),
-        focusedLabelColor = primaryColor,
+        focusedBorderColor = accentColor,
+        unfocusedBorderColor = Color.Transparent,
+        disabledBorderColor = Color.Transparent,
+        errorBorderColor = MaterialTheme.colorScheme.error,
+        focusedLabelColor = accentColor,
         unfocusedLabelColor = if (isDark) Color(0xFFDDDDDD) else Color(0xFF555555),
-        cursorColor = primaryColor,
-        focusedLeadingIconColor = primaryColor,
+        cursorColor = accentColor,
+        focusedLeadingIconColor = accentColor,
         unfocusedLeadingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
-        focusedTrailingIconColor = primaryColor,
+        focusedTrailingIconColor = accentColor,
         unfocusedTrailingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
         focusedPlaceholderColor = if (isDark) Color(0xFF888888) else Color(0xFF888888),
         unfocusedPlaceholderColor = if (isDark) Color(0xFF888888) else Color(0xFF888888)
@@ -387,7 +409,7 @@ fun Modifier.glassCardBackground(
     }
 
     return this
-        .elevated3dShadow(
+        .drawElevatedShadow(
             shape = shape,
             isDark = isDark,
             offsetY = 3.dp,
