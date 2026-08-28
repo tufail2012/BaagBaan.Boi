@@ -580,7 +580,8 @@ fun Modifier.glassCardBackground(
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
     elevation: Dp = 6.dp,
-    borderWidth: Dp = 1.25.dp
+    borderWidth: Dp = 1.25.dp,
+    flatStyle: Boolean = false
 ): Modifier {
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
@@ -595,27 +596,36 @@ fun Modifier.glassCardBackground(
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
 
-    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                0.0f to Color(0xFF1C1917).copy(alpha = 0.98f),
-                0.30f to Color(0xFF0C0A09).copy(alpha = 0.95f),
-                0.70f to accentColor.copy(alpha = 0.12f),
-                1.0f to Color(0xFF000000).copy(alpha = 0.98f)
-            )
-            effectiveIsDark -> Brush.verticalGradient(
-                0.0f to Color(0xFF1E293B).copy(alpha = 0.96f),
-                0.25f to Color(0xFF162032).copy(alpha = 0.93f),
-                0.60f to accentColor.copy(alpha = 0.09f),
-                1.0f to Color(0xFF0F172A).copy(alpha = 0.97f)
-            )
-            else -> Brush.verticalGradient(
-                0.0f to Color.White.copy(alpha = 0.97f),
-                0.20f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
-                0.55f to Color.White.copy(alpha = 0.93f),
-                0.80f to accentColor.copy(alpha = 0.06f),
-                1.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f)
-            )
+    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
+        if (flatStyle) {
+            val flatColor = when {
+                isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.96f)
+                effectiveIsDark -> Color(0xFF162032).copy(alpha = 0.95f)
+                else -> Color(0xFFF8FAFC).copy(alpha = 0.95f)
+            }
+            Brush.linearGradient(listOf(flatColor, flatColor))
+        } else {
+            when {
+                isAmoled -> Brush.verticalGradient(
+                    0.0f to Color(0xFF1C1917).copy(alpha = 0.98f),
+                    0.30f to Color(0xFF0C0A09).copy(alpha = 0.95f),
+                    0.70f to accentColor.copy(alpha = 0.12f),
+                    1.0f to Color(0xFF000000).copy(alpha = 0.98f)
+                )
+                effectiveIsDark -> Brush.verticalGradient(
+                    0.0f to Color(0xFF1E293B).copy(alpha = 0.96f),
+                    0.25f to Color(0xFF162032).copy(alpha = 0.93f),
+                    0.60f to accentColor.copy(alpha = 0.09f),
+                    1.0f to Color(0xFF0F172A).copy(alpha = 0.97f)
+                )
+                else -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.97f),
+                    0.20f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
+                    0.55f to Color.White.copy(alpha = 0.93f),
+                    0.80f to accentColor.copy(alpha = 0.06f),
+                    1.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f)
+                )
+            }
         }
     }
 

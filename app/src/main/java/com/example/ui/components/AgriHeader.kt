@@ -320,7 +320,8 @@ fun AgriHeader(
                                 isDark = isDark,
                                 themeMode = themeMode,
                                 elevation = 12.dp,
-                                borderWidth = 1.25.dp
+                                borderWidth = 1.25.dp,
+                                flatStyle = true
                             ),
                         shape = RoundedCornerShape(20.dp),
                         containerColor = Color.Transparent,
@@ -503,7 +504,8 @@ fun AgriHeader(
                                         isDark = isDark,
                                         themeMode = themeMode,
                                         elevation = 12.dp,
-                                        borderWidth = 1.25.dp
+                                        borderWidth = 1.25.dp,
+                                        flatStyle = true
                                     ),
                                 shape = RoundedCornerShape(20.dp),
                                 containerColor = Color.Transparent,
