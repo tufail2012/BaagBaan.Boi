@@ -332,7 +332,7 @@ fun AgriDashboardScreen(
                                 Icon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = "Settings & Security",
-                                    tint = dashboardAccent,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -347,7 +347,7 @@ fun AgriDashboardScreen(
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Refresh Data",
-                                tint = dashboardAccent,
+                                tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(20.dp)
                             )
                         }

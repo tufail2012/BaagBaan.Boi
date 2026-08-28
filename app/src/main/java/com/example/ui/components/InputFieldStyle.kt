@@ -482,11 +482,12 @@ fun Modifier.boundedFormFieldRipple(
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
-    offsetY: Dp = 3.dp,
-    blurRadius: Dp = 8.dp
+    offsetY: Dp = 4.dp,
+    blurRadius: Dp = 10.dp,
+    elevationAlphaScale: Float = 1.0f
 ): Modifier = this.drawBehind {
-    val ambientAlpha = if (isDark) 0.18f else 0.05f
-    val spotAlpha = if (isDark) 0.30f else 0.08f
+    val ambientAlpha = (if (isDark) 0.22f else 0.08f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
+    val spotAlpha = (if (isDark) 0.36f else 0.12f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
 
     val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF0F172A).copy(alpha = ambientAlpha)
     val spotColor = if (isDark) Color.Black.copy(alpha = spotAlpha) else Color(0xFF0F172A).copy(alpha = spotAlpha)
@@ -496,7 +497,7 @@ fun Modifier.drawElevatedShadow(
         val ambientPaint = Paint()
         val ambientFrameworkPaint = ambientPaint.asFrameworkPaint()
         ambientFrameworkPaint.color = ambientColor.toArgb()
-        val ambientBlurPx = (blurRadius * 1.2f).toPx()
+        val ambientBlurPx = (blurRadius * 1.3f).toPx()
         if (ambientBlurPx > 0f) {
             ambientFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
                 ambientBlurPx,
@@ -505,7 +506,7 @@ fun Modifier.drawElevatedShadow(
         }
         val outline = shape.createOutline(size, layoutDirection, this)
         canvas.save()
-        canvas.translate(0f, 1.dp.toPx())
+        canvas.translate(0f, 1.5.dp.toPx())
         canvas.drawOutline(outline, ambientPaint)
         canvas.restore()
 
@@ -564,11 +565,12 @@ fun elevatedInputFieldColors(
 
 /**
  * Reusable Glassmorphism Card Modifier.
- * Provides clear visual separation from tinted background canvas through:
- * 1. Clean frosted translucent surface fill (predominantly white in Light Mode, slate in Dark Mode)
- * 2. Multi-layer ambient/spot elevation shadows
- * 3. 1.dp vertical specular border highlight (stronger top specular white and subtle accent rim)
- * 4. Distinct boundary contrast in Light, Dark, and AMOLED modes with zero color bleed over text.
+ * Provides clear visual separation from background canvas through:
+ * 1. Clean frosted translucent surface fill (dense milk-glass optical diffusion in Light Mode, slate in Dark Mode)
+ * 2. Multi-layer ambient/spot elevation shadows with floating depth
+ * 3. 1.25.dp vertical specular border highlight (stronger top specular white and subtle accent rim)
+ * 4. Top specular sheen highlight for authentic glass thickness
+ * 5. Distinct boundary contrast in Light, Dark, and AMOLED modes with zero color bleed over text.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -576,7 +578,9 @@ fun Modifier.glassCardBackground(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape? = null,
     cornerRadius: Dp? = null,
-    themeMode: AppThemeMode? = null
+    themeMode: AppThemeMode? = null,
+    elevation: Dp = 6.dp,
+    borderWidth: Dp = 1.25.dp
 ): Modifier {
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
@@ -594,27 +598,23 @@ fun Modifier.glassCardBackground(
     val containerGradient = remember(effectiveIsDark, isAmoled, accentColor) {
         when {
             isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF18181B).copy(alpha = 0.85f),
-                    accentColor.copy(alpha = 0.08f),
-                    Color(0xFF0A0A0C).copy(alpha = 0.90f)
-                )
+                0.0f to Color(0xFF1C1917).copy(alpha = 0.98f),
+                0.30f to Color(0xFF0C0A09).copy(alpha = 0.95f),
+                0.70f to accentColor.copy(alpha = 0.12f),
+                1.0f to Color(0xFF000000).copy(alpha = 0.98f)
             )
             effectiveIsDark -> Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.78f),
-                    Color(0xFF162032).copy(alpha = 0.72f),
-                    accentColor.copy(alpha = 0.06f),
-                    Color(0xFF0F172A).copy(alpha = 0.80f)
-                )
+                0.0f to Color(0xFF1E293B).copy(alpha = 0.96f),
+                0.25f to Color(0xFF162032).copy(alpha = 0.93f),
+                0.60f to accentColor.copy(alpha = 0.09f),
+                1.0f to Color(0xFF0F172A).copy(alpha = 0.97f)
             )
             else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.88f),
-                    Color.White.copy(alpha = 0.76f),
-                    accentColor.copy(alpha = 0.04f),
-                    Color.White.copy(alpha = 0.82f)
-                )
+                0.0f to Color.White.copy(alpha = 0.97f),
+                0.20f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
+                0.55f to Color.White.copy(alpha = 0.93f),
+                0.80f to accentColor.copy(alpha = 0.06f),
+                1.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f)
             )
         }
     }
@@ -622,43 +622,50 @@ fun Modifier.glassCardBackground(
     val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor) {
         when {
             isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.65f),
-                    accentColor.copy(alpha = 0.45f),
-                    Color.White.copy(alpha = 0.15f),
-                    Color(0xFF27272A).copy(alpha = 0.50f)
-                )
+                0.0f to Color.White.copy(alpha = 0.80f),
+                0.25f to accentColor.copy(alpha = 0.65f),
+                0.60f to Color(0xFF27272A).copy(alpha = 0.80f),
+                1.0f to Color(0xFF3F3F46).copy(alpha = 0.50f)
             )
             effectiveIsDark -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.48f),
-                    accentColor.copy(alpha = 0.38f),
-                    Color.White.copy(alpha = 0.12f),
-                    Color(0xFF334155).copy(alpha = 0.45f)
-                )
+                0.0f to Color.White.copy(alpha = 0.70f),
+                0.25f to accentColor.copy(alpha = 0.55f),
+                0.60f to Color(0xFF334155).copy(alpha = 0.65f),
+                1.0f to Color.White.copy(alpha = 0.30f)
             )
             else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.32f),
-                    accentColor.copy(alpha = 0.12f),
-                    Color.White.copy(alpha = 0.45f)
-                )
+                0.0f to Color.White.copy(alpha = 0.98f),
+                0.25f to accentColor.copy(alpha = 0.50f),
+                0.60f to Color(0xFFCBD5E1).copy(alpha = 0.65f),
+                1.0f to Color.White.copy(alpha = 0.80f)
             )
         }
+    }
+
+    val sheenBrush = remember(effectiveIsDark) {
+        Brush.verticalGradient(
+            0.0f to (if (effectiveIsDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)),
+            0.20f to (if (effectiveIsDark) Color.White.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.08f)),
+            1.0f to Color.Transparent
+        )
     }
 
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = 3.dp,
-            blurRadius = 8.dp
+            offsetY = (elevation * 0.55f).coerceAtLeast(3.dp),
+            blurRadius = (elevation * 1.4f).coerceAtLeast(8.dp),
+            elevationAlphaScale = if (elevation > 8.dp) 1.5f else 1.0f
         )
         .clip(effectiveShape)
         .background(containerGradient)
+        .drawBehind {
+            // Draw top specular sheen for authentic optical glass refraction
+            drawRect(brush = sheenBrush)
+        }
         .border(
-            width = 1.dp,
+            width = borderWidth,
             brush = specularBorderBrush,
             shape = effectiveShape
         )

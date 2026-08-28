@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -312,12 +313,14 @@ fun AgriHeader(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier
-                            .widthIn(min = 220.dp, max = 280.dp)
+                            .widthIn(min = 230.dp, max = 285.dp)
                             .glassCardBackground(
                                 cornerRadius = 20.dp,
                                 accentColor = getSectionAccentColor("Profile"),
                                 isDark = isDark,
-                                themeMode = themeMode
+                                themeMode = themeMode,
+                                elevation = 12.dp,
+                                borderWidth = 1.25.dp
                             ),
                         shape = RoundedCornerShape(20.dp),
                         containerColor = Color.Transparent,
@@ -493,12 +496,14 @@ fun AgriHeader(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier
-                                    .widthIn(min = 220.dp, max = 280.dp)
+                                    .widthIn(min = 230.dp, max = 285.dp)
                                     .glassCardBackground(
                                         cornerRadius = 20.dp,
                                         accentColor = getSectionAccentColor("Profile"),
                                         isDark = isDark,
-                                        themeMode = themeMode
+                                        themeMode = themeMode,
+                                        elevation = 12.dp,
+                                        borderWidth = 1.25.dp
                                     ),
                                 shape = RoundedCornerShape(20.dp),
                                 containerColor = Color.Transparent,
@@ -765,6 +770,13 @@ private fun OverflowMenuContent(
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
 ) {
+    val isDark = when (themeMode) {
+        AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK, AppThemeMode.AMOLED -> true
+    }
+    val itemTextColor = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+
     // 1. Dashboard
     DropdownMenuItem(
         text = {
@@ -775,14 +787,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Dashboard,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Dashboard"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Dashboard",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -790,7 +803,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToDashboard()
         },
-        modifier = Modifier.testTag("dashboard_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("dashboard_menu_item$tagSuffix")
     )
 
     // 2. Inventory
@@ -803,14 +820,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Inventory2,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Inventory"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Inventory",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -818,7 +836,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToInventory()
         },
-        modifier = Modifier.testTag("inventory_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("inventory_menu_item$tagSuffix")
     )
 
     // 3. Attendance
@@ -831,14 +853,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.EventAvailable,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Attendance"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Attendance",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -846,7 +869,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToAttendance()
         },
-        modifier = Modifier.testTag("attendance_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("attendance_menu_item$tagSuffix")
     )
 
     // 4. Contact Directory
@@ -859,14 +886,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Contacts,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Contact Directory"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Contact Directory",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -874,7 +902,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToContactDirectory()
         },
-        modifier = Modifier.testTag("contact_directory_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("contact_directory_menu_item$tagSuffix")
     )
 
     // 5. Payment Reminder
@@ -887,14 +919,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.ReceiptLong,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Payment Reminder"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Payment Reminder",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -902,7 +935,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToPaymentReminders()
         },
-        modifier = Modifier.testTag("payment_reminders_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("payment_reminders_menu_item$tagSuffix")
     )
 
     // Seasonal Reminders
@@ -915,14 +952,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Park,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Seasonal Reminders"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Seasonal Reminders",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -930,7 +968,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToSeasonalReminders()
         },
-        modifier = Modifier.testTag("seasonal_reminders_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("seasonal_reminders_menu_item$tagSuffix")
     )
 
     // 6. Scan QR
@@ -943,14 +985,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.QrCodeScanner,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Scan QR"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Scan QR",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -958,13 +1001,17 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToQrScanner()
         },
-        modifier = Modifier.testTag("scan_qr_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("scan_qr_menu_item$tagSuffix")
     )
 
     // Divider before Settings
     HorizontalDivider(
-        modifier = Modifier.padding(vertical = 4.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.35f else 0.5f)
     )
 
     // 6. Settings
@@ -977,14 +1024,15 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getSectionAccentColor("Settings"),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Settings",
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = itemTextColor
                 )
             }
         },
@@ -992,7 +1040,11 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToSettings?.invoke()
         },
-        modifier = Modifier.testTag("settings_menu_item$tagSuffix")
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        modifier = Modifier
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("settings_menu_item$tagSuffix")
     )
 }
 
