@@ -167,14 +167,14 @@ fun InventoryManagementDialog(
                         Spacer(modifier = Modifier.width(4.dp))
                         Surface(
                             shape = CircleShape,
-                            color = getSectionAccentColor("Inventory").copy(alpha = 0.15f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                             modifier = Modifier.size(40.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Inventory2,
                                     contentDescription = null,
-                                    tint = getSectionAccentColor("Inventory"),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -920,7 +920,7 @@ fun InventoryItemCard(
             ) {
                 // Stock Adjuster Buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Adjust Stock:", fontSize = 12.sp, color = textSecondary)
+                    Text(text = "Adjust Stock:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.width(6.dp))
 
                     FilledIconButton(

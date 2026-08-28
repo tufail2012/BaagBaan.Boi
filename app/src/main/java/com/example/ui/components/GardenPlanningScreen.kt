@@ -1192,30 +1192,39 @@ fun GardenPlanningFormTab(
             )
 
             // Switch to Multi-Variety Button
-            OutlinedButton(
-                onClick = {
-                    viewModel.enableMultiVariety()
-                },
+            val sectionAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", defaultColor = MaterialTheme.colorScheme.primary)
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
+                    .height(48.dp)
+                    .boundedFormFieldRipple(
+                        shape = textFieldShape,
+                        accentColor = sectionAccent,
+                        onClick = {
+                            viewModel.enableMultiVariety()
+                        }
+                    )
                     .testTag("add_multiple_varieties_button"),
-                shape = textFieldShape,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Layers,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    "+ Add Multiple Varieties to this Booking",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Layers,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = sectionAccent
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "+ Add Multiple Varieties to this Booking",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = sectionAccent
+                    )
+                }
             }
         }
 
