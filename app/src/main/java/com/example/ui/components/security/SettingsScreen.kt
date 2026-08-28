@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Pattern
 import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
@@ -75,6 +76,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -82,6 +84,7 @@ import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.security.AppLockManager
@@ -333,32 +336,66 @@ fun SettingsScreen(
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
     }
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    val settingsAccent = getSectionAccentColor("Settings")
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
+    val settingsBgBrush = remember(isDark, isAmoled, settingsAccent) {
+        if (isAmoled) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF000000),
+                    Color(0xFF09090B),
+                    settingsAccent.copy(alpha = 0.05f),
+                    Color(0xFF000000)
+                )
+            )
+        } else if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    Color(0xFF0D1B2A),
+                    settingsAccent.copy(alpha = 0.05f),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    settingsAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(settingsBgBrush)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Top App Bar
-            Surface(
+            // Top App Bar - Wide Pill-Shaped Glass Header
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
                     .glassCardBackground(
-                        cornerRadius = 0.dp,
-                        accentColor = getSectionAccentColor("Settings"),
                         isDark = isDark,
+                        accentColor = settingsAccent,
+                        shape = CircleShape,
                         themeMode = themeMode
-                    ),
-                color = Color.Transparent
+                    )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     IconButton(
                         onClick = onBack,
@@ -369,21 +406,46 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                            tint = settingsAccent
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(settingsAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings Icon",
+                            tint = settingsAccent,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
 
                     Column {
                         Text(
                             text = "Settings",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = "Appearance, Account, Security & Storage",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

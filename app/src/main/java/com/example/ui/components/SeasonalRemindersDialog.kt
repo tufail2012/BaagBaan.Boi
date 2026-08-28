@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -72,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -104,78 +107,127 @@ fun SeasonalRemindersDialog(
     var taskToDelete by remember { mutableStateOf<SeasonalTask?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
 
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = isAppInDarkMode()
+    val seasonalAccent = getSectionAccentColor("Seasonal Reminders")
+    val seasonalBgBrush = remember(isDark, seasonalAccent) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    Color(0xFF0D1B2A),
+                    seasonalAccent.copy(alpha = 0.05f),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    seasonalAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
+        BackHandler(onBack = onDismiss)
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .glassCardBackground(
-                    cornerRadius = 0.dp,
-                    accentColor = getSectionAccentColor("Seasonal Reminders"),
-                    isDark = isDark
-                )
-                .testTag("seasonal_reminders_dialog"),
-            color = Color.Transparent
+                .background(seasonalBgBrush)
+                .testTag("seasonal_reminders_dialog")
         ) {
             Scaffold(
                 containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .glassCardBackground(
+                                isDark = isDark,
+                                accentColor = seasonalAccent,
+                                shape = CircleShape
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                IconButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .testTag("seasonal_reminders_close_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = seasonalAccent
+                                    )
+                                }
+
                                 Box(
                                     modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(seasonalAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Park,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
+                                        tint = seasonalAccent,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
+
                                 Column {
                                     Text(
                                         text = "Seasonal Reminders",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 17.sp,
+                                            letterSpacing = (-0.3).sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = "${tasks.count { it.isEnabled }} active • ${tasks.size} annual tasks",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
-                        },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.testTag("seasonal_reminders_close_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        },
-                        actions = {
+
                             OutlinedButton(
                                 onClick = { showResetConfirm = true },
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier
-                                    .padding(end = 8.dp)
+                                    .padding(end = 4.dp)
                                     .testTag("seasonal_reset_button")
                             ) {
                                 Icon(
@@ -186,20 +238,12 @@ fun SeasonalRemindersDialog(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Reset Seeds", fontSize = 12.sp, maxLines = 1)
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier.glassCardBackground(
-                            cornerRadius = 0.dp,
-                            accentColor = getSectionAccentColor("Seasonal Reminders"),
-                            isDark = isDark
-                        )
-                    )
+                        }
+                    }
                 },
                 bottomBar = {
                     Surface(
-                        color = MaterialTheme.colorScheme.background,
+                        color = Color.Transparent,
                         tonalElevation = 0.dp
                     ) {
                         Box(
@@ -236,9 +280,16 @@ fun SeasonalRemindersDialog(
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)
+                            containerColor = Color.Transparent
                         ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 16.dp,
+                                accentColor = MaterialTheme.colorScheme.secondary,
+                                isDark = isDark
+                            )
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),

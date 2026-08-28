@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
@@ -16,11 +17,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -60,6 +64,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -242,59 +247,116 @@ fun PaymentRemindersDialog(
         )
     }
 
+    val paymentAccent = getSectionAccentColor("Payment Reminders")
+    val paymentBgBrush = remember(isDark, paymentAccent) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    Color(0xFF0D1B2A),
+                    paymentAccent.copy(alpha = 0.05f),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    paymentAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
+        BackHandler(onBack = onDismiss)
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .glassCardBackground(
-                    cornerRadius = 0.dp,
-                    accentColor = getSectionAccentColor("Payment Reminders"),
-                    isDark = isDark
-                ),
-            color = Color.Transparent
+                .background(paymentBgBrush)
+                .testTag("payment_reminders_dialog")
         ) {
             Scaffold(
                 containerColor = Color.Transparent,
+                contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = "Payment Reminders",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${pendingItems.size} Pending • ${numberFormat.format(totalOutstanding)} Dues",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .glassCardBackground(
+                                isDark = isDark,
+                                accentColor = paymentAccent,
+                                shape = CircleShape
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("payment_reminders_back_button")
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.ArrowBack,
                                     contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = paymentAccent
                                 )
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        modifier = Modifier.glassCardBackground(
-                            cornerRadius = 0.dp,
-                            accentColor = getSectionAccentColor("Payment Reminders"),
-                            isDark = isDark
-                        )
-                    )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(paymentAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Payment,
+                                    contentDescription = "Payment Icon",
+                                    tint = paymentAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Payment Reminders",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        letterSpacing = (-0.3).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${pendingItems.size} Pending • ${numberFormat.format(totalOutstanding)} Dues",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
                 }
             ) { paddingValues ->
                 Column(
@@ -363,7 +425,7 @@ fun PaymentRemindersDialog(
                         }
                     }
 
-                    // Search input - Elevated and Theme Adaptive
+                    // Search input - Liquid Glass Input Field
                     val searchShape = RoundedCornerShape(16.dp)
                     AppOutlinedTextField(
                         value = searchQuery,
@@ -371,7 +433,11 @@ fun PaymentRemindersDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .bringIntoViewOnFocus()
-                            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = searchShape)
+                            .glassCardBackground(
+                                isDark = isDark,
+                                accentColor = paymentAccent,
+                                shape = searchShape
+                            )
                             .testTag("payment_reminders_search_input"),
                         placeholder = {
                             Text(
@@ -414,7 +480,7 @@ fun PaymentRemindersDialog(
                         },
                         shape = searchShape,
                         singleLine = true,
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = paymentAccent)
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))

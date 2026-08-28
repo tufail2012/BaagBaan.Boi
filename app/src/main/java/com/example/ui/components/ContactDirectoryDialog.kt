@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
@@ -82,12 +84,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -489,75 +493,139 @@ fun ContactDirectoryDialog(
         }
     }
 
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = isAppInDarkMode()
+    val contactAccent = getSectionAccentColor("Contact Directory")
+    val contactsBgBrush = remember(isDark, contactAccent) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    Color(0xFF0D1B2A),
+                    contactAccent.copy(alpha = 0.05f),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    contactAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(contactsBgBrush)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .glassCardBackground(
-                    cornerRadius = 0.dp,
-                    accentColor = getSectionAccentColor("Contact Directory"),
-                    isDark = isDark
-                ),
-            color = Color.Transparent
-        ) {
-            Scaffold(
-                containerColor = Color.Transparent,
-                topBar = {
-                    TopAppBar(
-                        title = {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                // Wide Pill-Shaped Glass Header (Matching Dashboard & Inventory Header Style)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = contactAccent,
+                            shape = CircleShape
+                        )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("contact_directory_back_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = contactAccent
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(contactAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Contacts,
+                                    contentDescription = "Contacts Icon",
+                                    tint = contactAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
                             Column {
                                 Text(
                                     text = "Contact Directory",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        letterSpacing = (-0.3).sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${allContactsList.size} Saved Contacts",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier.glassCardBackground(
-                            cornerRadius = 0.dp,
-                            accentColor = getSectionAccentColor("Contact Directory"),
-                            isDark = isDark
-                        )
-                    )
-                },
-                floatingActionButton = {
-                    FloatingActionButton(
-                        onClick = { showAddDialog = true },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .navigationBarsPadding()
-                            .padding(bottom = 36.dp, end = 16.dp)
-                            .size(56.dp)
-                            .testTag("add_contact_fab")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Contact",
-                            modifier = Modifier.size(28.dp)
-                        )
+                        }
                     }
                 }
-            ) { innerPadding ->
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(bottom = 36.dp, end = 16.dp)
+                        .size(56.dp)
+                        .testTag("add_contact_fab")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Contact",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+        ) { innerPadding ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -810,7 +878,6 @@ fun ContactDirectoryDialog(
                 }
             }
         }
-    }
 
     // Modal to Enter Contact Details Manually
     if (showAddDialog) {

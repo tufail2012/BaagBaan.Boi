@@ -212,12 +212,6 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showContactDirectoryDialog) {
-        ContactDirectoryDialog(
-            onDismiss = { showContactDirectoryDialog = false }
-        )
-    }
-
     if (showPaymentRemindersDialog || showPaymentRemindersFromVm) {
         PaymentRemindersDialog(
             onDismiss = {
@@ -327,6 +321,7 @@ fun AgriCropMainScreen(
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         showInventoryDialog || showInventoryFromVm -> "INVENTORY"
+        showContactDirectoryDialog -> "CONTACTS"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
     }
@@ -474,6 +469,12 @@ fun AgriCropMainScreen(
                     isDark = isDark,
                     viewModel = viewModel,
                     selectedColorHex = accentColorHex,
+                    modifier = modifier
+                )
+            }
+            "CONTACTS" -> {
+                ContactDirectoryDialog(
+                    onDismiss = { showContactDirectoryDialog = false },
                     modifier = modifier
                 )
             }

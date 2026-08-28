@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -320,8 +321,15 @@ fun QrScannerDialog(
                 ) {
                     Card(
                         shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                        modifier = Modifier.fillMaxWidth()
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFF4CAF50),
+                                isDark = true
+                            )
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
@@ -343,7 +351,7 @@ fun QrScannerDialog(
                             Text(
                                 text = "To scan receipt QR codes directly into booking records, please grant camera access.",
                                 fontSize = 14.sp,
-                                color = Color(0xFF94A3B8),
+                                color = Color(0xFFCBD5E1),
                                 textAlign = TextAlign.Center
                             )
                             Button(
@@ -359,35 +367,44 @@ fun QrScannerDialog(
                 }
             }
 
-                // Top Bar
-                Surface(
-                    color = Color.Transparent,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .glassCardBackground(
-                            cornerRadius = 0.dp,
-                            accentColor = getSectionAccentColor("Scan QR"),
-                            isDark = true
-                        )
-                ) {
+            // Top Bar - Wide Pill-Shaped Glass Header
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = true,
+                        accentColor = Color(0xFF4CAF50),
+                        shape = CircleShape
+                    )
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF4CAF50).copy(alpha = 0.25f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Column {
                             Text(
                                 text = "Scan Receipt QR",
@@ -398,14 +415,14 @@ fun QrScannerDialog(
                             Text(
                                 text = "Align QR code inside viewfinder",
                                 color = Color(0xFFCBD5E1),
-                                fontSize = 12.sp
+                                fontSize = 11.sp
                             )
                         }
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // Flashlight Toggle
                         IconButton(
@@ -414,14 +431,15 @@ fun QrScannerDialog(
                                 cameraControl?.enableTorch(isFlashOn)
                             },
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.15f))
                         ) {
                             Icon(
                                 imageVector = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
                                 contentDescription = "Toggle Torch",
-                                tint = if (isFlashOn) Color(0xFFFFD54F) else Color.White
+                                tint = if (isFlashOn) Color(0xFFFFD54F) else Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
@@ -429,7 +447,7 @@ fun QrScannerDialog(
                         IconButton(
                             onClick = onDismissRequest,
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.15f))
                                 .testTag("close_qr_scanner_button")
@@ -437,7 +455,8 @@ fun QrScannerDialog(
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Scanner",
-                                tint = Color.White
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -453,11 +472,17 @@ fun QrScannerDialog(
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 32.dp, start = 20.dp, end = 20.dp)
             ) {
-                Surface(
-                    color = Color(0xFFD32F2F),
-                    shape = RoundedCornerShape(12.dp),
-                    shadowElevation = 6.dp,
-                    modifier = Modifier.fillMaxWidth()
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    border = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            cornerRadius = 14.dp,
+                            accentColor = Color(0xFFEF4444),
+                            isDark = true
+                        )
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -467,7 +492,7 @@ fun QrScannerDialog(
                         Icon(
                             imageVector = Icons.Default.ErrorOutline,
                             contentDescription = null,
-                            tint = Color.White
+                            tint = Color(0xFFFCA5A5)
                         )
                         Text(
                             text = errorMessage ?: "",
