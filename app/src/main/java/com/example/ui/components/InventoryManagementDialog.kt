@@ -20,11 +20,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -34,6 +36,7 @@ import com.example.data.FirestoreSyncManager
 import com.example.data.InventoryItem
 import com.example.data.InventoryStockManager
 import com.example.ui.CropViewModel
+import com.example.ui.theme.getSectionAccentColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -117,6 +120,30 @@ fun InventoryManagementDialog(
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
+    val inventoryAccent = getSectionAccentColor("Inventory", defaultColor = MaterialTheme.colorScheme.primary)
+
+    val inventoryBgBrush = remember(isDark, inventoryAccent) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    inventoryAccent.copy(alpha = 0.05f),
+                    Color(0xFF0B1120),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    inventoryAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -127,455 +154,459 @@ fun InventoryManagementDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .glassCardBackground(
-                    shape = RectangleShape,
-                    accentColor = getSectionAccentColor("Inventory"),
-                    isDark = isDark,
-                    elevation = 0.dp,
-                    borderWidth = 0.dp
-                )
+                .background(inventoryBgBrush)
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Top Action Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = inventoryAccent,
+                            shape = CircleShape
+                        )
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
+                            IconButton(
+                                onClick = onDismissRequest,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("close_inventory_dialog_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = inventoryAccent
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(inventoryAccent.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Inventory2,
+                                    contentDescription = "Inventory Icon",
+                                    tint = inventoryAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Inventory Management",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = if (!isDataReady) "Loading catalog..." else "${allItems.size} item(s) in catalog",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
                         IconButton(
                             onClick = onDismissRequest,
                             modifier = Modifier
-                                .testTag("close_inventory_dialog_button")
-                                .size(40.dp)
+                                .size(36.dp)
+                                .testTag("close_inventory_header_button")
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = textPrimary
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Inventory2,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Inventory Management",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = textPrimary
-                            )
-                            Text(
-                                text = if (!isDataReady) "Loading catalog..." else "${allItems.size} item(s) in catalog",
-                                fontSize = 12.sp,
-                                color = textSecondary
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = onDismissRequest,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = textSecondary
-                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Dashboard Summary Cards Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Scrollable Content Area with Pull to Refresh
+                BrandedPullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        if (isRefreshing) return@BrandedPullToRefreshBox
+                        isRefreshing = true
+                        scope.launch {
+                            try {
+                                delay(400)
+                            } catch (_: Exception) {
+                            } finally {
+                                isRefreshing = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    // Card 1: Total Stock
-                    Card(
+                    LazyColumn(
                         modifier = Modifier
-                            .weight(1f)
-                            .glassCardBackground(
-                                cornerRadius = 16.dp,
-                                accentColor = Color(0xFF3B82F6),
-                                isDark = isDark
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        border = null
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Layers,
-                                    contentDescription = null,
-                                    tint = Color(0xFF3B82F6),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Total Stock",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textSecondary,
-                                    maxLines = 1
-                                )
-                            }
-                            Text(
-                                text = if (!isDataReady) "—" else "$totalStock",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF3B82F6)
-                            )
-                        }
-                    }
-
-                    // Card 2: Low Stock Alerts
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .glassCardBackground(
-                                cornerRadius = 16.dp,
-                                accentColor = if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else getSectionAccentColor("Inventory"),
-                                isDark = isDark
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        border = null
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textSecondary,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Low Stock",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDataReady && lowStockCount > 0) Color(0xFFB45309) else textSecondary,
-                                    maxLines = 1
-                                )
-                            }
-                            Text(
-                                text = if (!isDataReady) "—" else "$lowStockCount",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textPrimary
-                            )
-                        }
-                    }
-
-                    // Card 3: Items Sold
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .glassCardBackground(
-                                cornerRadius = 16.dp,
-                                accentColor = Color(0xFF10B981),
-                                isDark = isDark
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                        border = null
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.ShoppingCart,
-                                    contentDescription = null,
-                                    tint = Color(0xFF10B981),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Items Sold",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textSecondary,
-                                    maxLines = 1
-                                )
-                            }
-                            Text(
-                                text = if (!isDataReady) "—" else "$totalSold",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color(0xFF10B981)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Compact Search Bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = {
-                        Text(
-                            text = "Search by item name, variety, SKU, supplier...",
-                            fontSize = 13.sp,
-                            color = textSecondary
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(
+                            top = 4.dp,
+                            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 32.dp
                         )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = textSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(0.dp)
-                        ) {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
+                    ) {
+                        // 1. Dashboard Summary Cards Row
+                        item(key = "summary_cards") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Card 1: Total Stock
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .glassCardBackground(
+                                            cornerRadius = 16.dp,
+                                            accentColor = Color(0xFF3B82F6),
+                                            isDark = isDark
+                                        ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                    border = null
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Layers,
+                                                contentDescription = null,
+                                                tint = Color(0xFF3B82F6),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Total Stock",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        Text(
+                                            text = if (!isDataReady) "—" else "$totalStock",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF3B82F6)
+                                        )
+                                    }
+                                }
+
+                                // Card 2: Low Stock Alerts
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .glassCardBackground(
+                                            cornerRadius = 16.dp,
+                                            accentColor = if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else inventoryAccent,
+                                            isDark = isDark
+                                        ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                    border = null
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Warning,
+                                                contentDescription = null,
+                                                tint = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textSecondary,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Low Stock",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isDataReady && lowStockCount > 0) Color(0xFFB45309) else textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        Text(
+                                            text = if (!isDataReady) "—" else "$lowStockCount",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textPrimary
+                                        )
+                                    }
+                                }
+
+                                // Card 3: Items Sold
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .glassCardBackground(
+                                            cornerRadius = 16.dp,
+                                            accentColor = Color(0xFF10B981),
+                                            isDark = isDark
+                                        ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                    border = null
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.ShoppingCart,
+                                                contentDescription = null,
+                                                tint = Color(0xFF10B981),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Items Sold",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                        Text(
+                                            text = if (!isDataReady) "—" else "$totalSold",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Color(0xFF10B981)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Compact Search Bar with Glass effect
+                        item(key = "search_bar") {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        text = "Search by item name, variety, SKU, supplier...",
+                                        fontSize = 13.sp,
+                                        color = textSecondary
+                                    )
+                                },
+                                leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "Clear search",
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search",
                                         tint = textSecondary,
-                                        modifier = Modifier.size(18.dp)
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                    ) {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = "Clear search",
+                                                    tint = textSecondary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        VoiceSearchIconButton(
+                                            onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
+                                            accentColor = inventoryAccent,
+                                            isDark = isDark,
+                                            buttonSize = 34.dp,
+                                            iconSize = 18.dp,
+                                            testTag = "inventory_voice_btn"
+                                        )
+                                    }
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(14.dp),
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = inventoryAccent),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .boundedFormFieldRipple(shape = RoundedCornerShape(14.dp), accentColor = inventoryAccent)
+                                    .testTag("inventory_search_input")
+                            )
+                        }
+
+                        // 3. Action Buttons Row: Recalculate Stock + Add Item
+                        item(key = "action_buttons") {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedButton(
+                                    onClick = {
+                                        showRecalculateConfirmDialog = true
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .glassCardBackground(
+                                            cornerRadius = 14.dp,
+                                            accentColor = inventoryAccent,
+                                            isDark = isDark
+                                        )
+                                        .testTag("recalculate_stock_button"),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = Color.Transparent
+                                    ),
+                                    border = null,
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Sync,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = inventoryAccent
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Recalculate Stock",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp,
+                                        color = textPrimary,
+                                        maxLines = 1
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        itemToEdit = null
+                                        showAddEditModal = true
+                                    },
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(44.dp)
+                                        .testTag("add_new_inventory_item_button"),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = inventoryAccent
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Add Item",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp,
+                                        maxLines = 1
                                     )
                                 }
                             }
-                            VoiceSearchIconButton(
-                                onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                isDark = isDark,
-                                buttonSize = 34.dp,
-                                iconSize = 18.dp,
-                                testTag = "inventory_voice_btn"
-                            )
                         }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = cardBg,
-                        unfocusedContainerColor = cardBg,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                        focusedTextColor = textPrimary,
-                        unfocusedTextColor = textPrimary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("inventory_search_input")
-                )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Action Buttons Row: Recalculate Stock + Add Item
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            showRecalculateConfirmDialog = true
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .testTag("recalculate_stock_button"),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isDark) Color(0xFF1E293B) else Color.White
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Recalculate Stock",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = textPrimary,
-                            maxLines = 1
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            itemToEdit = null
-                            showAddEditModal = true
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .testTag("add_new_inventory_item_button"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Add Item",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Category Filter Chips
-                val filterChips = listOf("All", "Low Stock", "Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
-                ) {
-                    items(filterChips) { filterName ->
-                        val isSelected = selectedCategoryFilter == filterName
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategoryFilter = filterName },
-                            label = {
-                                Text(
-                                    text = filterName + if (filterName == "Low Stock" && lowStockCount > 0) " ($lowStockCount)" else "",
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                )
-                            },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.White,
-                                containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
-                                labelColor = if (isDark) Color.White else Color(0xFF334155)
-                            ),
-                            modifier = Modifier.testTag("inventory_filter_chip_${filterName.lowercase().replace(" ", "_")}")
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Inventory List, Skeleton Loading, or Empty State
-                if (!isDataReady) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(bottom = 16.dp)
-                    ) {
-                        items(4) {
-                            SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
-                        }
-                    }
-                } else if (filteredItems.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Inventory,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
-                            )
-                            Text(
-                                text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = textSecondary
-                            )
-                            Text(
-                                text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
-                                fontSize = 13.sp,
-                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                            )
-                        }
-                    }
-                } else {
-                    BrandedPullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = {
-                            if (isRefreshing) return@BrandedPullToRefreshBox
-                            isRefreshing = true
-                            scope.launch {
-                                try {
-                                    delay(400)
-                                } catch (_: Exception) {
-                                } finally {
-                                    isRefreshing = false
+                        // 4. Category Filter Chips
+                        item(key = "filter_chips") {
+                            val filterChips = listOf("All", "Low Stock", "Local Plants", "Imported Plants", "Imported Rootstock", "Garden Planning")
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(horizontal = 2.dp)
+                            ) {
+                                items(filterChips) { filterName ->
+                                    val isSelected = selectedCategoryFilter == filterName
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = { selectedCategoryFilter = filterName },
+                                        label = {
+                                            Text(
+                                                text = filterName + if (filterName == "Low Stock" && lowStockCount > 0) " ($lowStockCount)" else "",
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        },
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = inventoryAccent,
+                                            selectedLabelColor = Color.White,
+                                            containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                                            labelColor = if (isDark) Color.White else Color(0xFF334155)
+                                        ),
+                                        modifier = Modifier.testTag("inventory_filter_chip_${filterName.lowercase().replace(" ", "_")}")
+                                    )
                                 }
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 16.dp)
-                        ) {
+                        }
+
+                        // 5. Items, Loading, or Empty State
+                        if (!isDataReady) {
+                            items(4) {
+                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = true)
+                            }
+                        } else if (filteredItems.isEmpty()) {
+                            item(key = "empty_state") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Inventory,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(56.dp),
+                                            tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1)
+                                        )
+                                        Text(
+                                            text = if (allItems.isEmpty()) "No inventory items yet" else "No matching items found",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textSecondary
+                                        )
+                                        Text(
+                                            text = if (allItems.isEmpty()) "Click '+ Add Item' to build your inventory stock catalog." else "Try adjusting your search query or selected filter.",
+                                            fontSize = 13.sp,
+                                            color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
                             items(filteredItems, key = { it.id }) { item ->
                                 InventoryItemCard(
                                     item = item,
