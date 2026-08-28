@@ -2,6 +2,7 @@ package com.example.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -26,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -46,13 +48,19 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -113,6 +121,102 @@ fun capitalizeWordsNaturally(value: TextFieldValue): TextFieldValue {
 }
 
 /**
+ * Manages per-character animated fade and scale for newly typed characters.
+ * Keeps existing characters stable without re-animation.
+ */
+@Composable
+fun rememberTypingAnimationTransformation(
+    text: String,
+    baseTransformation: VisualTransformation = VisualTransformation.None,
+    baseTextColor: Color = if (isAppInDarkMode()) Color.White else Color(0xFF0F172A),
+    textStyle: TextStyle = LocalTextStyle.current
+): VisualTransformation {
+    var previousText by remember { mutableStateOf(text) }
+    val animProgress = remember { Animatable(1f) }
+    var animatedRange by remember { mutableStateOf<IntRange?>(null) }
+
+    LaunchedEffect(text) {
+        if (text != previousText) {
+            val oldText = previousText
+            previousText = text
+            // Detect single or multiple character insertion
+            if (text.length > oldText.length) {
+                // Find common prefix
+                var prefixLen = 0
+                while (prefixLen < oldText.length && prefixLen < text.length && oldText[prefixLen] == text[prefixLen]) {
+                    prefixLen++
+                }
+                // Find common suffix
+                var suffixOld = oldText.length - 1
+                var suffixNew = text.length - 1
+                while (suffixOld >= prefixLen && suffixNew >= prefixLen && oldText[suffixOld] == text[suffixNew]) {
+                    suffixOld--
+                    suffixNew--
+                }
+                val insertStart = prefixLen
+                val insertEnd = suffixNew + 1
+                if (insertStart < insertEnd) {
+                    animatedRange = insertStart until insertEnd
+                    animProgress.snapTo(0f)
+                    animProgress.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 140,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                    animatedRange = null
+                }
+            } else {
+                // Deletion: instantly update without animation
+                animatedRange = null
+            }
+        }
+    }
+
+    val currentProgress = animProgress.value
+    val currentRange = animatedRange
+
+    return remember(baseTransformation, baseTextColor, textStyle, currentProgress, currentRange, text) {
+        VisualTransformation { originalText ->
+            val baseTransformed = baseTransformation.filter(originalText)
+            val transformedStr = baseTransformed.text.text
+
+            if (currentRange != null && currentProgress < 1f && transformedStr.isNotEmpty()) {
+                val safeStart = currentRange.first.coerceIn(0, transformedStr.length)
+                val safeEnd = (currentRange.last + 1).coerceIn(safeStart, transformedStr.length)
+
+                if (safeStart < safeEnd) {
+                    val builder = AnnotatedString.Builder(transformedStr)
+                    val alpha = currentProgress.coerceIn(0f, 1f)
+                    val scale = (0.85f + (0.15f * currentProgress)).coerceIn(0.85f, 1f)
+                    val baseFontSizeSp = if (textStyle.fontSize.isSpecified) textStyle.fontSize.value else 16f
+                    
+                    val animatedColor = baseTextColor.copy(alpha = alpha)
+                    builder.addStyle(
+                        style = SpanStyle(
+                            color = animatedColor,
+                            fontSize = (baseFontSizeSp * scale).sp
+                        ),
+                        start = safeStart,
+                        end = safeEnd
+                    )
+
+                    TransformedText(
+                        text = builder.toAnnotatedString(),
+                        offsetMapping = baseTransformed.offsetMapping
+                    )
+                } else {
+                    baseTransformed
+                }
+            } else {
+                baseTransformed
+            }
+        }
+    }
+}
+
+/**
  * Reusable application-wide OutlinedTextField that defaults to natural word capitalization
  * and elevated styling across all themes.
  */
@@ -143,6 +247,15 @@ fun AppOutlinedTextField(
     colors: TextFieldColors = elevatedInputFieldColors(),
     autoCapitalizeWords: Boolean = true
 ) {
+    val isDark = isAppInDarkMode()
+    val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
+    val animatedTransformation = rememberTypingAnimationTransformation(
+        text = value,
+        baseTransformation = visualTransformation,
+        baseTextColor = textPrimary,
+        textStyle = textStyle
+    )
+
     val effectiveOnValueChange: (String) -> Unit = remember(onValueChange, keyboardOptions, autoCapitalizeWords) {
         { raw ->
             val shouldAutoCapitalize = autoCapitalizeWords &&
@@ -176,7 +289,7 @@ fun AppOutlinedTextField(
         suffix = suffix,
         supportingText = supportingText,
         isError = isError,
-        visualTransformation = visualTransformation,
+        visualTransformation = animatedTransformation,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         singleLine = singleLine,
@@ -218,6 +331,15 @@ fun AppOutlinedTextField(
     colors: TextFieldColors = elevatedInputFieldColors(),
     autoCapitalizeWords: Boolean = true
 ) {
+    val isDark = isAppInDarkMode()
+    val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
+    val animatedTransformation = rememberTypingAnimationTransformation(
+        text = value.text,
+        baseTransformation = visualTransformation,
+        baseTextColor = textPrimary,
+        textStyle = textStyle
+    )
+
     val effectiveOnValueChange: (TextFieldValue) -> Unit = remember(onValueChange, keyboardOptions, autoCapitalizeWords) {
         { raw ->
             val shouldAutoCapitalize = autoCapitalizeWords &&
@@ -251,7 +373,7 @@ fun AppOutlinedTextField(
         suffix = suffix,
         supportingText = supportingText,
         isError = isError,
-        visualTransformation = visualTransformation,
+        visualTransformation = animatedTransformation,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         singleLine = singleLine,
