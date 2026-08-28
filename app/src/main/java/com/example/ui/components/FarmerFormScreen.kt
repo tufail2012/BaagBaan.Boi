@@ -1120,6 +1120,7 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .boundedFormFieldRipple(shape = textFieldShape)
                                         .testTag("variety_line_name_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
@@ -1144,6 +1145,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
+                                            .boundedFormFieldRipple(shape = textFieldShape)
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1166,6 +1168,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
+                                            .boundedFormFieldRipple(shape = textFieldShape)
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1199,6 +1202,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
+                                            .boundedFormFieldRipple(shape = textFieldShape)
                                             .testTag("variety_line_qty_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1225,6 +1229,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
+                                            .boundedFormFieldRipple(shape = textFieldShape)
                                             .testTag("variety_line_price_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )

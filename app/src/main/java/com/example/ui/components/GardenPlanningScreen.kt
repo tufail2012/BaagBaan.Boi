@@ -4287,6 +4287,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .boundedFormFieldRipple(shape = textFieldShape)
                     .testTag("garden_variety_line_name_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
@@ -4311,6 +4312,7 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
                         .testTag("garden_variety_line_rootstock_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -4333,6 +4335,7 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
                         .testTag("garden_variety_line_feathers_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -4378,6 +4381,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
                         .testTag("garden_variety_line_kanal_area_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -4448,6 +4452,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
                         .testTag("garden_variety_line_plants_per_kanal_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -4492,6 +4497,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
+                        .boundedFormFieldRipple(shape = textFieldShape)
                         .testTag("garden_variety_line_total_plants_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -4514,6 +4520,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .boundedFormFieldRipple(shape = textFieldShape)
                     .testTag("garden_variety_line_price_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )

@@ -451,35 +451,28 @@ fun Modifier.boundedFormFieldRipple(
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
+    val baseMod = this
+        .bringIntoViewOnFocus()
+        .glassCardBackground(
+            isDark = isDark,
+            accentColor = accentColor,
+            shape = shape
+        )
+        .centerWaterRipple(
+            shape = shape,
+            accentColor = accentColor,
+            interactionSource = interactionSource,
+            enabled = enabled
+        )
     return if (onClick != null) {
-        this
-            .bringIntoViewOnFocus()
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = accentColor,
-                shape = shape
-            )
-            .centerWaterRipple(
-                shape = shape,
-                accentColor = accentColor,
-                interactionSource = interactionSource,
-                enabled = enabled
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                enabled = enabled,
-                onClick = onClick
-            )
+        baseMod.clickable(
+            interactionSource = interactionSource,
+            indication = null,
+            enabled = enabled,
+            onClick = onClick
+        )
     } else {
-        this
-            .bringIntoViewOnFocus()
-            .centerWaterRipple(
-                shape = shape,
-                accentColor = accentColor,
-                interactionSource = interactionSource,
-                enabled = enabled
-            )
+        baseMod
     }
 }
 
@@ -548,53 +541,35 @@ fun elevatedInputFieldColors(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
-    val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
-
-    val containerFocused = when {
-        isAmoled -> Color(0xFF141414).copy(alpha = 0.80f)
-        isDark -> Color(0xFF1E293B).copy(alpha = 0.65f)
-        else -> Color.White.copy(alpha = 0.70f)
-    }
-    val containerUnfocused = when {
-        isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.65f)
-        isDark -> Color(0xFF1E293B).copy(alpha = 0.50f)
-        else -> Color.White.copy(alpha = 0.60f)
-    }
-    val borderUnfocused = when {
-        isAmoled -> Color(0xFF27272A).copy(alpha = 0.80f)
-        isDark -> Color(0xFF334155).copy(alpha = 0.75f)
-        else -> Color(0xFFCBD5E1).copy(alpha = 0.85f)
-    }
-    val labelUnfocused = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
     return OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = containerFocused,
-        unfocusedContainerColor = containerUnfocused,
-        disabledContainerColor = containerUnfocused.copy(alpha = 0.35f),
-        errorContainerColor = containerUnfocused,
+        focusedContainerColor = Color.Transparent,
+        unfocusedContainerColor = Color.Transparent,
+        disabledContainerColor = Color.Transparent,
+        errorContainerColor = Color.Transparent,
         focusedTextColor = textPrimary,
         unfocusedTextColor = textPrimary,
         disabledTextColor = textSecondary.copy(alpha = 0.6f),
         errorTextColor = textPrimary,
-        focusedBorderColor = accentColor,
-        unfocusedBorderColor = borderUnfocused,
-        disabledBorderColor = borderUnfocused.copy(alpha = 0.4f),
+        focusedBorderColor = accentColor.copy(alpha = 0.85f),
+        unfocusedBorderColor = Color.Transparent,
+        disabledBorderColor = Color.Transparent,
         errorBorderColor = MaterialTheme.colorScheme.error,
         focusedLabelColor = accentColor,
-        unfocusedLabelColor = labelUnfocused,
-        disabledLabelColor = labelUnfocused.copy(alpha = 0.5f),
+        unfocusedLabelColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
+        disabledLabelColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLabelColor = MaterialTheme.colorScheme.error,
         cursorColor = accentColor,
         errorCursorColor = MaterialTheme.colorScheme.error,
         focusedLeadingIconColor = accentColor,
-        unfocusedLeadingIconColor = labelUnfocused,
-        disabledLeadingIconColor = labelUnfocused.copy(alpha = 0.5f),
+        unfocusedLeadingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        disabledLeadingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLeadingIconColor = MaterialTheme.colorScheme.error,
         focusedTrailingIconColor = accentColor,
-        unfocusedTrailingIconColor = labelUnfocused,
-        disabledTrailingIconColor = labelUnfocused.copy(alpha = 0.5f),
+        unfocusedTrailingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        disabledTrailingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorTrailingIconColor = MaterialTheme.colorScheme.error,
         focusedPlaceholderColor = textSecondary,
         unfocusedPlaceholderColor = textSecondary,
