@@ -244,19 +244,6 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showInventoryDialog || showInventoryFromVm) {
-        com.example.ui.components.InventoryManagementDialog(
-            onDismissRequest = {
-                showInventoryDialog = false
-                viewModel.dismissInventoryManagement()
-            },
-            db = db,
-            isDark = isDark,
-            viewModel = viewModel,
-            selectedColorHex = accentColorHex
-        )
-    }
-
     if (showThemePreferencesDialog) {
         com.example.ui.components.ThemeColoursDialog(
             themeMode = themeMode,
@@ -339,6 +326,7 @@ fun AgriCropMainScreen(
         isSettingsActive -> "SETTINGS"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
+        showInventoryDialog || showInventoryFromVm -> "INVENTORY"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
     }
@@ -473,6 +461,19 @@ fun AgriCropMainScreen(
                     viewModel = viewModel,
                     gardenPlanningViewModel = gardenPlanningViewModel,
                     onBack = { viewModel.closeGlobalSearch() },
+                    modifier = modifier
+                )
+            }
+            "INVENTORY" -> {
+                com.example.ui.components.InventoryManagementDialog(
+                    onDismissRequest = {
+                        showInventoryDialog = false
+                        viewModel.dismissInventoryManagement()
+                    },
+                    db = db,
+                    isDark = isDark,
+                    viewModel = viewModel,
+                    selectedColorHex = accentColorHex,
                     modifier = modifier
                 )
             }

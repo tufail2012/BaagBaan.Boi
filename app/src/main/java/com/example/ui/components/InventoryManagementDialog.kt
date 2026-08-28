@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,8 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.data.AppDatabase
 import com.example.data.FirestoreSyncManager
 import com.example.data.InventoryItem
@@ -51,8 +50,10 @@ fun InventoryManagementDialog(
     db: AppDatabase,
     isDark: Boolean = false,
     viewModel: CropViewModel? = null,
-    selectedColorHex: String = "#D32F2F"
+    selectedColorHex: String = "#D32F2F",
+    modifier: Modifier = Modifier
 ) {
+    BackHandler(onBack = onDismissRequest)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val firestoreSyncManager = remember { FirestoreSyncManager() }
@@ -160,33 +161,26 @@ fun InventoryManagementDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(inventoryBgBrush)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(inventoryBgBrush)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
+            // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = inventoryAccent,
+                        shape = CircleShape
+                    )
             ) {
-                // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .glassCardBackground(
-                            isDark = isDark,
-                            accentColor = inventoryAccent,
-                            shape = CircleShape
-                        )
-                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -653,7 +647,6 @@ fun InventoryManagementDialog(
                 }
             }
         }
-    }
 
     // Modal Dialog for Add / Edit
     if (showAddEditModal) {
