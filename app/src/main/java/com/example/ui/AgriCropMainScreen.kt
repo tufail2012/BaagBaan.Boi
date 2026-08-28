@@ -252,7 +252,8 @@ fun AgriCropMainScreen(
             },
             db = db,
             isDark = isDark,
-            viewModel = viewModel
+            viewModel = viewModel,
+            selectedColorHex = accentColorHex
         )
     }
 

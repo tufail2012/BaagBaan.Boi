@@ -113,8 +113,21 @@ fun AgriDashboardScreen(
     val allRecords by viewModel.allRecords.collectAsState()
     val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
+    val accentColorHex by viewModel.accentColorHex.collectAsState()
     val isDark = isAppInDarkMode()
-    val dashboardAccent = getSectionAccentColor("Dashboard", defaultColor = MaterialTheme.colorScheme.primary)
+
+    val parsedPaletteColor = remember(accentColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(accentColorHex))
+        } catch (e: Exception) {
+            null
+        }
+    }
+    val dashboardAccent = getSectionAccentColor(
+        "Dashboard",
+        customPaletteColor = parsedPaletteColor,
+        defaultColor = MaterialTheme.colorScheme.primary
+    )
 
     val context = LocalContext.current
     var currentUser by remember {

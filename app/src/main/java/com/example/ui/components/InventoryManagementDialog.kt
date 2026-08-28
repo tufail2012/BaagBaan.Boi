@@ -50,11 +50,23 @@ fun InventoryManagementDialog(
     onDismissRequest: () -> Unit,
     db: AppDatabase,
     isDark: Boolean = false,
-    viewModel: CropViewModel? = null
+    viewModel: CropViewModel? = null,
+    selectedColorHex: String = "#D32F2F"
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val firestoreSyncManager = remember { FirestoreSyncManager() }
+
+    val vmAccentHex by (viewModel?.accentColorHex ?: kotlinx.coroutines.flow.MutableStateFlow(selectedColorHex)).collectAsState()
+    val effectiveColorHex = vmAccentHex ?: selectedColorHex
+
+    val parsedPaletteColor = remember(effectiveColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(effectiveColorHex))
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // Use cached StateFlow from ViewModel if available, fallback to direct DAO Flow
     val allItemsState by if (viewModel != null) {
@@ -120,7 +132,11 @@ fun InventoryManagementDialog(
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
-    val inventoryAccent = getSectionAccentColor("Inventory", defaultColor = MaterialTheme.colorScheme.primary)
+    val inventoryAccent = getSectionAccentColor(
+        "Inventory",
+        customPaletteColor = parsedPaletteColor,
+        defaultColor = MaterialTheme.colorScheme.primary
+    )
 
     val inventoryBgBrush = remember(isDark, inventoryAccent) {
         if (isDark) {
@@ -627,7 +643,9 @@ fun InventoryManagementDialog(
                                             firestoreSyncManager.saveInventoryItem(updated)
                                             com.example.data.InventoryStockManager.checkAndNotifyLowStock(context, oldQty, updated)
                                         }
-                                    }
+                                    },
+                                    inventoryAccent = inventoryAccent,
+                                    parsedPaletteColor = parsedPaletteColor
                                 )
                             }
                         }
@@ -776,7 +794,9 @@ fun InventoryItemCard(
     isDark: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onQuantityAdjust: (delta: Int) -> Unit
+    onQuantityAdjust: (delta: Int) -> Unit,
+    inventoryAccent: Color = MaterialTheme.colorScheme.primary,
+    parsedPaletteColor: Color? = null
 ) {
     val isLow = item.isLowStock()
     val isOut = item.isOutOfStock()
@@ -806,7 +826,7 @@ fun InventoryItemCard(
             .fillMaxWidth()
             .glassCardBackground(
                 cornerRadius = 16.dp,
-                accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else getSectionAccentColor("Inventory"),
+                accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor),
                 isDark = isDark
             ),
         shape = RoundedCornerShape(16.dp),
@@ -826,13 +846,13 @@ fun InventoryItemCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        color = inventoryAccent.copy(alpha = 0.12f)
                     ) {
                         Text(
                             text = item.category.uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = inventoryAccent,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -974,10 +994,10 @@ fun InventoryItemCard(
                             .size(30.dp)
                             .testTag("increase_stock_button_${item.id}"),
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            containerColor = inventoryAccent.copy(alpha = 0.15f)
                         )
                     ) {
-                        Text("+", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                        Text("+", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = inventoryAccent)
                     }
                 }
 
@@ -990,7 +1010,7 @@ fun InventoryItemCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Item",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = inventoryAccent,
                             modifier = Modifier.size(20.dp)
                         )
                     }
