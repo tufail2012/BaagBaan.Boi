@@ -175,22 +175,21 @@ fun InventoryManagementDialog(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
+                // Full-bleed Edge-to-Edge Header (Extending into Status Bar)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = inventoryAccent,
-                            shape = CircleShape
+                            shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)
                         )
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .windowInsetsPadding(WindowInsets.statusBars)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
