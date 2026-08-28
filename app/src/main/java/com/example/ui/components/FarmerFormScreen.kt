@@ -1917,14 +1917,13 @@ fun FarmerFormScreen(
 
         if (isMultiVarietyApplicable) {
             // Switch to Multi-Variety Button (shown on EVERY applicable booking tab/field by default when currently in single-variety mode)
-            val sectionAccent = com.example.ui.theme.getSectionAccentColor(selectedService, defaultColor = MaterialTheme.colorScheme.primary)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
                     .boundedFormFieldRipple(
                         shape = textFieldShape,
-                        accentColor = sectionAccent,
+                        accentColor = MaterialTheme.colorScheme.primary,
                         onClick = {
                             viewModel.enableMultiVarietyForCurrentTab()
                         }
@@ -1940,14 +1939,14 @@ fun FarmerFormScreen(
                         imageVector = Icons.Default.Layers,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = sectionAccent
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "+ Add Multiple Varieties to this Booking",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = sectionAccent
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

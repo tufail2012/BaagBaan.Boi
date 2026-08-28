@@ -436,8 +436,9 @@ fun Modifier.centerWaterRipple(
  * Modifier extension to attach a smooth, center-origin horizontal water ripple effect to form fields.
  * The water wave originates from the horizontal center of the field, expands towards both left and right edges,
  * is contained strictly within [shape], and provides responsive, fluid visual feedback without overflowing.
- * Applies the centralized glassCardBackground modifier to ensure all input field cards/containers
- * receive the unified glass surface, section accent tint, specular border, and depth.
+ * For clickable cards/selectors (onClick != null), applies the centralized glassCardBackground modifier.
+ * For text input fields (onClick == null), applies center water ripple and focus handling without outer 3D drop-shadows
+ * or outer borders that clash with OutlinedTextField's floating label geometry.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -450,28 +451,35 @@ fun Modifier.boundedFormFieldRipple(
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
-    val baseMod = this
-        .bringIntoViewOnFocus()
-        .glassCardBackground(
-            isDark = isDark,
-            accentColor = accentColor,
-            shape = shape
-        )
-        .centerWaterRipple(
-            shape = shape,
-            accentColor = accentColor,
-            interactionSource = interactionSource,
-            enabled = enabled
-        )
     return if (onClick != null) {
-        baseMod.clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            onClick = onClick
-        )
+        this
+            .bringIntoViewOnFocus()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = shape
+            )
+            .centerWaterRipple(
+                shape = shape,
+                accentColor = accentColor,
+                interactionSource = interactionSource,
+                enabled = enabled
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled,
+                onClick = onClick
+            )
     } else {
-        baseMod
+        this
+            .bringIntoViewOnFocus()
+            .centerWaterRipple(
+                shape = shape,
+                accentColor = accentColor,
+                interactionSource = interactionSource,
+                enabled = enabled
+            )
     }
 }
 
@@ -540,26 +548,65 @@ fun elevatedInputFieldColors(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
+    val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
+
+    val containerFocused = when {
+        isAmoled -> Color(0xFF141414).copy(alpha = 0.80f)
+        isDark -> Color(0xFF1E293B).copy(alpha = 0.65f)
+        else -> Color.White.copy(alpha = 0.70f)
+    }
+    val containerUnfocused = when {
+        isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.65f)
+        isDark -> Color(0xFF1E293B).copy(alpha = 0.50f)
+        else -> Color.White.copy(alpha = 0.60f)
+    }
+    val borderUnfocused = when {
+        isAmoled -> Color(0xFF27272A).copy(alpha = 0.80f)
+        isDark -> Color(0xFF334155).copy(alpha = 0.75f)
+        else -> Color(0xFFCBD5E1).copy(alpha = 0.85f)
+    }
+    val labelUnfocused = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
+    val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+
     return OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-        disabledContainerColor = Color.Transparent,
-        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-        disabledTextColor = if (isDark) Color(0xFFAAAAAA) else Color(0xFF777777),
-        focusedBorderColor = accentColor.copy(alpha = 0.85f),
-        unfocusedBorderColor = Color.Transparent,
-        disabledBorderColor = Color.Transparent,
+        focusedContainerColor = containerFocused,
+        unfocusedContainerColor = containerUnfocused,
+        disabledContainerColor = containerUnfocused.copy(alpha = 0.35f),
+        errorContainerColor = containerUnfocused,
+        focusedTextColor = textPrimary,
+        unfocusedTextColor = textPrimary,
+        disabledTextColor = textSecondary.copy(alpha = 0.6f),
+        errorTextColor = textPrimary,
+        focusedBorderColor = accentColor,
+        unfocusedBorderColor = borderUnfocused,
+        disabledBorderColor = borderUnfocused.copy(alpha = 0.4f),
         errorBorderColor = MaterialTheme.colorScheme.error,
         focusedLabelColor = accentColor,
-        unfocusedLabelColor = if (isDark) Color(0xFFDDDDDD) else Color(0xFF555555),
+        unfocusedLabelColor = labelUnfocused,
+        disabledLabelColor = labelUnfocused.copy(alpha = 0.5f),
+        errorLabelColor = MaterialTheme.colorScheme.error,
         cursorColor = accentColor,
+        errorCursorColor = MaterialTheme.colorScheme.error,
         focusedLeadingIconColor = accentColor,
-        unfocusedLeadingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
+        unfocusedLeadingIconColor = labelUnfocused,
+        disabledLeadingIconColor = labelUnfocused.copy(alpha = 0.5f),
+        errorLeadingIconColor = MaterialTheme.colorScheme.error,
         focusedTrailingIconColor = accentColor,
-        unfocusedTrailingIconColor = if (isDark) Color(0xFFCCCCCC) else Color(0xFF666666),
-        focusedPlaceholderColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-        unfocusedPlaceholderColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+        unfocusedTrailingIconColor = labelUnfocused,
+        disabledTrailingIconColor = labelUnfocused.copy(alpha = 0.5f),
+        errorTrailingIconColor = MaterialTheme.colorScheme.error,
+        focusedPlaceholderColor = textSecondary,
+        unfocusedPlaceholderColor = textSecondary,
+        disabledPlaceholderColor = textSecondary.copy(alpha = 0.5f),
+        errorPlaceholderColor = textSecondary,
+        focusedPrefixColor = textPrimary,
+        unfocusedPrefixColor = textPrimary,
+        focusedSuffixColor = textPrimary,
+        unfocusedSuffixColor = textPrimary,
+        focusedSupportingTextColor = textSecondary,
+        unfocusedSupportingTextColor = textSecondary,
+        errorSupportingTextColor = MaterialTheme.colorScheme.error
     )
 }
 

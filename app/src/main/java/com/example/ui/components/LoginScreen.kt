@@ -461,9 +461,7 @@ fun LoginScreen(
                                 .fillMaxWidth()
                                 .testTag("login_email_input"),
                             shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
+                            colors = elevatedInputFieldColors(accentColor = MaterialTheme.colorScheme.primary)
                         )
 
                         // Password Field
@@ -498,9 +496,7 @@ fun LoginScreen(
                                 .fillMaxWidth()
                                 .testTag("login_password_input"),
                             shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary
-                            )
+                            colors = elevatedInputFieldColors(accentColor = MaterialTheme.colorScheme.primary)
                         )
 
                         // Forgot Password Link

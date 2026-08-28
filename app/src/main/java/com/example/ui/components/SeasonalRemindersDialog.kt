@@ -746,6 +746,7 @@ private fun SeasonalTaskEditDialog(
                         label = { Text("Task Title") },
                         placeholder = { Text("e.g. Dormant Oil Spray (HMO)") },
                         shape = RoundedCornerShape(14.dp),
+                        colors = elevatedInputFieldColors(accentColor = getSectionAccentColor("Seasonal Reminders")),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("seasonal_title_input")
@@ -928,6 +929,7 @@ private fun SeasonalTaskEditDialog(
                         minLines = 3,
                         maxLines = 5,
                         shape = RoundedCornerShape(14.dp),
+                        colors = elevatedInputFieldColors(accentColor = getSectionAccentColor("Seasonal Reminders")),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("seasonal_notes_input")

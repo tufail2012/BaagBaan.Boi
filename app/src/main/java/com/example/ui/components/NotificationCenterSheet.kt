@@ -514,7 +514,7 @@ fun NotificationCenterSheet(
                         placeholder = { Text("e.g. Visit Farmer Orchard / Pruning Delivery") },
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                        colors = elevatedInputFieldColors(accentColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("reminder_title_input")
@@ -528,7 +528,7 @@ fun NotificationCenterSheet(
                         minLines = 2,
                         maxLines = 3,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary),
+                        colors = elevatedInputFieldColors(accentColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("reminder_message_input")
