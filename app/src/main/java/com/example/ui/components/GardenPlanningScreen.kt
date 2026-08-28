@@ -1196,6 +1196,10 @@ fun GardenPlanningFormTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                    .glassCardBackground(
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        shape = textFieldShape
+                    )
                     .boundedFormFieldRipple(
                         shape = textFieldShape,
                         accentColor = MaterialTheme.colorScheme.primary,
@@ -4229,11 +4233,13 @@ fun GardenPlanningVarietyLineCard(
 ) {
     var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
 
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (isDark) Color(0xFF0F172A) else Color.White,
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-        modifier = Modifier.fillMaxWidth()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                accentColor = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(12.dp)
+            )
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
