@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -22,6 +23,8 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -451,12 +454,14 @@ fun Modifier.boundedFormFieldRipple(
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
+    val isFocused by interactionSource.collectIsFocusedAsState()
     val baseMod = this
         .bringIntoViewOnFocus()
         .glassCardBackground(
             isDark = isDark,
             accentColor = accentColor,
-            shape = shape
+            shape = shape,
+            isFocused = isFocused
         )
         .centerWaterRipple(
             shape = shape,
@@ -553,7 +558,7 @@ fun elevatedInputFieldColors(
         unfocusedTextColor = textPrimary,
         disabledTextColor = textSecondary.copy(alpha = 0.6f),
         errorTextColor = textPrimary,
-        focusedBorderColor = accentColor.copy(alpha = 0.85f),
+        focusedBorderColor = Color.Transparent,
         unfocusedBorderColor = Color.Transparent,
         disabledBorderColor = Color.Transparent,
         errorBorderColor = MaterialTheme.colorScheme.error,
@@ -603,7 +608,8 @@ fun Modifier.glassCardBackground(
     themeMode: AppThemeMode? = null,
     elevation: Dp = 6.dp,
     borderWidth: Dp = 1.25.dp,
-    flatStyle: Boolean = false
+    flatStyle: Boolean = false,
+    isFocused: Boolean = false
 ): Modifier {
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
@@ -651,26 +657,50 @@ fun Modifier.glassCardBackground(
         }
     }
 
-    val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                0.0f to Color.White.copy(alpha = 0.80f),
-                0.25f to accentColor.copy(alpha = 0.65f),
-                0.60f to Color(0xFF27272A).copy(alpha = 0.80f),
-                1.0f to Color(0xFF3F3F46).copy(alpha = 0.50f)
-            )
-            effectiveIsDark -> Brush.verticalGradient(
-                0.0f to Color.White.copy(alpha = 0.70f),
-                0.25f to accentColor.copy(alpha = 0.55f),
-                0.60f to Color(0xFF334155).copy(alpha = 0.65f),
-                1.0f to Color.White.copy(alpha = 0.30f)
-            )
-            else -> Brush.verticalGradient(
-                0.0f to Color.White.copy(alpha = 0.98f),
-                0.25f to accentColor.copy(alpha = 0.50f),
-                0.60f to Color(0xFFCBD5E1).copy(alpha = 0.65f),
-                1.0f to Color.White.copy(alpha = 0.80f)
-            )
+    val goldColor = Color(0xFFD4AF37)
+    val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor, isFocused) {
+        if (isFocused) {
+            when {
+                isAmoled -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.90f),
+                    0.30f to accentColor.copy(alpha = 0.90f),
+                    0.70f to accentColor.copy(alpha = 0.85f),
+                    1.0f to Color(0xFF3F3F46).copy(alpha = 0.60f)
+                )
+                effectiveIsDark -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.85f),
+                    0.30f to accentColor.copy(alpha = 0.85f),
+                    0.70f to accentColor.copy(alpha = 0.80f),
+                    1.0f to Color.White.copy(alpha = 0.40f)
+                )
+                else -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.98f),
+                    0.30f to accentColor.copy(alpha = 0.85f),
+                    0.70f to accentColor.copy(alpha = 0.80f),
+                    1.0f to Color.White.copy(alpha = 0.90f)
+                )
+            }
+        } else {
+            when {
+                isAmoled -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.80f),
+                    0.25f to goldColor.copy(alpha = 0.65f),
+                    0.60f to Color(0xFF27272A).copy(alpha = 0.80f),
+                    1.0f to Color(0xFF3F3F46).copy(alpha = 0.50f)
+                )
+                effectiveIsDark -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.70f),
+                    0.25f to goldColor.copy(alpha = 0.55f),
+                    0.60f to Color(0xFF334155).copy(alpha = 0.65f),
+                    1.0f to Color.White.copy(alpha = 0.30f)
+                )
+                else -> Brush.verticalGradient(
+                    0.0f to Color.White.copy(alpha = 0.98f),
+                    0.25f to goldColor.copy(alpha = 0.50f),
+                    0.60f to Color(0xFFCBD5E1).copy(alpha = 0.65f),
+                    1.0f to Color.White.copy(alpha = 0.80f)
+                )
+            }
         }
     }
 
@@ -681,6 +711,8 @@ fun Modifier.glassCardBackground(
             1.0f to Color.Transparent
         )
     }
+
+    val effectiveBorderWidth = if (isFocused && borderWidth == 1.25.dp) 1.75.dp else borderWidth
 
     return this
         .drawElevatedShadow(
@@ -697,7 +729,7 @@ fun Modifier.glassCardBackground(
             drawRect(brush = sheenBrush)
         }
         .border(
-            width = borderWidth,
+            width = effectiveBorderWidth,
             brush = specularBorderBrush,
             shape = effectiveShape
         )

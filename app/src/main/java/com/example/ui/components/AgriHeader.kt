@@ -316,7 +316,7 @@ fun AgriHeader(
                             .widthIn(min = 230.dp, max = 285.dp)
                             .glassCardBackground(
                                 cornerRadius = 20.dp,
-                                accentColor = getSectionAccentColor("Profile"),
+                                accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
                                 isDark = isDark,
                                 themeMode = themeMode,
                                 elevation = 12.dp,
@@ -331,6 +331,7 @@ fun AgriHeader(
                             themeMode = themeMode,
                             currentUserEmail = currentUserEmail,
                             tagSuffix = "",
+                            parsedPaletteColor = parsedPaletteColor,
                             onDismiss = { menuExpanded = false },
                             onNavigateToDashboard = onNavigateToDashboard,
                             onNavigateToInventory = onNavigateToInventory,
@@ -500,7 +501,7 @@ fun AgriHeader(
                                     .widthIn(min = 230.dp, max = 285.dp)
                                     .glassCardBackground(
                                         cornerRadius = 20.dp,
-                                        accentColor = getSectionAccentColor("Profile"),
+                                        accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
                                         isDark = isDark,
                                         themeMode = themeMode,
                                         elevation = 12.dp,
@@ -515,6 +516,7 @@ fun AgriHeader(
                                     themeMode = themeMode,
                                     currentUserEmail = currentUserEmail,
                                     tagSuffix = "_2",
+                                    parsedPaletteColor = parsedPaletteColor,
                                     onDismiss = { menuExpanded = false },
                                     onNavigateToDashboard = onNavigateToDashboard,
                                     onNavigateToInventory = onNavigateToInventory,
@@ -754,6 +756,7 @@ private fun OverflowMenuContent(
     themeMode: AppThemeMode,
     currentUserEmail: String?,
     tagSuffix: String = "",
+    parsedPaletteColor: Color? = null,
     onDismiss: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     onNavigateToInventory: () -> Unit,
@@ -822,7 +825,7 @@ private fun OverflowMenuContent(
                 Icon(
                     imageVector = Icons.Default.Inventory2,
                     contentDescription = null,
-                    tint = getSectionAccentColor("Inventory"),
+                    tint = getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
