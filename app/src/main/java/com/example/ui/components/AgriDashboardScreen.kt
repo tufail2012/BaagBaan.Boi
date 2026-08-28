@@ -70,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -90,11 +91,11 @@ import com.example.data.calculateTotalAmount
 import com.example.data.isPaymentCleared
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
+import com.example.ui.theme.getSectionAccentColor
 
 @Composable
 fun AgriDashboardScreen(
@@ -113,6 +114,7 @@ fun AgriDashboardScreen(
     val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
     val isDark = isAppInDarkMode()
+    val dashboardAccent = getSectionAccentColor("Dashboard", defaultColor = MaterialTheme.colorScheme.primary)
 
     val context = LocalContext.current
     var currentUser by remember {
@@ -215,32 +217,59 @@ fun AgriDashboardScreen(
 
     val paidRatio = if (totalRevenue > 0) (totalPaid / totalRevenue).toFloat().coerceIn(0f, 1f) else 0f
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    val dashboardBgBrush = remember(isDark, dashboardAccent) {
+        if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF0F172A),
+                    dashboardAccent.copy(alpha = 0.05f),
+                    Color(0xFF0B1120),
+                    Color(0xFF060911)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    dashboardAccent.copy(alpha = 0.035f),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFFFFFFF)
+                )
+            )
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(dashboardBgBrush)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Bar
-            Surface(
+            // Floating Glass Top Header
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
-                shadowElevation = 2.dp
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = dashboardAccent,
+                        shape = CircleShape
+                    )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
                         IconButton(
                             onClick = onBack,
@@ -251,62 +280,75 @@ fun AgriDashboardScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = dashboardAccent
                             )
                         }
 
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
+                                .background(dashboardAccent.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Dashboard,
                                 contentDescription = "Dashboard Icon",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
+                                tint = dashboardAccent,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
                         Column {
                             Text(
                                 text = "AgriCrop Operations Dashboard",
-                                fontSize = 17.sp,
+                                fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Comprehensive Operations & Financial Overview",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         if (onNavigateToSettings != null) {
                             IconButton(
                                 onClick = onNavigateToSettings,
-                                modifier = Modifier.testTag("dashboard_settings_button")
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .testTag("dashboard_settings_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = "Settings & Security",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = dashboardAccent,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
 
                         IconButton(
                             onClick = { userDashboardViewModel.refreshUser() },
-                            modifier = Modifier.testTag("dashboard_refresh_button")
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("dashboard_refresh_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Refresh Data",
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = dashboardAccent,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -334,9 +376,9 @@ fun AgriDashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                item { Spacer(modifier = Modifier.height(4.dp)) }
+                item { Spacer(modifier = Modifier.height(2.dp)) }
 
                 // 1. Account & System Banner Card
                 item {
@@ -344,6 +386,7 @@ fun AgriDashboardScreen(
                         currentUser = currentUser,
                         totalEntriesCount = totalRecordsCount,
                         totalVolume = totalRevenue,
+                        accentColor = dashboardAccent,
                         isDark = isDark
                     )
                 }
@@ -359,6 +402,7 @@ fun AgriDashboardScreen(
                         advancePaidCount = advancePaidCount,
                         pendingCount = pendingCount,
                         totalRecordsCount = totalRecordsCount,
+                        accentColor = dashboardAccent,
                         isDark = isDark
                     )
                 }
@@ -377,7 +421,7 @@ fun AgriDashboardScreen(
                             Icon(
                                 imageVector = Icons.Default.Assessment,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = dashboardAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
@@ -392,12 +436,12 @@ fun AgriDashboardScreen(
                             text = "6 Modules",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = dashboardAccent
                         )
                     }
                 }
 
-                // 4. Summaries Grid (2 columns or styled stacked cards for max readability)
+                // 4. Summaries Grid
                 item {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -496,7 +540,11 @@ fun AgriDashboardScreen(
 
                 // 5. Varieties & Inventory Snapshot
                 item {
-                    VarietyDistributionCard(allRecords = allRecords, isDark = isDark)
+                    VarietyDistributionCard(
+                        allRecords = allRecords,
+                        accentColor = dashboardAccent,
+                        isDark = isDark
+                    )
                 }
 
                 // 6. Filterable Activity Log / Recent Records
@@ -523,7 +571,7 @@ fun AgriDashboardScreen(
                                     onClick = { selectedFilterTab = tab },
                                     label = { Text(tab, fontSize = 12.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedContainerColor = dashboardAccent,
                                         selectedLabelColor = Color.White
                                     )
                                 )
@@ -540,7 +588,7 @@ fun AgriDashboardScreen(
                             }
                         } else {
                             item {
-                                EmptyStateCard(message = "No Garden Planning entries registered yet.")
+                                EmptyStateCard(message = "No Garden Planning entries registered yet.", isDark = isDark)
                             }
                         }
                     } else {
@@ -556,7 +604,7 @@ fun AgriDashboardScreen(
                             }
                         } else {
                             item {
-                                EmptyStateCard(message = "No records found matching current filter.")
+                                EmptyStateCard(message = "No records found matching current filter.", isDark = isDark)
                             }
                         }
                     } else {
@@ -578,6 +626,7 @@ private fun AccountBannerCard(
     currentUser: FirebaseUser?,
     totalEntriesCount: Int,
     totalVolume: Double,
+    accentColor: Color,
     isDark: Boolean
 ) {
     val primaryText = currentUser?.displayName?.takeIf { it.isNotBlank() }
@@ -594,13 +643,14 @@ private fun AccountBannerCard(
 
     val photoUrl = currentUser?.photoUrl
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(18.dp)
+            )
     ) {
         Row(
             modifier = Modifier
@@ -628,7 +678,7 @@ private fun AccountBannerCard(
                         modifier = Modifier
                             .size(46.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                            .background(accentColor),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -678,7 +728,7 @@ private fun AccountBannerCard(
                     text = "$totalEntriesCount",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = accentColor
                 )
                 Text(
                     text = "Total Entries",
@@ -700,18 +750,19 @@ private fun FinancialBreakdownCard(
     advancePaidCount: Int,
     pendingCount: Int,
     totalRecordsCount: Int,
+    accentColor: Color,
     isDark: Boolean
 ) {
     val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF333333) else Color(0xFFE0E0E0))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(18.dp)
+            )
     ) {
         Column(
             modifier = Modifier
@@ -732,7 +783,7 @@ private fun FinancialBreakdownCard(
                     Icon(
                         imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = accentColor,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
@@ -749,14 +800,14 @@ private fun FinancialBreakdownCard(
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = accentColor.copy(alpha = 0.15f),
                     modifier = Modifier.wrapContentWidth()
                 ) {
                     Text(
                         text = "${(paidRatio * 100).toInt()}% Collected",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = accentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -775,7 +826,8 @@ private fun FinancialBreakdownCard(
                     targetValue = totalRevenue,
                     formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.TrendingUp,
-                    accentColor = MaterialTheme.colorScheme.primary,
+                    accentColor = accentColor,
+                    isDark = isDark,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -786,6 +838,7 @@ private fun FinancialBreakdownCard(
                     formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.Payments,
                     accentColor = Color(0xFF2E7D32),
+                    isDark = isDark,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -796,6 +849,7 @@ private fun FinancialBreakdownCard(
                     formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.ReceiptLong,
                     accentColor = if (totalRemaining > 0) Color(0xFFD32F2F) else Color(0xFF2E7D32),
+                    isDark = isDark,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -807,7 +861,7 @@ private fun FinancialBreakdownCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Payment Collection Progress", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${(paidRatio * 100).toInt()}% Paid", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("${(paidRatio * 100).toInt()}% Paid", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = accentColor)
                 }
                 LinearProgressIndicator(
                     progress = paidRatio,
@@ -820,7 +874,7 @@ private fun FinancialBreakdownCard(
                 )
             }
 
-            Divider(color = if (isDark) Color(0xFF333333) else Color(0xFFF0F0F0))
+            Divider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
 
             // Payment Status Counts Row
             Row(
@@ -863,16 +917,19 @@ private fun FinancialMetricBox(
     value: String = "",
     icon: ImageVector,
     accentColor: Color,
+    isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = accentColor.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    Box(
+        modifier = modifier
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(10.dp)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -947,21 +1004,20 @@ private fun CategorySummaryCard(
 ) {
     val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
 
-    Card(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF2C2C2C) else Color(0xFFEEEEE))
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = badgeColor,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(14.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1055,6 +1111,7 @@ private fun CategorySummaryCard(
 @Composable
 private fun VarietyDistributionCard(
     allRecords: List<CropRecord>,
+    accentColor: Color,
     isDark: Boolean
 ) {
     val topVarieties = remember(allRecords) {
@@ -1067,19 +1124,18 @@ private fun VarietyDistributionCard(
 
     if (topVarieties.isEmpty()) return
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF2E2E2E) else Color(0xFFE5E5E5))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = accentColor,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(14.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
@@ -1089,7 +1145,7 @@ private fun VarietyDistributionCard(
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = accentColor,
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
@@ -1124,15 +1180,15 @@ private fun VarietyDistributionCard(
                                 .weight(1f)
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            color = accentColor,
+                            trackColor = accentColor.copy(alpha = 0.2f)
                         )
 
                         Text(
                             text = "$count",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = accentColor
                         )
                     }
                 }
@@ -1149,19 +1205,20 @@ private fun RecordLogItemCard(
     val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
     val isCleared = record.isPaymentCleared()
     val remaining = record.calculateRemainingBalance()
+    val serviceAccent = getSectionAccentColor(record.serviceType, defaultColor = MaterialTheme.colorScheme.primary)
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF2A2A2A) else Color(0xFFF0F0F0))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = serviceAccent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1171,17 +1228,17 @@ private fun RecordLogItemCard(
                         text = record.serialNumber.ifBlank { "SN-${record.id}" },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = serviceAccent
                     )
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        color = serviceAccent.copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = record.serviceType,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = serviceAccent,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                         )
                     }
@@ -1231,18 +1288,20 @@ private fun GardenLogItemCard(
     isDark: Boolean
 ) {
     val currencyFormat = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("en", "IN"))
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF2A2A2A) else Color(0xFFF0F0F0))
+    val gardenAccent = Color(0xFF00897B)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = gardenAccent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1252,17 +1311,17 @@ private fun GardenLogItemCard(
                         text = "Garden Planning",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF00897B)
+                        color = gardenAccent
                     )
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color(0xFF00897B).copy(alpha = 0.15f)
+                        color = gardenAccent.copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = "#${entry.serialNumber}",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF00897B),
+                            color = gardenAccent,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                         )
                     }
@@ -1317,18 +1376,20 @@ private fun BookingLogItemCard(
     booking: UserBooking,
     isDark: Boolean
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF2A2A2A) else Color(0xFFF0F0F0))
+    val bookingAccent = getSectionAccentColor(booking.type, defaultColor = Color(0xFF00897B))
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = bookingAccent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1338,18 +1399,18 @@ private fun BookingLogItemCard(
                         text = booking.type,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF00897B)
+                        color = bookingAccent
                     )
                     if (booking.season.isNotEmpty()) {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFF00897B).copy(alpha = 0.15f)
+                            color = bookingAccent.copy(alpha = 0.15f)
                         ) {
                             Text(
                                 text = booking.season,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF00897B),
+                                color = bookingAccent,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                             )
                         }
@@ -1387,25 +1448,25 @@ private fun BookingLogItemCard(
 }
 
 @Composable
-private fun EmptyStateCard(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = message,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+private fun EmptyStateCard(
+    message: String,
+    isDark: Boolean = false
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                isDark = isDark,
+                accentColor = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(12.dp)
             )
-        }
+            .padding(20.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

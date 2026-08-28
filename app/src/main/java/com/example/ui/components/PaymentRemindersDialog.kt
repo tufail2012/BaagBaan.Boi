@@ -247,11 +247,17 @@ fun PaymentRemindersDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+            modifier = Modifier
+                .fillMaxSize()
+                .glassCardBackground(
+                    cornerRadius = 0.dp,
+                    accentColor = getSectionAccentColor("Payment Reminders"),
+                    isDark = isDark
+                ),
+            color = Color.Transparent
         ) {
             Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.Transparent,
                 topBar = {
                     TopAppBar(
                         title = {
@@ -279,9 +285,14 @@ fun PaymentRemindersDialog(
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            containerColor = Color.Transparent,
                             titleContentColor = MaterialTheme.colorScheme.onSurface,
                             navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        modifier = Modifier.glassCardBackground(
+                            cornerRadius = 0.dp,
+                            accentColor = getSectionAccentColor("Payment Reminders"),
+                            isDark = isDark
                         )
                     )
                 }
@@ -294,28 +305,21 @@ fun PaymentRemindersDialog(
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Outstanding Summary Card - Theme Palette Adaptive
-                    val duesCardBg = if (isDark) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
-                    } else {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                    }
-                    val duesBorderColor = if (isDark) {
-                        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.60f)
-                    }
-
+                    // Outstanding Summary Card - Liquid Glass
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp)
-                            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = RoundedCornerShape(16.dp)),
+                            .glassCardBackground(
+                                cornerRadius = 16.dp,
+                                accentColor = Color(0xFFEF5350),
+                                isDark = isDark
+                            ),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = duesCardBg
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(1.dp, duesBorderColor)
+                        border = null
                     ) {
                         Row(
                             modifier = Modifier
@@ -517,17 +521,17 @@ fun PendingPaymentRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(elevation = if (isDark) 0.dp else 2.dp, shape = RoundedCornerShape(16.dp))
+            .glassCardBackground(
+                cornerRadius = 16.dp,
+                accentColor = getSectionAccentColor("Payment Reminders"),
+                isDark = isDark
+            )
             .testTag("pending_payment_row_${item.serialNumber}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = Color.Transparent
         ),
-        border = BorderStroke(
-            1.dp,
-            if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.60f)
-        )
+        border = null
     ) {
         Column(
             modifier = Modifier

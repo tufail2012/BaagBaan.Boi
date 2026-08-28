@@ -78,6 +78,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.getSectionAccentColor
+import com.example.ui.components.glassCardBackground
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -325,6 +327,12 @@ fun SettingsScreen(
         )
     }
 
+    val isDark = when (themeMode) {
+        AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.DARK, AppThemeMode.AMOLED -> true
+    }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -336,10 +344,14 @@ fun SettingsScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp,
-                shadowElevation = 1.dp
+                    .statusBarsPadding()
+                    .glassCardBackground(
+                        cornerRadius = 0.dp,
+                        accentColor = getSectionAccentColor("Settings"),
+                        isDark = isDark,
+                        themeMode = themeMode
+                    ),
+                color = Color.Transparent
             ) {
                 Row(
                     modifier = Modifier
@@ -348,10 +360,6 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val isDarkTheme = MaterialTheme.colorScheme.surface.let {
-                        (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
-                    }
-
                     IconButton(
                         onClick = onBack,
                         modifier = Modifier
@@ -361,7 +369,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = if (isDarkTheme) Color.White else MaterialTheme.colorScheme.onSurface
+                            tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -404,13 +412,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFF8B5CF6),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -451,13 +463,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFF3B82F6),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -509,13 +525,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFF10B981),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -562,13 +582,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFFE11D48),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -576,13 +600,10 @@ fun SettingsScreen(
                                 .padding(16.dp)
                         ) {
                             // 1. App Lock Switch Row
-                            val isDarkTheme = MaterialTheme.colorScheme.surface.let {
-                                (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
-                            }
                             val masterLockIconTint = if (isAppLockEnabled) {
                                 Color.White
                             } else {
-                                if (isDarkTheme) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
                             }
 
                             Row(
@@ -601,7 +622,7 @@ fun SettingsScreen(
                                             .clip(CircleShape)
                                             .background(
                                                 if (isAppLockEnabled) {
-                                                    if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                                                     else MaterialTheme.colorScheme.primary
                                                 } else MaterialTheme.colorScheme.surfaceVariant
                                             ),
@@ -808,13 +829,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = Color(0xFF06B6D4),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -855,13 +880,17 @@ fun SettingsScreen(
                     Card(
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            containerColor = Color.Transparent
                         ),
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = getSectionAccentColor("Settings"),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            )
                     ) {
                         Column(
                             modifier = Modifier
@@ -873,13 +902,10 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                val isDarkCard = MaterialTheme.colorScheme.surface.let {
-                                    (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
-                                }
                                 Icon(
                                     imageVector = Icons.Default.Shield,
                                     contentDescription = null,
-                                    tint = if (isDarkCard) Color.White else MaterialTheme.colorScheme.primary,
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(

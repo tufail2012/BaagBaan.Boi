@@ -27,10 +27,29 @@ val SectionInventoryAccent = Color(0xFF0891B2)       // Cyan
  */
 fun getSectionAccentColor(
     serviceCategory: String,
-    defaultColor: Color = SectionLocalPlantsAccent,
-    customPaletteColor: Color? = null
+    customPaletteColor: Color? = null,
+    defaultColor: Color = SectionLocalPlantsAccent
 ): Color {
-    return customPaletteColor ?: defaultColor
+    if (customPaletteColor != null) return customPaletteColor
+    return when (serviceCategory.trim()) {
+        "Local Plants", "Local" -> SectionLocalPlantsAccent
+        "Imported Plants", "Imported" -> SectionImportedPlantsAccent
+        "Rootstocks" -> SectionRootstocksAccent
+        "Site Visit", "Visit" -> SectionSiteVisitAccent
+        "Pruning" -> SectionPruningAccent
+        "Garden Planning", "Planning" -> SectionGardenPlanningAccent
+        "Bookings" -> SectionBookingsAccent
+        "Attendance" -> SectionAttendanceAccent
+        "Inventory" -> SectionInventoryAccent
+        "Dashboard" -> Color(0xFF10B981)
+        "Contact Directory", "Contacts" -> Color(0xFF0EA5E9)
+        "Payment Reminder", "Payment Reminders" -> Color(0xFFF59E0B)
+        "Seasonal Reminders", "Seasonal" -> Color(0xFF10B981)
+        "Scan QR", "QR" -> Color(0xFF8B5CF6)
+        "Settings" -> Color(0xFF64748B)
+        "Profile" -> Color(0xFF10B981)
+        else -> defaultColor
+    }
 }
 
 val AgriBackground = Color(0xFFF8F9FA)

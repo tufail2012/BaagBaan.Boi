@@ -41,6 +41,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.getSectionAccentColor
+import com.example.ui.components.glassCardBackground
 import com.example.ui.components.AppDefaultWordKeyboardOptions
 import com.example.ui.components.capitalizeWordsNaturally
 import androidx.compose.material.icons.filled.Message
@@ -516,16 +518,23 @@ fun WorkerSummaryCard(
     val totalEarnings = presentCount * worker.dailyRate
     val remainingBalance = totalEarnings - worker.advancePaid
 
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .glassCardBackground(
+                cornerRadius = 16.dp,
+                accentColor = getSectionAccentColor("Attendance"),
+                isDark = isDark
+            )
             .clickable { onClick() }
             .testTag("worker_card_${worker.workerId}"),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = Color.Transparent
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = null
     ) {
         Row(
             modifier = Modifier

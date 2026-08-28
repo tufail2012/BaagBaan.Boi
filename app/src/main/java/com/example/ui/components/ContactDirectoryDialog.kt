@@ -489,15 +489,24 @@ fun ContactDirectoryDialog(
         }
     }
 
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+            modifier = Modifier
+                .fillMaxSize()
+                .glassCardBackground(
+                    cornerRadius = 0.dp,
+                    accentColor = getSectionAccentColor("Contact Directory"),
+                    isDark = isDark
+                ),
+            color = Color.Transparent
         ) {
             Scaffold(
+                containerColor = Color.Transparent,
                 topBar = {
                     TopAppBar(
                         title = {
@@ -520,7 +529,12 @@ fun ContactDirectoryDialog(
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
+                        ),
+                        modifier = Modifier.glassCardBackground(
+                            cornerRadius = 0.dp,
+                            accentColor = getSectionAccentColor("Contact Directory"),
+                            isDark = isDark
                         )
                     )
                 },
@@ -657,11 +671,17 @@ fun ContactDirectoryDialog(
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .glassCardBackground(
+                                            cornerRadius = 16.dp,
+                                            accentColor = getSectionAccentColor("Contact Directory"),
+                                            isDark = isDark
+                                        )
                                         .clickable { selectedContactForDetails = item },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                    )
+                                        containerColor = Color.Transparent
+                                    ),
+                                    border = null
                                 ) {
                                     Row(
                                         modifier = Modifier

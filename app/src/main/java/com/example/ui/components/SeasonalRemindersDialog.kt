@@ -104,6 +104,8 @@ fun SeasonalRemindersDialog(
     var taskToDelete by remember { mutableStateOf<SeasonalTask?>(null) }
     var showResetConfirm by remember { mutableStateOf(false) }
 
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -111,10 +113,16 @@ fun SeasonalRemindersDialog(
         Surface(
             modifier = Modifier
                 .fillMaxSize()
+                .glassCardBackground(
+                    cornerRadius = 0.dp,
+                    accentColor = getSectionAccentColor("Seasonal Reminders"),
+                    isDark = isDark
+                )
                 .testTag("seasonal_reminders_dialog"),
-            color = MaterialTheme.colorScheme.background
+            color = Color.Transparent
         ) {
             Scaffold(
+                containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
                     TopAppBar(
@@ -180,7 +188,12 @@ fun SeasonalRemindersDialog(
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color.Transparent
+                        ),
+                        modifier = Modifier.glassCardBackground(
+                            cornerRadius = 0.dp,
+                            accentColor = getSectionAccentColor("Seasonal Reminders"),
+                            isDark = isDark
                         )
                     )
                 },
@@ -456,22 +469,21 @@ private fun SeasonalTaskCard(
         "No date set"
     }
 
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (task.isEnabled) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-            }
+            containerColor = Color.Transparent
         ),
-        border = BorderStroke(
-            1.dp,
-            if (task.isEnabled && hasDate) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-        ),
+        border = null,
         modifier = Modifier
             .fillMaxWidth()
+            .glassCardBackground(
+                cornerRadius = 18.dp,
+                accentColor = getSectionAccentColor("Seasonal Reminders"),
+                isDark = isDark
+            )
             .clickable { onEdit() }
             .testTag("seasonal_task_card_${task.id}")
     ) {

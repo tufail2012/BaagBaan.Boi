@@ -54,8 +54,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
+import com.example.ui.AppThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/**
+ * Forwarding function to single source of truth in Color.kt
+ */
+fun getSectionAccentColor(
+    section: String,
+    customPaletteColor: Color? = null,
+    defaultColor: Color = Color(0xFF10B981)
+): Color = com.example.ui.theme.getSectionAccentColor(section, customPaletteColor, defaultColor)
 
 /**
  * Standard keyboard options for text fields that expect natural word capitalization.
@@ -564,11 +574,24 @@ fun elevatedInputFieldColors(
 fun Modifier.glassCardBackground(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    shape: Shape = RoundedCornerShape(16.dp)
+    shape: Shape? = null,
+    cornerRadius: Dp? = null,
+    themeMode: AppThemeMode? = null
 ): Modifier {
-    val isAmoled = isDark && MaterialTheme.colorScheme.background == Color(0xFF000000)
+    val effectiveIsDark = if (themeMode != null) {
+        when (themeMode) {
+            AppThemeMode.SYSTEM -> isDark
+            AppThemeMode.LIGHT -> false
+            AppThemeMode.DARK, AppThemeMode.AMOLED -> true
+        }
+    } else {
+        isDark
+    }
 
-    val containerGradient = remember(isDark, isAmoled, accentColor) {
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
+
+    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor) {
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
@@ -577,7 +600,7 @@ fun Modifier.glassCardBackground(
                     Color(0xFF0A0A0C).copy(alpha = 0.90f)
                 )
             )
-            isDark -> Brush.verticalGradient(
+            effectiveIsDark -> Brush.verticalGradient(
                 colors = listOf(
                     Color(0xFF1E293B).copy(alpha = 0.78f),
                     Color(0xFF162032).copy(alpha = 0.72f),
@@ -596,7 +619,7 @@ fun Modifier.glassCardBackground(
         }
     }
 
-    val specularBorderBrush = remember(isDark, isAmoled, accentColor) {
+    val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor) {
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
@@ -606,7 +629,7 @@ fun Modifier.glassCardBackground(
                     Color(0xFF27272A).copy(alpha = 0.50f)
                 )
             )
-            isDark -> Brush.verticalGradient(
+            effectiveIsDark -> Brush.verticalGradient(
                 colors = listOf(
                     Color.White.copy(alpha = 0.48f),
                     accentColor.copy(alpha = 0.38f),
@@ -627,17 +650,17 @@ fun Modifier.glassCardBackground(
 
     return this
         .drawElevatedShadow(
-            shape = shape,
-            isDark = isDark,
+            shape = effectiveShape,
+            isDark = effectiveIsDark,
             offsetY = 3.dp,
             blurRadius = 8.dp
         )
-        .clip(shape)
+        .clip(effectiveShape)
         .background(containerGradient)
         .border(
             width = 1.dp,
             brush = specularBorderBrush,
-            shape = shape
+            shape = effectiveShape
         )
 }
 

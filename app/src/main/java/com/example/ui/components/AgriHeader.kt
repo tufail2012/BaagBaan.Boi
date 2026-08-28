@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectableGroup
@@ -309,7 +310,18 @@ fun AgriHeader(
 
                     DropdownMenu(
                         expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
+                        onDismissRequest = { menuExpanded = false },
+                        modifier = Modifier
+                            .widthIn(min = 220.dp, max = 280.dp)
+                            .glassCardBackground(
+                                cornerRadius = 20.dp,
+                                accentColor = getSectionAccentColor("Profile"),
+                                isDark = isDark,
+                                themeMode = themeMode
+                            ),
+                        shape = RoundedCornerShape(20.dp),
+                        containerColor = Color.Transparent,
+                        border = null
                     ) {
                         OverflowMenuContent(
                             themeMode = themeMode,
@@ -479,7 +491,18 @@ fun AgriHeader(
 
                             DropdownMenu(
                                 expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false }
+                                onDismissRequest = { menuExpanded = false },
+                                modifier = Modifier
+                                    .widthIn(min = 220.dp, max = 280.dp)
+                                    .glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = getSectionAccentColor("Profile"),
+                                        isDark = isDark,
+                                        themeMode = themeMode
+                                    ),
+                                shape = RoundedCornerShape(20.dp),
+                                containerColor = Color.Transparent,
+                                border = null
                             ) {
                                 OverflowMenuContent(
                                     themeMode = themeMode,

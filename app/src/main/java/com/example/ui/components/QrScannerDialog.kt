@@ -359,13 +359,18 @@ fun QrScannerDialog(
                 }
             }
 
-            // Top Bar
-            Surface(
-                color = Color.Black.copy(alpha = 0.65f),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-            ) {
+                // Top Bar
+                Surface(
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .glassCardBackground(
+                            cornerRadius = 0.dp,
+                            accentColor = getSectionAccentColor("Scan QR"),
+                            isDark = true
+                        )
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

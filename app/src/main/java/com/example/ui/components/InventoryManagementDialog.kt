@@ -124,9 +124,14 @@ fun InventoryManagementDialog(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .glassCardBackground(
+                    cornerRadius = 24.dp,
+                    accentColor = getSectionAccentColor("Inventory"),
+                    isDark = isDark
+                ),
             shape = RoundedCornerShape(24.dp),
-            color = bgSurface
+            color = Color.Transparent
         ) {
             Column(
                 modifier = Modifier
@@ -191,13 +196,16 @@ fun InventoryManagementDialog(
                 ) {
                     // Card 1: Total Stock
                     Card(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .glassCardBackground(
+                                cornerRadius = 16.dp,
+                                accentColor = Color(0xFF3B82F6),
+                                isDark = isDark
+                            ),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = cardBg),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                        )
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = null
                     ) {
                         Column(
                             modifier = Modifier.padding(10.dp),
@@ -230,17 +238,16 @@ fun InventoryManagementDialog(
 
                     // Card 2: Low Stock Alerts
                     Card(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .glassCardBackground(
+                                cornerRadius = 16.dp,
+                                accentColor = if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else getSectionAccentColor("Inventory"),
+                                isDark = isDark
+                            ),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isDataReady && lowStockCount > 0) {
-                                if (isDark) Color(0xFF451A03) else Color(0xFFFEF3C7)
-                            } else cardBg
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
-                        )
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = null
                     ) {
                         Column(
                             modifier = Modifier.padding(10.dp),
@@ -273,13 +280,16 @@ fun InventoryManagementDialog(
 
                     // Card 3: Items Sold
                     Card(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .glassCardBackground(
+                                cornerRadius = 16.dp,
+                                accentColor = Color(0xFF10B981),
+                                isDark = isDark
+                            ),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = cardBg),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                        )
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = null
                     ) {
                         Column(
                             modifier = Modifier.padding(10.dp),
@@ -741,13 +751,16 @@ fun InventoryItemCard(
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .glassCardBackground(
+                cornerRadius = 16.dp,
+                accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else getSectionAccentColor("Inventory"),
+                isDark = isDark
+            ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = androidx.compose.foundation.BorderStroke(
-            width = if (isLow || isOut) 1.5.dp else 1.dp,
-            color = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else (if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        border = null
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
