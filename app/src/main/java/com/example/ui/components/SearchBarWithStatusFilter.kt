@@ -178,7 +178,9 @@ fun SearchBarWithStatusFilter(
                 DropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = { dropdownExpanded = false },
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
                         .background(if (isDark) Color(0xFF1E293B) else Color.White)
                         .testTag("${testTagPrefix}_filter_menu")
                 ) {

@@ -805,22 +805,22 @@ fun Modifier.glassCardBackground(
         } else {
             when {
                 isAmoled -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.80f),
-                    0.25f to goldColor.copy(alpha = 0.65f),
-                    0.60f to Color(0xFF27272A).copy(alpha = 0.80f),
-                    1.0f to Color(0xFF3F3F46).copy(alpha = 0.50f)
+                    0.0f to goldColor.copy(alpha = 0.80f),
+                    0.30f to goldColor.copy(alpha = 0.95f),
+                    0.70f to goldColor.copy(alpha = 0.95f),
+                    1.0f to goldColor.copy(alpha = 0.80f)
                 )
                 effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.70f),
-                    0.25f to goldColor.copy(alpha = 0.55f),
-                    0.60f to Color(0xFF334155).copy(alpha = 0.65f),
-                    1.0f to Color.White.copy(alpha = 0.30f)
+                    0.0f to goldColor.copy(alpha = 0.75f),
+                    0.30f to goldColor.copy(alpha = 0.90f),
+                    0.70f to goldColor.copy(alpha = 0.90f),
+                    1.0f to goldColor.copy(alpha = 0.75f)
                 )
                 else -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.98f),
-                    0.25f to goldColor.copy(alpha = 0.50f),
-                    0.60f to Color(0xFFCBD5E1).copy(alpha = 0.65f),
-                    1.0f to Color.White.copy(alpha = 0.80f)
+                    0.0f to goldColor.copy(alpha = 0.75f),
+                    0.30f to goldColor.copy(alpha = 0.85f),
+                    0.70f to goldColor.copy(alpha = 0.85f),
+                    1.0f to goldColor.copy(alpha = 0.75f)
                 )
             }
         }
@@ -834,7 +834,11 @@ fun Modifier.glassCardBackground(
         )
     }
 
-    val effectiveBorderWidth = if (isFocused && borderWidth == 1.25.dp) 1.75.dp else borderWidth
+    val effectiveBorderWidth = if (isFocused) {
+        if (borderWidth == 1.25.dp || borderWidth == 1.5.dp) 1.75.dp else borderWidth
+    } else {
+        if (borderWidth == 1.25.dp) 1.5.dp else borderWidth
+    }
 
     return this
         .drawElevatedShadow(
