@@ -241,10 +241,11 @@ fun QrScannerDialog(
 
                 // Solid, dimmed, palette-tinted scrim over entire screen
                 drawRect(
-                    color = Color(0xFF070B14).copy(alpha = 0.84f)
+                    color = Color(0xFF070B14),
+                    alpha = 1.0f
                 )
                 drawRect(
-                    color = scanQrAccent.copy(alpha = 0.16f)
+                    color = scanQrAccent.copy(alpha = 0.22f)
                 )
 
                 // Punch cutout over the viewfinder so raw camera is ONLY visible here
@@ -419,7 +420,7 @@ fun QrScannerDialog(
                     Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
                             text = "Scan Receipt QR",
-                            color = Color.White,
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             maxLines = 1,
@@ -427,7 +428,7 @@ fun QrScannerDialog(
                         )
                         Text(
                             text = "Align QR code inside viewfinder",
-                            color = Color(0xFFCBD5E1),
+                            color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                             fontSize = 11.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
