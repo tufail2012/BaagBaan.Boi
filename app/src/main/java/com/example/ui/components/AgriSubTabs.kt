@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
@@ -52,6 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -264,52 +266,54 @@ fun LiquidGlassTabSwitcher(
         }
     }
 
-    val containerShape = RoundedCornerShape(percent = 50)
-    val capsuleShape = RoundedCornerShape(percent = 50)
+    val containerShape = CircleShape
+    val capsuleShape = CircleShape
 
-    // Explicit HazeStyle with backgroundColor set on EVERY branch
+    // Explicit HazeStyle matching the main navigation bar glass language
     val hazeStyle = remember(isDark, isAmoled, accentColor, screenBgColor) {
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.22f)),
+                tint = HazeTint(accentColor.copy(alpha = 0.16f)),
                 blurRadius = 24.dp
             )
             isDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.35f)),
                 blurRadius = 24.dp
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
+                tint = HazeTint(accentColor.copy(alpha = 0.08f)),
                 blurRadius = 24.dp
             )
         }
     }
 
-    // Specular Edge: 1.2dp vertical gradient stroke
-    val specularBorderBrush = remember(isDark, isAmoled, accentColor) {
+    val outlineColor = MaterialTheme.colorScheme.outline
+
+    // Specular Edge: Thin 1.dp vertical gradient border matching the header glass pill
+    val specularBorderBrush = remember(isDark, isAmoled, accentColor, outlineColor) {
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.70f),
-                    accentColor.copy(alpha = 0.45f),
+                    Color.White.copy(alpha = 0.60f),
+                    accentColor.copy(alpha = 0.35f),
                     Color.White.copy(alpha = 0.15f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.45f),
-                    accentColor.copy(alpha = 0.20f),
-                    Color.White.copy(alpha = 0.10f)
+                    Color.White.copy(alpha = 0.35f),
+                    outlineColor.copy(alpha = 0.25f),
+                    Color.White.copy(alpha = 0.08f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.88f),
-                    accentColor.copy(alpha = 0.25f),
-                    Color.White.copy(alpha = 0.20f)
+                    Color.White.copy(alpha = 0.95f),
+                    accentColor.copy(alpha = 0.22f),
+                    Color.White.copy(alpha = 0.35f)
                 )
             )
         }
@@ -317,16 +321,16 @@ fun LiquidGlassTabSwitcher(
 
     val containerShadowAmbient = remember(isDark, isAmoled, accentColor) {
         when {
-            isAmoled -> accentColor.copy(alpha = 0.20f)
-            isDark -> Color.Black.copy(alpha = 0.45f)
-            else -> Color(0xFF0F172A).copy(alpha = 0.10f)
+            isAmoled -> accentColor.copy(alpha = 0.15f)
+            isDark -> Color.Black.copy(alpha = 0.25f)
+            else -> Color(0xFF0F172A).copy(alpha = 0.06f)
         }
     }
     val containerShadowSpot = remember(isDark, isAmoled, accentColor) {
         when {
-            isAmoled -> accentColor.copy(alpha = 0.28f)
-            isDark -> Color.Black.copy(alpha = 0.60f)
-            else -> Color(0xFF0F172A).copy(alpha = 0.14f)
+            isAmoled -> accentColor.copy(alpha = 0.22f)
+            isDark -> Color.Black.copy(alpha = 0.35f)
+            else -> accentColor.copy(alpha = 0.10f)
         }
     }
 
@@ -334,23 +338,23 @@ fun LiquidGlassTabSwitcher(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.24f),
-                    Color(0xFF0A0A0A).copy(alpha = 0.88f),
-                    accentColor.copy(alpha = 0.16f)
+                    Color(0xFF141414).copy(alpha = 0.82f),
+                    accentColor.copy(alpha = 0.14f),
+                    Color(0xFF070707).copy(alpha = 0.88f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.45f),
-                    accentColor.copy(alpha = 0.12f),
-                    Color(0xFF0F172A).copy(alpha = 0.52f)
+                    Color(0xFF1E293B).copy(alpha = 0.55f),
+                    accentColor.copy(alpha = 0.10f),
+                    Color(0xFF0F172A).copy(alpha = 0.65f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.60f),
+                    Color.White.copy(alpha = 0.72f),
                     accentColor.copy(alpha = 0.08f),
-                    Color(0xFFE2E8F0).copy(alpha = 0.50f)
+                    Color.White.copy(alpha = 0.58f)
                 )
             )
         }
@@ -365,7 +369,7 @@ fun LiquidGlassTabSwitcher(
     }
 
     val blobStretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.08f else 1.0f,
+        targetValue = if (isMoving) 1.06f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -374,7 +378,7 @@ fun LiquidGlassTabSwitcher(
     )
 
     val blobSquashScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.90f else 1.0f,
+        targetValue = if (isMoving) 0.92f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -386,20 +390,21 @@ fun LiquidGlassTabSwitcher(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.96f),
-                    accentColor.copy(alpha = 0.82f)
+                    accentColor.copy(alpha = 0.78f),
+                    accentColor.copy(alpha = 0.55f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.80f)
+                    accentColor.copy(alpha = 0.65f),
+                    accentColor.copy(alpha = 0.42f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.98f),
-                    Color(0xFFF8FAFC).copy(alpha = 0.92f)
+                    Color.White.copy(alpha = 0.88f),
+                    lerp(Color.White, accentColor, 0.15f).copy(alpha = 0.82f),
+                    Color.White.copy(alpha = 0.78f)
                 )
             )
         }
@@ -409,20 +414,23 @@ fun LiquidGlassTabSwitcher(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.80f),
-                    accentColor.copy(alpha = 0.50f)
+                    Color.White.copy(alpha = 0.70f),
+                    accentColor.copy(alpha = 0.60f),
+                    Color.White.copy(alpha = 0.20f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.50f),
+                    accentColor.copy(alpha = 0.45f),
                     Color.White.copy(alpha = 0.15f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
                     Color.White.copy(alpha = 0.95f),
-                    Color.White.copy(alpha = 0.40f)
+                    accentColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.45f)
                 )
             )
         }
@@ -434,7 +442,7 @@ fun LiquidGlassTabSwitcher(
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .height(46.dp)
             .shadow(
-                elevation = if (isAmoled) 12.dp else 8.dp,
+                elevation = if (isAmoled) 4.dp else 2.dp,
                 shape = containerShape,
                 clip = false,
                 ambientColor = containerShadowAmbient,
@@ -456,11 +464,29 @@ fun LiquidGlassTabSwitcher(
                 }
             )
             .border(
-                width = 1.2.dp,
+                width = 1.dp,
                 brush = specularBorderBrush,
                 shape = containerShape
             )
     ) {
+        // Subtle top specular highlight reflection along the inner rim of the glass pill
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth(0.90f)
+                .height(1.dp)
+                .padding(top = 1.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = if (!isDark) 0.80f else 0.35f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
@@ -493,11 +519,11 @@ fun LiquidGlassTabSwitcher(
                         scaleY = blobSquashScaleY
                     }
                     .shadow(
-                        elevation = if (isAmoled) 8.dp else 4.dp,
+                        elevation = if (isAmoled) 6.dp else 4.dp,
                         shape = capsuleShape,
                         clip = false,
-                        ambientColor = accentColor.copy(alpha = if (isAmoled) 0.35f else 0.20f),
-                        spotColor = accentColor.copy(alpha = if (isAmoled) 0.50f else 0.30f)
+                        ambientColor = if (isDark) accentColor.copy(alpha = 0.35f) else Color(0xFF0F172A).copy(alpha = 0.08f),
+                        spotColor = if (isDark) accentColor.copy(alpha = 0.50f) else accentColor.copy(alpha = 0.16f)
                     )
                     .clip(capsuleShape)
                     .background(activePillGradient)
