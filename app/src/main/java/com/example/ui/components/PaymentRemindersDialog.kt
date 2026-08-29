@@ -103,12 +103,29 @@ data class PendingPaymentItem(
 @Composable
 fun PaymentRemindersDialog(
     onDismiss: () -> Unit,
+    viewModel: com.example.ui.CropViewModel? = null,
+    customPaletteColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { AppDatabase.getDatabase(context, scope) }
     val isDark = isAppInDarkMode()
+
+    val vmAccentHex by (viewModel?.accentColorHex ?: kotlinx.coroutines.flow.MutableStateFlow(null)).collectAsState()
+    val parsedPaletteColor = remember(vmAccentHex, customPaletteColor) {
+        if (customPaletteColor != null) return@remember customPaletteColor
+        val hex = vmAccentHex
+        if (hex != null) {
+            try {
+                Color(android.graphics.Color.parseColor(hex))
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -247,7 +264,7 @@ fun PaymentRemindersDialog(
         )
     }
 
-    val paymentAccent = getSectionAccentColor("Payment Reminders")
+    val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     val paymentBgBrush = remember(isDark, paymentAccent) {
         if (isDark) {
             Brush.verticalGradient(
@@ -293,17 +310,15 @@ fun PaymentRemindersDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
                             .glassCardBackground(
                                 isDark = isDark,
-                                accentColor = paymentAccent,
-                                shape = RoundedCornerShape(percent = 50)
+                                accentColor = paymentAccent
                             )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -552,6 +567,7 @@ fun PaymentRemindersDialog(
                                         item = item,
                                         numberFormat = numberFormat,
                                         isDark = isDark,
+                                        accentColor = paymentAccent,
                                         onOpenReceipt = { selectedReceiptItem = item },
                                         onPrintReceipt = {
                                             PdfReceiptManager.printReceipt(
@@ -582,6 +598,7 @@ fun PendingPaymentRow(
     item: PendingPaymentItem,
     numberFormat: NumberFormat,
     isDark: Boolean,
+    accentColor: Color = Color(0xFFF59E0B),
     onOpenReceipt: () -> Unit,
     onPrintReceipt: () -> Unit,
     onSendWhatsApp: () -> Unit,
@@ -592,7 +609,7 @@ fun PendingPaymentRow(
             .fillMaxWidth()
             .glassCardBackground(
                 cornerRadius = 16.dp,
-                accentColor = getSectionAccentColor("Payment Reminders"),
+                accentColor = accentColor,
                 isDark = isDark
             )
             .testTag("pending_payment_row_${item.serialNumber}"),

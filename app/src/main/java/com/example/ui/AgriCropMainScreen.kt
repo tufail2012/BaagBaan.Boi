@@ -224,7 +224,9 @@ fun AgriCropMainScreen(
             onDismiss = {
                 showPaymentRemindersDialog = false
                 viewModel.dismissPaymentReminders()
-            }
+            },
+            viewModel = viewModel,
+            customPaletteColor = parsedPaletteColor
         )
     }
 
