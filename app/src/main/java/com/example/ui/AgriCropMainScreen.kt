@@ -219,17 +219,6 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showSeasonalRemindersDialog || showSeasonalRemindersFromVm) {
-        com.example.ui.components.SeasonalRemindersDialog(
-            onDismiss = {
-                showSeasonalRemindersDialog = false
-                viewModel.dismissSeasonalReminders()
-            },
-            viewModel = viewModel,
-            customPaletteColor = parsedPaletteColor
-        )
-    }
-
     if (showRecycleBinDialog) {
         com.example.ui.components.RecycleBinDialog(
             onDismissRequest = { showRecycleBinDialog = false },
@@ -251,21 +240,6 @@ fun AgriCropMainScreen(
     if (showBusinessInfoDialog) {
         BusinessInfoDialog(
             onDismiss = { showBusinessInfoDialog = false }
-        )
-    }
-
-    if (showQrScannerDialog) {
-        com.example.ui.components.QrScannerDialog(
-            onDismissRequest = { showQrScannerDialog = false },
-            onQrScanned = { rawQr ->
-                showQrScannerDialog = false
-                viewModel.handleDeepLinkString(rawQr) { errMsg ->
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(errMsg)
-                    }
-                }
-            },
-            customPaletteColor = parsedPaletteColor
         )
     }
 
@@ -323,6 +297,8 @@ fun AgriCropMainScreen(
         isAttendanceActive -> "ATTENDANCE"
         showInventoryDialog || showInventoryFromVm -> "INVENTORY"
         showPaymentRemindersDialog || showPaymentRemindersFromVm -> "PAYMENT_REMINDERS"
+        showSeasonalRemindersDialog || showSeasonalRemindersFromVm -> "SEASONAL_REMINDERS"
+        showQrScannerDialog -> "SCAN_QR"
         showContactDirectoryDialog -> "CONTACTS"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
@@ -387,6 +363,7 @@ fun AgriCropMainScreen(
                     onNavigateToBusinessInfo = { showBusinessInfoDialog = true },
                     onNavigateToMessageTemplates = { isMessageTemplatesActive = true },
                     onBack = { isSettingsActive = false },
+                    customPaletteColor = parsedPaletteColor,
                     modifier = modifier
                 )
             }
@@ -485,9 +462,36 @@ fun AgriCropMainScreen(
                     modifier = modifier
                 )
             }
+            "SEASONAL_REMINDERS" -> {
+                com.example.ui.components.SeasonalRemindersDialog(
+                    onDismiss = {
+                        showSeasonalRemindersDialog = false
+                        viewModel.dismissSeasonalReminders()
+                    },
+                    viewModel = viewModel,
+                    customPaletteColor = parsedPaletteColor,
+                    modifier = modifier
+                )
+            }
+            "SCAN_QR" -> {
+                com.example.ui.components.QrScannerDialog(
+                    onDismissRequest = { showQrScannerDialog = false },
+                    onQrScanned = { rawQr ->
+                        showQrScannerDialog = false
+                        viewModel.handleDeepLinkString(rawQr) { errMsg ->
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(errMsg)
+                            }
+                        }
+                    },
+                    customPaletteColor = parsedPaletteColor,
+                    modifier = modifier
+                )
+            }
             "CONTACTS" -> {
                 ContactDirectoryDialog(
                     onDismiss = { showContactDirectoryDialog = false },
+                    customPaletteColor = parsedPaletteColor,
                     modifier = modifier
                 )
             }

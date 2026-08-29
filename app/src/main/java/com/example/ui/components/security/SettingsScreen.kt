@@ -107,6 +107,7 @@ fun SettingsScreen(
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
     onBack: () -> Unit,
+    customPaletteColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -336,7 +337,7 @@ fun SettingsScreen(
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
     }
 
-    val settingsAccent = getSectionAccentColor("Settings")
+    val settingsAccent = getSectionAccentColor("Settings", customPaletteColor = customPaletteColor)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
     val settingsBgBrush = remember(isDark, isAmoled, settingsAccent) {
         if (isAmoled) {
@@ -949,7 +950,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .glassCardBackground(
                                 cornerRadius = 20.dp,
-                                accentColor = getSectionAccentColor("Settings"),
+                                accentColor = settingsAccent,
                                 isDark = isDark,
                                 themeMode = themeMode
                             )

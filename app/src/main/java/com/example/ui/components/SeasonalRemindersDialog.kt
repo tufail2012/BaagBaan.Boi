@@ -80,7 +80,8 @@ private val SHORT_MONTH_NAMES = DateFormatSymbols().shortMonths.take(12)
 fun SeasonalRemindersDialog(
     onDismiss: () -> Unit,
     viewModel: com.example.ui.CropViewModel? = null,
-    customPaletteColor: Color? = null
+    customPaletteColor: Color? = null,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -131,162 +132,123 @@ fun SeasonalRemindersDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
-    ) {
-        BackHandler(onBack = onDismiss)
+    BackHandler(onBack = onDismiss)
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(seasonalBgBrush)
-                .testTag("seasonal_reminders_dialog")
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(seasonalBgBrush)
+            .testTag("seasonal_reminders_dialog")
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Scaffold(
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                topBar = {
-                    Box(
+            // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = seasonalAccent,
+                        shape = RoundedCornerShape(percent = 50)
+                    )
+            ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                isDark = isDark,
-                                accentColor = seasonalAccent,
-                                shape = RoundedCornerShape(
-                                    topStart = 0.dp,
-                                    topEnd = 0.dp,
-                                    bottomStart = 28.dp,
-                                    bottomEnd = 28.dp
-                                )
-                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.statusBars)
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.weight(1f, fill = false)
-                            ) {
-                                IconButton(
-                                    onClick = onDismiss,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .testTag("seasonal_reminders_close_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = seasonalAccent
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(seasonalAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Park,
-                                        contentDescription = null,
-                                        tint = seasonalAccent,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-
-                                Column {
-                                    Text(
-                                        text = "Seasonal Reminders",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 17.sp,
-                                            letterSpacing = (-0.3).sp
-                                        ),
-                                        color = if (isDark) Color.White else Color(0xFF0F172A),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "${tasks.count { it.isEnabled }} active • ${tasks.size} annual tasks",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            OutlinedButton(
-                                onClick = { showResetConfirm = true },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
-                                ),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
-                                ),
+                            IconButton(
+                                onClick = onDismiss,
                                 modifier = Modifier
-                                    .padding(end = 4.dp)
-                                    .testTag("seasonal_reset_button")
+                                    .size(36.dp)
+                                    .testTag("seasonal_reminders_close_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.RestartAlt,
-                                    contentDescription = null,
-                                    tint = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
-                                    modifier = Modifier.size(16.dp)
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = seasonalAccent
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Reset Seeds", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(seasonalAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Park,
+                                    contentDescription = null,
+                                    tint = seasonalAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            Column {
+                                Text(
+                                    text = "Seasonal Reminders",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 17.sp,
+                                        letterSpacing = (-0.3).sp
+                                    ),
+                                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${tasks.count { it.isEnabled }} active • ${tasks.size} annual tasks",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    ),
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
-                    }
-                },
-                bottomBar = {
-                    Surface(
-                        color = Color.Transparent,
-                        tonalElevation = 0.dp
-                    ) {
-                        Box(
+
+                        OutlinedButton(
+                            onClick = { showResetConfirm = true },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
+                            ),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .navigationBarsPadding()
-                                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 40.dp),
-                            contentAlignment = Alignment.Center
+                                .padding(end = 4.dp)
+                                .testTag("seasonal_reset_button")
                         ) {
-                            Button(
-                                onClick = onDismiss,
-                                shape = RoundedCornerShape(14.dp),
-                                modifier = Modifier
-                                    .widthIn(min = 220.dp, max = 260.dp)
-                                    .fillMaxWidth(0.65f)
-                                    .height(48.dp)
-                                    .testTag("seasonal_reminders_done_button")
-                            ) {
-                                Text("Done", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
+                            Icon(
+                                imageVector = Icons.Default.RestartAlt,
+                                contentDescription = null,
+                                tint = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Reset Seeds", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                         }
                     }
                 }
-            ) { paddingValues ->
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .padding(horizontal = 16.dp)
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -399,10 +361,35 @@ fun SeasonalRemindersDialog(
                             }
                         }
                     }
+
+                    // Bottom Done button bar
+                    Surface(
+                        color = Color.Transparent,
+                        tonalElevation = 0.dp
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Button(
+                                onClick = onDismiss,
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .widthIn(min = 220.dp, max = 260.dp)
+                                    .fillMaxWidth(0.65f)
+                                    .height(48.dp)
+                                    .testTag("seasonal_reminders_done_button")
+                            ) {
+                                Text("Done", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
 
     // Edit/Add Task Dialog
     if (showEditDialog && taskToEdit != null) {

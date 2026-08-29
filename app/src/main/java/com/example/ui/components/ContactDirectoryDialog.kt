@@ -200,6 +200,7 @@ data class ContactDisplayItem(
 @Composable
 fun ContactDirectoryDialog(
     onDismiss: () -> Unit,
+    customPaletteColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -495,7 +496,7 @@ fun ContactDirectoryDialog(
     }
 
     val isDark = isAppInDarkMode()
-    val contactAccent = getSectionAccentColor("Contact Directory")
+    val contactAccent = getSectionAccentColor("Contact Directory", customPaletteColor = customPaletteColor)
     val contactsBgBrush = remember(isDark, contactAccent) {
         if (isDark) {
             Brush.verticalGradient(
@@ -742,7 +743,7 @@ fun ContactDirectoryDialog(
                                         .fillMaxWidth()
                                         .glassCardBackground(
                                             cornerRadius = 16.dp,
-                                            accentColor = getSectionAccentColor("Contact Directory"),
+                                            accentColor = contactAccent,
                                             isDark = isDark
                                         )
                                         .clickable { selectedContactForDetails = item },
@@ -795,7 +796,7 @@ fun ContactDirectoryDialog(
                                                     Icon(
                                                         imageVector = Icons.Default.Phone,
                                                         contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                                                         modifier = Modifier.size(13.dp)
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
@@ -803,7 +804,8 @@ fun ContactDirectoryDialog(
                                                         text = item.phone.ifEmpty { "No phone number" },
                                                         query = searchQuery,
                                                         fontSize = 13.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                        isDark = isDark
                                                     )
                                                 }
 
@@ -812,7 +814,7 @@ fun ContactDirectoryDialog(
                                                         Icon(
                                                             imageVector = Icons.Default.LocationOn,
                                                             contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                                                             modifier = Modifier.size(13.dp)
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
@@ -820,7 +822,8 @@ fun ContactDirectoryDialog(
                                                             text = item.address,
                                                             query = searchQuery,
                                                             fontSize = 12.sp,
-                                                            color = MaterialTheme.colorScheme.outline
+                                                            color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                                            isDark = isDark
                                                         )
                                                     }
                                                 }
