@@ -285,25 +285,22 @@ fun PaymentRemindersDialog(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
+            // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = paymentAccent,
-                        shape = RoundedCornerShape(
-                            topStart = 0.dp,
-                            topEnd = 0.dp,
-                            bottomStart = 28.dp,
-                            bottomEnd = 28.dp
-                        )
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
