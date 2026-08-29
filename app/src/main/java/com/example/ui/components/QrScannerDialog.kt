@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -383,13 +384,14 @@ fun QrScannerDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
                         Box(
                             modifier = Modifier
@@ -405,35 +407,46 @@ fun QrScannerDialog(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f, fill = false)) {
                             Text(
                                 text = "Scan Receipt QR",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontSize = 16.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Align QR code inside viewfinder",
                                 color = Color(0xFFCBD5E1),
-                                fontSize = 11.sp
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
 
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Flashlight Toggle
+                        // Flashlight Toggle (Separate Glass Circle Container)
                         IconButton(
                             onClick = {
                                 isFlashOn = !isFlashOn
                                 cameraControl?.enableTorch(isFlashOn)
                             },
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.15f))
+                                .glassCardBackground(
+                                    isDark = true,
+                                    accentColor = if (isFlashOn) Color(0xFFFFD54F) else Color.White,
+                                    shape = CircleShape
+                                )
+                                .testTag("toggle_torch_button")
                         ) {
                             Icon(
                                 imageVector = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
@@ -443,13 +456,17 @@ fun QrScannerDialog(
                             )
                         }
 
-                        // Close Button
+                        // Close Button (Separate Glass Circle Container)
                         IconButton(
                             onClick = onDismissRequest,
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(38.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.15f))
+                                .glassCardBackground(
+                                    isDark = true,
+                                    accentColor = Color.White,
+                                    shape = CircleShape
+                                )
                                 .testTag("close_qr_scanner_button")
                         ) {
                             Icon(

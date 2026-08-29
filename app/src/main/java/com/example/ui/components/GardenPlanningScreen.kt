@@ -2408,7 +2408,6 @@ private fun GardenPlanningRecordCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onViewDetails() }
     ) {
         Column(
             modifier = Modifier

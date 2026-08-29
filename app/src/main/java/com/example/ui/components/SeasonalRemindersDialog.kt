@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -206,7 +207,7 @@ fun SeasonalRemindersDialog(
                                             fontSize = 17.sp,
                                             letterSpacing = (-0.3).sp
                                         ),
-                                        color = MaterialTheme.colorScheme.onSurface,
+                                        color = if (isDark) Color.White else Color(0xFF0F172A),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -216,7 +217,7 @@ fun SeasonalRemindersDialog(
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium
                                         ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -226,6 +227,13 @@ fun SeasonalRemindersDialog(
                             OutlinedButton(
                                 onClick = { showResetConfirm = true },
                                 shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                ),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f)
+                                ),
                                 modifier = Modifier
                                     .padding(end = 4.dp)
                                     .testTag("seasonal_reset_button")
@@ -233,10 +241,11 @@ fun SeasonalRemindersDialog(
                                 Icon(
                                     imageVector = Icons.Default.RestartAlt,
                                     contentDescription = null,
+                                    tint = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Reset Seeds", fontSize = 12.sp, maxLines = 1)
+                                Text("Reset Seeds", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                             }
                         }
                     }
@@ -287,7 +296,7 @@ fun SeasonalRemindersDialog(
                             .fillMaxWidth()
                             .glassCardBackground(
                                 cornerRadius = 16.dp,
-                                accentColor = MaterialTheme.colorScheme.secondary,
+                                accentColor = seasonalAccent,
                                 isDark = isDark
                             )
                     ) {
@@ -298,7 +307,7 @@ fun SeasonalRemindersDialog(
                             Icon(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
+                                tint = seasonalAccent,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -306,7 +315,8 @@ fun SeasonalRemindersDialog(
                                 text = "Set annual dates for pruning, grafting, spraying, fertilizing, or harvest. Alarms automatically recur every year and survive device reboots.",
                                 fontSize = 12.sp,
                                 lineHeight = 17.sp,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                fontWeight = FontWeight.Medium,
+                                color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
                             )
                         }
                     }
@@ -351,7 +361,7 @@ fun SeasonalRemindersDialog(
                             text = "Orchard Schedule (${tasks.size})",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
                         )
                     }
 
@@ -369,21 +379,22 @@ fun SeasonalRemindersDialog(
                                 Icon(
                                     imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                     modifier = Modifier.size(48.dp)
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 Text(
                                     text = "No seasonal tasks configured",
                                     fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "Tap 'Add Task' or 'Reset Seeds' to get started",
                                     fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
                                 )
                             }
                         }
@@ -398,6 +409,8 @@ fun SeasonalRemindersDialog(
                             items(tasks, key = { it.id }) { task ->
                                 SeasonalTaskCard(
                                     task = task,
+                                    isDark = isDark,
+                                    seasonalAccent = seasonalAccent,
                                     onEdit = {
                                         taskToEdit = task
                                         showEditDialog = true
@@ -506,6 +519,8 @@ fun SeasonalRemindersDialog(
 @Composable
 private fun SeasonalTaskCard(
     task: SeasonalTask,
+    isDark: Boolean,
+    seasonalAccent: Color,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleEnabled: (Boolean) -> Unit
@@ -520,8 +535,6 @@ private fun SeasonalTaskCard(
         "No date set"
     }
 
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
@@ -532,7 +545,7 @@ private fun SeasonalTaskCard(
             .fillMaxWidth()
             .glassCardBackground(
                 cornerRadius = 18.dp,
-                accentColor = getSectionAccentColor("Seasonal Reminders"),
+                accentColor = seasonalAccent,
                 isDark = isDark
             )
             .clickable { onEdit() }
@@ -554,14 +567,22 @@ private fun SeasonalTaskCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .background(
+                                    if (isDark) seasonalAccent.copy(alpha = 0.22f)
+                                    else seasonalAccent.copy(alpha = 0.12f)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isDark) seasonalAccent.copy(alpha = 0.45f) else seasonalAccent.copy(alpha = 0.3f),
+                                    shape = RoundedCornerShape(8.dp)
+                                )
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = task.category,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -572,7 +593,11 @@ private fun SeasonalTaskCard(
                         text = task.title.ifBlank { task.category.ifBlank { "Untitled Task" } },
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if (task.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        color = if (task.isEnabled) {
+                            if (isDark) Color(0xFFFFFFFF) else Color(0xFF0F172A)
+                        } else {
+                            if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        },
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -584,8 +609,10 @@ private fun SeasonalTaskCard(
                         checked = task.isEnabled,
                         onCheckedChange = onToggleEnabled,
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.primary,
-                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = seasonalAccent,
+                            uncheckedThumbColor = if (isDark) Color(0xFF94A3B8) else Color(0xFFCBD5E1),
+                            uncheckedTrackColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
                         ),
                         modifier = Modifier.testTag("seasonal_task_switch_${task.id}")
                     )
@@ -597,7 +624,7 @@ private fun SeasonalTaskCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Task",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = seasonalAccent,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -608,7 +635,7 @@ private fun SeasonalTaskCard(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Task",
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -621,7 +648,9 @@ private fun SeasonalTaskCard(
                 Text(
                     text = task.notes,
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -640,23 +669,41 @@ private fun SeasonalTaskCard(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (hasDate) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                            if (hasDate) {
+                                if (isDark) Color(0xFF1E293B).copy(alpha = 0.85f)
+                                else Color(0xFFF1F5F9).copy(alpha = 0.95f)
+                            } else {
+                                if (isDark) Color(0xFF0F172A).copy(alpha = 0.6f)
+                                else Color(0xFFF8FAFC).copy(alpha = 0.9f)
+                            }
                         )
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .border(
+                            width = 1.dp,
+                            color = if (hasDate) {
+                                if (isDark) seasonalAccent.copy(alpha = 0.4f) else seasonalAccent.copy(alpha = 0.3f)
+                            } else {
+                                if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Icon(
                         imageVector = if (hasDate) Icons.Default.Alarm else Icons.Default.AlarmOff,
                         contentDescription = null,
-                        tint = if (hasDate) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (hasDate) seasonalAccent else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = dateFormatted,
                         fontSize = 12.sp,
-                        fontWeight = if (hasDate) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (hasDate) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (hasDate) {
+                            if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+                        } else {
+                            if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        }
                     )
                 }
 
@@ -668,14 +715,15 @@ private fun SeasonalTaskCard(
                         Icon(
                             imageVector = Icons.Default.EventRepeat,
                             contentDescription = "Yearly Recurring",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = seasonalAccent,
                             modifier = Modifier.size(14.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Repeats yearly",
                             fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.primary
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
                         )
                     }
                 }

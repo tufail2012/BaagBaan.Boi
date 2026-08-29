@@ -552,7 +552,6 @@ private fun FarmerRecordCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .clip(RoundedCornerShape(16.dp))
-            .clickable { onOpenDetail() }
             .testTag("farmer_record_card_${record.id}")
     ) {
         Column(

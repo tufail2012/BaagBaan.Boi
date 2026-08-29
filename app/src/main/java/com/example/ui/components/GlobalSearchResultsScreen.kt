@@ -797,7 +797,6 @@ private fun GlobalSearchResultCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onOpenDetail() }
             .testTag("global_search_card_${item.id}")
     ) {
         Column(
