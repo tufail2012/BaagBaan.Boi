@@ -28,6 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -40,9 +43,11 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -576,14 +581,20 @@ fun Modifier.boundedFormFieldRipple(
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
-    val isFocused by interactionSource.collectIsFocusedAsState()
+    val isInteractionFocused by interactionSource.collectIsFocusedAsState()
+    var isEventFocused by remember { mutableStateOf(false) }
+    val effectiveIsFocused = isInteractionFocused || isEventFocused
+
     val baseMod = this
         .bringIntoViewOnFocus()
+        .onFocusEvent { focusState ->
+            isEventFocused = focusState.isFocused || focusState.hasFocus
+        }
         .glassCardBackground(
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
-            isFocused = isFocused
+            isFocused = effectiveIsFocused
         )
         .centerWaterRipple(
             shape = shape,
@@ -782,26 +793,11 @@ fun Modifier.glassCardBackground(
     val goldColor = Color(0xFFD4AF37)
     val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor, isFocused) {
         if (isFocused) {
-            when {
-                isAmoled -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.90f),
-                    0.30f to accentColor.copy(alpha = 0.90f),
-                    0.70f to accentColor.copy(alpha = 0.85f),
-                    1.0f to Color(0xFF3F3F46).copy(alpha = 0.60f)
-                )
-                effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.85f),
-                    0.30f to accentColor.copy(alpha = 0.85f),
-                    0.70f to accentColor.copy(alpha = 0.80f),
-                    1.0f to Color.White.copy(alpha = 0.40f)
-                )
-                else -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.98f),
-                    0.30f to accentColor.copy(alpha = 0.85f),
-                    0.70f to accentColor.copy(alpha = 0.80f),
-                    1.0f to Color.White.copy(alpha = 0.90f)
-                )
-            }
+            Brush.verticalGradient(
+                0.0f to accentColor.copy(alpha = 0.95f),
+                0.5f to accentColor.copy(alpha = 1.0f),
+                1.0f to accentColor.copy(alpha = 0.95f)
+            )
         } else {
             when {
                 isAmoled -> Brush.verticalGradient(
@@ -840,7 +836,19 @@ fun Modifier.glassCardBackground(
         if (borderWidth == 1.25.dp) 1.5.dp else borderWidth
     }
 
+    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.graphicsLayer {
+            val blurPx = (elevation * 2f).coerceAtLeast(16.dp).toPx()
+            renderEffect = RenderEffect.createBlurEffect(
+                blurPx, blurPx, Shader.TileMode.CLAMP
+            ).asComposeRenderEffect()
+        }
+    } else {
+        Modifier
+    }
+
     return this
+        .then(blurModifier)
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,

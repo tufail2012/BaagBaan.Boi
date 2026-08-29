@@ -101,8 +101,11 @@ fun ThemeColoursDialog(
     selectedColorHex: String,
     onSelectThemeMode: (AppThemeMode) -> Unit,
     onSelectColorHex: (String) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    BackHandler(onBack = onDismissRequest)
+
     val isDark = when (themeMode) {
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
@@ -149,135 +152,105 @@ fun ThemeColoursDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(themeBgBrush)
+            .testTag("theme_colours_screen")
     ) {
-        BackHandler(onBack = onDismissRequest)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(themeBgBrush)
-                .testTag("theme_colours_screen")
-        ) {
-            Scaffold(
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                topBar = {
-                    Box(
+        Scaffold(
+            containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            topBar = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .glassCardBackground(
+                            isDark = isDark,
+                            accentColor = currentAccentColor,
+                            shape = RoundedCornerShape(percent = 50),
+                            themeMode = themeMode
+                        )
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                            .glassCardBackground(
-                                isDark = isDark,
-                                accentColor = currentAccentColor,
-                                shape = RoundedCornerShape(percent = 50),
-                                themeMode = themeMode
-                            )
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
+                        IconButton(
+                            onClick = onDismissRequest,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .size(36.dp)
+                                .testTag("theme_colours_back_button")
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.weight(1f, fill = false)
-                            ) {
-                                IconButton(
-                                    onClick = onDismissRequest,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .testTag("theme_colours_back_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = currentAccentColor
-                                    )
-                                }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = currentAccentColor
+                            )
+                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Palette,
-                                        contentDescription = "Theme Icon",
-                                        tint = currentAccentColor,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = "Theme Icon",
+                                tint = currentAccentColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
 
-                                Column {
-                                    Text(
-                                        text = "Theme & Colours",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 17.sp,
-                                            letterSpacing = (-0.3).sp
-                                        ),
-                                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "Personalize app appearance",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-
-                            IconButton(
-                                onClick = onDismissRequest,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f))
-                                    .testTag("theme_colours_close_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Theme & Colours",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                    letterSpacing = (-0.3).sp
+                                ),
+                                color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Personalize app appearance",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
-            ) { innerPadding ->
-                ThemeColoursContent(
-                    themeMode = themeMode,
-                    selectedColorHex = selectedColorHex,
-                    onSelectThemeMode = onSelectThemeMode,
-                    onSelectColorHex = onSelectColorHex,
-                    onClose = onDismissRequest,
-                    isDark = isDark,
-                    themeModeState = themeMode,
-                    currentAccentColor = currentAccentColor,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                )
             }
+        ) { innerPadding ->
+            ThemeColoursContent(
+                themeMode = themeMode,
+                selectedColorHex = selectedColorHex,
+                onSelectThemeMode = onSelectThemeMode,
+                onSelectColorHex = onSelectColorHex,
+                onClose = onDismissRequest,
+                isDark = isDark,
+                themeModeState = themeMode,
+                currentAccentColor = currentAccentColor,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            )
         }
     }
 }
