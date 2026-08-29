@@ -166,7 +166,7 @@ fun ThemeColoursDialog(
         ) {
             Scaffold(
                 containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets.safeDrawing,
+                contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
                     Box(
                         modifier = Modifier

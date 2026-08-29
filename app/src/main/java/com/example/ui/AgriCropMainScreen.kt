@@ -135,6 +135,13 @@ fun AgriCropMainScreen(
         com.example.ui.AppThemeMode.DARK, com.example.ui.AppThemeMode.AMOLED -> true
     }
     val accentColorHex by viewModel.accentColorHex.collectAsState()
+    val parsedPaletteColor = remember(accentColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(accentColorHex))
+        } catch (e: Exception) {
+            null
+        }
+    }
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isGlobalSearchActive by viewModel.isGlobalSearchActive.collectAsState()
 
@@ -264,7 +271,8 @@ fun AgriCropMainScreen(
                         snackbarHostState.showSnackbar(errMsg)
                     }
                 }
-            }
+            },
+            customPaletteColor = parsedPaletteColor
         )
     }
 

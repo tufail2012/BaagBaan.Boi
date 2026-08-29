@@ -75,6 +75,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.example.ui.theme.getSectionAccentColor
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
@@ -84,8 +85,10 @@ import java.util.concurrent.Executors
 @Composable
 fun QrScannerDialog(
     onDismissRequest: () -> Unit,
-    onQrScanned: (String) -> Unit
+    onQrScanned: (String) -> Unit,
+    customPaletteColor: Color? = null
 ) {
+    val scanQrAccent = getSectionAccentColor("Scan QR", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -231,7 +234,7 @@ fun QrScannerDialog(
                     val cornerLength = 40.dp.toPx()
                     val strokeWidth = 4.dp.toPx()
                     val cornerRadius = 12.dp.toPx()
-                    val primaryColor = androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                    val primaryColor = scanQrAccent
 
                     // Dim outer area
                     drawRect(
@@ -328,7 +331,7 @@ fun QrScannerDialog(
                             .fillMaxWidth()
                             .glassCardBackground(
                                 cornerRadius = 20.dp,
-                                accentColor = Color(0xFF4CAF50),
+                                accentColor = scanQrAccent,
                                 isDark = true
                             )
                     ) {
@@ -340,7 +343,7 @@ fun QrScannerDialog(
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = scanQrAccent,
                                 modifier = Modifier.size(54.dp)
                             )
                             Text(
@@ -357,7 +360,7 @@ fun QrScannerDialog(
                             )
                             Button(
                                 onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)),
+                                colors = ButtonDefaults.buttonColors(containerColor = scanQrAccent),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -377,7 +380,7 @@ fun QrScannerDialog(
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .glassCardBackground(
                         isDark = true,
-                        accentColor = Color(0xFF4CAF50),
+                        accentColor = scanQrAccent,
                         shape = RoundedCornerShape(percent = 50)
                     )
             ) {
@@ -397,13 +400,13 @@ fun QrScannerDialog(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF4CAF50).copy(alpha = 0.25f)),
+                                .background(scanQrAccent.copy(alpha = 0.25f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = scanQrAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
