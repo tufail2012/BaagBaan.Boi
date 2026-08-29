@@ -386,7 +386,7 @@ fun SettingsScreen(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = settingsAccent,
-                        shape = CircleShape,
+                        shape = RoundedCornerShape(percent = 50),
                         themeMode = themeMode
                     )
             ) {

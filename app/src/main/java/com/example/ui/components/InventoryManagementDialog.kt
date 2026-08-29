@@ -178,7 +178,7 @@ fun InventoryManagementDialog(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = inventoryAccent,
-                        shape = CircleShape
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                     Row(

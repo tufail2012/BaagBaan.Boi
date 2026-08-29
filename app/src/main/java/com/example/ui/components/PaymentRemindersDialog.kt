@@ -272,7 +272,10 @@ fun PaymentRemindersDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         BackHandler(onBack = onDismiss)
 
@@ -294,7 +297,7 @@ fun PaymentRemindersDialog(
                             .glassCardBackground(
                                 isDark = isDark,
                                 accentColor = paymentAccent,
-                                shape = CircleShape
+                                shape = RoundedCornerShape(percent = 50)
                             )
                     ) {
                         Row(
@@ -340,7 +343,7 @@ fun PaymentRemindersDialog(
                                         fontSize = 17.sp,
                                         letterSpacing = (-0.3).sp
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = if (isDark) Color.White else Color(0xFF0F172A),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -350,7 +353,7 @@ fun PaymentRemindersDialog(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
                                     ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

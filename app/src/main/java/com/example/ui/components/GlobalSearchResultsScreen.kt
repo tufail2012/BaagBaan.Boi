@@ -168,20 +168,21 @@ fun GlobalSearchResultsScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header Bar
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                color = if (isDark) Color(0xFF1E293B) else Color.White,
-                shape = RoundedCornerShape(24.dp),
-                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)),
-                tonalElevation = 3.dp
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(percent = 50)
+                    )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {

@@ -194,14 +194,14 @@ fun AgriHeader(
         }
     }
 
-    val headerShape = if (isAttendanceScreen) RoundedCornerShape(16.dp) else CircleShape
+    val headerShape = RoundedCornerShape(percent = 50)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
             .padding(
-                horizontal = if (isAttendanceScreen) 12.dp else 16.dp,
+                horizontal = 16.dp,
                 vertical = 6.dp
             )
             .glassCardBackground(

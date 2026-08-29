@@ -378,7 +378,7 @@ fun QrScannerDialog(
                     .glassCardBackground(
                         isDark = true,
                         accentColor = Color(0xFF4CAF50),
-                        shape = CircleShape
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                 Row(

@@ -151,7 +151,10 @@ fun ThemeColoursDialog(
 
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         BackHandler(onBack = onDismissRequest)
 
@@ -173,7 +176,7 @@ fun ThemeColoursDialog(
                             .glassCardBackground(
                                 isDark = isDark,
                                 accentColor = currentAccentColor,
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(percent = 50),
                                 themeMode = themeMode
                             )
                     ) {

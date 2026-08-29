@@ -269,7 +269,7 @@ fun AgriDashboardScreen(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = dashboardAccent,
-                        shape = CircleShape
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                 Row(

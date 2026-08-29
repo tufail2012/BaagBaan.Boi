@@ -58,6 +58,9 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.example.ui.components.glassCardBackground
+
 @Composable
 fun DailyMarkingScreen(
     viewModel: AttendanceViewModel,
@@ -85,19 +88,25 @@ fun DailyMarkingScreen(
     val absentCount = dateRecords.count { it.status == AttendanceStatus.ABSENT }
     val unmarkedCount = (activeWorkers.size - (presentCount + absentCount)).coerceAtLeast(0)
 
+    val isDark = isSystemInDarkTheme()
+
     Scaffold(
         topBar = {
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding(),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(percent = 50)
+                    )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 12.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -107,21 +116,23 @@ fun DailyMarkingScreen(
                     ) {
                         IconButton(
                             onClick = onNavigateBack,
-                            modifier = Modifier.testTag("daily_marking_back_button")
+                            modifier = Modifier
+                                .size(36.dp)
+                                .testTag("daily_marking_back_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
                         Column {
                             Text(
                                 text = "Daily Attendance",
-                                style = MaterialTheme.typography.titleLarge.copy(
+                                style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 19.sp
+                                    fontSize = 17.sp
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface
                             )

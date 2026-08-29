@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -536,7 +537,7 @@ fun ContactDirectoryDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = contactAccent,
-                            shape = CircleShape
+                            shape = RoundedCornerShape(percent = 50)
                         )
                 ) {
                     Row(
@@ -1041,6 +1042,7 @@ fun ContactDetailsDialog(
     } + relatedGardenEntries.sumOf { it.totalCost }
     val totalPaid = relatedRecords.sumOf { it.amountPaid } + relatedGardenEntries.sumOf { it.amountPaid }
     val balanceDue = maxOf(0.0, totalAmount - totalPaid)
+    val isDark = isSystemInDarkTheme()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1051,27 +1053,59 @@ fun ContactDetailsDialog(
             color = MaterialTheme.colorScheme.background
         ) {
             Scaffold(
+                containerColor = Color.Transparent,
                 topBar = {
-                    TopAppBar(
-                        title = { Text(text = "Contact Profile & Bookings", fontWeight = FontWeight.Bold) },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Close")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .glassCardBackground(
+                                isDark = isDark,
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(percent = 50)
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                IconButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Close",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Text(
+                                    text = "Contact Profile & Bookings",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        },
-                        actions = {
-                            IconButton(onClick = onDeleteContact) {
+                            IconButton(
+                                onClick = onDeleteContact,
+                                modifier = Modifier.size(36.dp)
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "Delete Contact",
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
+                        }
+                    }
                 }
             ) { innerPadding ->
                 LazyColumn(

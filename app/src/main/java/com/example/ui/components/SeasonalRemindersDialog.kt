@@ -134,7 +134,10 @@ fun SeasonalRemindersDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
     ) {
         BackHandler(onBack = onDismiss)
 
@@ -156,7 +159,7 @@ fun SeasonalRemindersDialog(
                             .glassCardBackground(
                                 isDark = isDark,
                                 accentColor = seasonalAccent,
-                                shape = CircleShape
+                                shape = RoundedCornerShape(percent = 50)
                             )
                     ) {
                         Row(
@@ -283,45 +286,7 @@ fun SeasonalRemindersDialog(
                         .padding(paddingValues)
                         .padding(horizontal = 16.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Info Banner
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.Transparent
-                        ),
-                        border = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 16.dp,
-                                accentColor = seasonalAccent,
-                                isDark = isDark
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = seasonalAccent,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "Set annual dates for pruning, grafting, spraying, fertilizing, or harvest. Alarms automatically recur every year and survive device reboots.",
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Prominent Horizontal Add Task Button
                     Button(
