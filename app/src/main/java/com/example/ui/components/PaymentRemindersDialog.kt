@@ -282,99 +282,96 @@ fun PaymentRemindersDialog(
             .background(paymentBgBrush)
             .testTag("payment_reminders_dialog")
     ) {
-        Scaffold(
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                topBar = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glassCardBackground(
-                                isDark = isDark,
-                                accentColor = paymentAccent,
-                                shape = RoundedCornerShape(
-                                    topStart = 0.dp,
-                                    topEnd = 0.dp,
-                                    bottomStart = 28.dp,
-                                    bottomEnd = 28.dp
-                                )
-                            )
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glassCardBackground(
+                        isDark = isDark,
+                        accentColor = paymentAccent,
+                        shape = RoundedCornerShape(
+                            topStart = 0.dp,
+                            topEnd = 0.dp,
+                            bottomStart = 28.dp,
+                            bottomEnd = 28.dp
+                        )
+                    )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
-                        Row(
+                        IconButton(
+                            onClick = onDismiss,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .windowInsetsPadding(WindowInsets.statusBars)
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .size(36.dp)
+                                .testTag("payment_reminders_back_button")
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.weight(1f, fill = false)
-                            ) {
-                                IconButton(
-                                    onClick = onDismiss,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .testTag("payment_reminders_back_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "Back",
-                                        tint = paymentAccent
-                                    )
-                                }
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = paymentAccent
+                            )
+                        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(paymentAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Payment,
-                                        contentDescription = "Payment Icon",
-                                        tint = paymentAccent,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(paymentAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Payment,
+                                contentDescription = "Payment Icon",
+                                tint = paymentAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
 
-                                Column {
-                                    Text(
-                                        text = "Payment Reminders",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 17.sp,
-                                            letterSpacing = (-0.3).sp
-                                        ),
-                                        color = if (isDark) Color.White else Color(0xFF0F172A),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "${pendingItems.size} Pending • ${numberFormat.format(totalOutstanding)} Dues",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                        ),
-                                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
+                        Column {
+                            Text(
+                                text = "Payment Reminders",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                    letterSpacing = (-0.3).sp
+                                ),
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${pendingItems.size} Pending • ${numberFormat.format(totalOutstanding)} Dues",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
-            ) { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 16.dp)
-                ) {
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Outstanding Summary Card - Liquid Glass
