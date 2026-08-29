@@ -219,23 +219,14 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showPaymentRemindersDialog || showPaymentRemindersFromVm) {
-        PaymentRemindersDialog(
-            onDismiss = {
-                showPaymentRemindersDialog = false
-                viewModel.dismissPaymentReminders()
-            },
-            viewModel = viewModel,
-            customPaletteColor = parsedPaletteColor
-        )
-    }
-
     if (showSeasonalRemindersDialog || showSeasonalRemindersFromVm) {
         com.example.ui.components.SeasonalRemindersDialog(
             onDismiss = {
                 showSeasonalRemindersDialog = false
                 viewModel.dismissSeasonalReminders()
-            }
+            },
+            viewModel = viewModel,
+            customPaletteColor = parsedPaletteColor
         )
     }
 
@@ -331,6 +322,7 @@ fun AgriCropMainScreen(
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         showInventoryDialog || showInventoryFromVm -> "INVENTORY"
+        showPaymentRemindersDialog || showPaymentRemindersFromVm -> "PAYMENT_REMINDERS"
         showContactDirectoryDialog -> "CONTACTS"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
@@ -479,6 +471,17 @@ fun AgriCropMainScreen(
                     isDark = isDark,
                     viewModel = viewModel,
                     selectedColorHex = accentColorHex,
+                    modifier = modifier
+                )
+            }
+            "PAYMENT_REMINDERS" -> {
+                PaymentRemindersDialog(
+                    onDismiss = {
+                        showPaymentRemindersDialog = false
+                        viewModel.dismissPaymentReminders()
+                    },
+                    viewModel = viewModel,
+                    customPaletteColor = parsedPaletteColor,
                     modifier = modifier
                 )
             }

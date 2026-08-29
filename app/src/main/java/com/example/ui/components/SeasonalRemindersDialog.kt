@@ -6,26 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -97,7 +78,9 @@ private val SHORT_MONTH_NAMES = DateFormatSymbols().shortMonths.take(12)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeasonalRemindersDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    viewModel: com.example.ui.CropViewModel? = null,
+    customPaletteColor: Color? = null
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -109,7 +92,23 @@ fun SeasonalRemindersDialog(
     var showResetConfirm by remember { mutableStateOf(false) }
 
     val isDark = isAppInDarkMode()
-    val seasonalAccent = getSectionAccentColor("Seasonal Reminders")
+
+    val vmAccentHex by (viewModel?.accentColorHex ?: kotlinx.coroutines.flow.MutableStateFlow(null)).collectAsState()
+    val parsedPaletteColor = remember(vmAccentHex, customPaletteColor) {
+        if (customPaletteColor != null) return@remember customPaletteColor
+        val hex = vmAccentHex
+        if (hex != null) {
+            try {
+                Color(android.graphics.Color.parseColor(hex))
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     val seasonalBgBrush = remember(isDark, seasonalAccent) {
         if (isDark) {
             Brush.verticalGradient(
@@ -154,18 +153,22 @@ fun SeasonalRemindersDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
                             .glassCardBackground(
                                 isDark = isDark,
                                 accentColor = seasonalAccent,
-                                shape = RoundedCornerShape(percent = 50)
+                                shape = RoundedCornerShape(
+                                    topStart = 0.dp,
+                                    topEnd = 0.dp,
+                                    bottomStart = 28.dp,
+                                    bottomEnd = 28.dp
+                                )
                             )
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .windowInsetsPadding(WindowInsets.statusBars)
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -405,6 +408,7 @@ fun SeasonalRemindersDialog(
     if (showEditDialog && taskToEdit != null) {
         SeasonalTaskEditDialog(
             task = taskToEdit!!,
+            seasonalAccent = seasonalAccent,
             onDismiss = {
                 showEditDialog = false
                 taskToEdit = null
@@ -701,6 +705,7 @@ private fun SeasonalTaskCard(
 @Composable
 private fun SeasonalTaskEditDialog(
     task: SeasonalTask,
+    seasonalAccent: Color,
     onDismiss: () -> Unit,
     onSave: (SeasonalTask) -> Unit
 ) {
@@ -810,7 +815,7 @@ private fun SeasonalTaskEditDialog(
                         label = { Text("Task Title") },
                         placeholder = { Text("e.g. Dormant Oil Spray (HMO)") },
                         shape = RoundedCornerShape(14.dp),
-                        colors = elevatedInputFieldColors(accentColor = getSectionAccentColor("Seasonal Reminders")),
+                        colors = elevatedInputFieldColors(accentColor = seasonalAccent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("seasonal_title_input")
@@ -993,7 +998,7 @@ private fun SeasonalTaskEditDialog(
                         minLines = 3,
                         maxLines = 5,
                         shape = RoundedCornerShape(14.dp),
-                        colors = elevatedInputFieldColors(accentColor = getSectionAccentColor("Seasonal Reminders")),
+                        colors = elevatedInputFieldColors(accentColor = seasonalAccent),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("seasonal_notes_input")

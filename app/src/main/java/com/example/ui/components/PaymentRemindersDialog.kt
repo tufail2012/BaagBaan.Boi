@@ -274,22 +274,15 @@ fun PaymentRemindersDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            decorFitsSystemWindows = false
-        )
-    ) {
-        BackHandler(onBack = onDismiss)
+    BackHandler(onBack = onDismiss)
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(paymentBgBrush)
-                .testTag("payment_reminders_dialog")
-        ) {
-            Scaffold(
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(paymentBgBrush)
+            .testTag("payment_reminders_dialog")
+    ) {
+        Scaffold(
                 containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 topBar = {
@@ -590,7 +583,6 @@ fun PaymentRemindersDialog(
             }
         }
     }
-}
 
 @Composable
 fun PendingPaymentRow(
