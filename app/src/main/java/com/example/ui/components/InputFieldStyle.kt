@@ -769,11 +769,11 @@ fun Modifier.glassCardBackground(
                     1.0f to Color(0xFF0F172A).copy(alpha = 0.97f)
                 )
                 else -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.97f),
-                    0.20f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
-                    0.55f to Color.White.copy(alpha = 0.93f),
+                    0.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f),
+                    0.20f to Color(0xFFE2E8F0).copy(alpha = 0.92f),
+                    0.55f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
                     0.80f to accentColor.copy(alpha = 0.06f),
-                    1.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f)
+                    1.0f to Color(0xFFE2E8F0).copy(alpha = 0.96f)
                 )
             }
         }
@@ -817,10 +817,10 @@ fun Modifier.glassCardBackground(
                     1.0f to goldColor.copy(alpha = 0.75f)
                 )
                 else -> Brush.verticalGradient(
-                    0.0f to goldColor.copy(alpha = 0.75f),
-                    0.30f to goldColor.copy(alpha = 0.85f),
-                    0.70f to goldColor.copy(alpha = 0.85f),
-                    1.0f to goldColor.copy(alpha = 0.75f)
+                    0.0f to goldColor.copy(alpha = 0.90f),
+                    0.30f to goldColor.copy(alpha = 1.0f),
+                    0.70f to goldColor.copy(alpha = 1.0f),
+                    1.0f to goldColor.copy(alpha = 0.90f)
                 )
             }
         }
