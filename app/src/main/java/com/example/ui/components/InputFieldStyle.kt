@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
@@ -757,126 +758,50 @@ fun Modifier.glassCardBackground(
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
 
-    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
-        if (flatStyle) {
-            val flatColor = when {
-                isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.96f)
-                effectiveIsDark -> Color(0xFF162032).copy(alpha = 0.95f)
-                else -> Color(0xFFF8FAFC).copy(alpha = 0.95f)
-            }
-            Brush.linearGradient(listOf(flatColor, flatColor))
-        } else {
-            // Standard fallback gradient fill
-            when {
-                isAmoled -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1C1917).copy(alpha = 0.98f),
-                    0.30f to Color(0xFF0C0A09).copy(alpha = 0.95f),
-                    0.70f to accentColor.copy(alpha = 0.12f),
-                    1.0f to Color(0xFF000000).copy(alpha = 0.98f)
-                )
-                effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1E293B).copy(alpha = 0.96f),
-                    0.25f to Color(0xFF162032).copy(alpha = 0.93f),
-                    0.60f to accentColor.copy(alpha = 0.09f),
-                    1.0f to Color(0xFF0F172A).copy(alpha = 0.97f)
-                )
-                else -> Brush.verticalGradient(
-                    0.0f to Color(0xFFF1F5F9).copy(alpha = 0.96f),
-                    0.20f to Color(0xFFE2E8F0).copy(alpha = 0.92f),
-                    0.55f to Color(0xFFF8FAFC).copy(alpha = 0.94f),
-                    0.80f to accentColor.copy(alpha = 0.06f),
-                    1.0f to Color(0xFFE2E8F0).copy(alpha = 0.96f)
-                )
-            }
+    val containerColor = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
+        when {
+            isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.05f)
+            effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.05f)
+            else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.04f)
         }
     }
 
-    val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor, isFocused) {
-        if (isFocused) {
-            Brush.verticalGradient(
-                0.0f to accentColor.copy(alpha = 0.95f),
-                0.5f to accentColor.copy(alpha = 1.0f),
-                1.0f to accentColor.copy(alpha = 0.95f)
-            )
-        } else {
-            Brush.verticalGradient(
-                listOf(Color.Transparent, Color.Transparent)
-            )
-        }
+    val borderStroke = if (isFocused) {
+        BorderStroke(1.5.dp, accentColor.copy(alpha = 0.9f))
+    } else {
+        null
     }
-
-    val sheenBrush = remember(effectiveIsDark) {
-        Brush.verticalGradient(
-            0.0f to (if (effectiveIsDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.38f)),
-            0.15f to (if (effectiveIsDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f)),
-            0.35f to (if (effectiveIsDark) Color.White.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.04f)),
-            1.0f to Color.Transparent
-        )
-    }
-
-    val effectiveBorderWidth = if (isFocused) 1.25.dp else borderWidth
 
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = (elevation * 0.45f).coerceIn(2.dp, 4.dp),
-            blurRadius = (elevation * 1.8f).coerceIn(10.dp, 16.dp),
-            elevationAlphaScale = if (elevation > 8.dp) 1.25f else 1.0f
+            offsetY = 2.dp,
+            blurRadius = 8.dp,
+            elevationAlphaScale = 1.0f
         )
         .clip(effectiveShape)
-        .background(containerGradient)
+        .background(containerColor)
         .drawWithCache {
-            val w = size.width
-            val h = size.height
-            if (w <= 0f || h <= 0f) {
-                onDrawBehind {
-                    drawRect(brush = sheenBrush)
-                }
-            } else {
-                // Precalculate ~20 soft specular sparkle dots seeded deterministically
-                val rng = java.util.Random(42L)
-                val count = 20
-                val dots = List(count) {
-                    val normX = rng.nextFloat()
-                    val normY = rng.nextFloat()
-                    val radiusPx = (1.2f + rng.nextFloat() * 1.8f) * density
-                    val alpha = if (effectiveIsDark) {
-                        0.15f + rng.nextFloat() * 0.12f
-                    } else {
-                        0.18f + rng.nextFloat() * 0.12f
-                    }
-                    val center = Offset(normX * w, normY * h)
-                    val radialBrush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = alpha),
-                            Color.White.copy(alpha = alpha * 0.4f),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = radiusPx
-                    )
-                    Triple(center, radiusPx, radialBrush)
-                }
-
-                onDrawBehind {
-                    // Specular sheen
-                    drawRect(brush = sheenBrush)
-                    // Static frosted-glass sparkle/texture layer
-                    for ((center, radiusPx, radialBrush) in dots) {
-                        drawCircle(
-                            brush = radialBrush,
-                            radius = radiusPx,
-                            center = center
-                        )
-                    }
-                }
+            val diagonalHighlight = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (effectiveIsDark) 0.06f else 0.14f),
+                    Color.White.copy(alpha = if (effectiveIsDark) 0.02f else 0.05f),
+                    Color.Transparent
+                ),
+                start = Offset(0f, 0f),
+                end = Offset(size.width * 0.6f, size.height * 0.9f)
+            )
+            onDrawBehind {
+                drawRect(brush = diagonalHighlight)
             }
         }
-        .border(
-            width = effectiveBorderWidth,
-            brush = specularBorderBrush,
-            shape = effectiveShape
+        .then(
+            if (borderStroke != null) {
+                Modifier.border(borderStroke, effectiveShape)
+            } else {
+                Modifier
+            }
         )
 }
 
