@@ -63,10 +63,6 @@ import android.provider.Settings
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import com.example.ui.AppThemeMode
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
@@ -581,7 +577,6 @@ fun Modifier.boundedFormFieldRipple(
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     enabled: Boolean = true,
-    hazeState: HazeState? = null,
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
@@ -598,7 +593,6 @@ fun Modifier.boundedFormFieldRipple(
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
-            hazeState = hazeState,
             isFocused = effectiveIsFocused
         )
         .centerWaterRipple(
@@ -747,10 +741,8 @@ fun Modifier.glassCardBackground(
     elevation: Dp = 6.dp,
     borderWidth: Dp = 1.25.dp,
     flatStyle: Boolean = false,
-    hazeState: HazeState? = null,
     isFocused: Boolean = false
 ): Modifier {
-    val context = LocalContext.current
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
             AppThemeMode.SYSTEM -> isDark
@@ -763,42 +755,8 @@ fun Modifier.glassCardBackground(
 
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
-    val screenBgColor = MaterialTheme.colorScheme.background
 
-    // Performance & accessibility check for battery saver / reduce transparency
-    val isReduceTransparencyOrBatterySaver = remember(context) {
-        try {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            val isPowerSave = powerManager?.isPowerSaveMode == true
-            val reduceTransparency = Settings.Secure.getInt(context.contentResolver, "reduce_transparency", 0) == 1
-            isPowerSave || reduceTransparency
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    // Explicit HazeStyle matching AgriSegmentedControl and app-wide liquid glass design system
-    val hazeStyle = remember(effectiveIsDark, isAmoled, accentColor, screenBgColor) {
-        when {
-            isAmoled -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.22f)),
-                blurRadius = 36.dp
-            )
-            effectiveIsDark -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.48f)),
-                blurRadius = 36.dp
-            )
-            else -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.20f)),
-                blurRadius = 36.dp
-            )
-        }
-    }
-
-    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor, flatStyle, hazeState) {
+    val containerGradient = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
         if (flatStyle) {
             val flatColor = when {
                 isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.96f)
@@ -806,25 +764,6 @@ fun Modifier.glassCardBackground(
                 else -> Color(0xFFF8FAFC).copy(alpha = 0.95f)
             }
             Brush.linearGradient(listOf(flatColor, flatColor))
-        } else if (hazeState != null) {
-            // Translucent glass overlay tint when Haze backdrop blur is active
-            when {
-                isAmoled -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1C1917).copy(alpha = 0.32f),
-                    0.50f to Color(0xFF0C0A09).copy(alpha = 0.22f),
-                    1.0f to Color(0xFF000000).copy(alpha = 0.35f)
-                )
-                effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1E293B).copy(alpha = 0.35f),
-                    0.50f to Color(0xFF162032).copy(alpha = 0.25f),
-                    1.0f to Color(0xFF0F172A).copy(alpha = 0.38f)
-                )
-                else -> Brush.verticalGradient(
-                    0.0f to Color(0xFFFFFFFF).copy(alpha = 0.35f),
-                    0.50f to Color(0xFFF8FAFC).copy(alpha = 0.22f),
-                    1.0f to Color(0xFFE2E8F0).copy(alpha = 0.30f)
-                )
-            }
         } else {
             // Standard fallback gradient fill
             when {
@@ -905,13 +844,6 @@ fun Modifier.glassCardBackground(
             elevationAlphaScale = if (elevation > 8.dp) 1.5f else 1.0f
         )
         .clip(effectiveShape)
-        .then(
-            if (hazeState != null && !isReduceTransparencyOrBatterySaver) {
-                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
-            } else {
-                Modifier
-            }
-        )
         .background(containerGradient)
         .drawBehind {
             // Draw top specular sheen for authentic optical glass refraction

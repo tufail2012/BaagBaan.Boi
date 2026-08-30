@@ -64,7 +64,7 @@ fun MyApplicationTheme(
         )
         else -> {
             // Soft, muted frosted canvas tint (preserves subtle section identity without oversaturating)
-            val faintTintedBackground = lerp(accentColor, Color(0xFFF8FAFC), 0.935f)
+            val faintTintedBackground = lerp(accentColor, Color(0xFFFCFDFD), 0.985f)
             lightColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,

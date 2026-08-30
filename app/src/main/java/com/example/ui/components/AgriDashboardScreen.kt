@@ -243,9 +243,9 @@ fun AgriDashboardScreen(
         } else {
             Brush.verticalGradient(
                 colors = listOf(
+                    Color(0xFFFAFBFC),
+                    dashboardAccent.copy(alpha = 0.015f),
                     Color(0xFFF8FAFC),
-                    dashboardAccent.copy(alpha = 0.035f),
-                    Color(0xFFF1F5F9),
                     Color(0xFFFFFFFF)
                 )
             )
