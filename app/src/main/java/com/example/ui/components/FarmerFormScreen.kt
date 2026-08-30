@@ -162,6 +162,8 @@ import java.util.Locale
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.window.Dialog
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
 import com.example.ui.CropViewModel
@@ -185,6 +187,7 @@ fun FarmerFormScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val hazeState = remember { HazeState() }
 
     var multiplePhoneNumbers by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
     var selectedContactNameForDialog by remember { mutableStateOf<String?>(null) }
@@ -770,6 +773,7 @@ fun FarmerFormScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .hazeSource(state = hazeState)
             .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -792,7 +796,7 @@ fun FarmerFormScreen(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("serial_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark),
@@ -873,7 +877,7 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_name_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -898,7 +902,7 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_address_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -968,7 +972,7 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
@@ -1071,7 +1075,8 @@ fun FarmerFormScreen(
                                 .fillMaxWidth()
                                 .glassCardBackground(
                                     accentColor = MaterialTheme.colorScheme.primary,
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    hazeState = hazeState
                                 )
                         ) {
                             Column(
@@ -1120,7 +1125,7 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .boundedFormFieldRipple(shape = textFieldShape)
+                                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                                         .testTag("variety_line_name_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
@@ -1145,7 +1150,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1168,7 +1173,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1202,7 +1207,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                                             .testTag("variety_line_qty_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1229,7 +1234,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                                             .testTag("variety_line_price_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1325,7 +1330,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("visit_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1350,7 +1355,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("soil_health_observations_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1375,7 +1380,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("plant_health_observations_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1430,7 +1435,7 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("orchard_site_location_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1485,7 +1490,7 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("orchard_location_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1510,7 +1515,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("plant_variety_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1541,7 +1546,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("rootstock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1568,7 +1573,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("feathers_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1580,7 +1585,7 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { saplingAgeMenuExpanded = true }
-                        .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState) { saplingAgeMenuExpanded = true }
                 ) {
                     OutlinedTextField(
                         value = healthStage.ifBlank { "1 Year" },
@@ -1648,7 +1653,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("rootstock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1674,7 +1679,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("feathers_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1703,7 +1708,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("import_country_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1713,7 +1718,7 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clickable { saplingAgeMenuExpanded = true }
-                            .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState) { saplingAgeMenuExpanded = true }
                     ) {
                         OutlinedTextField(
                             value = healthStage.ifBlank { "1 Year" },
@@ -1778,7 +1783,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("rootstock_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1806,7 +1811,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("import_country_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1828,7 +1833,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("root_diameter_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1866,7 +1871,7 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("scion_variety_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -1898,7 +1903,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("graft_type_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1928,13 +1933,10 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .glassCardBackground(
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        shape = textFieldShape
-                    )
                     .boundedFormFieldRipple(
                         shape = textFieldShape,
                         accentColor = MaterialTheme.colorScheme.primary,
+                        hazeState = hazeState,
                         onClick = {
                             viewModel.enableMultiVarietyForCurrentTab()
                         }
@@ -2123,7 +2125,7 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = pillShape)
+                    .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                     .elevated3dShadow(shape = pillShape, isDark = isDark)
                     .testTag("quantity_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2177,7 +2179,7 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("unit_price_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2223,7 +2225,7 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("grafting_charges_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2270,7 +2272,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("quantity_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2297,7 +2299,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("unit_price_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2389,7 +2391,7 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = pillShape)
+                .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState)
                 .elevated3dShadow(shape = pillShape, isDark = isDark)
                 .testTag("amount_paid_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -2402,7 +2404,8 @@ fun FarmerFormScreen(
                 .glassCardBackground(
                     isDark = isDark,
                     accentColor = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(16.dp),
+                    hazeState = hazeState
                 )
         ) {
             Column(
@@ -2498,7 +2501,7 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("booking_date_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2548,7 +2551,7 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("expected_delivery_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2656,7 +2659,7 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .boundedFormFieldRipple(shape = textFieldShape, hazeState = hazeState)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_notes_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -2746,7 +2749,7 @@ fun FarmerFormScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                                .boundedFormFieldRipple(shape = pillShape, hazeState = hazeState) { templateMenuExpanded = true }
                         ) {
                             OutlinedTextField(
                                 value = selectedTemplate,
