@@ -129,6 +129,7 @@ fun AgriHeader(
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToInventory: () -> Unit = {},
     onOpenRecycleBin: () -> Unit = {},
+    onOpenThemeDialog: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToGardenPlanning: () -> Unit = {},
     onNavigateToSettings: (() -> Unit)? = null,
@@ -149,7 +150,6 @@ fun AgriHeader(
     val effectivePhotoUrl = currentUserPhotoUrl ?: authUser?.photoUrl?.toString()
 
     var menuExpanded by remember { mutableStateOf(false) }
-    var showThemeDialog by remember { mutableStateOf(false) }
     var showSyncDetailsDialog by remember { mutableStateOf(false) }
 
     val syncState by FirestoreSyncManager.syncState.collectAsState()
@@ -347,7 +347,7 @@ fun AgriHeader(
                             onNavigateToMessageTemplates = onNavigateToMessageTemplates,
                             onNavigateToQrScanner = onNavigateToQrScanner,
                             onLogout = onLogout,
-                            onOpenThemeDialog = { showThemeDialog = true },
+                            onOpenThemeDialog = onOpenThemeDialog,
                             onOpenRecycleBin = onOpenRecycleBin
                         )
                     }
@@ -532,7 +532,7 @@ fun AgriHeader(
                                     onNavigateToMessageTemplates = onNavigateToMessageTemplates,
                                     onNavigateToQrScanner = onNavigateToQrScanner,
                                     onLogout = onLogout,
-                                    onOpenThemeDialog = { showThemeDialog = true },
+                                    onOpenThemeDialog = onOpenThemeDialog,
                                     onOpenRecycleBin = onOpenRecycleBin
                                 )
                             }
@@ -541,17 +541,6 @@ fun AgriHeader(
                 }
             }
         }
-    }
-
-    // Theme Selection Dialog
-    if (showThemeDialog) {
-        ThemeColoursDialog(
-            themeMode = themeMode,
-            selectedColorHex = selectedColorHex,
-            onSelectThemeMode = onSelectThemeMode,
-            onSelectColorHex = onSelectColorHex,
-            onDismissRequest = { showThemeDialog = false }
-        )
     }
 
     if (showSyncDetailsDialog) {

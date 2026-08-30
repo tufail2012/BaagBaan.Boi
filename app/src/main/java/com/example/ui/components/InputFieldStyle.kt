@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -28,9 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -838,17 +838,15 @@ fun Modifier.glassCardBackground(
 
     val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         Modifier.graphicsLayer {
-            val blurPx = (elevation * 2f).coerceAtLeast(16.dp).toPx()
-            renderEffect = RenderEffect.createBlurEffect(
-                blurPx, blurPx, Shader.TileMode.CLAMP
-            ).asComposeRenderEffect()
+            renderEffect = android.graphics.RenderEffect
+                .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.CLAMP)
+                .asComposeRenderEffect()
         }
     } else {
         Modifier
     }
 
     return this
-        .then(blurModifier)
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
@@ -856,6 +854,7 @@ fun Modifier.glassCardBackground(
             blurRadius = (elevation * 1.4f).coerceAtLeast(8.dp),
             elevationAlphaScale = if (elevation > 8.dp) 1.5f else 1.0f
         )
+        .then(blurModifier)
         .clip(effectiveShape)
         .background(containerGradient)
         .drawBehind {

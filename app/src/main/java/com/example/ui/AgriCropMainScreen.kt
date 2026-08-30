@@ -227,16 +227,6 @@ fun AgriCropMainScreen(
         )
     }
 
-    if (showThemePreferencesDialog) {
-        com.example.ui.components.ThemeColoursDialog(
-            themeMode = themeMode,
-            selectedColorHex = accentColorHex,
-            onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-            onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-            onDismissRequest = { showThemePreferencesDialog = false }
-        )
-    }
-
     if (showBusinessInfoDialog) {
         BusinessInfoDialog(
             onDismiss = { showBusinessInfoDialog = false }
@@ -298,6 +288,7 @@ fun AgriCropMainScreen(
         showInventoryDialog || showInventoryFromVm -> "INVENTORY"
         showPaymentRemindersDialog || showPaymentRemindersFromVm -> "PAYMENT_REMINDERS"
         showSeasonalRemindersDialog || showSeasonalRemindersFromVm -> "SEASONAL_REMINDERS"
+        showThemePreferencesDialog -> "THEME"
         showQrScannerDialog -> "SCAN_QR"
         showContactDirectoryDialog -> "CONTACTS"
         isGlobalSearchActive -> "SEARCH"
@@ -473,6 +464,16 @@ fun AgriCropMainScreen(
                     modifier = modifier
                 )
             }
+            "THEME" -> {
+                com.example.ui.components.ThemeColoursDialog(
+                    themeMode = themeMode,
+                    selectedColorHex = accentColorHex,
+                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                    onDismissRequest = { showThemePreferencesDialog = false },
+                    modifier = modifier
+                )
+            }
             "SCAN_QR" -> {
                 com.example.ui.components.QrScannerDialog(
                     onDismissRequest = { showQrScannerDialog = false },
@@ -565,6 +566,9 @@ fun AgriCropMainScreen(
                                 },
                                 onOpenRecycleBin = {
                                     showRecycleBinDialog = true
+                                },
+                                onOpenThemeDialog = {
+                                    showThemePreferencesDialog = true
                                 },
                                 onNavigateToDashboard = {
                                     isDashboardActive = true
