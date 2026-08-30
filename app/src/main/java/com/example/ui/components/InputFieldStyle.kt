@@ -807,25 +807,22 @@ fun Modifier.glassCardBackground(
 
     val sheenBrush = remember(effectiveIsDark) {
         Brush.verticalGradient(
-            0.0f to (if (effectiveIsDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)),
-            0.20f to (if (effectiveIsDark) Color.White.copy(alpha = 0.03f) else Color.White.copy(alpha = 0.08f)),
+            0.0f to (if (effectiveIsDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.38f)),
+            0.15f to (if (effectiveIsDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f)),
+            0.35f to (if (effectiveIsDark) Color.White.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.04f)),
             1.0f to Color.Transparent
         )
     }
 
-    val effectiveBorderWidth = if (isFocused) {
-        if (borderWidth == 1.25.dp || borderWidth == 1.5.dp) 1.75.dp else borderWidth
-    } else {
-        if (borderWidth == 1.25.dp) 1.5.dp else borderWidth
-    }
+    val effectiveBorderWidth = if (isFocused) 1.25.dp else borderWidth
 
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = (elevation * 0.55f).coerceAtLeast(3.dp),
-            blurRadius = (elevation * 1.4f).coerceAtLeast(8.dp),
-            elevationAlphaScale = if (elevation > 8.dp) 1.5f else 1.0f
+            offsetY = (elevation * 0.45f).coerceIn(2.dp, 4.dp),
+            blurRadius = (elevation * 1.8f).coerceIn(10.dp, 16.dp),
+            elevationAlphaScale = if (elevation > 8.dp) 1.25f else 1.0f
         )
         .clip(effectiveShape)
         .background(containerGradient)
