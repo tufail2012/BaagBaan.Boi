@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Offset
@@ -798,26 +799,9 @@ fun Modifier.glassCardBackground(
                 1.0f to accentColor.copy(alpha = 0.95f)
             )
         } else {
-            when {
-                isAmoled -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.80f),
-                    0.30f to Color.White.copy(alpha = 0.95f),
-                    0.70f to Color.White.copy(alpha = 0.95f),
-                    1.0f to Color.White.copy(alpha = 0.80f)
-                )
-                effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color.White.copy(alpha = 0.75f),
-                    0.30f to Color.White.copy(alpha = 0.90f),
-                    0.70f to Color.White.copy(alpha = 0.90f),
-                    1.0f to Color.White.copy(alpha = 0.75f)
-                )
-                else -> Brush.verticalGradient(
-                    0.0f to Color.Black.copy(alpha = 0.90f),
-                    0.30f to Color.Black.copy(alpha = 1.0f),
-                    0.70f to Color.Black.copy(alpha = 1.0f),
-                    1.0f to Color.Black.copy(alpha = 0.90f)
-                )
-            }
+            Brush.verticalGradient(
+                listOf(Color.Transparent, Color.Transparent)
+            )
         }
     }
 
@@ -845,9 +829,52 @@ fun Modifier.glassCardBackground(
         )
         .clip(effectiveShape)
         .background(containerGradient)
-        .drawBehind {
-            // Draw top specular sheen for authentic optical glass refraction
-            drawRect(brush = sheenBrush)
+        .drawWithCache {
+            val w = size.width
+            val h = size.height
+            if (w <= 0f || h <= 0f) {
+                onDrawBehind {
+                    drawRect(brush = sheenBrush)
+                }
+            } else {
+                // Precalculate ~20 soft specular sparkle dots seeded deterministically
+                val rng = java.util.Random(42L)
+                val count = 20
+                val dots = List(count) {
+                    val normX = rng.nextFloat()
+                    val normY = rng.nextFloat()
+                    val radiusPx = (1.2f + rng.nextFloat() * 1.8f) * density
+                    val alpha = if (effectiveIsDark) {
+                        0.15f + rng.nextFloat() * 0.12f
+                    } else {
+                        0.18f + rng.nextFloat() * 0.12f
+                    }
+                    val center = Offset(normX * w, normY * h)
+                    val radialBrush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = alpha),
+                            Color.White.copy(alpha = alpha * 0.4f),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = radiusPx
+                    )
+                    Triple(center, radiusPx, radialBrush)
+                }
+
+                onDrawBehind {
+                    // Specular sheen
+                    drawRect(brush = sheenBrush)
+                    // Static frosted-glass sparkle/texture layer
+                    for ((center, radiusPx, radialBrush) in dots) {
+                        drawCircle(
+                            brush = radialBrush,
+                            radius = radiusPx,
+                            center = center
+                        )
+                    }
+                }
+            }
         }
         .border(
             width = effectiveBorderWidth,
