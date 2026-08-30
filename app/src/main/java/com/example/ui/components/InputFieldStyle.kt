@@ -782,18 +782,18 @@ fun Modifier.glassCardBackground(
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.16f)),
-                blurRadius = 24.dp
+                tint = HazeTint(accentColor.copy(alpha = 0.22f)),
+                blurRadius = 36.dp
             )
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.35f)),
-                blurRadius = 24.dp
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.48f)),
+                blurRadius = 36.dp
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.08f)),
-                blurRadius = 24.dp
+                tint = HazeTint(accentColor.copy(alpha = 0.20f)),
+                blurRadius = 36.dp
             )
         }
     }
@@ -810,19 +810,19 @@ fun Modifier.glassCardBackground(
             // Translucent glass overlay tint when Haze backdrop blur is active
             when {
                 isAmoled -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1C1917).copy(alpha = 0.50f),
-                    0.50f to Color(0xFF0C0A09).copy(alpha = 0.40f),
-                    1.0f to Color(0xFF000000).copy(alpha = 0.55f)
+                    0.0f to Color(0xFF1C1917).copy(alpha = 0.32f),
+                    0.50f to Color(0xFF0C0A09).copy(alpha = 0.22f),
+                    1.0f to Color(0xFF000000).copy(alpha = 0.35f)
                 )
                 effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to Color(0xFF1E293B).copy(alpha = 0.55f),
-                    0.50f to Color(0xFF162032).copy(alpha = 0.45f),
-                    1.0f to Color(0xFF0F172A).copy(alpha = 0.60f)
+                    0.0f to Color(0xFF1E293B).copy(alpha = 0.35f),
+                    0.50f to Color(0xFF162032).copy(alpha = 0.25f),
+                    1.0f to Color(0xFF0F172A).copy(alpha = 0.38f)
                 )
                 else -> Brush.verticalGradient(
-                    0.0f to Color(0xFFFFFFFF).copy(alpha = 0.70f),
-                    0.50f to Color(0xFFF8FAFC).copy(alpha = 0.55f),
-                    1.0f to Color(0xFFE2E8F0).copy(alpha = 0.65f)
+                    0.0f to Color(0xFFFFFFFF).copy(alpha = 0.35f),
+                    0.50f to Color(0xFFF8FAFC).copy(alpha = 0.22f),
+                    1.0f to Color(0xFFE2E8F0).copy(alpha = 0.30f)
                 )
             }
         } else {
