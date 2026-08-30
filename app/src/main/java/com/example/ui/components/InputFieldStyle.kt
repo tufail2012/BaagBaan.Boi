@@ -1,8 +1,5 @@
 package com.example.ui.components
 
-import android.graphics.RenderEffect
-import android.graphics.Shader
-import android.os.Build
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -43,11 +40,9 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -790,7 +785,6 @@ fun Modifier.glassCardBackground(
         }
     }
 
-    val goldColor = Color(0xFFD4AF37)
     val specularBorderBrush = remember(effectiveIsDark, isAmoled, accentColor, isFocused) {
         if (isFocused) {
             Brush.verticalGradient(
@@ -801,22 +795,22 @@ fun Modifier.glassCardBackground(
         } else {
             when {
                 isAmoled -> Brush.verticalGradient(
-                    0.0f to goldColor.copy(alpha = 0.80f),
-                    0.30f to goldColor.copy(alpha = 0.95f),
-                    0.70f to goldColor.copy(alpha = 0.95f),
-                    1.0f to goldColor.copy(alpha = 0.80f)
+                    0.0f to Color.White.copy(alpha = 0.80f),
+                    0.30f to Color.White.copy(alpha = 0.95f),
+                    0.70f to Color.White.copy(alpha = 0.95f),
+                    1.0f to Color.White.copy(alpha = 0.80f)
                 )
                 effectiveIsDark -> Brush.verticalGradient(
-                    0.0f to goldColor.copy(alpha = 0.75f),
-                    0.30f to goldColor.copy(alpha = 0.90f),
-                    0.70f to goldColor.copy(alpha = 0.90f),
-                    1.0f to goldColor.copy(alpha = 0.75f)
+                    0.0f to Color.White.copy(alpha = 0.75f),
+                    0.30f to Color.White.copy(alpha = 0.90f),
+                    0.70f to Color.White.copy(alpha = 0.90f),
+                    1.0f to Color.White.copy(alpha = 0.75f)
                 )
                 else -> Brush.verticalGradient(
-                    0.0f to goldColor.copy(alpha = 0.90f),
-                    0.30f to goldColor.copy(alpha = 1.0f),
-                    0.70f to goldColor.copy(alpha = 1.0f),
-                    1.0f to goldColor.copy(alpha = 0.90f)
+                    0.0f to Color.Black.copy(alpha = 0.90f),
+                    0.30f to Color.Black.copy(alpha = 1.0f),
+                    0.70f to Color.Black.copy(alpha = 1.0f),
+                    1.0f to Color.Black.copy(alpha = 0.90f)
                 )
             }
         }
@@ -836,16 +830,6 @@ fun Modifier.glassCardBackground(
         if (borderWidth == 1.25.dp) 1.5.dp else borderWidth
     }
 
-    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.graphicsLayer {
-            renderEffect = android.graphics.RenderEffect
-                .createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.CLAMP)
-                .asComposeRenderEffect()
-        }
-    } else {
-        Modifier
-    }
-
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
@@ -854,7 +838,6 @@ fun Modifier.glassCardBackground(
             blurRadius = (elevation * 1.4f).coerceAtLeast(8.dp),
             elevationAlphaScale = if (elevation > 8.dp) 1.5f else 1.0f
         )
-        .then(blurModifier)
         .clip(effectiveShape)
         .background(containerGradient)
         .drawBehind {
