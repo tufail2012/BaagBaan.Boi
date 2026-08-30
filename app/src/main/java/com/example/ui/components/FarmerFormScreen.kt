@@ -3,6 +3,11 @@ package com.example.ui.components
 import android.content.Context
 import androidx.compose.material3.LocalTextStyle
 
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import android.Manifest
 import android.app.Activity
 import android.app.DatePickerDialog
@@ -659,6 +664,24 @@ fun FarmerFormScreen(
 
     val textFieldShape = RoundedCornerShape(16.dp)
     val isDark = isAppInDarkMode()
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val farmerHazeState = remember { HazeState() }
+
+    val navBarHazeStyle = remember(isDark, screenBgColor) {
+        if (!isDark) {
+            HazeStyle(
+                backgroundColor = screenBgColor,
+                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
+                blurRadius = 26.dp
+            )
+        } else {
+            HazeStyle(
+                backgroundColor = screenBgColor,
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
+                blurRadius = 26.dp
+            )
+        }
+    }
 
     val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
     val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
@@ -770,6 +793,7 @@ fun FarmerFormScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .hazeSource(state = farmerHazeState)
             .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -873,6 +897,8 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(textFieldShape)
+                .hazeEffect(state = farmerHazeState, style = navBarHazeStyle)
                 .boundedFormFieldRipple(shape = textFieldShape)
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_name_input"),

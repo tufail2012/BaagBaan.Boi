@@ -760,9 +760,9 @@ fun Modifier.glassCardBackground(
 
     val containerColor = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
         when {
-            isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.05f)
-            effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.05f)
-            else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.04f)
+            isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.12f)
+            effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f)
+            else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f)
         }
     }
 
