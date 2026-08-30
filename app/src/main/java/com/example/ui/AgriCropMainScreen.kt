@@ -281,16 +281,16 @@ fun AgriCropMainScreen(
 
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
+        showThemePreferencesDialog -> "THEME"
+        showQrScannerDialog -> "SCAN_QR"
+        showContactDirectoryDialog -> "CONTACTS"
+        showInventoryDialog || showInventoryFromVm -> "INVENTORY"
+        showPaymentRemindersDialog || showPaymentRemindersFromVm -> "PAYMENT_REMINDERS"
+        showSeasonalRemindersDialog || showSeasonalRemindersFromVm -> "SEASONAL_REMINDERS"
         isMessageTemplatesActive -> "TEMPLATES"
         isSettingsActive -> "SETTINGS"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
-        showInventoryDialog || showInventoryFromVm -> "INVENTORY"
-        showPaymentRemindersDialog || showPaymentRemindersFromVm -> "PAYMENT_REMINDERS"
-        showSeasonalRemindersDialog || showSeasonalRemindersFromVm -> "SEASONAL_REMINDERS"
-        showThemePreferencesDialog -> "THEME"
-        showQrScannerDialog -> "SCAN_QR"
-        showContactDirectoryDialog -> "CONTACTS"
         isGlobalSearchActive -> "SEARCH"
         else -> "MAIN"
     }
