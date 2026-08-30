@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
@@ -251,6 +253,7 @@ fun PaymentRemindersDialog(
         )
     }
 
+    val paymentHazeState = remember { HazeState() }
     val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     val paymentBgBrush = remember(isDark, paymentAccent) {
         if (isDark) {
@@ -280,6 +283,7 @@ fun PaymentRemindersDialog(
         modifier = modifier
             .fillMaxSize()
             .background(paymentBgBrush)
+            .hazeSource(state = paymentHazeState)
             .testTag("payment_reminders_dialog")
     ) {
         Column(
@@ -294,7 +298,8 @@ fun PaymentRemindersDialog(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = paymentAccent,
-                        shape = RoundedCornerShape(percent = 50)
+                        shape = RoundedCornerShape(percent = 50),
+                        hazeState = paymentHazeState
                     )
             ) {
                 Row(
@@ -379,7 +384,8 @@ fun PaymentRemindersDialog(
                             .glassCardBackground(
                                 cornerRadius = 16.dp,
                                 accentColor = Color(0xFFEF5350),
-                                isDark = isDark
+                                isDark = isDark,
+                                hazeState = paymentHazeState
                             ),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
@@ -440,7 +446,8 @@ fun PaymentRemindersDialog(
                             .glassCardBackground(
                                 isDark = isDark,
                                 accentColor = paymentAccent,
-                                shape = searchShape
+                                shape = searchShape,
+                                hazeState = paymentHazeState
                             )
                             .testTag("payment_reminders_search_input"),
                         placeholder = {
@@ -554,6 +561,7 @@ fun PaymentRemindersDialog(
                                         numberFormat = numberFormat,
                                         isDark = isDark,
                                         accentColor = paymentAccent,
+                                        hazeState = paymentHazeState,
                                         onOpenReceipt = { selectedReceiptItem = item },
                                         onPrintReceipt = {
                                             PdfReceiptManager.printReceipt(
@@ -584,6 +592,7 @@ fun PendingPaymentRow(
     numberFormat: NumberFormat,
     isDark: Boolean,
     accentColor: Color = Color(0xFFF59E0B),
+    hazeState: HazeState? = null,
     onOpenReceipt: () -> Unit,
     onPrintReceipt: () -> Unit,
     onSendWhatsApp: () -> Unit,
@@ -595,7 +604,8 @@ fun PendingPaymentRow(
             .glassCardBackground(
                 cornerRadius = 16.dp,
                 accentColor = accentColor,
-                isDark = isDark
+                isDark = isDark,
+                hazeState = hazeState
             )
             .testTag("pending_payment_row_${item.serialNumber}"),
         shape = RoundedCornerShape(16.dp),

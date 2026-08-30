@@ -72,6 +72,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -579,6 +583,7 @@ fun Modifier.boundedFormFieldRipple(
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     enabled: Boolean = true,
+    hazeState: HazeState? = null,
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
@@ -595,7 +600,8 @@ fun Modifier.boundedFormFieldRipple(
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
-            isFocused = effectiveIsFocused
+            isFocused = effectiveIsFocused,
+            hazeState = hazeState
         )
         .centerWaterRipple(
             shape = shape,
@@ -743,7 +749,8 @@ fun Modifier.glassCardBackground(
     elevation: Dp = 6.dp,
     borderWidth: Dp = 1.25.dp,
     flatStyle: Boolean = false,
-    isFocused: Boolean = false
+    isFocused: Boolean = false,
+    hazeState: HazeState? = null
 ): Modifier {
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
@@ -757,12 +764,22 @@ fun Modifier.glassCardBackground(
 
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
+    val screenBgColor = MaterialTheme.colorScheme.background
 
-    val containerColor = remember(effectiveIsDark, isAmoled, accentColor, flatStyle) {
-        when {
-            isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.12f)
-            effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f)
-            else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f)
+    val containerColor = remember(effectiveIsDark, isAmoled, accentColor, flatStyle, hazeState) {
+        if (hazeState != null) {
+            // When Haze frosted-glass is active, use a translucent accent-tinted fill so blur shows through
+            when {
+                isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.45f)
+                effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f).copy(alpha = 0.40f)
+                else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f).copy(alpha = 0.35f)
+            }
+        } else {
+            when {
+                isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.12f)
+                effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f)
+                else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f)
+            }
         }
     }
 
@@ -772,15 +789,39 @@ fun Modifier.glassCardBackground(
         null
     }
 
-    return this
-        .drawElevatedShadow(
-            shape = effectiveShape,
-            isDark = effectiveIsDark,
-            offsetY = 2.dp,
-            blurRadius = 8.dp,
-            elevationAlphaScale = 1.0f
-        )
-        .clip(effectiveShape)
+    val hazeStyle = remember(effectiveIsDark, screenBgColor) {
+        if (!effectiveIsDark) {
+            HazeStyle(
+                backgroundColor = screenBgColor,
+                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
+                blurRadius = 26.dp
+            )
+        } else {
+            HazeStyle(
+                backgroundColor = screenBgColor,
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
+                blurRadius = 26.dp
+            )
+        }
+    }
+
+    val shadowMod = this.drawElevatedShadow(
+        shape = effectiveShape,
+        isDark = effectiveIsDark,
+        offsetY = 2.dp,
+        blurRadius = 8.dp,
+        elevationAlphaScale = 1.0f
+    )
+
+    val clippedMod = shadowMod.clip(effectiveShape)
+
+    val glazedMod = if (hazeState != null) {
+        clippedMod.hazeEffect(state = hazeState, style = hazeStyle)
+    } else {
+        clippedMod
+    }
+
+    return glazedMod
         .background(containerColor)
         .drawWithCache {
             val diagonalHighlight = Brush.linearGradient(

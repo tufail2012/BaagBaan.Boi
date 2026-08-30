@@ -13,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -133,6 +135,8 @@ fun InventoryManagementDialog(
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
+    val inventoryHazeState = remember { HazeState() }
+
     val inventoryAccent = getSectionAccentColor(
         "Inventory",
         customPaletteColor = parsedPaletteColor,
@@ -165,6 +169,7 @@ fun InventoryManagementDialog(
         modifier = modifier
             .fillMaxSize()
             .background(inventoryBgBrush)
+            .hazeSource(state = inventoryHazeState)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -178,7 +183,8 @@ fun InventoryManagementDialog(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = inventoryAccent,
-                        shape = RoundedCornerShape(percent = 50)
+                        shape = RoundedCornerShape(percent = 50),
+                        hazeState = inventoryHazeState
                     )
             ) {
                     Row(
@@ -296,7 +302,8 @@ fun InventoryManagementDialog(
                                         .glassCardBackground(
                                             cornerRadius = 16.dp,
                                             accentColor = Color(0xFF3B82F6),
-                                            isDark = isDark
+                                            isDark = isDark,
+                                            hazeState = inventoryHazeState
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -338,7 +345,8 @@ fun InventoryManagementDialog(
                                         .glassCardBackground(
                                             cornerRadius = 16.dp,
                                             accentColor = if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else inventoryAccent,
-                                            isDark = isDark
+                                            isDark = isDark,
+                                            hazeState = inventoryHazeState
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -380,7 +388,8 @@ fun InventoryManagementDialog(
                                         .glassCardBackground(
                                             cornerRadius = 16.dp,
                                             accentColor = Color(0xFF10B981),
-                                            isDark = isDark
+                                            isDark = isDark,
+                                            hazeState = inventoryHazeState
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -467,7 +476,7 @@ fun InventoryManagementDialog(
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = inventoryAccent),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .boundedFormFieldRipple(shape = RoundedCornerShape(14.dp), accentColor = inventoryAccent)
+                                    .boundedFormFieldRipple(shape = RoundedCornerShape(14.dp), accentColor = inventoryAccent, hazeState = inventoryHazeState)
                                     .testTag("inventory_search_input")
                             )
                         }
@@ -490,7 +499,8 @@ fun InventoryManagementDialog(
                                         .glassCardBackground(
                                             cornerRadius = 14.dp,
                                             accentColor = inventoryAccent,
-                                            isDark = isDark
+                                            isDark = isDark,
+                                            hazeState = inventoryHazeState
                                         )
                                         .testTag("recalculate_stock_button"),
                                     colors = ButtonDefaults.outlinedButtonColors(
@@ -639,7 +649,8 @@ fun InventoryManagementDialog(
                                         }
                                     },
                                     inventoryAccent = inventoryAccent,
-                                    parsedPaletteColor = parsedPaletteColor
+                                    parsedPaletteColor = parsedPaletteColor,
+                                    hazeState = inventoryHazeState
                                 )
                             }
                         }
@@ -789,7 +800,8 @@ fun InventoryItemCard(
     onDelete: () -> Unit,
     onQuantityAdjust: (delta: Int) -> Unit,
     inventoryAccent: Color = MaterialTheme.colorScheme.primary,
-    parsedPaletteColor: Color? = null
+    parsedPaletteColor: Color? = null,
+    hazeState: HazeState? = null
 ) {
     val isLow = item.isLowStock()
     val isOut = item.isOutOfStock()
@@ -820,7 +832,8 @@ fun InventoryItemCard(
             .glassCardBackground(
                 cornerRadius = 16.dp,
                 accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor),
-                isDark = isDark
+                isDark = isDark,
+                hazeState = hazeState
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),

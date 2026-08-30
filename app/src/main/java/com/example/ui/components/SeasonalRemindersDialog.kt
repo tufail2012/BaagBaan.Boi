@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -109,6 +111,7 @@ fun SeasonalRemindersDialog(
         }
     }
 
+    val seasonalHazeState = remember { HazeState() }
     val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     val seasonalBgBrush = remember(isDark, seasonalAccent) {
         if (isDark) {
@@ -138,6 +141,7 @@ fun SeasonalRemindersDialog(
         modifier = modifier
             .fillMaxSize()
             .background(seasonalBgBrush)
+            .hazeSource(state = seasonalHazeState)
             .testTag("seasonal_reminders_dialog")
     ) {
         Column(
@@ -152,7 +156,8 @@ fun SeasonalRemindersDialog(
                     .glassCardBackground(
                         isDark = isDark,
                         accentColor = seasonalAccent,
-                        shape = RoundedCornerShape(percent = 50)
+                        shape = RoundedCornerShape(percent = 50),
+                        hazeState = seasonalHazeState
                     )
             ) {
                     Row(
@@ -341,6 +346,7 @@ fun SeasonalRemindersDialog(
                                     task = task,
                                     isDark = isDark,
                                     seasonalAccent = seasonalAccent,
+                                    hazeState = seasonalHazeState,
                                     onEdit = {
                                         taskToEdit = task
                                         showEditDialog = true
@@ -477,6 +483,7 @@ private fun SeasonalTaskCard(
     task: SeasonalTask,
     isDark: Boolean,
     seasonalAccent: Color,
+    hazeState: HazeState? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleEnabled: (Boolean) -> Unit
@@ -502,7 +509,8 @@ private fun SeasonalTaskCard(
             .glassCardBackground(
                 cornerRadius = 18.dp,
                 accentColor = seasonalAccent,
-                isDark = isDark
+                isDark = isDark,
+                hazeState = hazeState
             )
             .clickable { onEdit() }
             .testTag("seasonal_task_card_${task.id}")
