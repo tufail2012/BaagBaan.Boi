@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
@@ -71,11 +72,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.Brush
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -583,7 +579,6 @@ fun Modifier.boundedFormFieldRipple(
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     enabled: Boolean = true,
-    hazeState: HazeState? = null,
     onClick: (() -> Unit)? = null
 ): Modifier {
     val isDark = isAppInDarkMode()
@@ -600,8 +595,7 @@ fun Modifier.boundedFormFieldRipple(
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
-            isFocused = effectiveIsFocused,
-            hazeState = hazeState
+            isFocused = effectiveIsFocused
         )
         .centerWaterRipple(
             shape = shape,
@@ -731,13 +725,11 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Reusable Glassmorphism Card Modifier.
- * Provides clear visual separation from background canvas through:
- * 1. Clean frosted translucent surface fill (dense milk-glass optical diffusion in Light Mode, slate in Dark Mode)
- * 2. Multi-layer ambient/spot elevation shadows with floating depth
- * 3. 1.25.dp vertical specular border highlight (stronger top specular white and subtle accent rim)
- * 4. Top specular sheen highlight for authentic glass thickness
- * 5. Distinct boundary contrast in Light, Dark, and AMOLED modes with zero color bleed over text.
+ * Reusable Card Modifier for Input Fields and Containers.
+ * Provides clean visual separation with:
+ * 1. Flat solid color per theme (Light: #F1F5F9, Dark: #1E293B, AMOLED: #0C0A09)
+ * 2. Subtle soft drop shadow
+ * 3. Focused border highlighting with accentColor
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -749,8 +741,7 @@ fun Modifier.glassCardBackground(
     elevation: Dp = 6.dp,
     borderWidth: Dp = 1.25.dp,
     flatStyle: Boolean = false,
-    isFocused: Boolean = false,
-    hazeState: HazeState? = null
+    isFocused: Boolean = false
 ): Modifier {
     val effectiveIsDark = if (themeMode != null) {
         when (themeMode) {
@@ -764,23 +755,11 @@ fun Modifier.glassCardBackground(
 
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
-    val screenBgColor = MaterialTheme.colorScheme.background
 
-    val containerColor = remember(effectiveIsDark, isAmoled, accentColor, flatStyle, hazeState) {
-        if (hazeState != null) {
-            // When Haze frosted-glass is active, use a translucent accent-tinted fill so blur shows through
-            when {
-                isAmoled -> Color(0xFF0C0A09).copy(alpha = 0.45f)
-                effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f).copy(alpha = 0.40f)
-                else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f).copy(alpha = 0.35f)
-            }
-        } else {
-            when {
-                isAmoled -> androidx.compose.ui.graphics.lerp(Color(0xFF0C0A09), accentColor, 0.12f)
-                effectiveIsDark -> androidx.compose.ui.graphics.lerp(Color(0xFF1E293B), accentColor, 0.12f)
-                else -> androidx.compose.ui.graphics.lerp(Color(0xFFF8FAFC), accentColor, 0.10f)
-            }
-        }
+    val containerColor = when {
+        isAmoled -> Color(0xFF0C0A09)
+        effectiveIsDark -> Color(0xFF1E293B)
+        else -> Color(0xFFF1F5F9)
     }
 
     val borderStroke = if (isFocused) {
@@ -789,54 +768,16 @@ fun Modifier.glassCardBackground(
         null
     }
 
-    val hazeStyle = remember(effectiveIsDark, screenBgColor) {
-        if (!effectiveIsDark) {
-            HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
-                blurRadius = 26.dp
-            )
-        } else {
-            HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
-                blurRadius = 26.dp
-            )
-        }
-    }
-
-    val shadowMod = this.drawElevatedShadow(
-        shape = effectiveShape,
-        isDark = effectiveIsDark,
-        offsetY = 2.dp,
-        blurRadius = 8.dp,
-        elevationAlphaScale = 1.0f
-    )
-
-    val clippedMod = shadowMod.clip(effectiveShape)
-
-    val glazedMod = if (hazeState != null) {
-        clippedMod.hazeEffect(state = hazeState, style = hazeStyle)
-    } else {
-        clippedMod
-    }
-
-    return glazedMod
+    return this
+        .drawElevatedShadow(
+            shape = effectiveShape,
+            isDark = effectiveIsDark,
+            offsetY = 2.dp,
+            blurRadius = 8.dp,
+            elevationAlphaScale = 1.0f
+        )
+        .clip(effectiveShape)
         .background(containerColor)
-        .drawWithCache {
-            val diagonalHighlight = Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = if (effectiveIsDark) 0.06f else 0.14f),
-                    Color.White.copy(alpha = if (effectiveIsDark) 0.02f else 0.05f),
-                    Color.Transparent
-                ),
-                start = Offset(0f, 0f),
-                end = Offset(size.width * 0.6f, size.height * 0.9f)
-            )
-            onDrawBehind {
-                drawRect(brush = diagonalHighlight)
-            }
-        }
         .then(
             if (borderStroke != null) {
                 Modifier.border(borderStroke, effectiveShape)

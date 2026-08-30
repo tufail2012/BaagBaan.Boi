@@ -153,11 +153,11 @@ fun SeasonalRemindersDialog(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .glassCardBackground(
+                    .frostedGlassChrome(
+                        hazeState = seasonalHazeState,
                         isDark = isDark,
                         accentColor = seasonalAccent,
-                        shape = RoundedCornerShape(percent = 50),
-                        hazeState = seasonalHazeState
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                     Row(
@@ -346,7 +346,6 @@ fun SeasonalRemindersDialog(
                                     task = task,
                                     isDark = isDark,
                                     seasonalAccent = seasonalAccent,
-                                    hazeState = seasonalHazeState,
                                     onEdit = {
                                         taskToEdit = task
                                         showEditDialog = true
@@ -483,7 +482,6 @@ private fun SeasonalTaskCard(
     task: SeasonalTask,
     isDark: Boolean,
     seasonalAccent: Color,
-    hazeState: HazeState? = null,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleEnabled: (Boolean) -> Unit
@@ -510,7 +508,6 @@ private fun SeasonalTaskCard(
                 cornerRadius = 18.dp,
                 accentColor = seasonalAccent,
                 isDark = isDark,
-                hazeState = hazeState
             )
             .clickable { onEdit() }
             .testTag("seasonal_task_card_${task.id}")

@@ -96,6 +96,8 @@ import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 import com.example.ui.theme.getSectionAccentColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @Composable
 fun AgriDashboardScreen(
@@ -128,6 +130,7 @@ fun AgriDashboardScreen(
         customPaletteColor = parsedPaletteColor,
         defaultColor = MaterialTheme.colorScheme.primary
     )
+    val dashboardHazeState = remember { HazeState() }
 
     val context = LocalContext.current
     var currentUser by remember {
@@ -266,7 +269,8 @@ fun AgriDashboardScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .glassCardBackground(
+                    .frostedGlassChrome(
+                        hazeState = dashboardHazeState,
                         isDark = isDark,
                         accentColor = dashboardAccent,
                         shape = RoundedCornerShape(percent = 50)
@@ -388,6 +392,7 @@ fun AgriDashboardScreen(
                 LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .hazeSource(state = dashboardHazeState)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {

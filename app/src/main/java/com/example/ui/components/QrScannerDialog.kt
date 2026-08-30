@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.ui.theme.getSectionAccentColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
@@ -93,6 +95,7 @@ fun QrScannerDialog(
 ) {
     val isDark = isAppInDarkMode()
     val scanQrAccent = getSectionAccentColor("Scan QR", customPaletteColor = customPaletteColor)
+    val qrHazeState = remember { HazeState() }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -136,6 +139,7 @@ fun QrScannerDialog(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
+            .hazeSource(state = qrHazeState)
             .testTag("qr_scanner_dialog")
     ) {
         if (hasCameraPermission) {
@@ -385,7 +389,8 @@ fun QrScannerDialog(
                 .align(Alignment.TopCenter)
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 6.dp)
-                .glassCardBackground(
+                .frostedGlassChrome(
+                    hazeState = qrHazeState,
                     isDark = isDark,
                     accentColor = scanQrAccent,
                     shape = RoundedCornerShape(percent = 50)

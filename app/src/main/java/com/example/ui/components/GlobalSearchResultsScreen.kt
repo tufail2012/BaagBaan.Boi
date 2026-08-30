@@ -84,6 +84,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.GlobalSearchResult
@@ -114,6 +116,7 @@ fun GlobalSearchResultsScreen(
     val searchResults by viewModel.globalSearchResults.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isDark = isAppInDarkMode()
+    val searchHazeState = remember { HazeState() }
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val animatedItemIds = remember(searchQuery, selectedCategoryFilter) { mutableSetOf<Any>() }
@@ -173,7 +176,8 @@ fun GlobalSearchResultsScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .glassCardBackground(
+                    .frostedGlassChrome(
+                        hazeState = searchHazeState,
                         isDark = isDark,
                         accentColor = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(percent = 50)
@@ -429,6 +433,7 @@ fun GlobalSearchResultsScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(state = searchHazeState)
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)

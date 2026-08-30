@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.data.MessageTemplate
 import com.example.data.MessageTemplateRepository
 import kotlinx.coroutines.launch
@@ -47,7 +49,8 @@ fun MessageTemplateManagerScreen(
     BackHandler(onBack = onNavigateBack)
 
     val context = LocalContext.current
-    val isDark = MaterialTheme.colorScheme.surface.hashCode() % 2 == 0 // Or standard dark mode check
+    val isDark = isAppInDarkMode()
+    val templateHazeState = remember { HazeState() }
     val templatesState by MessageTemplateRepository.templatesState.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
@@ -78,7 +81,8 @@ fun MessageTemplateManagerScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .glassCardBackground(
+                    .frostedGlassChrome(
+                        hazeState = templateHazeState,
                         isDark = isDark,
                         accentColor = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(percent = 50)
@@ -124,6 +128,7 @@ fun MessageTemplateManagerScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(state = templateHazeState)
                 .padding(innerPadding)
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp),

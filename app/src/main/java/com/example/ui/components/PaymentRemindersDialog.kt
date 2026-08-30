@@ -295,11 +295,11 @@ fun PaymentRemindersDialog(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .glassCardBackground(
+                    .frostedGlassChrome(
+                        hazeState = paymentHazeState,
                         isDark = isDark,
                         accentColor = paymentAccent,
-                        shape = RoundedCornerShape(percent = 50),
-                        hazeState = paymentHazeState
+                        shape = RoundedCornerShape(percent = 50)
                     )
             ) {
                 Row(
@@ -385,7 +385,6 @@ fun PaymentRemindersDialog(
                                 cornerRadius = 16.dp,
                                 accentColor = Color(0xFFEF5350),
                                 isDark = isDark,
-                                hazeState = paymentHazeState
                             ),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
@@ -447,7 +446,6 @@ fun PaymentRemindersDialog(
                                 isDark = isDark,
                                 accentColor = paymentAccent,
                                 shape = searchShape,
-                                hazeState = paymentHazeState
                             )
                             .testTag("payment_reminders_search_input"),
                         placeholder = {
@@ -561,7 +559,6 @@ fun PaymentRemindersDialog(
                                         numberFormat = numberFormat,
                                         isDark = isDark,
                                         accentColor = paymentAccent,
-                                        hazeState = paymentHazeState,
                                         onOpenReceipt = { selectedReceiptItem = item },
                                         onPrintReceipt = {
                                             PdfReceiptManager.printReceipt(
@@ -592,7 +589,6 @@ fun PendingPaymentRow(
     numberFormat: NumberFormat,
     isDark: Boolean,
     accentColor: Color = Color(0xFFF59E0B),
-    hazeState: HazeState? = null,
     onOpenReceipt: () -> Unit,
     onPrintReceipt: () -> Unit,
     onSendWhatsApp: () -> Unit,
@@ -605,7 +601,6 @@ fun PendingPaymentRow(
                 cornerRadius = 16.dp,
                 accentColor = accentColor,
                 isDark = isDark,
-                hazeState = hazeState
             )
             .testTag("pending_payment_row_${item.serialNumber}"),
         shape = RoundedCornerShape(16.dp),
