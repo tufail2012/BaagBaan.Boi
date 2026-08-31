@@ -65,9 +65,9 @@ fun Modifier.frostedGlassChrome(
 
     val baseGlassOverlayBrush = Brush.verticalGradient(
         when {
-            isAmoled -> listOf(Color(0xFF141414).copy(alpha = 0.82f), Color(0xFF070707).copy(alpha = 0.88f))
-            isDark -> listOf(Color(0xFF1E293B).copy(alpha = 0.55f), Color(0xFF0F172A).copy(alpha = 0.65f))
-            else -> listOf(Color.White.copy(alpha = 0.72f), Color.White.copy(alpha = 0.58f))
+            isAmoled -> listOf(Color(0xFF141414).copy(alpha = 0.08f), Color(0xFF070707).copy(alpha = 0.05f))
+            isDark -> listOf(Color(0xFF1E293B).copy(alpha = 0.12f), Color(0xFF0F172A).copy(alpha = 0.08f))
+            else -> listOf(Color.White.copy(alpha = 0.14f), Color.White.copy(alpha = 0.07f))
         }
     )
 

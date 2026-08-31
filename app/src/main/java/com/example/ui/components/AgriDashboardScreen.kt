@@ -259,6 +259,7 @@ fun AgriDashboardScreen(
         modifier = modifier
             .fillMaxSize()
             .background(dashboardBgBrush)
+            .hazeSource(state = dashboardHazeState)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -392,7 +393,6 @@ fun AgriDashboardScreen(
                 LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(state = dashboardHazeState)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
