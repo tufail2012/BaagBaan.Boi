@@ -35,6 +35,7 @@ import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.GlobalSearchResultsScreen
 import com.example.ui.components.LocalHazeState
+import com.example.ui.glass.LocalLiquidHazeState
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
 import com.example.ui.theme.AgriRedPrimary
@@ -523,7 +524,10 @@ fun AgriCropMainScreen(
 
                 val hazeState = remember { HazeState() }
 
-                CompositionLocalProvider(LocalHazeState provides hazeState) {
+                CompositionLocalProvider(
+                    LocalHazeState provides hazeState,
+                    LocalLiquidHazeState provides hazeState
+                ) {
                     Box(
                         modifier = modifier
                             .fillMaxSize()

@@ -61,12 +61,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.ui.glass.liquidFrostedGlass
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.materials.HazeMaterials
 import kotlinx.coroutines.launch
 
 data class AgriNavItem(
@@ -132,82 +129,16 @@ fun AgriBottomNav(
         label = "BottomNavAccentColor"
     )
 
-    val screenBgColor = MaterialTheme.colorScheme.background
+    val capsuleShape = CircleShape
 
-    // Liquid Glass Tint & Material styling with explicit real background color
-    val hazeStyle = remember(isDark, screenBgColor) {
-        if (!isDark) {
-            HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
-                blurRadius = 26.dp
-            )
-        } else {
-            HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
-                blurRadius = 26.dp
-            )
-        }
-    }
-
-    // Specular Edge: Thin 1.2dp gradient stroke (brighter on top edge, fading to bottom)
-    val specularBorderBrush = if (!isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.88f),
-                Color.White.copy(alpha = 0.22f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.48f),
-                Color.White.copy(alpha = 0.10f)
-            )
-        )
-    }
-
-    // Glass bar floating shadow
-    val barShadowAmbient = if (!isDark) Color(0xFF1E1B4B).copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.45f)
-    val barShadowSpot = if (!isDark) Color(0xFF1E1B4B).copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.60f)
-
-    // Base glass tint layer on top of blur (18-20% white + faint hint of section accent)
-    val baseGlassOverlayBrush = if (!isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.20f),
-                animatedAccentColor.copy(alpha = 0.06f),
-                Color.White.copy(alpha = 0.15f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.40f),
-                animatedAccentColor.copy(alpha = 0.10f),
-                Color(0xFF0F172A).copy(alpha = 0.50f)
-            )
-        )
-    }
-
-    // Fallback solid fill when transparency is reduced or battery saver is active
-    val fallbackBgColor = if (!isDark) {
-        Color(0xFFF6F3FB)
-    } else {
-        Color(0xFF1B1828)
-    }
-
-    // Track movement for spring-based squash & stretch
     var previousIndex by remember { mutableIntStateOf(selectedIndex) }
     val isMoving = previousIndex != selectedIndex
-
     LaunchedEffect(selectedIndex) {
         previousIndex = selectedIndex
     }
 
     val blobStretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.05f else 1.0f,
+        targetValue = if (isMoving) 1.08f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -216,7 +147,7 @@ fun AgriBottomNav(
     )
 
     val blobSquashScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.95f else 1.0f,
+        targetValue = if (isMoving) 0.90f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow
@@ -224,61 +155,27 @@ fun AgriBottomNav(
         label = "BlobScaleY"
     )
 
-    // Capsule / stadium shape with 50% radius on container (fully rounded left & right ends)
-    val capsuleShape = RoundedCornerShape(percent = 50)
-
     // Floating Placement: lifted off the bottom edge
     Box(
         modifier = modifier
             .navigationBarsPadding()
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 16.dp)
-            .shadow(
-                elevation = 18.dp,
+            .liquidFrostedGlass(
+                hazeState = if (!isReduceTransparencyOrBatterySaver) hazeState else null,
+                isDark = isDark,
+                accentColor = animatedAccentColor,
                 shape = CircleShape,
-                clip = false,
-                ambientColor = barShadowAmbient,
-                spotColor = barShadowSpot
-            )
-            .clip(CircleShape)
-            .then(
-                if (hazeState != null && !isReduceTransparencyOrBatterySaver) {
-                    Modifier.hazeEffect(state = hazeState, style = hazeStyle)
-                } else {
-                    Modifier
-                }
-            )
-            .background(
-                if (isReduceTransparencyOrBatterySaver) {
-                    Brush.verticalGradient(listOf(fallbackBgColor, fallbackBgColor))
-                } else {
-                    baseGlassOverlayBrush
-                }
-            )
-            .border(
-                width = 1.2.dp,
-                brush = specularBorderBrush,
-                shape = CircleShape
+                elevation = 18.dp,
+                borderWidth = 1.2.dp,
+                blurRadius = 26.dp,
+                frostTintAlpha = 0.08f,
+                surfaceOpacity = 0.10f,
+                refractionStrength = 0.35f,
+                chromaticAberration = 0.07f,
+                highlightStrength = 0.85f
             )
     ) {
-        // Subtle top specular highlight reflection along the inner rim of the glass pill
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth(0.92f)
-                .height(1.dp)
-                .padding(top = 1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = if (!isDark) 0.85f else 0.40f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
         // Tab Content and Animated Liquid Blob Indicator
         BoxWithConstraints(
             modifier = Modifier

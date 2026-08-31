@@ -64,11 +64,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.glass.liquidFrostedGlass
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 
 /**
  * Pruning Sub-Tabs (Summer Pruning / Winter Pruning)
@@ -269,99 +267,6 @@ fun LiquidGlassTabSwitcher(
     val containerShape = CircleShape
     val capsuleShape = CircleShape
 
-    // Explicit HazeStyle matching the main navigation bar glass language
-    val hazeStyle = remember(isDark, isAmoled, accentColor, screenBgColor) {
-        when {
-            isAmoled -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.16f)),
-                blurRadius = 24.dp
-            )
-            isDark -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.35f)),
-                blurRadius = 24.dp
-            )
-            else -> HazeStyle(
-                backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.08f)),
-                blurRadius = 24.dp
-            )
-        }
-    }
-
-    val outlineColor = MaterialTheme.colorScheme.outline
-
-    // Specular Edge: Thin 1.dp vertical gradient border matching the header glass pill
-    val specularBorderBrush = remember(isDark, isAmoled, accentColor, outlineColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.60f),
-                    accentColor.copy(alpha = 0.35f),
-                    Color.White.copy(alpha = 0.15f)
-                )
-            )
-            isDark -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.35f),
-                    outlineColor.copy(alpha = 0.25f),
-                    Color.White.copy(alpha = 0.08f)
-                )
-            )
-            else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.22f),
-                    Color.White.copy(alpha = 0.35f)
-                )
-            )
-        }
-    }
-
-    val containerShadowAmbient = remember(isDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> accentColor.copy(alpha = 0.15f)
-            isDark -> Color.Black.copy(alpha = 0.25f)
-            else -> Color(0xFF0F172A).copy(alpha = 0.06f)
-        }
-    }
-    val containerShadowSpot = remember(isDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> accentColor.copy(alpha = 0.22f)
-            isDark -> Color.Black.copy(alpha = 0.35f)
-            else -> accentColor.copy(alpha = 0.10f)
-        }
-    }
-
-    val baseGlassOverlayBrush = remember(isDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF141414).copy(alpha = 0.08f),
-                    accentColor.copy(alpha = 0.05f),
-                    Color(0xFF070707).copy(alpha = 0.05f)
-                )
-            )
-            isDark -> Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.12f),
-                    accentColor.copy(alpha = 0.06f),
-                    Color(0xFF0F172A).copy(alpha = 0.08f)
-                )
-            )
-            else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.12f),
-                    accentColor.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.07f)
-                )
-            )
-        }
-    }
-
-    val fallbackBgColor = if (isAmoled) Color(0xFF0F0F0F) else if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)
-
     var previousIndex by remember { mutableIntStateOf(selectedIndex) }
     val isMoving = previousIndex != selectedIndex
     LaunchedEffect(selectedIndex) {
@@ -441,51 +346,20 @@ fun LiquidGlassTabSwitcher(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .height(46.dp)
-            .shadow(
-                elevation = if (isAmoled) 4.dp else 2.dp,
+            .liquidFrostedGlass(
+                hazeState = if (!isReduceTransparencyOrBatterySaver) hazeState else null,
+                isDark = isDark,
+                accentColor = accentColor,
                 shape = containerShape,
-                clip = false,
-                ambientColor = containerShadowAmbient,
-                spotColor = containerShadowSpot
-            )
-            .clip(containerShape)
-            .then(
-                if (hazeState != null && !isReduceTransparencyOrBatterySaver) {
-                    Modifier.hazeEffect(state = hazeState, style = hazeStyle)
-                } else {
-                    Modifier
-                }
-            )
-            .background(
-                if (isReduceTransparencyOrBatterySaver) {
-                    Brush.verticalGradient(listOf(fallbackBgColor, fallbackBgColor))
-                } else {
-                    baseGlassOverlayBrush
-                }
-            )
-            .border(
-                width = 1.dp,
-                brush = specularBorderBrush,
-                shape = containerShape
+                elevation = if (isAmoled) 4.dp else 2.dp,
+                borderWidth = 1.dp,
+                blurRadius = 24.dp,
+                frostTintAlpha = 0.08f,
+                surfaceOpacity = 0.10f,
+                refractionStrength = 0.25f,
+                chromaticAberration = 0.05f
             )
     ) {
-        // Subtle top specular highlight reflection along the inner rim of the glass pill
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth(0.90f)
-                .height(1.dp)
-                .padding(top = 1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = if (!isDark) 0.80f else 0.35f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
 
         BoxWithConstraints(
             modifier = Modifier
