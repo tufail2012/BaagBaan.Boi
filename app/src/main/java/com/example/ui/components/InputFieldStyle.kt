@@ -788,17 +788,17 @@ fun Modifier.glassCardBackground(
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
-                tint = HazeTint(accentColor.copy(alpha = 0.05f)),
+                tint = HazeTint(accentColor.copy(alpha = 0.04f)),
                 blurRadius = 28.dp
             )
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.22f)),
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.16f)),
                 blurRadius = 28.dp
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.12f)),
+                tint = HazeTint(Color.White.copy(alpha = 0.08f)),
                 blurRadius = 28.dp
             )
         }
@@ -809,21 +809,21 @@ fun Modifier.glassCardBackground(
         Brush.verticalGradient(
             when {
                 isAmoled -> listOf(
-                    Color.White.copy(alpha = 0.08f),
-                    Color(0xFF141414).copy(alpha = 0.25f),
-                    accentColor.copy(alpha = 0.04f)
-                )
-                effectiveIsDark -> listOf(
-                    Color.White.copy(alpha = 0.12f),
-                    Color(0xFF1E293B).copy(alpha = 0.22f),
-                    Color(0xFF0F172A).copy(alpha = 0.30f),
+                    Color.White.copy(alpha = 0.06f),
+                    Color(0xFF18181B).copy(alpha = 0.20f),
                     accentColor.copy(alpha = 0.03f)
                 )
+                effectiveIsDark -> listOf(
+                    Color.White.copy(alpha = 0.10f),
+                    Color(0xFF1E293B).copy(alpha = 0.16f),
+                    Color(0xFF0F172A).copy(alpha = 0.24f),
+                    accentColor.copy(alpha = 0.025f)
+                )
                 else -> listOf(
-                    Color.White.copy(alpha = 0.28f),
-                    Color.White.copy(alpha = 0.14f),
-                    Color(0xFFF8FAFC).copy(alpha = 0.18f),
-                    accentColor.copy(alpha = 0.035f)
+                    Color.White.copy(alpha = 0.22f),
+                    Color.White.copy(alpha = 0.08f),
+                    Color(0xFFF1F5F9).copy(alpha = 0.14f),
+                    accentColor.copy(alpha = 0.025f)
                 )
             }
         )
@@ -855,9 +855,9 @@ fun Modifier.glassCardBackground(
                     )
                     else -> listOf(
                         Color.White.copy(alpha = 0.95f),
-                        Color.White.copy(alpha = 0.30f),
-                        accentColor.copy(alpha = 0.16f),
-                        Color(0xFFCBD5E1).copy(alpha = 0.35f)
+                        Color.White.copy(alpha = 0.25f),
+                        accentColor.copy(alpha = 0.15f),
+                        Color(0xFF94A3B8).copy(alpha = 0.32f)
                     )
                 }
             )
