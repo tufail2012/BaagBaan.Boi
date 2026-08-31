@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -523,10 +524,16 @@ fun AgriCropMainScreen(
                 val hazeState = remember { HazeState() }
 
                 CompositionLocalProvider(LocalHazeState provides hazeState) {
-                    Scaffold(
-                        modifier = modifier.fillMaxSize(),
-                        containerColor = MaterialTheme.colorScheme.background,
-                        topBar = {
+                    Box(
+                        modifier = modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                            .hazeSource(state = hazeState)
+                    ) {
+                        Scaffold(
+                            modifier = Modifier.fillMaxSize(),
+                            containerColor = Color.Transparent,
+                            topBar = {
                         Column {
                             AgriHeader(
                                 title = displayHeaderTitle,
@@ -695,69 +702,63 @@ fun AgriCropMainScreen(
                             .fillMaxSize()
                             .padding(top = innerPadding.calculateTopPadding())
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .hazeSource(state = hazeState)
-                        ) {
-                            when {
-                                selectedService.equals("Bookings", ignoreCase = true) -> {
-                                    UserBookingsSection(viewModel = userDashboardViewModel)
-                                }
-                                selectedService.equals("Attendance", ignoreCase = true) -> {
-                                    UserAttendanceSection(viewModel = userDashboardViewModel)
-                                }
-                                else -> {
-                                    HorizontalPager(
-                                        state = pagerState,
-                                        modifier = Modifier.fillMaxSize(),
-                                        key = { mainTabs.getOrElse(it) { "$it" } }
-                                    ) { page ->
-                                        val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }
-                                        if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
-                                            com.example.ui.components.GardenPlanningScreen(
-                                                viewModel = gardenPlanningViewModel,
-                                                onBack = null,
-                                                showHeader = false,
-                                                isDark = isDark,
-                                                themeMode = themeMode,
-                                                selectedColorHex = accentColorHex,
-                                                onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-                                                onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-                                                searchQuery = searchQuery,
-                                                onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
-                                                isSearchActive = isGlobalSearchActive,
-                                                onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
-                                                onToggleSearch = { viewModel.openGlobalSearch() },
-                                                onNavigateToAttendance = { isAttendanceActive = true },
-                                                onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
-                                                onNavigateToBackupRestore = { showBackupRestoreDialog = true },
-                                                onNavigateToContactDirectory = { showContactDirectoryDialog = true },
-                                                onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
-                                                onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
-                                                onNavigateToInventory = { showInventoryDialog = true },
-                                                onOpenRecycleBin = { showRecycleBinDialog = true },
-                                                onNavigateToDashboard = { isDashboardActive = true },
-                                                onNavigateToLogin = { isLoginActive = true },
-                                                onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
-                                                unreadNotificationCount = unreadCount,
-                                                onOpenNotifications = { showNotificationCenter = true },
-                                                currentUserEmail = currentUser?.email,
-                                                currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                                onLogout = performLogout,
-                                                onManualSync = {
-                                                    coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
-                                                    }
-                                                },
-                                                onNavigateToSettings = { isSettingsActive = true },
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                        } else {
-                                            when (viewMode) {
-                                                0 -> FarmerFormScreen(viewModel = viewModel)
-                                                else -> FarmerRecordsScreen(viewModel = viewModel)
-                                            }
+                        when {
+                            selectedService.equals("Bookings", ignoreCase = true) -> {
+                                UserBookingsSection(viewModel = userDashboardViewModel)
+                            }
+                            selectedService.equals("Attendance", ignoreCase = true) -> {
+                                UserAttendanceSection(viewModel = userDashboardViewModel)
+                            }
+                            else -> {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxSize(),
+                                    key = { mainTabs.getOrElse(it) { "$it" } }
+                                ) { page ->
+                                    val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }
+                                    if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
+                                        com.example.ui.components.GardenPlanningScreen(
+                                            viewModel = gardenPlanningViewModel,
+                                            onBack = null,
+                                            showHeader = false,
+                                            isDark = isDark,
+                                            themeMode = themeMode,
+                                            selectedColorHex = accentColorHex,
+                                            onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                                            onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                                            searchQuery = searchQuery,
+                                            onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
+                                            isSearchActive = isGlobalSearchActive,
+                                            onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
+                                            onToggleSearch = { viewModel.openGlobalSearch() },
+                                            onNavigateToAttendance = { isAttendanceActive = true },
+                                            onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
+                                            onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                                            onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                                            onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                                            onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
+                                            onNavigateToInventory = { showInventoryDialog = true },
+                                            onOpenRecycleBin = { showRecycleBinDialog = true },
+                                            onNavigateToDashboard = { isDashboardActive = true },
+                                            onNavigateToLogin = { isLoginActive = true },
+                                            onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
+                                            unreadNotificationCount = unreadCount,
+                                            onOpenNotifications = { showNotificationCenter = true },
+                                            currentUserEmail = currentUser?.email,
+                                            currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                                            onLogout = performLogout,
+                                            onManualSync = {
+                                                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                                    com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
+                                                }
+                                            },
+                                            onNavigateToSettings = { isSettingsActive = true },
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        when (viewMode) {
+                                            0 -> FarmerFormScreen(viewModel = viewModel)
+                                            else -> FarmerRecordsScreen(viewModel = viewModel)
                                         }
                                     }
                                 }
@@ -794,6 +795,7 @@ fun AgriCropMainScreen(
             }
         }
     }
+}
 }
 
     // Production-ready App Lock authentication overlay when enabled and locked
