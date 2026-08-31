@@ -822,6 +822,7 @@ fun Modifier.glassCardBackground(
 
     /*
      * LAYER 1: HAZE STYLE (Crash-safe backgroundColor in all modes)
+     * Real backdrop blur sampled via HazeState.
      */
     val hazeStyle = remember(
         effectiveIsDark,
@@ -833,32 +834,32 @@ fun Modifier.glassCardBackground(
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
                 tint = HazeTint(
-                    Color.White.copy(alpha = 0.025f)
+                    Color.White.copy(alpha = 0.020f)
                 ),
-                blurRadius = 24.dp
+                blurRadius = 22.dp
             )
 
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
                 tint = HazeTint(
-                    Color.White.copy(alpha = 0.035f)
+                    Color.White.copy(alpha = 0.030f)
                 ),
-                blurRadius = 24.dp
+                blurRadius = 22.dp
             )
 
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
                 tint = HazeTint(
-                    Color.White.copy(alpha = 0.040f)
+                    Color.White.copy(alpha = 0.030f)
                 ),
-                blurRadius = 24.dp
+                blurRadius = 22.dp
             )
         }
     }
 
     /*
-     * LAYER 1: LOWER GLASS BODY SURFACE
-     * Translucent base permitting parent background colors and gradients to diffuse through.
+     * LAYER 1: LOWER GLASS BODY SURFACE (Translucent Base)
+     * High-permeability base allowing background colors & gradients behind the glass to diffuse through.
      */
     val lowerGlassSurface = remember(
         effectiveIsDark,
@@ -868,17 +869,17 @@ fun Modifier.glassCardBackground(
         if (effectiveIsDark) {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.075f),
-                    Color.White.copy(alpha = 0.035f),
+                    Color.White.copy(alpha = 0.065f),
+                    Color.White.copy(alpha = 0.025f),
                     Color.Transparent
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.12f),
-                    Color.White.copy(alpha = 0.055f),
-                    Color.White.copy(alpha = 0.020f)
+                    Color.White.copy(alpha = 0.085f),
+                    Color.White.copy(alpha = 0.035f),
+                    Color.White.copy(alpha = 0.015f)
                 )
             )
         }
@@ -891,20 +892,20 @@ fun Modifier.glassCardBackground(
         Brush.verticalGradient(
             colors = if (isFocused) {
                 listOf(
-                    accentColor.copy(alpha = 0.50f),
-                    accentColor.copy(alpha = 0.15f),
+                    accentColor.copy(alpha = 0.55f),
+                    accentColor.copy(alpha = 0.18f),
                     Color.Transparent
                 )
             } else if (effectiveIsDark) {
                 listOf(
-                    Color.White.copy(alpha = 0.38f),
-                    Color.White.copy(alpha = 0.10f),
+                    Color.White.copy(alpha = 0.40f),
+                    Color.White.copy(alpha = 0.12f),
                     Color.Transparent
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.82f),
-                    Color.White.copy(alpha = 0.22f),
+                    Color.White.copy(alpha = 0.85f),
+                    Color.White.copy(alpha = 0.25f),
                     Color.Transparent
                 )
             }
@@ -915,15 +916,15 @@ fun Modifier.glassCardBackground(
         Brush.linearGradient(
             colors = if (effectiveIsDark) {
                 listOf(
-                    Color.White.copy(alpha = 0.045f),
-                    Color.White.copy(alpha = 0.015f),
+                    Color.White.copy(alpha = 0.040f),
+                    Color.White.copy(alpha = 0.012f),
                     Color.Transparent,
                     Color.Transparent
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.085f),
-                    Color.White.copy(alpha = 0.022f),
+                    Color.White.copy(alpha = 0.075f),
+                    Color.White.copy(alpha = 0.020f),
                     Color.Transparent,
                     Color.Transparent
                 )
@@ -944,24 +945,24 @@ fun Modifier.glassCardBackground(
         if (isFocused) {
             Brush.verticalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.85f),
-                    accentColor.copy(alpha = 0.40f),
-                    accentColor.copy(alpha = 0.15f)
+                    accentColor.copy(alpha = 0.90f),
+                    accentColor.copy(alpha = 0.45f),
+                    accentColor.copy(alpha = 0.20f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = if (effectiveIsDark) {
                     listOf(
-                        Color.White.copy(alpha = 0.32f),
-                        Color.White.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.35f),
+                        Color.White.copy(alpha = 0.12f),
                         Color.White.copy(alpha = 0.045f)
                     )
                 } else {
                     listOf(
-                        Color.White.copy(alpha = 0.78f),
-                        Color.White.copy(alpha = 0.28f),
-                        Color(0xFFCBD5E1).copy(alpha = 0.20f)
+                        Color.White.copy(alpha = 0.82f),
+                        Color.White.copy(alpha = 0.30f),
+                        Color(0xFFCBD5E1).copy(alpha = 0.18f)
                     )
                 }
             )
@@ -969,7 +970,7 @@ fun Modifier.glassCardBackground(
     }
 
     /*
-     * ASSEMBLED 3-LAYER GLASS COMPONENT
+     * ASSEMBLED 3-LAYER GLASS COMPONENT (Backdrop Blur → Translucent Base → Content → Upper Film & Rim)
      */
     return this
         // 3D Soft Ambient + Spot Shadow (Behind the glass object)
@@ -980,7 +981,7 @@ fun Modifier.glassCardBackground(
                     isDark = effectiveIsDark,
                     offsetY = (effectiveElevation * 0.85f).coerceIn(2.dp, 5.dp),
                     blurRadius = (effectiveElevation * 2.6f).coerceIn(8.dp, 15.dp),
-                    elevationAlphaScale = if (effectiveIsDark) 0.72f else 0.62f
+                    elevationAlphaScale = if (effectiveIsDark) 0.70f else 0.60f
                 )
             } else {
                 Modifier
