@@ -34,37 +34,50 @@ fun MyApplicationTheme(
             val context = LocalContext.current
             if (isDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        isAmoled -> darkColorScheme(
-            primary = accentColor,
-            onPrimary = Color.White,
-            primaryContainer = accentColor.copy(alpha = 0.25f),
-            onPrimaryContainer = Color.White,
-            secondary = accentColor,
-            background = Color(0xFF000000),      // True pitch black background for AMOLED
-            surface = Color(0xFF000000),         // Pure pitch black surface for AMOLED
-            surfaceVariant = Color(0xFF121212),
-            onBackground = Color(0xFFFAFAFA),
-            onSurface = Color(0xFFFAFAFA),
-            onSurfaceVariant = Color(0xFFA3A3A3),
-            outline = Color(0xFF262626)
-        )
-        isDark -> darkColorScheme(
-            primary = accentColor,
-            onPrimary = Color.White,
-            primaryContainer = accentColor.copy(alpha = 0.25f),
-            onPrimaryContainer = Color.White,
-            secondary = accentColor,
-            background = Color(0xFF121212),      // Standard dark background
-            surface = Color(0xFF1E1E1E),         // Standard dark surface
-            surfaceVariant = Color(0xFF282828),
-            onBackground = Color.White,
-            onSurface = Color.White,
-            onSurfaceVariant = Color(0xFFB0B0B0),
-            outline = Color(0xFF383838)
-        )
+        isAmoled -> {
+            val amoledBg = getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = true)
+            darkColorScheme(
+                primary = accentColor,
+                onPrimary = Color.White,
+                primaryContainer = accentColor.copy(alpha = 0.25f),
+                onPrimaryContainer = Color.White,
+                secondary = accentColor,
+                background = amoledBg,
+                surface = amoledBg,
+                surfaceVariant = Color(0xFF0F0F12),
+                onBackground = Color(0xFFFAFAFA),
+                onSurface = Color(0xFFFAFAFA),
+                onSurfaceVariant = Color(0xFFA3A3A3),
+                outline = Color(0xFF262626)
+            )
+        }
+        isDark -> {
+            val darkBg = getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = false)
+            val hsv = FloatArray(3)
+            android.graphics.Color.RGBToHSV(
+                (accentColor.red * 255f).toInt().coerceIn(0, 255),
+                (accentColor.green * 255f).toInt().coerceIn(0, 255),
+                (accentColor.blue * 255f).toInt().coerceIn(0, 255),
+                hsv
+            )
+            val darkSurface = Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.10f, 0.13f)))
+            darkColorScheme(
+                primary = accentColor,
+                onPrimary = Color.White,
+                primaryContainer = accentColor.copy(alpha = 0.25f),
+                onPrimaryContainer = Color.White,
+                secondary = accentColor,
+                background = darkBg,
+                surface = darkSurface,
+                surfaceVariant = Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.08f, 0.16f))),
+                onBackground = Color.White,
+                onSurface = Color.White,
+                onSurfaceVariant = Color(0xFFB0B0B0),
+                outline = Color(0xFF383838)
+            )
+        }
         else -> {
-            // Soft, muted frosted canvas tint (preserves subtle section identity without oversaturating)
-            val faintTintedBackground = lerp(accentColor, Color(0xFFFCFDFD), 0.985f)
+            val lightBg = getAppDimBackgroundColor(accentColor, isDark = false, isAmoled = false)
             lightColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,
@@ -72,7 +85,7 @@ fun MyApplicationTheme(
                 onPrimaryContainer = lerp(accentColor, Color(0xFF0F172A), 0.60f),
                 secondary = accentColor,
                 secondaryContainer = accentColor.copy(alpha = 0.08f),
-                background = faintTintedBackground,
+                background = lightBg,
                 surface = Color.White,
                 surfaceVariant = Color(0xFFF1F5F9),
                 surfaceContainerHigh = Color(0xFFE2E8F0),

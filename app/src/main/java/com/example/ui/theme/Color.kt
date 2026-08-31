@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 val AgriRedPrimary = Color(0xFFD32F2F)
@@ -49,6 +50,82 @@ fun getSectionAccentColor(
         "Settings" -> Color(0xFF64748B)
         "Profile" -> Color(0xFF10B981)
         else -> defaultColor
+    }
+}
+
+/**
+ * Transforms an accent/palette color into a very dim, subdued, low-saturation,
+ * and low-luminance background tone while preserving its recognizable hue.
+ */
+fun getAppDimBackgroundColor(
+    accentColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean = false
+): Color {
+    val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+    val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+    val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(r, g, b, hsv)
+    val hue = hsv[0]
+
+    return when {
+        isAmoled -> {
+            val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.08f, 0.035f))
+            Color(toneRgb)
+        }
+        isDark -> {
+            val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.14f, 0.085f))
+            Color(toneRgb)
+        }
+        else -> {
+            val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.055f, 0.950f))
+            Color(toneRgb)
+        }
+    }
+}
+
+/**
+ * Computes a soft vertical gradient brush using very dim, subdued, low-saturation,
+ * and low-luminance tones derived strictly from the selected accent / palette color.
+ */
+fun getAppDimBackgroundBrush(
+    accentColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean = false
+): Brush {
+    val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+    val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+    val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(r, g, b, hsv)
+    val hue = hsv[0]
+
+    return when {
+        isAmoled -> {
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.10f, 0.045f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.05f, 0.020f)))
+            val bottomColor = Color(0xFF000000)
+            Brush.verticalGradient(
+                colors = listOf(topColor, midColor, bottomColor)
+            )
+        }
+        isDark -> {
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.16f, 0.095f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.12f, 0.075f)))
+            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.08f, 0.055f)))
+            Brush.verticalGradient(
+                colors = listOf(topColor, midColor, bottomColor)
+            )
+        }
+        else -> {
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.065f, 0.945f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.045f, 0.960f)))
+            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.025f, 0.975f)))
+            Brush.verticalGradient(
+                colors = listOf(topColor, midColor, bottomColor)
+            )
+        }
     }
 }
 

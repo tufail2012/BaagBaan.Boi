@@ -85,6 +85,7 @@ import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
 import com.example.ui.components.LocalHazeState
+import com.example.ui.theme.getAppDimBackgroundBrush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -346,34 +347,7 @@ fun SettingsScreen(
     val settingsHazeState = remember { HazeState() }
     val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
     val settingsBgBrush = remember(isDark, isAmoled, settingsAccent) {
-        if (isAmoled) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF000000),
-                    Color(0xFF09090B),
-                    settingsAccent.copy(alpha = 0.05f),
-                    Color(0xFF000000)
-                )
-            )
-        } else if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    Color(0xFF0D1B2A),
-                    settingsAccent.copy(alpha = 0.05f),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    settingsAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(settingsAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
     CompositionLocalProvider(LocalHazeState provides settingsHazeState) {

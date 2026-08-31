@@ -69,6 +69,7 @@ import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.util.PdfReceiptManager
 import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.delay
@@ -257,25 +258,7 @@ fun PaymentRemindersDialog(
     val paymentHazeState = remember { HazeState() }
     val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     val paymentBgBrush = remember(isDark, paymentAccent) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    Color(0xFF0D1B2A),
-                    paymentAccent.copy(alpha = 0.05f),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    paymentAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(paymentAccent, isDark = isDark)
     }
 
     BackHandler(onBack = onDismiss)

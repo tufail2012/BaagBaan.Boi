@@ -37,6 +37,7 @@ import com.example.data.FirestoreSyncManager
 import com.example.data.InventoryItem
 import com.example.data.InventoryStockManager
 import com.example.ui.CropViewModel
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -144,25 +145,7 @@ fun InventoryManagementDialog(
     )
 
     val inventoryBgBrush = remember(isDark, inventoryAccent) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    inventoryAccent.copy(alpha = 0.05f),
-                    Color(0xFF0B1120),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    inventoryAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(inventoryAccent, isDark = isDark)
     }
 
     CompositionLocalProvider(LocalHazeState provides inventoryHazeState) {

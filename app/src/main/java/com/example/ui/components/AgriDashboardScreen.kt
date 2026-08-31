@@ -95,6 +95,7 @@ import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -115,8 +116,10 @@ fun AgriDashboardScreen(
     val allRecords by viewModel.allRecords.collectAsState()
     val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
     val accentColorHex by viewModel.accentColorHex.collectAsState()
     val isDark = isAppInDarkMode()
+    val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
 
     val parsedPaletteColor = remember(accentColorHex) {
         try {
@@ -233,26 +236,8 @@ fun AgriDashboardScreen(
 
     val paidRatio = if (totalRevenue > 0) (totalPaid / totalRevenue).toFloat().coerceIn(0f, 1f) else 0f
 
-    val dashboardBgBrush = remember(isDark, dashboardAccent) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    dashboardAccent.copy(alpha = 0.05f),
-                    Color(0xFF0B1120),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    dashboardAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+    val dashboardBgBrush = remember(isDark, isAmoled, dashboardAccent) {
+        getAppDimBackgroundBrush(dashboardAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
     Box(

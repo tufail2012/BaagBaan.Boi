@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AppThemeMode
 import com.example.ui.components.glassCardBackground
+import com.example.ui.theme.getAppDimBackgroundBrush
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -119,34 +120,7 @@ fun ThemeColoursDialog(
     }
 
     val themeBgBrush = remember(isDark, isAmoled, currentAccentColor) {
-        if (isAmoled) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF000000),
-                    Color(0xFF09090B),
-                    currentAccentColor.copy(alpha = 0.05f),
-                    Color(0xFF000000)
-                )
-            )
-        } else if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    Color(0xFF0D1B2A),
-                    currentAccentColor.copy(alpha = 0.05f),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    currentAccentColor.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(currentAccentColor, isDark = isDark, isAmoled = isAmoled)
     }
 
     Box(

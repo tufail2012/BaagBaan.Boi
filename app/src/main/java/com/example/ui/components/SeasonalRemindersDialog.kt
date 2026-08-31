@@ -70,6 +70,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.SeasonalTask
 import com.example.data.SeasonalTaskRepository
+import com.example.ui.theme.getAppDimBackgroundBrush
 import kotlinx.coroutines.launch
 import java.text.DateFormatSymbols
 import java.util.Calendar
@@ -114,25 +115,7 @@ fun SeasonalRemindersDialog(
     val seasonalHazeState = remember { HazeState() }
     val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     val seasonalBgBrush = remember(isDark, seasonalAccent) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    Color(0xFF0D1B2A),
-                    seasonalAccent.copy(alpha = 0.05f),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    seasonalAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(seasonalAccent, isDark = isDark)
     }
 
     BackHandler(onBack = onDismiss)

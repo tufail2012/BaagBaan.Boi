@@ -172,6 +172,8 @@ import androidx.compose.ui.window.Dialog
 import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
 import com.example.ui.CropViewModel
+import com.example.ui.theme.getAppDimBackgroundBrush
+import com.example.ui.theme.getSectionAccentColor
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -808,26 +810,19 @@ fun FarmerFormScreen(
         }
     }
 
-    val backgroundBrush = remember(isDark) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0B132B),
-                    Color(0xFF1C2541),
-                    Color(0xFF1E293B),
-                    Color(0xFF0F172A)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFE2E8F0),
-                    Color(0xFFE0F2FE),
-                    Color(0xFFF1F5F9),
-                    Color(0xFFEDE9FE)
-                )
-            )
+    val accentColorHex by viewModel.accentColorHex.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
+    val parsedPaletteColor = remember(accentColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(accentColorHex))
+        } catch (e: Exception) {
+            null
         }
+    }
+    val formAccent = getSectionAccentColor(selectedService, customPaletteColor = parsedPaletteColor)
+    val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
+    val backgroundBrush = remember(isDark, isAmoled, formAccent) {
+        getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
     CompositionLocalProvider(LocalHazeState provides farmerHazeState) {

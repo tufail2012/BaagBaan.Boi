@@ -107,6 +107,7 @@ import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
 import com.example.data.GardenPlanningEntry
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -502,25 +503,7 @@ fun ContactDirectoryDialog(
     val contactAccent = getSectionAccentColor("Contact Directory", customPaletteColor = customPaletteColor)
     val contactHazeState = remember { HazeState() }
     val contactsBgBrush = remember(isDark, contactAccent) {
-        if (isDark) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF0F172A),
-                    Color(0xFF0D1B2A),
-                    contactAccent.copy(alpha = 0.05f),
-                    Color(0xFF060911)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFFFAFBFC),
-                    contactAccent.copy(alpha = 0.015f),
-                    Color(0xFFF8FAFC),
-                    Color(0xFFFFFFFF)
-                )
-            )
-        }
+        getAppDimBackgroundBrush(contactAccent, isDark = isDark)
     }
 
     BackHandler(onBack = onDismiss)

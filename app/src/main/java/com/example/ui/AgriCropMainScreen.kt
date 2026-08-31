@@ -39,6 +39,7 @@ import com.example.ui.glass.LocalLiquidHazeState
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
 import com.example.ui.theme.AgriRedPrimary
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -523,6 +524,10 @@ fun AgriCropMainScreen(
                 }
 
                 val hazeState = remember { HazeState() }
+                val isAmoled = themeMode == AppThemeMode.AMOLED
+                val rootBgBrush = remember(isDark, isAmoled, sectionAccentColor) {
+                    getAppDimBackgroundBrush(sectionAccentColor, isDark = isDark, isAmoled = isAmoled)
+                }
 
                 CompositionLocalProvider(
                     LocalHazeState provides hazeState,
@@ -531,7 +536,7 @@ fun AgriCropMainScreen(
                     Box(
                         modifier = modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
+                            .background(rootBgBrush)
                             .hazeSource(state = hazeState)
                     ) {
                         Scaffold(
