@@ -338,23 +338,23 @@ fun LiquidGlassTabSwitcher(
         when {
             isAmoled -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF141414).copy(alpha = 0.82f),
-                    accentColor.copy(alpha = 0.14f),
-                    Color(0xFF070707).copy(alpha = 0.88f)
+                    Color(0xFF141414).copy(alpha = 0.08f),
+                    accentColor.copy(alpha = 0.05f),
+                    Color(0xFF070707).copy(alpha = 0.05f)
                 )
             )
             isDark -> Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.55f),
-                    accentColor.copy(alpha = 0.10f),
-                    Color(0xFF0F172A).copy(alpha = 0.65f)
+                    Color(0xFF1E293B).copy(alpha = 0.12f),
+                    accentColor.copy(alpha = 0.06f),
+                    Color(0xFF0F172A).copy(alpha = 0.08f)
                 )
             )
             else -> Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.72f),
-                    accentColor.copy(alpha = 0.08f),
-                    Color.White.copy(alpha = 0.58f)
+                    Color.White.copy(alpha = 0.12f),
+                    accentColor.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.07f)
                 )
             )
         }
