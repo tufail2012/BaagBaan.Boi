@@ -44,17 +44,17 @@ fun Modifier.frostedGlassChrome(
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(accentColor.copy(alpha = 0.16f)),
+                tint = HazeTint(accentColor.copy(alpha = 0.07f)),
                 blurRadius = 26.dp
             )
             isDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.10f)),
                 blurRadius = 26.dp
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.18f)),
+                tint = HazeTint(Color.White.copy(alpha = 0.10f)),
                 blurRadius = 26.dp
             )
         }
