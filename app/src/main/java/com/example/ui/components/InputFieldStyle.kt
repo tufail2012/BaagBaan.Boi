@@ -768,120 +768,207 @@ fun Modifier.glassCardBackground(
     flatStyle: Boolean = false,
     isFocused: Boolean = false
 ): Modifier {
-    val effectiveIsDark = if (themeMode != null) {
-        when (themeMode) {
-            AppThemeMode.SYSTEM -> isDark
-            AppThemeMode.LIGHT -> false
-            AppThemeMode.DARK, AppThemeMode.AMOLED -> true
-        }
-    } else {
-        isDark
+
+    val effectiveIsDark = when (themeMode) {
+        AppThemeMode.DARK,
+        AppThemeMode.AMOLED -> true
+
+        AppThemeMode.LIGHT -> false
+
+        AppThemeMode.SYSTEM,
+        null -> isDark
     }
 
     val screenBgColor = MaterialTheme.colorScheme.background
-    val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black || screenBgColor == Color(0xFF000000)))
 
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
+    val isAmoled =
+        themeMode == AppThemeMode.AMOLED ||
+        (
+            effectiveIsDark &&
+            screenBgColor.luminance() < 0.01f
+        )
 
-    // 1. Real Haze backdrop blur with subtle white frosted diffusion and required crash-safe backgroundColor
-    val hazeStyle = remember(effectiveIsDark, isAmoled, screenBgColor) {
+    val effectiveShape =
+        shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
+
+    /*
+     * HAZE STYLE
+     *
+     * backgroundColor is intentionally specified in ALL modes.
+     * This prevents the Haze RenderEffect crash:
+     *
+     * "backgroundColor not specified. Please provide a color."
+     *
+     * The backgroundColor here is NOT intended to create an opaque
+     * visible card. The actual visible glass surface remains highly
+     * transparent below.
+     */
+    val hazeStyle = remember(
+        effectiveIsDark,
+        isAmoled,
+        accentColor,
+        screenBgColor
+    ) {
         when {
+
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
-                tint = HazeTint(Color.White.copy(alpha = 0.01f)),
-                blurRadius = 24.dp
+                tint = HazeTint(
+                    Color.White.copy(alpha = 0.025f)
+                ),
+                blurRadius = 20.dp
             )
+
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.03f)),
-                blurRadius = 24.dp
+                tint = HazeTint(
+                    Color.White.copy(alpha = 0.035f)
+                ),
+                blurRadius = 20.dp
             )
+
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.06f)),
-                blurRadius = 24.dp
+                tint = HazeTint(
+                    Color.White.copy(alpha = 0.035f)
+                ),
+                blurRadius = 20.dp
             )
         }
     }
 
-    // 2. Pure Translucent White Glass Surface: Low-alpha neutral glass film without opaque slabs or grey/blue cast
-    val surfaceBrush = remember(effectiveIsDark, isAmoled) {
-        Brush.verticalGradient(
-            when {
-                isAmoled -> listOf(
-                    Color.White.copy(alpha = 0.04f),
-                    Color.White.copy(alpha = 0.01f),
-                    Color.White.copy(alpha = 0.02f)
-                )
-                effectiveIsDark -> listOf(
-                    Color.White.copy(alpha = 0.07f),
-                    Color.White.copy(alpha = 0.02f),
-                    Color.White.copy(alpha = 0.04f)
-                )
-                else -> listOf(
-                    Color.White.copy(alpha = 0.14f),
-                    Color.White.copy(alpha = 0.05f),
-                    Color.White.copy(alpha = 0.09f)
-                )
-            }
-        )
-    }
+    /*
+     * GLASS SURFACE
+     *
+     * Extremely subtle.
+     *
+     * The previous implementation was too opaque and produced
+     * the grey/blue card appearance.
+     *
+     * Real glass should allow the blurred background to remain
+     * visually dominant.
+     */
+    val glassSurface = remember(
+        effectiveIsDark,
+        isAmoled,
+        accentColor
+    ) {
 
-    // 3. Specular Rim Highlight: Soft white top-edge reflection, nearly clear center, and subtle lower rim
-    val rimBrush = remember(isFocused, effectiveIsDark, isAmoled, accentColor) {
-        if (isFocused) {
+        if (effectiveIsDark) {
+
             Brush.verticalGradient(
-                listOf(
-                    accentColor.copy(alpha = 0.85f),
-                    accentColor.copy(alpha = 0.55f)
+                colors = listOf(
+                    Color.White.copy(alpha = 0.075f),
+                    Color.White.copy(alpha = 0.035f),
+                    Color.Transparent
                 )
             )
+
         } else {
+
             Brush.verticalGradient(
-                when {
-                    isAmoled -> listOf(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.12f),
+                    Color.White.copy(alpha = 0.055f),
+                    Color.White.copy(alpha = 0.025f)
+                )
+            )
+        }
+    }
+
+    /*
+     * GLASS RIM
+     *
+     * The upper edge catches light.
+     * The lower edge remains subtle.
+     *
+     * This creates the visual separation between the
+     * glass surface and the page behind it.
+     */
+    val glassRim = remember(
+        effectiveIsDark,
+        isFocused,
+        accentColor
+    ) {
+
+        if (isFocused) {
+
+            Brush.verticalGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.70f),
+                    accentColor.copy(alpha = 0.32f),
+                    accentColor.copy(alpha = 0.10f)
+                )
+            )
+
+        } else {
+
+            Brush.verticalGradient(
+                colors = if (effectiveIsDark) {
+
+                    listOf(
                         Color.White.copy(alpha = 0.30f),
-                        Color.White.copy(alpha = 0.05f),
-                        Color.White.copy(alpha = 0.15f)
+                        Color.White.copy(alpha = 0.10f),
+                        Color.White.copy(alpha = 0.045f)
                     )
-                    effectiveIsDark -> listOf(
-                        Color.White.copy(alpha = 0.35f),
-                        Color.White.copy(alpha = 0.08f),
-                        Color.White.copy(alpha = 0.18f)
-                    )
-                    else -> listOf(
-                        Color.White.copy(alpha = 0.70f),
-                        Color.White.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.28f)
+
+                } else {
+
+                    listOf(
+                        Color.White.copy(alpha = 0.75f),
+                        Color.White.copy(alpha = 0.28f),
+                        Color(0xFFCBD5E1).copy(alpha = 0.20f)
                     )
                 }
             )
         }
     }
 
-    val effectiveBorderWidth = if (isFocused) 1.5.dp else borderWidth
-
-    // 4. Modifier Chain: Soft Shadow -> Shape Clip -> Haze Backdrop Blur -> Translucent Glass Surface -> Specular Rim
+    /*
+     * FINAL GLASS MODIFIER
+     *
+     * Order:
+     *
+     * 1. Soft elevation shadow
+     * 2. Shape clipping
+     * 3. Real Haze backdrop blur
+     * 4. Very transparent glass film
+     * 5. Thin reflective rim
+     */
     return this
+
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = 2.dp,
-            blurRadius = 6.dp,
-            elevationAlphaScale = if (isAmoled) 0.5f else 1.0f
+            offsetY = 4.dp,
+            blurRadius = 12.dp,
+            elevationAlphaScale =
+                if (effectiveIsDark) 0.75f else 0.65f
         )
+
         .clip(effectiveShape)
+
         .then(
             if (hazeState != null) {
-                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = hazeStyle
+                )
+
             } else {
                 Modifier
             }
         )
-        .background(surfaceBrush)
+
+        .background(
+            brush = glassSurface,
+            shape = effectiveShape
+        )
+
         .border(
-            width = effectiveBorderWidth,
-            brush = rimBrush,
+            width = if (isFocused) 1.25.dp else 0.8.dp,
+            brush = glassRim,
             shape = effectiveShape
         )
 }
