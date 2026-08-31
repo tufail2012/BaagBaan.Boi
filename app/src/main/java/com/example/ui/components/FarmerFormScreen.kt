@@ -775,28 +775,33 @@ fun FarmerFormScreen(
         """.trimIndent()
     }
 
-    val farmerHazeStyle = remember(isDark) {
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val farmerHazeStyle = remember(isDark, screenBgColor) {
         if (isDark) {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
                 blurRadius = 26.dp
             )
         } else {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color.White.copy(alpha = 0.25f)),
                 blurRadius = 26.dp
             )
         }
     }
 
-    val inputFieldHazeStyle = remember(isDark) {
+    val inputFieldHazeStyle = remember(isDark, screenBgColor) {
         if (isDark) {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.45f)),
                 blurRadius = 18.dp
             )
         } else {
             HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color.White.copy(alpha = 0.55f)),
                 blurRadius = 18.dp
             )

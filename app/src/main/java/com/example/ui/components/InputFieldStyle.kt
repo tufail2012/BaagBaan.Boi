@@ -783,18 +783,21 @@ fun Modifier.glassCardBackground(
 
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
 
-    // 1. Strengthened real Haze backdrop blur with refined light tinting
+    // 1. Strengthened real Haze backdrop blur with refined light tinting and required opaque backgroundColor
     val hazeStyle = remember(effectiveIsDark, isAmoled, accentColor, screenBgColor) {
         when {
             isAmoled -> HazeStyle(
+                backgroundColor = Color.Black,
                 tint = HazeTint(accentColor.copy(alpha = 0.05f)),
                 blurRadius = 28.dp
             )
             effectiveIsDark -> HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.22f)),
                 blurRadius = 28.dp
             )
             else -> HazeStyle(
+                backgroundColor = screenBgColor,
                 tint = HazeTint(Color.White.copy(alpha = 0.12f)),
                 blurRadius = 28.dp
             )
