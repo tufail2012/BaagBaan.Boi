@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,6 +33,7 @@ import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.GlobalSearchResultsScreen
+import com.example.ui.components.LocalHazeState
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
 import com.example.ui.theme.AgriRedPrimary
@@ -520,10 +522,11 @@ fun AgriCropMainScreen(
 
                 val hazeState = remember { HazeState() }
 
-                Scaffold(
-                    modifier = modifier.fillMaxSize(),
-                    containerColor = MaterialTheme.colorScheme.background,
-                    topBar = {
+                CompositionLocalProvider(LocalHazeState provides hazeState) {
+                    Scaffold(
+                        modifier = modifier.fillMaxSize(),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        topBar = {
                         Column {
                             AgriHeader(
                                 title = displayHeaderTitle,
@@ -791,6 +794,7 @@ fun AgriCropMainScreen(
             }
         }
     }
+}
 
     // Production-ready App Lock authentication overlay when enabled and locked
     if (isAppLockEnabled && isAppLocked) {

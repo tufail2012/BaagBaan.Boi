@@ -68,6 +68,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,6 +84,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
+import com.example.ui.components.LocalHazeState
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -374,11 +376,13 @@ fun SettingsScreen(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(settingsBgBrush)
-    ) {
+    CompositionLocalProvider(LocalHazeState provides settingsHazeState) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(settingsBgBrush)
+                .hazeSource(state = settingsHazeState)
+        ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -998,6 +1002,7 @@ fun SettingsScreen(
             }
         }
     }
+}
 }
 
 @Composable

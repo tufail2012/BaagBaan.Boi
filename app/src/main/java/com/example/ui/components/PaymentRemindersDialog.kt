@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -279,13 +280,14 @@ fun PaymentRemindersDialog(
 
     BackHandler(onBack = onDismiss)
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(paymentBgBrush)
-            .hazeSource(state = paymentHazeState)
-            .testTag("payment_reminders_dialog")
-    ) {
+    CompositionLocalProvider(LocalHazeState provides paymentHazeState) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(paymentBgBrush)
+                .hazeSource(state = paymentHazeState)
+                .testTag("payment_reminders_dialog")
+        ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -582,6 +584,7 @@ fun PaymentRemindersDialog(
             }
         }
     }
+}
 
 @Composable
 fun PendingPaymentRow(

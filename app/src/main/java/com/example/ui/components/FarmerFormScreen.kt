@@ -138,6 +138,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -824,12 +825,13 @@ fun FarmerFormScreen(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-            .hazeSource(state = farmerHazeState)
-    ) {
+    CompositionLocalProvider(LocalHazeState provides farmerHazeState) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(backgroundBrush)
+                .hazeSource(state = farmerHazeState)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -3602,15 +3604,16 @@ fun FarmerFormScreen(
         )
     }
 
-    if (showDatePickerDialog) {
-        AppDatePickerDialog(
-            initialDateStr = datePickerInitialStr,
-            onDateSelected = { selectedDate ->
-                datePickerOnSelected(selectedDate)
-                showDatePickerDialog = false
-            },
-            onDismissRequest = { showDatePickerDialog = false }
-        )
+        if (showDatePickerDialog) {
+            AppDatePickerDialog(
+                initialDateStr = datePickerInitialStr,
+                onDateSelected = { selectedDate ->
+                    datePickerOnSelected(selectedDate)
+                    showDatePickerDialog = false
+                },
+                onDismissRequest = { showDatePickerDialog = false }
+            )
+        }
     }
 }
 

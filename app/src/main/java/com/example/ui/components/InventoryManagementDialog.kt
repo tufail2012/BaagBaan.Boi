@@ -165,12 +165,13 @@ fun InventoryManagementDialog(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(inventoryBgBrush)
-            .hazeSource(state = inventoryHazeState)
-    ) {
+    CompositionLocalProvider(LocalHazeState provides inventoryHazeState) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(inventoryBgBrush)
+                .hazeSource(state = inventoryHazeState)
+        ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -785,6 +786,7 @@ fun InventoryManagementDialog(
             }
         )
     }
+}
 }
 
 @Composable

@@ -69,11 +69,22 @@ import androidx.compose.ui.unit.dp
 import com.example.ui.AppThemeMode
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+/**
+ * CompositionLocal providing active HazeState for Liquid Glass blur across the hierarchy
+ */
+val LocalHazeState = compositionLocalOf<HazeState?> { null }
 
 /**
  * Forwarding function to single source of truth in Color.kt
@@ -231,6 +242,7 @@ fun AppOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalHazeState.current,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -250,7 +262,8 @@ fun AppOutlinedTextField(
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = RoundedCornerShape(16.dp),
-    colors: TextFieldColors = elevatedInputFieldColors(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
 ) {
     val isDark = isAppInDarkMode()
@@ -279,8 +292,9 @@ fun AppOutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
         modifier = modifier.boundedFormFieldRipple(
+            hazeState = hazeState,
             shape = shape,
-            accentColor = MaterialTheme.colorScheme.primary,
+            accentColor = accentColor,
             interactionSource = interactionSource,
             enabled = enabled
         ),
@@ -315,6 +329,7 @@ fun AppOutlinedTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalHazeState.current,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -334,7 +349,8 @@ fun AppOutlinedTextField(
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = RoundedCornerShape(16.dp),
-    colors: TextFieldColors = elevatedInputFieldColors(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
 ) {
     val isDark = isAppInDarkMode()
@@ -363,8 +379,9 @@ fun AppOutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
         modifier = modifier.boundedFormFieldRipple(
+            hazeState = hazeState,
             shape = shape,
-            accentColor = MaterialTheme.colorScheme.primary,
+            accentColor = accentColor,
             interactionSource = interactionSource,
             enabled = enabled
         ),
@@ -574,6 +591,7 @@ fun Modifier.centerWaterRipple(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
+    hazeState: HazeState? = LocalHazeState.current,
     shape: Shape = RoundedCornerShape(16.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
@@ -592,6 +610,7 @@ fun Modifier.boundedFormFieldRipple(
             isEventFocused = focusState.isFocused || focusState.hasFocus
         }
         .glassCardBackground(
+            hazeState = hazeState,
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
@@ -622,12 +641,12 @@ fun Modifier.boundedFormFieldRipple(
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
-    offsetY: Dp = 4.dp,
-    blurRadius: Dp = 10.dp,
+    offsetY: Dp = 2.dp,
+    blurRadius: Dp = 8.dp,
     elevationAlphaScale: Float = 1.0f
 ): Modifier = this.drawBehind {
-    val ambientAlpha = (if (isDark) 0.22f else 0.08f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
-    val spotAlpha = (if (isDark) 0.36f else 0.12f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
+    val ambientAlpha = (if (isDark) 0.18f else 0.06f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
+    val spotAlpha = (if (isDark) 0.28f else 0.08f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
 
     val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF0F172A).copy(alpha = ambientAlpha)
     val spotColor = if (isDark) Color.Black.copy(alpha = spotAlpha) else Color(0xFF0F172A).copy(alpha = spotAlpha)
@@ -637,7 +656,7 @@ fun Modifier.drawElevatedShadow(
         val ambientPaint = Paint()
         val ambientFrameworkPaint = ambientPaint.asFrameworkPaint()
         ambientFrameworkPaint.color = ambientColor.toArgb()
-        val ambientBlurPx = (blurRadius * 1.3f).toPx()
+        val ambientBlurPx = (blurRadius * 1.2f).toPx()
         if (ambientBlurPx > 0f) {
             ambientFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
                 ambientBlurPx,
@@ -646,7 +665,7 @@ fun Modifier.drawElevatedShadow(
         }
         val outline = shape.createOutline(size, layoutDirection, this)
         canvas.save()
-        canvas.translate(0f, 1.5.dp.toPx())
+        canvas.translate(0f, 1.dp.toPx())
         canvas.drawOutline(outline, ambientPaint)
         canvas.restore()
 
@@ -681,7 +700,7 @@ fun elevatedInputFieldColors(
     accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
-    val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
 
     return OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,
@@ -697,7 +716,7 @@ fun elevatedInputFieldColors(
         disabledBorderColor = Color.Transparent,
         errorBorderColor = MaterialTheme.colorScheme.error,
         focusedLabelColor = accentColor,
-        unfocusedLabelColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
+        unfocusedLabelColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
         disabledLabelColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLabelColor = MaterialTheme.colorScheme.error,
         cursorColor = accentColor,
@@ -725,21 +744,27 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Reusable Card Modifier for Input Fields and Containers.
- * Provides clean visual separation with:
- * 1. Flat solid color per theme (Light: #F1F5F9, Dark: #1E293B, AMOLED: #0C0A09)
- * 2. Subtle soft drop shadow
- * 3. Focused border highlighting with accentColor
+ * Frosted Liquid Glass Background Modifier for Input Fields and Containers.
+ * Uses real-time Haze backdrop blur, translucent glass tinting, soft specular rim,
+ * and subtle depth elevation shadow.
+ *
+ * Provides:
+ * 1. Real backdrop blur sampled via [hazeState] / [LocalHazeState.current]
+ * 2. Translucent liquid glass tinting with section accent tone
+ * 3. Soft white specular rim highlight and focused accent border
+ * 4. Soft ambient + spot elevation shadow without heavy 3D bevels
+ * 5. High contrast and legibility for text, labels, and icons
  */
 @Composable
 fun Modifier.glassCardBackground(
+    hazeState: HazeState? = LocalHazeState.current,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape? = null,
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
-    elevation: Dp = 6.dp,
-    borderWidth: Dp = 1.25.dp,
+    elevation: Dp = 4.dp,
+    borderWidth: Dp = 1.dp,
     flatStyle: Boolean = false,
     isFocused: Boolean = false
 ): Modifier {
@@ -753,37 +778,113 @@ fun Modifier.glassCardBackground(
         isDark
     }
 
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black || screenBgColor == Color(0xFF000000)))
+
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
-    val isAmoled = themeMode == AppThemeMode.AMOLED || (effectiveIsDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
 
-    val containerColor = when {
-        isAmoled -> Color(0xFF0C0A09)
-        effectiveIsDark -> Color(0xFF1E293B)
-        else -> Color(0xFFF1F5F9)
+    // 1. Strengthened real Haze backdrop blur with refined light tinting
+    val hazeStyle = remember(effectiveIsDark, isAmoled, accentColor, screenBgColor) {
+        when {
+            isAmoled -> HazeStyle(
+                tint = HazeTint(accentColor.copy(alpha = 0.05f)),
+                blurRadius = 28.dp
+            )
+            effectiveIsDark -> HazeStyle(
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.22f)),
+                blurRadius = 28.dp
+            )
+            else -> HazeStyle(
+                tint = HazeTint(Color.White.copy(alpha = 0.12f)),
+                blurRadius = 28.dp
+            )
+        }
     }
 
-    val borderStroke = if (isFocused) {
-        BorderStroke(1.5.dp, accentColor.copy(alpha = 0.9f))
-    } else {
-        null
+    // 2. Translucent Frosted Glass Surface: Highly permeable with subtle inner highlight and accent refraction
+    val surfaceBrush = remember(effectiveIsDark, isAmoled, accentColor) {
+        Brush.verticalGradient(
+            when {
+                isAmoled -> listOf(
+                    Color.White.copy(alpha = 0.08f),
+                    Color(0xFF141414).copy(alpha = 0.25f),
+                    accentColor.copy(alpha = 0.04f)
+                )
+                effectiveIsDark -> listOf(
+                    Color.White.copy(alpha = 0.12f),
+                    Color(0xFF1E293B).copy(alpha = 0.22f),
+                    Color(0xFF0F172A).copy(alpha = 0.30f),
+                    accentColor.copy(alpha = 0.03f)
+                )
+                else -> listOf(
+                    Color.White.copy(alpha = 0.28f),
+                    Color.White.copy(alpha = 0.14f),
+                    Color(0xFFF8FAFC).copy(alpha = 0.18f),
+                    accentColor.copy(alpha = 0.035f)
+                )
+            }
+        )
     }
 
+    // 3. Specular Rim Highlight: Crisp glass top edge reflection, subtle accent refraction, and base rim
+    val rimBrush = remember(isFocused, effectiveIsDark, isAmoled, accentColor) {
+        if (isFocused) {
+            Brush.verticalGradient(
+                listOf(
+                    accentColor.copy(alpha = 0.95f),
+                    accentColor.copy(alpha = 0.70f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                when {
+                    isAmoled -> listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = 0.10f),
+                        accentColor.copy(alpha = 0.20f),
+                        Color(0xFF27272A).copy(alpha = 0.35f)
+                    )
+                    effectiveIsDark -> listOf(
+                        Color.White.copy(alpha = 0.42f),
+                        Color.White.copy(alpha = 0.10f),
+                        accentColor.copy(alpha = 0.15f),
+                        Color(0xFF475569).copy(alpha = 0.28f)
+                    )
+                    else -> listOf(
+                        Color.White.copy(alpha = 0.95f),
+                        Color.White.copy(alpha = 0.30f),
+                        accentColor.copy(alpha = 0.16f),
+                        Color(0xFFCBD5E1).copy(alpha = 0.35f)
+                    )
+                }
+            )
+        }
+    }
+
+    val effectiveBorderWidth = if (isFocused) 1.5.dp else borderWidth
+
+    // 4. Modifier Chain: Soft Shadow -> Strict Shape Clip -> Haze Blur -> Translucent Glass -> Specular Rim
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = 2.dp,
-            blurRadius = 8.dp,
-            elevationAlphaScale = 1.0f
+            offsetY = 3.dp,
+            blurRadius = 10.dp,
+            elevationAlphaScale = if (isAmoled) 0.7f else 1.0f
         )
         .clip(effectiveShape)
-        .background(containerColor)
         .then(
-            if (borderStroke != null) {
-                Modifier.border(borderStroke, effectiveShape)
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
             } else {
                 Modifier
             }
+        )
+        .background(surfaceBrush)
+        .border(
+            width = effectiveBorderWidth,
+            brush = rimBrush,
+            shape = effectiveShape
         )
 }
 
