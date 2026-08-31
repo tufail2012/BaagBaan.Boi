@@ -642,14 +642,14 @@ fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
     offsetY: Dp = 2.dp,
-    blurRadius: Dp = 8.dp,
+    blurRadius: Dp = 6.dp,
     elevationAlphaScale: Float = 1.0f
 ): Modifier = this.drawBehind {
-    val ambientAlpha = (if (isDark) 0.18f else 0.06f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
-    val spotAlpha = (if (isDark) 0.28f else 0.08f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
+    val ambientAlpha = (if (isDark) 0.09f else 0.03f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
+    val spotAlpha = (if (isDark) 0.15f else 0.045f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
 
-    val ambientColor = if (isDark) Color.Black.copy(alpha = ambientAlpha) else Color(0xFF0F172A).copy(alpha = ambientAlpha)
-    val spotColor = if (isDark) Color.Black.copy(alpha = spotAlpha) else Color(0xFF0F172A).copy(alpha = spotAlpha)
+    val ambientColor = Color.Black.copy(alpha = ambientAlpha)
+    val spotColor = Color.Black.copy(alpha = spotAlpha)
 
     drawIntoCanvas { canvas ->
         // Ambient soft blur
@@ -783,81 +783,76 @@ fun Modifier.glassCardBackground(
 
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
 
-    // 1. Strengthened real Haze backdrop blur with refined light tinting and required opaque backgroundColor
-    val hazeStyle = remember(effectiveIsDark, isAmoled, accentColor, screenBgColor) {
+    // 1. Real Haze backdrop blur with subtle white frosted diffusion and required crash-safe backgroundColor
+    val hazeStyle = remember(effectiveIsDark, isAmoled, screenBgColor) {
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
-                tint = HazeTint(accentColor.copy(alpha = 0.04f)),
-                blurRadius = 28.dp
+                tint = HazeTint(Color.White.copy(alpha = 0.01f)),
+                blurRadius = 24.dp
             )
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.16f)),
-                blurRadius = 28.dp
+                tint = HazeTint(Color.White.copy(alpha = 0.03f)),
+                blurRadius = 24.dp
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = 0.08f)),
-                blurRadius = 28.dp
+                tint = HazeTint(Color.White.copy(alpha = 0.06f)),
+                blurRadius = 24.dp
             )
         }
     }
 
-    // 2. Translucent Frosted Glass Surface: Highly permeable with subtle inner highlight and accent refraction
-    val surfaceBrush = remember(effectiveIsDark, isAmoled, accentColor) {
+    // 2. Pure Translucent White Glass Surface: Low-alpha neutral glass film without opaque slabs or grey/blue cast
+    val surfaceBrush = remember(effectiveIsDark, isAmoled) {
         Brush.verticalGradient(
             when {
                 isAmoled -> listOf(
-                    Color.White.copy(alpha = 0.06f),
-                    Color(0xFF18181B).copy(alpha = 0.20f),
-                    accentColor.copy(alpha = 0.03f)
+                    Color.White.copy(alpha = 0.04f),
+                    Color.White.copy(alpha = 0.01f),
+                    Color.White.copy(alpha = 0.02f)
                 )
                 effectiveIsDark -> listOf(
-                    Color.White.copy(alpha = 0.10f),
-                    Color(0xFF1E293B).copy(alpha = 0.16f),
-                    Color(0xFF0F172A).copy(alpha = 0.24f),
-                    accentColor.copy(alpha = 0.025f)
+                    Color.White.copy(alpha = 0.07f),
+                    Color.White.copy(alpha = 0.02f),
+                    Color.White.copy(alpha = 0.04f)
                 )
                 else -> listOf(
-                    Color.White.copy(alpha = 0.22f),
-                    Color.White.copy(alpha = 0.08f),
-                    Color(0xFFF1F5F9).copy(alpha = 0.14f),
-                    accentColor.copy(alpha = 0.025f)
+                    Color.White.copy(alpha = 0.14f),
+                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.09f)
                 )
             }
         )
     }
 
-    // 3. Specular Rim Highlight: Crisp glass top edge reflection, subtle accent refraction, and base rim
+    // 3. Specular Rim Highlight: Soft white top-edge reflection, nearly clear center, and subtle lower rim
     val rimBrush = remember(isFocused, effectiveIsDark, isAmoled, accentColor) {
         if (isFocused) {
             Brush.verticalGradient(
                 listOf(
-                    accentColor.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.70f)
+                    accentColor.copy(alpha = 0.85f),
+                    accentColor.copy(alpha = 0.55f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 when {
                     isAmoled -> listOf(
-                        Color.White.copy(alpha = 0.45f),
-                        Color.White.copy(alpha = 0.10f),
-                        accentColor.copy(alpha = 0.20f),
-                        Color(0xFF27272A).copy(alpha = 0.35f)
+                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.05f),
+                        Color.White.copy(alpha = 0.15f)
                     )
                     effectiveIsDark -> listOf(
-                        Color.White.copy(alpha = 0.42f),
-                        Color.White.copy(alpha = 0.10f),
-                        accentColor.copy(alpha = 0.15f),
-                        Color(0xFF475569).copy(alpha = 0.28f)
+                        Color.White.copy(alpha = 0.35f),
+                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.18f)
                     )
                     else -> listOf(
-                        Color.White.copy(alpha = 0.95f),
-                        Color.White.copy(alpha = 0.25f),
-                        accentColor.copy(alpha = 0.15f),
-                        Color(0xFF94A3B8).copy(alpha = 0.32f)
+                        Color.White.copy(alpha = 0.70f),
+                        Color.White.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.28f)
                     )
                 }
             )
@@ -866,14 +861,14 @@ fun Modifier.glassCardBackground(
 
     val effectiveBorderWidth = if (isFocused) 1.5.dp else borderWidth
 
-    // 4. Modifier Chain: Soft Shadow -> Strict Shape Clip -> Haze Blur -> Translucent Glass -> Specular Rim
+    // 4. Modifier Chain: Soft Shadow -> Shape Clip -> Haze Backdrop Blur -> Translucent Glass Surface -> Specular Rim
     return this
         .drawElevatedShadow(
             shape = effectiveShape,
             isDark = effectiveIsDark,
-            offsetY = 3.dp,
-            blurRadius = 10.dp,
-            elevationAlphaScale = if (isAmoled) 0.7f else 1.0f
+            offsetY = 2.dp,
+            blurRadius = 6.dp,
+            elevationAlphaScale = if (isAmoled) 0.5f else 1.0f
         )
         .clip(effectiveShape)
         .then(
