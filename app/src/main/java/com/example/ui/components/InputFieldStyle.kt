@@ -74,6 +74,10 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.nativeCanvas
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -744,24 +748,33 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Frosted Liquid Glass Background Modifier for Input Fields and Containers.
- * Uses real-time Haze backdrop blur, translucent glass tinting, soft specular rim,
- * and subtle depth elevation shadow.
- *
- * Provides:
- * 1. Real backdrop blur sampled via [hazeState] / [LocalHazeState.current]
- * 2. Translucent liquid glass tinting with section accent tone
- * 3. Soft white specular rim highlight and focused accent border
- * 4. Soft ambient + spot elevation shadow without heavy 3D bevels
- * 5. High contrast and legibility for text, labels, and icons
+ * Procedural micro-grain noise tile for authentic frosted glass dispersion.
+ * Cached once to avoid any runtime allocations during compose render passes.
  */
+private val glassNoiseImageBitmap: ImageBitmap by lazy {
+    val size = 64
+    val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+    val random = java.util.Random(42) // deterministic seed for uniform distribution
+    val pixels = IntArray(size * size)
+    for (i in pixels.indices) {
+        val noise = random.nextInt(256)
+        // ultra-subtle grain (~0.025f max alpha: ~6 out of 255)
+        val alpha = (random.nextFloat() * 6f).toInt()
+        pixels[i] = android.graphics.Color.argb(alpha, noise, noise, noise)
+    }
+    bitmap.setPixels(pixels, 0, size, 0, 0, size, size)
+    bitmap.asImageBitmap()
+}
+
 /**
  * True 3-Layer Liquid Frosted Glass Background Modifier for Input Fields and Containers.
+ * Adapted from the LiquidGlassModifier specification:
  *
  * PHYSICAL 3-LAYER VISUAL HIERARCHY:
  * ┌────────────────────────────────────────────────────────┐
  * │ LAYER 3: UPPER GLASS FILM                              │
  * │  - Specular top-edge reflection & diagonal gloss sheen │
+ * │  - Procedural micro-grain noise dispersion             │
  * │  - Dynamic focus refraction                            │
  * │  - Specular glass rim / border stroke                  │
  * ├────────────────────────────────────────────────────────┤
@@ -772,7 +785,8 @@ fun elevatedInputFieldColors(
  * │ LAYER 1: LOWER GLASS BODY                              │
  * │  - Real Haze backdrop blur (sampled from parent source)│
  * │  - Crash-safe HazeStyle backgroundColor in all themes  │
- * │  - Translucent low-alpha glass base diffusion          │
+ * │  - Saturation-lifted translucent glass base diffusion  │
+ * │  - Inner lens curvature refraction along perimeter     │
  * └────────────────────────────────────────────────────────┘
  *            SOFT 3D ELEVATION SHADOW (Ambient + Key)
  */
@@ -822,7 +836,7 @@ fun Modifier.glassCardBackground(
 
     /*
      * LAYER 1: HAZE STYLE (Crash-safe backgroundColor in all modes)
-     * Real backdrop blur sampled via HazeState.
+     * Real backdrop blur sampled via HazeState with subtle saturation lift.
      */
     val hazeStyle = remember(
         effectiveIsDark,
@@ -836,7 +850,7 @@ fun Modifier.glassCardBackground(
                 tint = HazeTint(
                     Color.White.copy(alpha = 0.020f)
                 ),
-                blurRadius = 22.dp
+                blurRadius = 24.dp
             )
 
             effectiveIsDark -> HazeStyle(
@@ -844,15 +858,15 @@ fun Modifier.glassCardBackground(
                 tint = HazeTint(
                     Color.White.copy(alpha = 0.030f)
                 ),
-                blurRadius = 22.dp
+                blurRadius = 24.dp
             )
 
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
                 tint = HazeTint(
-                    Color.White.copy(alpha = 0.030f)
+                    Color.White.copy(alpha = 0.035f)
                 ),
-                blurRadius = 22.dp
+                blurRadius = 24.dp
             )
         }
     }
@@ -883,6 +897,28 @@ fun Modifier.glassCardBackground(
                 )
             )
         }
+    }
+
+    /*
+     * LAYER 1: INNER LENS CURVATURE REFRACTION
+     * Subtle refraction shadow along perimeter simulating physical glass curvature.
+     */
+    val innerLensRefraction = remember(effectiveIsDark) {
+        Brush.radialGradient(
+            colors = if (effectiveIsDark) {
+                listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.015f),
+                    Color.Black.copy(alpha = 0.040f)
+                )
+            } else {
+                listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.030f),
+                    Color.Black.copy(alpha = 0.025f)
+                )
+            }
+        )
     }
 
     /*
@@ -969,6 +1005,8 @@ fun Modifier.glassCardBackground(
         }
     }
 
+    val noiseImage = glassNoiseImageBitmap
+
     /*
      * ASSEMBLED 3-LAYER GLASS COMPONENT (Backdrop Blur → Translucent Base → Content → Upper Film & Rim)
      */
@@ -1003,9 +1041,13 @@ fun Modifier.glassCardBackground(
             }
         )
 
-        // LAYER 1: Lower Translucent Glass Body Base
+        // LAYER 1: Lower Translucent Glass Body Base & Inner Lens Curvature
         .background(
             brush = lowerGlassSurface,
+            shape = effectiveShape
+        )
+        .background(
+            brush = innerLensRefraction,
             shape = effectiveShape
         )
 
@@ -1032,7 +1074,25 @@ fun Modifier.glassCardBackground(
                     size = Size(size.width, crestHeight)
                 )
 
-                // 3. Subtle focus accent wash if focused
+                // 3. Subtle procedural frosted micro-grain dispersion
+                val androidBmp = noiseImage.asAndroidBitmap()
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                    shader = android.graphics.BitmapShader(
+                        androidBmp,
+                        android.graphics.Shader.TileMode.REPEAT,
+                        android.graphics.Shader.TileMode.REPEAT
+                    )
+                }
+                drawContext.canvas.nativeCanvas.drawRect(
+                    0f,
+                    0f,
+                    size.width,
+                    size.height,
+                    paint
+                )
+
+                // 4. Subtle focus accent wash if focused
                 if (isFocused) {
                     drawRect(
                         brush = Brush.verticalGradient(
