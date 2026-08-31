@@ -755,6 +755,27 @@ fun elevatedInputFieldColors(
  * 4. Soft ambient + spot elevation shadow without heavy 3D bevels
  * 5. High contrast and legibility for text, labels, and icons
  */
+/**
+ * True 3-Layer Liquid Frosted Glass Background Modifier for Input Fields and Containers.
+ *
+ * PHYSICAL 3-LAYER VISUAL HIERARCHY:
+ * ┌────────────────────────────────────────────────────────┐
+ * │ LAYER 3: UPPER GLASS FILM                              │
+ * │  - Specular top-edge reflection & diagonal gloss sheen │
+ * │  - Dynamic focus refraction                            │
+ * │  - Specular glass rim / border stroke                  │
+ * ├────────────────────────────────────────────────────────┤
+ * │ LAYER 2: SHARP FIELD CONTENT (Embedded inside glass)   │
+ * │  - Text, icons, label, placeholder, cursor, ripple     │
+ * │  - ZERO blur applied to content (100% crisp)           │
+ * ├────────────────────────────────────────────────────────┤
+ * │ LAYER 1: LOWER GLASS BODY                              │
+ * │  - Real Haze backdrop blur (sampled from parent source)│
+ * │  - Crash-safe HazeStyle backgroundColor in all themes  │
+ * │  - Translucent low-alpha glass base diffusion          │
+ * └────────────────────────────────────────────────────────┘
+ *            SOFT 3D ELEVATION SHADOW (Ambient + Key)
+ */
 @Composable
 fun Modifier.glassCardBackground(
     hazeState: HazeState? = LocalHazeState.current,
@@ -791,17 +812,16 @@ fun Modifier.glassCardBackground(
     val effectiveShape =
         shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
 
+    val effectiveElevation = if (flatStyle) 0.dp else elevation
+
+    val effectiveBorderWidth = if (isFocused) {
+        (borderWidth * 1.35f).coerceAtLeast(1.25.dp)
+    } else {
+        (borderWidth * 0.85f).coerceAtLeast(0.8.dp)
+    }
+
     /*
-     * HAZE STYLE
-     *
-     * backgroundColor is intentionally specified in ALL modes.
-     * This prevents the Haze RenderEffect crash:
-     *
-     * "backgroundColor not specified. Please provide a color."
-     *
-     * The backgroundColor here is NOT intended to create an opaque
-     * visible card. The actual visible glass surface remains highly
-     * transparent below.
+     * LAYER 1: HAZE STYLE (Crash-safe backgroundColor in all modes)
      */
     val hazeStyle = remember(
         effectiveIsDark,
@@ -810,13 +830,12 @@ fun Modifier.glassCardBackground(
         screenBgColor
     ) {
         when {
-
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
                 tint = HazeTint(
                     Color.White.copy(alpha = 0.025f)
                 ),
-                blurRadius = 20.dp
+                blurRadius = 24.dp
             )
 
             effectiveIsDark -> HazeStyle(
@@ -824,38 +843,29 @@ fun Modifier.glassCardBackground(
                 tint = HazeTint(
                     Color.White.copy(alpha = 0.035f)
                 ),
-                blurRadius = 20.dp
+                blurRadius = 24.dp
             )
 
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
                 tint = HazeTint(
-                    Color.White.copy(alpha = 0.035f)
+                    Color.White.copy(alpha = 0.040f)
                 ),
-                blurRadius = 20.dp
+                blurRadius = 24.dp
             )
         }
     }
 
     /*
-     * GLASS SURFACE
-     *
-     * Extremely subtle.
-     *
-     * The previous implementation was too opaque and produced
-     * the grey/blue card appearance.
-     *
-     * Real glass should allow the blurred background to remain
-     * visually dominant.
+     * LAYER 1: LOWER GLASS BODY SURFACE
+     * Translucent base permitting parent background colors and gradients to diffuse through.
      */
-    val glassSurface = remember(
+    val lowerGlassSurface = remember(
         effectiveIsDark,
         isAmoled,
         accentColor
     ) {
-
         if (effectiveIsDark) {
-
             Brush.verticalGradient(
                 colors = listOf(
                     Color.White.copy(alpha = 0.075f),
@@ -863,38 +873,57 @@ fun Modifier.glassCardBackground(
                     Color.Transparent
                 )
             )
-
         } else {
-
             Brush.verticalGradient(
                 colors = listOf(
                     Color.White.copy(alpha = 0.12f),
                     Color.White.copy(alpha = 0.055f),
-                    Color.White.copy(alpha = 0.025f)
+                    Color.White.copy(alpha = 0.020f)
                 )
             )
         }
     }
 
     /*
-     * DIAGONAL GLOSSY HIGHLIGHT OVERLAY
-     *
-     * Subtle diagonal light sheen from top-left to bottom-right
-     * simulating liquid refraction across the glass surface.
+     * LAYER 3: UPPER OPTICAL GLASS FILM (Rendered OVER the sharp content)
      */
-    val diagonalGloss = remember(effectiveIsDark) {
+    val topCrestReflection = remember(effectiveIsDark, isFocused, accentColor) {
+        Brush.verticalGradient(
+            colors = if (isFocused) {
+                listOf(
+                    accentColor.copy(alpha = 0.50f),
+                    accentColor.copy(alpha = 0.15f),
+                    Color.Transparent
+                )
+            } else if (effectiveIsDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.38f),
+                    Color.White.copy(alpha = 0.10f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.82f),
+                    Color.White.copy(alpha = 0.22f),
+                    Color.Transparent
+                )
+            }
+        )
+    }
+
+    val diagonalGlossRefraction = remember(effectiveIsDark) {
         Brush.linearGradient(
             colors = if (effectiveIsDark) {
                 listOf(
-                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.045f),
                     Color.White.copy(alpha = 0.015f),
                     Color.Transparent,
                     Color.Transparent
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = 0.09f),
-                    Color.White.copy(alpha = 0.025f),
+                    Color.White.copy(alpha = 0.085f),
+                    Color.White.copy(alpha = 0.022f),
                     Color.Transparent,
                     Color.Transparent
                 )
@@ -905,45 +934,32 @@ fun Modifier.glassCardBackground(
     }
 
     /*
-     * GLASS RIM
-     *
-     * The upper edge catches light.
-     * The lower edge remains subtle.
-     *
-     * This creates the visual separation between the
-     * glass surface and the page behind it.
+     * SPECULAR GLASS RIM / BORDER
      */
     val glassRim = remember(
         effectiveIsDark,
         isFocused,
         accentColor
     ) {
-
         if (isFocused) {
-
             Brush.verticalGradient(
                 colors = listOf(
-                    accentColor.copy(alpha = 0.70f),
-                    accentColor.copy(alpha = 0.32f),
-                    accentColor.copy(alpha = 0.10f)
+                    accentColor.copy(alpha = 0.85f),
+                    accentColor.copy(alpha = 0.40f),
+                    accentColor.copy(alpha = 0.15f)
                 )
             )
-
         } else {
-
             Brush.verticalGradient(
                 colors = if (effectiveIsDark) {
-
                     listOf(
-                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.32f),
                         Color.White.copy(alpha = 0.10f),
                         Color.White.copy(alpha = 0.045f)
                     )
-
                 } else {
-
                     listOf(
-                        Color.White.copy(alpha = 0.75f),
+                        Color.White.copy(alpha = 0.78f),
                         Color.White.copy(alpha = 0.28f),
                         Color(0xFFCBD5E1).copy(alpha = 0.20f)
                     )
@@ -953,54 +969,85 @@ fun Modifier.glassCardBackground(
     }
 
     /*
-     * FINAL GLASS MODIFIER
-     *
-     * Order:
-     *
-     * 1. Soft elevation shadow
-     * 2. Shape clipping
-     * 3. Real Haze backdrop blur
-     * 4. Very transparent glass film
-     * 5. Thin reflective rim
+     * ASSEMBLED 3-LAYER GLASS COMPONENT
      */
     return this
-
-        .drawElevatedShadow(
-            shape = effectiveShape,
-            isDark = effectiveIsDark,
-            offsetY = 4.dp,
-            blurRadius = 12.dp,
-            elevationAlphaScale =
-                if (effectiveIsDark) 0.75f else 0.65f
-        )
-
-        .clip(effectiveShape)
-
+        // 3D Soft Ambient + Spot Shadow (Behind the glass object)
         .then(
-            if (hazeState != null) {
-
-                Modifier.hazeEffect(
-                    state = hazeState,
-                    style = hazeStyle
+            if (effectiveElevation > 0.dp) {
+                Modifier.drawElevatedShadow(
+                    shape = effectiveShape,
+                    isDark = effectiveIsDark,
+                    offsetY = (effectiveElevation * 0.85f).coerceIn(2.dp, 5.dp),
+                    blurRadius = (effectiveElevation * 2.6f).coerceIn(8.dp, 15.dp),
+                    elevationAlphaScale = if (effectiveIsDark) 0.72f else 0.62f
                 )
-
             } else {
                 Modifier
             }
         )
 
+        // Clip container to rounded corner bounds
+        .clip(effectiveShape)
+
+        // LAYER 1: Haze Backdrop Blur
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = hazeStyle
+                )
+            } else {
+                Modifier
+            }
+        )
+
+        // LAYER 1: Lower Translucent Glass Body Base
         .background(
-            brush = glassSurface,
+            brush = lowerGlassSurface,
             shape = effectiveShape
         )
 
-        .background(
-            brush = diagonalGloss,
-            shape = effectiveShape
-        )
+        // LAYER 2 + LAYER 3: Render sharp content, then layer optical glass film on top
+        .drawWithContent {
+            // LAYER 2: Draw the text field / card content crisp and unblurred
+            drawContent()
 
+            // LAYER 3: Draw the optical glass film over the content
+            val outline = effectiveShape.createOutline(size, layoutDirection, this)
+            clipPath(
+                path = Path().apply {
+                    addOutline(outline)
+                }
+            ) {
+                // 1. Diagonal gloss refraction sheen
+                drawRect(brush = diagonalGlossRefraction)
+
+                // 2. Upper specular light crest reflection (top 4.5dp)
+                val crestHeight = 4.5.dp.toPx()
+                drawRect(
+                    brush = topCrestReflection,
+                    topLeft = Offset.Zero,
+                    size = Size(size.width, crestHeight)
+                )
+
+                // 3. Subtle focus accent wash if focused
+                if (isFocused) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                accentColor.copy(alpha = 0.04f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+                }
+            }
+        }
+
+        // Specular Glass Rim / Outer Border
         .border(
-            width = if (isFocused) 1.25.dp else 0.8.dp,
+            width = effectiveBorderWidth,
             brush = glassRim,
             shape = effectiveShape
         )
