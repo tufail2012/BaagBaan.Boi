@@ -877,6 +877,34 @@ fun Modifier.glassCardBackground(
     }
 
     /*
+     * DIAGONAL GLOSSY HIGHLIGHT OVERLAY
+     *
+     * Subtle diagonal light sheen from top-left to bottom-right
+     * simulating liquid refraction across the glass surface.
+     */
+    val diagonalGloss = remember(effectiveIsDark) {
+        Brush.linearGradient(
+            colors = if (effectiveIsDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.05f),
+                    Color.White.copy(alpha = 0.015f),
+                    Color.Transparent,
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.09f),
+                    Color.White.copy(alpha = 0.025f),
+                    Color.Transparent,
+                    Color.Transparent
+                )
+            },
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
+
+    /*
      * GLASS RIM
      *
      * The upper edge catches light.
@@ -963,6 +991,11 @@ fun Modifier.glassCardBackground(
 
         .background(
             brush = glassSurface,
+            shape = effectiveShape
+        )
+
+        .background(
+            brush = diagonalGloss,
             shape = effectiveShape
         )
 
