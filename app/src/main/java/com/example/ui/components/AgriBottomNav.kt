@@ -1,8 +1,11 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -12,11 +15,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +36,7 @@ import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -64,9 +70,9 @@ data class AgriNavItem(
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
  * Features:
  * - Translucent, blurred glass backdrop container utilizing Haze backdrop effects.
- * - Prominent, larger floating pill indicator with a raised, bubbly, 3D appearance.
- * - Semi-transparent, barely visible water droplet aesthetic with minimal color tint and specular refraction.
- * - High-contrast unselected navigation icons with haptic feedback.
+ * - Sliding 3D Bubble / Droplet indicator with spring physics and responsive horizontal wobble/shake feedback.
+ * - Clean, semi-transparent active palette tint with raised 3D specular highlight and drop shadow.
+ * - High-contrast unselected and selected navigation icons with haptic feedback.
  */
 @Composable
 fun AgriBottomNav(
@@ -119,6 +125,23 @@ fun AgriBottomNav(
         color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.16f) else Color(0xFF000000).copy(alpha = 0.08f)
     )
 
+    // Snappy tactile horizontal wobble / shake animation on tab switch
+    val wobbleOffset = remember { Animatable(0f) }
+    LaunchedEffect(selectedIndex) {
+        wobbleOffset.snapTo(0f)
+        wobbleOffset.animateTo(
+            targetValue = 0f,
+            animationSpec = keyframes {
+                durationMillis = 320
+                0f at 0
+                4f at 75 using FastOutSlowInEasing
+                -3f at 150 using FastOutSlowInEasing
+                1.5f at 225 using FastOutSlowInEasing
+                0f at 320
+            }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -162,187 +185,88 @@ fun AgriBottomNav(
                     .border(containerBorder, containerShape)
             )
 
-            // Layer 2: Interactive Tabs with 3D Bubbly Water Droplet Indicator
-            Row(
+            // Layer 2: Interactive Tabs with Sliding 3D Bubble / Droplet Indicator
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 6.dp)
             ) {
-                navItems.forEachIndexed { index, item ->
-                    val isSelected = index == selectedIndex
-                    AgriTabItem(
-                        item = item,
-                        isSelected = isSelected,
-                        accentColor = activeSectionAccent,
-                        isDark = isDark,
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onCategorySelected(item.serviceCategory)
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                val totalWidth = maxWidth
+                val itemCount = navItems.size
+                val slotWidth = totalWidth / itemCount
+                val pillWidth = minOf(54.dp, slotWidth - 2.dp)
+                val pillHeight = 48.dp
+
+                val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - pillWidth) / 2
+
+                val animatedOffsetX by animateDpAsState(
+                    targetValue = targetIndicatorOffset,
+                    animationSpec = spring(
+                        dampingRatio = 0.62f, // Springy bounce physics
+                        stiffness = 380f
+                    ),
+                    label = "bottomNavPillSlide"
+                )
+
+                val dropletPillShape = RoundedCornerShape(percent = 50)
+
+                // 3D Bubble / Droplet Sliding Pill Indicator
+                Box(
+                    modifier = Modifier
+                        .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                        .align(Alignment.CenterStart)
+                        .width(pillWidth)
+                        .height(pillHeight)
+                        .bubbleDropletPillIndicator(
+                            shape = dropletPillShape,
+                            accentColor = activeSectionAccent,
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                )
+
+                // Navigation Tab Icons Row
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    navItems.forEachIndexed { index, item ->
+                        val isSelected = index == selectedIndex
+                        val unselectedColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+                        val selectedColor = if (isDark) activeSectionAccent.copy(alpha = 0.98f) else activeSectionAccent
+
+                        val iconColor by animateColorAsState(
+                            targetValue = if (isSelected) selectedColor else unselectedColor,
+                            animationSpec = tween(durationMillis = 200),
+                            label = "navIconColor"
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(60.dp)
+                                .testTag(item.testTag)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onCategorySelected(item.serviceCategory)
+                                    }
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.title,
+                                tint = iconColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-
-/**
- * Individual navigation tab item featuring a raised, 3D bubbly water droplet indicator when selected.
- */
-@Composable
-private fun AgriTabItem(
-    item: AgriNavItem,
-    isSelected: Boolean,
-    accentColor: Color,
-    isDark: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dropletPillShape = RoundedCornerShape(percent = 50)
-
-    val unselectedIconColor = if (isDark) Color(0xFFFFFFFF) else Color(0xFF0F172A)
-    val selectedIconColor = if (isDark) {
-        accentColor.copy(alpha = 0.95f)
-    } else {
-        accentColor.copy(alpha = 0.90f)
-    }
-
-    Box(
-        modifier = modifier
-            .testTag(item.testTag)
-            .height(60.dp)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isSelected) {
-            // Raised 3D Bubbly Water Droplet Floating Pill (Enlarged to 54.dp x 48.dp)
-            Box(
-                modifier = Modifier
-                    .width(54.dp)
-                    .height(48.dp)
-                    // 1. 3D Bottom Depth Shadow
-                    .shadow(
-                        elevation = 6.dp,
-                        shape = dropletPillShape,
-                        spotColor = if (isDark) Color.Black.copy(alpha = 0.60f) else Color(0x35000000),
-                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x20000000)
-                    )
-                    .clip(dropletPillShape)
-                    // 2. Ultra-translucent, barely visible liquid glass body with minimal color tint
-                    .background(
-                        Brush.verticalGradient(
-                            colors = if (isDark) {
-                                listOf(
-                                    Color.White.copy(alpha = 0.18f),
-                                    accentColor.copy(alpha = 0.06f),
-                                    Color.White.copy(alpha = 0.04f),
-                                    Color.White.copy(alpha = 0.10f)
-                                )
-                            } else {
-                                listOf(
-                                    Color.White.copy(alpha = 0.60f),
-                                    accentColor.copy(alpha = 0.06f),
-                                    Color.White.copy(alpha = 0.12f),
-                                    Color.White.copy(alpha = 0.35f)
-                                )
-                            }
-                        )
-                    )
-                    // 3. Specular 3D liquid meniscus highlight & reflection arcs
-                    .drawWithContent {
-                        drawContent()
-
-                        val w = size.width
-                        val h = size.height
-
-                        // Upper Specular Highlight (Curved dome reflection of light on droplet crest)
-                        val highlightHeight = h * 0.40f
-                        val highlightWidth = w * 0.72f
-                        val highlightX = (w - highlightWidth) / 2f
-                        val highlightY = 2.dp.toPx()
-
-                        drawOval(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.50f else 0.85f),
-                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.30f),
-                                    Color.Transparent
-                                ),
-                                startY = highlightY,
-                                endY = highlightY + highlightHeight
-                            ),
-                            topLeft = Offset(highlightX, highlightY),
-                            size = Size(highlightWidth, highlightHeight)
-                        )
-
-                        // Bottom ambient light bounce arc (gives 3D spherical liquid volume)
-                        val bottomReflectHeight = h * 0.22f
-                        val bottomReflectWidth = w * 0.55f
-                        val bottomX = (w - bottomReflectWidth) / 2f
-                        val bottomY = h - bottomReflectHeight - 2.dp.toPx()
-
-                        drawOval(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = if (isDark) 0.20f else 0.40f)
-                                ),
-                                startY = bottomY,
-                                endY = bottomY + bottomReflectHeight
-                            ),
-                            topLeft = Offset(bottomX, bottomY),
-                            size = Size(bottomReflectWidth, bottomReflectHeight)
-                        )
-                    }
-                    // 4. Refractive 3D Water Droplet Rim Border
-                    .border(
-                        BorderStroke(
-                            width = 1.2.dp,
-                            brush = Brush.verticalGradient(
-                                colors = if (isDark) {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.55f),
-                                        Color.White.copy(alpha = 0.12f),
-                                        Color.White.copy(alpha = 0.28f)
-                                    )
-                                } else {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.90f),
-                                        Color.White.copy(alpha = 0.25f),
-                                        Color.White.copy(alpha = 0.55f)
-                                    )
-                                }
-                            )
-                        ),
-                        shape = dropletPillShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.title,
-                    tint = selectedIconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        } else {
-            // Unselected Tab: crisp high-contrast icon
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                tint = unselectedIconColor,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-
-

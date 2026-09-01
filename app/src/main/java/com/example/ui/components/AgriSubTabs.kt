@@ -1,6 +1,11 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -9,12 +14,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,11 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -53,7 +57,10 @@ import com.example.ui.theme.getSectionAccentColor
 
 /**
  * Pruning Sub-Tabs (Summer Pruning / Winter Pruning)
- * Styled with a floating pill container and soft gradient selected indicator.
+ * Features:
+ * - Floating pill container with smooth backdrop elevation.
+ * - Sliding 3D Bubble / Droplet Indicator with spring and wobble physics.
+ * - High-contrast theme-aware iconography and labels.
  */
 @Composable
 fun PruningSubTabs(
@@ -84,6 +91,22 @@ fun PruningSubTabs(
         else -> Color(0xFFE2E8F0)
     }
 
+    val wobbleOffset = remember { Animatable(0f) }
+    LaunchedEffect(selectedIndex) {
+        wobbleOffset.snapTo(0f)
+        wobbleOffset.animateTo(
+            targetValue = 0f,
+            animationSpec = keyframes {
+                durationMillis = 320
+                0f at 0
+                4f at 75 using FastOutSlowInEasing
+                -3f at 150 using FastOutSlowInEasing
+                1.5f at 225 using FastOutSlowInEasing
+                0f at 320
+            }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -100,154 +123,94 @@ fun PruningSubTabs(
             .border(BorderStroke(1.dp, containerBorderColor), containerShape)
             .padding(3.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
         ) {
-            subTabs.forEachIndexed { index, tabName ->
-                val isSelected = index == selectedIndex
-                val isSummer = tabName.contains("Summer", ignoreCase = true)
-                val icon = if (isSummer) Icons.Default.WbSunny else Icons.Default.AcUnit
+            val totalWidth = maxWidth
+            val slotWidth = totalWidth / 2
+            val targetOffset = slotWidth * selectedIndex
 
-                val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) {
-                        accentColor
-                    } else {
-                        if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                    },
-                    animationSpec = tween(durationMillis = 200),
-                    label = "pruningTabColor"
-                )
+            val animatedOffsetX by animateDpAsState(
+                targetValue = targetOffset,
+                animationSpec = spring(
+                    dampingRatio = 0.62f,
+                    stiffness = 380f
+                ),
+                label = "pruningSlide"
+            )
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .testTag("subtab_${tabName.lowercase().replace(" ", "_")}")
-                        .clip(itemShape)
-                        .then(
-                            if (isSelected) {
-                                Modifier
-                                    .shadow(
-                                        elevation = 3.dp,
-                                        shape = itemShape,
-                                        spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
-                                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x12000000)
-                                    )
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            colors = if (isDark) {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.16f),
-                                                    accentColor.copy(alpha = 0.08f),
-                                                    Color.White.copy(alpha = 0.03f),
-                                                    Color.White.copy(alpha = 0.08f)
-                                                )
-                                            } else {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.70f),
-                                                    accentColor.copy(alpha = 0.08f),
-                                                    Color.White.copy(alpha = 0.15f),
-                                                    Color.White.copy(alpha = 0.40f)
-                                                )
-                                            }
-                                        ),
-                                        shape = itemShape
-                                    )
-                                    .drawWithContent {
-                                        drawContent()
-                                        val w = size.width
-                                        val h = size.height
+            // Sliding 3D Bubble / Droplet Indicator
+            Box(
+                modifier = Modifier
+                    .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                    .align(Alignment.CenterStart)
+                    .width(slotWidth)
+                    .fillMaxHeight()
+                    .bubbleDropletPillIndicator(
+                        shape = itemShape,
+                        accentColor = accentColor,
+                        isDark = isDark,
+                        isAmoled = isAmoled
+                    )
+            )
 
-                                        val highlightHeight = h * 0.42f
-                                        val highlightWidth = w * 0.78f
-                                        val highlightX = (w - highlightWidth) / 2f
-                                        val highlightY = 2.dp.toPx()
+            // Tab Text and Icons Row
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                subTabs.forEachIndexed { index, tabName ->
+                    val isSelected = index == selectedIndex
+                    val isSummer = tabName.contains("Summer", ignoreCase = true)
+                    val icon = if (isSummer) Icons.Default.WbSunny else Icons.Default.AcUnit
 
-                                        drawOval(
-                                            brush = Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.White.copy(alpha = if (isDark) 0.45f else 0.80f),
-                                                    Color.White.copy(alpha = if (isDark) 0.12f else 0.25f),
-                                                    Color.Transparent
-                                                ),
-                                                startY = highlightY,
-                                                endY = highlightY + highlightHeight
-                                            ),
-                                            topLeft = Offset(highlightX, highlightY),
-                                            size = Size(highlightWidth, highlightHeight)
-                                        )
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) {
+                            accentColor
+                        } else {
+                            if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        },
+                        animationSpec = tween(durationMillis = 200),
+                        label = "pruningTabColor"
+                    )
 
-                                        val bottomReflectHeight = h * 0.22f
-                                        val bottomReflectWidth = w * 0.60f
-                                        val bottomX = (w - bottomReflectWidth) / 2f
-                                        val bottomY = h - bottomReflectHeight - 2.dp.toPx()
-
-                                        drawOval(
-                                            brush = Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.Transparent,
-                                                    Color.White.copy(alpha = if (isDark) 0.18f else 0.35f)
-                                                ),
-                                                startY = bottomY,
-                                                endY = bottomY + bottomReflectHeight
-                                            ),
-                                            topLeft = Offset(bottomX, bottomY),
-                                            size = Size(bottomReflectWidth, bottomReflectHeight)
-                                        )
-                                    }
-                                    .border(
-                                        BorderStroke(
-                                            width = 1.dp,
-                                            brush = Brush.verticalGradient(
-                                                colors = if (isDark) {
-                                                    listOf(
-                                                        Color.White.copy(alpha = 0.50f),
-                                                        accentColor.copy(alpha = 0.20f),
-                                                        Color.White.copy(alpha = 0.25f)
-                                                    )
-                                                } else {
-                                                    listOf(
-                                                        Color.White.copy(alpha = 0.85f),
-                                                        accentColor.copy(alpha = 0.25f),
-                                                        Color.White.copy(alpha = 0.50f)
-                                                    )
-                                                }
-                                            )
-                                        ),
-                                        shape = itemShape
-                                    )
-                            } else {
-                                Modifier.clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .testTag("subtab_${tabName.lowercase().replace(" ", "_")}")
+                            .clip(itemShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {
+                                    if (selectedIndex != index) {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onSelectSubTab(tabName)
                                     }
-                                )
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = tabName,
-                            fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = contentColor
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = tabName,
+                                fontSize = 13.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = contentColor
+                            )
+                        }
                     }
                 }
             }
@@ -257,7 +220,10 @@ fun PruningSubTabs(
 
 /**
  * Rootstock Sub-Tabs (M9-T337, MM111, Geneva dropdown)
- * Styled with a floating pill container and soft gradient selected indicator.
+ * Features:
+ * - Floating pill container with smooth backdrop elevation.
+ * - Sliding 3D Bubble / Droplet Indicator with spring and wobble physics.
+ * - Dropdown picker for Geneva variants with selection indicator.
  */
 @Composable
 fun RootstockSubTabs(
@@ -302,6 +268,22 @@ fun RootstockSubTabs(
         "Geneva"
     }
 
+    val wobbleOffset = remember { Animatable(0f) }
+    LaunchedEffect(selectedIndex) {
+        wobbleOffset.snapTo(0f)
+        wobbleOffset.animateTo(
+            targetValue = 0f,
+            animationSpec = keyframes {
+                durationMillis = 320
+                0f at 0
+                4f at 75 using FastOutSlowInEasing
+                -3f at 150 using FastOutSlowInEasing
+                1.5f at 225 using FastOutSlowInEasing
+                0f at 320
+            }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -318,452 +300,218 @@ fun RootstockSubTabs(
             .border(BorderStroke(1.dp, containerBorderColor), containerShape)
             .padding(3.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
         ) {
-            // 1. M9-T337
-            val isM9Selected = selectedIndex == 0
-            val m9Color by animateColorAsState(
-                targetValue = if (isM9Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                label = "m9Color"
+            val totalWidth = maxWidth
+            val totalWeight = 3.2f
+            val width0 = totalWidth * (1.0f / totalWeight)
+            val width1 = totalWidth * (1.0f / totalWeight)
+            val width2 = totalWidth * (1.2f / totalWeight)
+
+            val targetOffset = when (selectedIndex) {
+                0 -> 0.dp
+                1 -> width0
+                else -> width0 + width1
+            }
+
+            val targetWidth = when (selectedIndex) {
+                0 -> width0
+                1 -> width1
+                else -> width2
+            }
+
+            val animatedOffsetX by animateDpAsState(
+                targetValue = targetOffset,
+                animationSpec = spring(
+                    dampingRatio = 0.62f,
+                    stiffness = 380f
+                ),
+                label = "rootstockSlide"
             )
+
+            val animatedWidth by animateDpAsState(
+                targetValue = targetWidth,
+                animationSpec = spring(
+                    dampingRatio = 0.62f,
+                    stiffness = 380f
+                ),
+                label = "rootstockWidth"
+            )
+
+            // Sliding 3D Bubble / Droplet Indicator
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                    .align(Alignment.CenterStart)
+                    .width(animatedWidth)
                     .fillMaxHeight()
-                    .testTag("subtab_m9_t337")
-                    .clip(itemShape)
-                    .then(
-                        if (isM9Selected) {
-                            Modifier
-                                .shadow(
-                                    elevation = 3.dp,
-                                    shape = itemShape,
-                                    spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
-                                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x12000000)
-                                )
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = if (isDark) {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.16f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.03f),
-                                                Color.White.copy(alpha = 0.08f)
-                                            )
-                                        } else {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.70f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.15f),
-                                                Color.White.copy(alpha = 0.40f)
-                                            )
-                                        }
-                                    ),
-                                    shape = itemShape
-                                )
-                                .drawWithContent {
-                                    drawContent()
-                                    val w = size.width
-                                    val h = size.height
+                    .bubbleDropletPillIndicator(
+                        shape = itemShape,
+                        accentColor = accentColor,
+                        isDark = isDark,
+                        isAmoled = isAmoled
+                    )
+            )
 
-                                    val highlightHeight = h * 0.42f
-                                    val highlightWidth = w * 0.78f
-                                    val highlightX = (w - highlightWidth) / 2f
-                                    val highlightY = 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = if (isDark) 0.45f else 0.80f),
-                                                Color.White.copy(alpha = if (isDark) 0.12f else 0.25f),
-                                                Color.Transparent
-                                            ),
-                                            startY = highlightY,
-                                            endY = highlightY + highlightHeight
-                                        ),
-                                        topLeft = Offset(highlightX, highlightY),
-                                        size = Size(highlightWidth, highlightHeight)
-                                    )
-
-                                    val bottomReflectHeight = h * 0.22f
-                                    val bottomReflectWidth = w * 0.60f
-                                    val bottomX = (w - bottomReflectWidth) / 2f
-                                    val bottomY = h - bottomReflectHeight - 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = if (isDark) 0.18f else 0.35f)
-                                            ),
-                                            startY = bottomY,
-                                            endY = bottomY + bottomReflectHeight
-                                        ),
-                                        topLeft = Offset(bottomX, bottomY),
-                                        size = Size(bottomReflectWidth, bottomReflectHeight)
-                                    )
-                                }
-                                .border(
-                                    BorderStroke(
-                                        width = 1.dp,
-                                        brush = Brush.verticalGradient(
-                                            colors = if (isDark) {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.50f),
-                                                    accentColor.copy(alpha = 0.20f),
-                                                    Color.White.copy(alpha = 0.25f)
-                                                )
-                                            } else {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.85f),
-                                                    accentColor.copy(alpha = 0.25f),
-                                                    Color.White.copy(alpha = 0.50f)
-                                                )
-                                            }
-                                        )
-                                    ),
-                                    shape = itemShape
-                                )
-                        } else {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
+            // Sub-Tab Options Row
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. M9-T337
+                val isM9Selected = selectedIndex == 0
+                val m9Color by animateColorAsState(
+                    targetValue = if (isM9Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    label = "m9Color"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1.0f)
+                        .fillMaxHeight()
+                        .testTag("subtab_m9_t337")
+                        .clip(itemShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                if (selectedIndex != 0) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onSelectSubTab("M9-T337", null)
                                 }
-                            )
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "M9-T337",
-                    fontSize = 12.sp,
-                    fontWeight = if (isM9Selected) FontWeight.Bold else FontWeight.Medium,
-                    color = m9Color
-                )
-            }
-
-            // 2. MM111
-            val isMM111Selected = selectedIndex == 1
-            val mm111Color by animateColorAsState(
-                targetValue = if (isMM111Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                label = "mm111Color"
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .testTag("subtab_mm111")
-                    .clip(itemShape)
-                    .then(
-                        if (isMM111Selected) {
-                            Modifier
-                                .shadow(
-                                    elevation = 3.dp,
-                                    shape = itemShape,
-                                    spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
-                                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x12000000)
-                                )
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = if (isDark) {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.16f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.03f),
-                                                Color.White.copy(alpha = 0.08f)
-                                            )
-                                        } else {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.70f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.15f),
-                                                Color.White.copy(alpha = 0.40f)
-                                            )
-                                        }
-                                    ),
-                                    shape = itemShape
-                                )
-                                .drawWithContent {
-                                    drawContent()
-                                    val w = size.width
-                                    val h = size.height
-
-                                    val highlightHeight = h * 0.42f
-                                    val highlightWidth = w * 0.78f
-                                    val highlightX = (w - highlightWidth) / 2f
-                                    val highlightY = 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = if (isDark) 0.45f else 0.80f),
-                                                Color.White.copy(alpha = if (isDark) 0.12f else 0.25f),
-                                                Color.Transparent
-                                            ),
-                                            startY = highlightY,
-                                            endY = highlightY + highlightHeight
-                                        ),
-                                        topLeft = Offset(highlightX, highlightY),
-                                        size = Size(highlightWidth, highlightHeight)
-                                    )
-
-                                    val bottomReflectHeight = h * 0.22f
-                                    val bottomReflectWidth = w * 0.60f
-                                    val bottomX = (w - bottomReflectWidth) / 2f
-                                    val bottomY = h - bottomReflectHeight - 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = if (isDark) 0.18f else 0.35f)
-                                            ),
-                                            startY = bottomY,
-                                            endY = bottomY + bottomReflectHeight
-                                        ),
-                                        topLeft = Offset(bottomX, bottomY),
-                                        size = Size(bottomReflectWidth, bottomReflectHeight)
-                                    )
-                                }
-                                .border(
-                                    BorderStroke(
-                                        width = 1.dp,
-                                        brush = Brush.verticalGradient(
-                                            colors = if (isDark) {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.50f),
-                                                    accentColor.copy(alpha = 0.20f),
-                                                    Color.White.copy(alpha = 0.25f)
-                                                )
-                                            } else {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.85f),
-                                                    accentColor.copy(alpha = 0.25f),
-                                                    Color.White.copy(alpha = 0.50f)
-                                                )
-                                            }
-                                        )
-                                    ),
-                                    shape = itemShape
-                                )
-                        } else {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSelectSubTab("MM111", null)
-                                }
-                            )
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "MM111",
-                    fontSize = 12.sp,
-                    fontWeight = if (isMM111Selected) FontWeight.Bold else FontWeight.Medium,
-                    color = mm111Color
-                )
-            }
-
-            // 3. Geneva Dropdown
-            val isGenevaActive = selectedIndex == 2
-            val genevaColor by animateColorAsState(
-                targetValue = if (isGenevaActive) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                label = "genevaColor"
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1.2f)
-                    .fillMaxHeight()
-                    .testTag("subtab_geneva")
-                    .clip(itemShape)
-                    .then(
-                        if (isGenevaActive) {
-                            Modifier
-                                .shadow(
-                                    elevation = 3.dp,
-                                    shape = itemShape,
-                                    spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
-                                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x12000000)
-                                )
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = if (isDark) {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.16f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.03f),
-                                                Color.White.copy(alpha = 0.08f)
-                                            )
-                                        } else {
-                                            listOf(
-                                                Color.White.copy(alpha = 0.70f),
-                                                accentColor.copy(alpha = 0.08f),
-                                                Color.White.copy(alpha = 0.15f),
-                                                Color.White.copy(alpha = 0.40f)
-                                            )
-                                        }
-                                    ),
-                                    shape = itemShape
-                                )
-                                .drawWithContent {
-                                    drawContent()
-                                    val w = size.width
-                                    val h = size.height
-
-                                    val highlightHeight = h * 0.42f
-                                    val highlightWidth = w * 0.78f
-                                    val highlightX = (w - highlightWidth) / 2f
-                                    val highlightY = 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.White.copy(alpha = if (isDark) 0.45f else 0.80f),
-                                                Color.White.copy(alpha = if (isDark) 0.12f else 0.25f),
-                                                Color.Transparent
-                                            ),
-                                            startY = highlightY,
-                                            endY = highlightY + highlightHeight
-                                        ),
-                                        topLeft = Offset(highlightX, highlightY),
-                                        size = Size(highlightWidth, highlightHeight)
-                                    )
-
-                                    val bottomReflectHeight = h * 0.22f
-                                    val bottomReflectWidth = w * 0.60f
-                                    val bottomX = (w - bottomReflectWidth) / 2f
-                                    val bottomY = h - bottomReflectHeight - 2.dp.toPx()
-
-                                    drawOval(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                Color.White.copy(alpha = if (isDark) 0.18f else 0.35f)
-                                            ),
-                                            startY = bottomY,
-                                            endY = bottomY + bottomReflectHeight
-                                        ),
-                                        topLeft = Offset(bottomX, bottomY),
-                                        size = Size(bottomReflectWidth, bottomReflectHeight)
-                                    )
-                                }
-                                .border(
-                                    BorderStroke(
-                                        width = 1.dp,
-                                        brush = Brush.verticalGradient(
-                                            colors = if (isDark) {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.50f),
-                                                    accentColor.copy(alpha = 0.20f),
-                                                    Color.White.copy(alpha = 0.25f)
-                                                )
-                                            } else {
-                                                listOf(
-                                                    Color.White.copy(alpha = 0.85f),
-                                                    accentColor.copy(alpha = 0.25f),
-                                                    Color.White.copy(alpha = 0.50f)
-                                                )
-                                            }
-                                        )
-                                    ),
-                                    shape = itemShape
-                                )
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        genevaMenuExpanded = true
-                                    }
-                                )
-                        } else {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    genevaMenuExpanded = true
-                                }
-                            )
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = activeGenevaLabel,
+                        text = "M9-T337",
                         fontSize = 12.sp,
-                        fontWeight = if (isGenevaActive) FontWeight.Bold else FontWeight.Medium,
-                        color = genevaColor,
-                        maxLines = 1
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expand Geneva Menu",
-                        tint = genevaColor,
-                        modifier = Modifier.size(16.dp)
+                        fontWeight = if (isM9Selected) FontWeight.Bold else FontWeight.Medium,
+                        color = m9Color
                     )
                 }
 
-                DropdownMenu(
-                    expanded = genevaMenuExpanded,
-                    onDismissRequest = { genevaMenuExpanded = false }
+                // 2. MM111
+                val isMM111Selected = selectedIndex == 1
+                val mm111Color by animateColorAsState(
+                    targetValue = if (isMM111Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    label = "mm111Color"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1.0f)
+                        .fillMaxHeight()
+                        .testTag("subtab_mm111")
+                        .clip(itemShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                if (selectedIndex != 1) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelectSubTab("MM111", null)
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Geneva Rootstocks",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        text = "MM111",
+                        fontSize = 12.sp,
+                        fontWeight = if (isMM111Selected) FontWeight.Bold else FontWeight.Medium,
+                        color = mm111Color
                     )
+                }
 
-                    genevaOptions.forEach { option ->
-                        val isOptionSelected = selectedGenevaOption == option && isGenevaSelected
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = option,
-                                        fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isOptionSelected) accentColor else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (isOptionSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = accentColor,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                }
-                            },
+                // 3. Geneva Dropdown
+                val isGenevaActive = selectedIndex == 2
+                val genevaColor by animateColorAsState(
+                    targetValue = if (isGenevaActive) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    label = "genevaColor"
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .fillMaxHeight()
+                        .testTag("subtab_geneva")
+                        .clip(itemShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                genevaMenuExpanded = false
-                                onSelectSubTab("Geneva", option)
+                                genevaMenuExpanded = true
                             }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = activeGenevaLabel,
+                            fontSize = 12.sp,
+                            fontWeight = if (isGenevaActive) FontWeight.Bold else FontWeight.Medium,
+                            color = genevaColor,
+                            maxLines = 1
                         )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = "Expand Geneva Menu",
+                            tint = genevaColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = genevaMenuExpanded,
+                        onDismissRequest = { genevaMenuExpanded = false }
+                    ) {
+                        Text(
+                            text = "Geneva Rootstocks",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+
+                        genevaOptions.forEach { option ->
+                            val isOptionSelected = selectedGenevaOption == option && isGenevaSelected
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = option,
+                                            fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isOptionSelected) accentColor else MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (isOptionSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = accentColor,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    genevaMenuExpanded = false
+                                    onSelectSubTab("Geneva", option)
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
-

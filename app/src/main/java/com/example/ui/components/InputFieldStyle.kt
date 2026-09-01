@@ -787,4 +787,126 @@ fun PaymentStatusSelector(
     }
 }
 
+/**
+ * Clean 3D bubble/droplet pill indicator modifier.
+ * Features:
+ * - Raised 3D droplet appearance with soft drop shadow underneath.
+ * - Clean, semi-transparent tint of the active palette color.
+ * - High-contrast styling for Dark, AMOLED, and Light modes.
+ * - Clean top-left specular highlight and bottom ambient light bounce (zero watery distortion).
+ * - Refractive glass outline border.
+ */
+@Composable
+fun Modifier.bubbleDropletPillIndicator(
+    shape: Shape = RoundedCornerShape(percent = 50),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    isDark: Boolean = isAppInDarkMode(),
+    isAmoled: Boolean = isAppInAmoledMode()
+): Modifier {
+    val dropShadowColor = if (isDark) accentColor.copy(alpha = 0.48f) else accentColor.copy(alpha = 0.38f)
+    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0x25000000)
+
+    val backgroundBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                accentColor.copy(alpha = 0.38f),
+                accentColor.copy(alpha = 0.22f),
+                accentColor.copy(alpha = 0.32f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.65f),
+                accentColor.copy(alpha = 0.22f),
+                Color.White.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.30f)
+            )
+        )
+    }
+
+    val borderBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.65f),
+                accentColor.copy(alpha = 0.85f),
+                accentColor.copy(alpha = 0.40f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.90f),
+                accentColor.copy(alpha = 0.75f),
+                accentColor.copy(alpha = 0.45f)
+            )
+        )
+    }
+
+    return this
+        .shadow(
+            elevation = if (isDark) 5.dp else 4.dp,
+            shape = shape,
+            spotColor = dropShadowColor,
+            ambientColor = ambientShadowColor
+        )
+        .clip(shape)
+        .background(
+            color = if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.50f),
+            shape = shape
+        )
+        .background(
+            brush = backgroundBrush,
+            shape = shape
+        )
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+
+            // 1. Clean curved Top-Left / Upper Specular Reflection
+            val highlightHeight = h * 0.42f
+            val highlightWidth = w * 0.78f
+            val highlightX = (w - highlightWidth) / 2f
+            val highlightY = 2.dp.toPx()
+
+            drawOval(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.55f else 0.85f),
+                        Color.White.copy(alpha = if (isDark) 0.15f else 0.30f),
+                        Color.Transparent
+                    ),
+                    startY = highlightY,
+                    endY = highlightY + highlightHeight
+                ),
+                topLeft = Offset(highlightX, highlightY),
+                size = Size(highlightWidth, highlightHeight)
+            )
+
+            // 2. Bottom Ambient Light Bounce Reflection
+            val bottomReflectHeight = h * 0.22f
+            val bottomReflectWidth = w * 0.60f
+            val bottomX = (w - bottomReflectWidth) / 2f
+            val bottomY = h - bottomReflectHeight - 2.dp.toPx()
+
+            drawOval(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (isDark) 0.18f else 0.35f)
+                    ),
+                    startY = bottomY,
+                    endY = bottomY + bottomReflectHeight
+                ),
+                topLeft = Offset(bottomX, bottomY),
+                size = Size(bottomReflectWidth, bottomReflectHeight)
+            )
+        }
+        .border(
+            BorderStroke(width = 1.2.dp, brush = borderBrush),
+            shape = shape
+        )
+}
+
 
