@@ -101,18 +101,18 @@ fun AgriBottomNav(
     val containerShape = RoundedCornerShape(percent = 50)
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Floating pill container background: real blurred translucency when haze is active, solid semi-opaque fallback
+    // Translucent pill container background: strong frosted blur translucency allowing content behind to show as soft shades
     val containerBgColor = if (isDark) {
-        if (hazeState != null) surfaceColor.copy(alpha = 0.65f)
+        if (hazeState != null) Color(0xFF0F172A).copy(alpha = 0.52f)
         else surfaceColor.copy(alpha = 0.95f)
     } else {
-        if (hazeState != null) surfaceColor.copy(alpha = 0.70f)
+        if (hazeState != null) Color(0xFFFFFFFF).copy(alpha = 0.50f)
         else surfaceColor.copy(alpha = 0.95f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
-        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.16f) else Color(0xFF000000).copy(alpha = 0.09f)
+        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.18f) else Color(0xFF000000).copy(alpha = 0.08f)
     )
 
     Box(
@@ -122,22 +122,22 @@ fun AgriBottomNav(
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating pill container box (Height increased to 66.dp for better breathing room)
+        // Floating pill container box (Height: 66.dp for comfortable breathing room)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(66.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Background Glass Pill (Isolated background layer with real backdrop blur)
+            // Layer 1: Background Glass Pill (Strong blur effect with translucent glass surface)
             val hazeModifier = if (hazeState != null) {
                 Modifier.hazeEffect(
                     state = hazeState,
                     style = HazeStyle(
                         backgroundColor = surfaceColor,
                         tint = HazeTint(containerBgColor),
-                        blurRadius = 24.dp,
-                        noiseFactor = 0.05f
+                        blurRadius = 30.dp,
+                        noiseFactor = 0.02f
                     )
                 )
             } else {
@@ -148,17 +148,17 @@ fun AgriBottomNav(
                 modifier = Modifier
                     .fillMaxSize()
                     .shadow(
-                        elevation = 10.dp,
+                        elevation = 8.dp,
                         shape = containerShape,
-                        spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0x35000000),
-                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0x20000000)
+                        spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x30000000),
+                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f) else Color(0x18000000)
                     )
                     .clip(containerShape)
                     .then(hazeModifier)
                     .border(containerBorder, containerShape)
             )
 
-            // Layer 2: Foreground Icons and Selected Droplet Pill (Crisp, sharp, zero blur)
+            // Layer 2: Foreground Icons and Selected Pill (Crisp, sharp, zero blur)
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -168,7 +168,7 @@ fun AgriBottomNav(
             ) {
                 navItems.forEachIndexed { index, item ->
                     val isSelected = index == selectedIndex
-                    DropletTabItem(
+                    AgriTabItem(
                         item = item,
                         isSelected = isSelected,
                         accentColor = activeSectionAccent,
@@ -186,10 +186,10 @@ fun AgriBottomNav(
 }
 
 /**
- * Individual icon-only navigation tab with glossy water-droplet pill highlight when selected.
+ * Individual icon-only navigation tab with a well-defined, small, soft-toned pill shape when selected.
  */
 @Composable
-private fun DropletTabItem(
+private fun AgriTabItem(
     item: AgriNavItem,
     isSelected: Boolean,
     accentColor: Color,
@@ -197,12 +197,8 @@ private fun DropletTabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dropletShape = RoundedCornerShape(
-        topStart = 22.dp,
-        topEnd = 16.dp,
-        bottomStart = 16.dp,
-        bottomEnd = 22.dp
-    )
+    // Symmetrical, well-defined small pill shape
+    val selectedPillShape = RoundedCornerShape(percent = 50)
 
     // Pure black in light theme, pure white in dark/AMOLED theme with no grey/muted tones
     val unselectedIconColor = if (isDark) Color(0xFFFFFFFF) else Color(0xFF000000)
@@ -220,70 +216,42 @@ private fun DropletTabItem(
         contentAlignment = Alignment.Center
     ) {
         if (isSelected) {
-            // Selected item: Clearly visible Water droplet pill highlight sized to the icon
+            // Selected item: Well-defined, small, soft-toned pill shape matching blurred aesthetic
             Box(
                 modifier = Modifier
-                    .width(50.dp)
-                    .height(44.dp)
+                    .width(46.dp)
+                    .height(36.dp)
                     .shadow(
-                        elevation = 6.dp,
-                        shape = dropletShape,
-                        spotColor = accentColor.copy(alpha = 0.55f),
-                        ambientColor = accentColor.copy(alpha = 0.30f)
+                        elevation = 4.dp,
+                        shape = selectedPillShape,
+                        spotColor = accentColor.copy(alpha = if (isDark) 0.40f else 0.30f),
+                        ambientColor = accentColor.copy(alpha = if (isDark) 0.20f else 0.15f)
                     )
-                    .clip(dropletShape)
+                    .clip(selectedPillShape)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                accentColor.copy(alpha = if (isDark) 0.48f else 0.38f),
-                                accentColor.copy(alpha = if (isDark) 0.28f else 0.20f)
+                                accentColor.copy(alpha = if (isDark) 0.28f else 0.20f),
+                                accentColor.copy(alpha = if (isDark) 0.16f else 0.12f)
                             )
                         )
                     )
                     .border(
-                        width = 1.5.dp,
-                        color = accentColor.copy(alpha = if (isDark) 0.65f else 0.50f),
-                        shape = dropletShape
-                    )
-                    .drawWithContent {
-                        drawContent()
-                        // Specular highlight: soft white reflection arc near the top-left of the droplet
-                        val highlightBrush = Brush.radialGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (isDark) 0.85f else 0.95f),
-                                Color.White.copy(alpha = 0.35f),
-                                Color.Transparent
-                            ),
-                            center = Offset(size.width * 0.28f, size.height * 0.24f),
-                            radius = size.width * 0.40f
-                        )
-                        drawCircle(
-                            brush = highlightBrush,
-                            radius = size.width * 0.32f,
-                            center = Offset(size.width * 0.28f, size.height * 0.24f)
-                        )
-                        // Soft top-left curved specular arc mimicking light glint on droplet
-                        drawArc(
-                            color = Color.White.copy(alpha = if (isDark) 0.75f else 0.90f),
-                            startAngle = 180f,
-                            sweepAngle = 105f,
-                            useCenter = false,
-                            topLeft = Offset(2.5f, 2.5f),
-                            size = Size(size.width - 5f, size.height - 5f),
-                            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
-                        )
-                    },
+                        width = 1.dp,
+                        color = accentColor.copy(alpha = if (isDark) 0.50f else 0.35f),
+                        shape = selectedPillShape
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
                     tint = selectedIconColor,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier.size(23.dp)
                 )
             }
         } else {
-            // Unselected tab: icon only, pure solid color (pure black in light, pure white in dark)
+            // Unselected tab: icon only, pure solid high-contrast color
             Icon(
                 imageVector = item.icon,
                 contentDescription = item.title,
