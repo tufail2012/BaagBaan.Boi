@@ -120,28 +120,29 @@ fun AgriBottomNav(
             .padding(horizontal = 20.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Surface(
-            shape = containerShape,
-            color = containerBgColor,
-            border = containerBorder,
-            shadowElevation = 8.dp,
+        // Floating pill container box
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp)
-                .shadow(
-                    elevation = 10.dp,
-                    shape = containerShape,
-                    spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0x35000000),
-                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0x20000000)
-                )
-                .graphicsLayer {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        renderEffect = android.graphics.RenderEffect.createBlurEffect(
-                            30f, 30f, android.graphics.Shader.TileMode.CLAMP
-                        ).asComposeRenderEffect()
-                    }
-                }
+                .height(60.dp),
+            contentAlignment = Alignment.Center
         ) {
+            // Layer 1: Background Glass Pill (Isolated background layer)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(
+                        elevation = 10.dp,
+                        shape = containerShape,
+                        spotColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0x35000000),
+                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0x20000000)
+                    )
+                    .clip(containerShape)
+                    .background(containerBgColor)
+                    .border(containerBorder, containerShape)
+            )
+
+            // Layer 2: Foreground Icons and Selected Droplet Pill (Crisp, sharp, zero blur)
             Row(
                 modifier = Modifier
                     .fillMaxSize()
