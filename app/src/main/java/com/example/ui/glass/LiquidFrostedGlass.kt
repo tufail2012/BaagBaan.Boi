@@ -144,20 +144,21 @@ fun Modifier.liquidFrostedGlass(
         blurRadius,
         frostTintAlpha
     ) {
+        val tintAlpha = frostTintAlpha.coerceIn(0.02f, 0.90f)
         when {
             isAmoled -> HazeStyle(
                 backgroundColor = Color.Black,
-                tint = HazeTint(accentColor.copy(alpha = (frostTintAlpha * 0.85f).coerceIn(0.02f, 0.10f))),
+                tint = HazeTint(accentColor.copy(alpha = (tintAlpha * 0.40f).coerceIn(0.04f, 0.35f))),
                 blurRadius = blurRadius
             )
             effectiveIsDark -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = frostTintAlpha.coerceIn(0.04f, 0.12f))),
+                tint = HazeTint(Color(0xFF0F172A).copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )
             else -> HazeStyle(
                 backgroundColor = screenBgColor,
-                tint = HazeTint(Color.White.copy(alpha = frostTintAlpha.coerceIn(0.04f, 0.14f))),
+                tint = HazeTint(Color.White.copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )
         }
@@ -165,23 +166,24 @@ fun Modifier.liquidFrostedGlass(
 
     // 2. TRANSLUCENT GLASS BASE (True translucent permeability)
     val baseGlassSurface = remember(effectiveIsDark, isAmoled, surfaceOpacity, accentColor) {
+        val baseAlpha = surfaceOpacity.coerceIn(0.04f, 0.85f)
         when {
             isAmoled -> Brush.verticalGradient(
                 listOf(
-                    Color(0xFF141414).copy(alpha = (surfaceOpacity * 0.80f).coerceIn(0.04f, 0.10f)),
-                    Color(0xFF070707).copy(alpha = (surfaceOpacity * 0.50f).coerceIn(0.02f, 0.06f))
+                    Color(0xFF141414).copy(alpha = (baseAlpha * 0.85f).coerceIn(0.04f, 0.80f)),
+                    Color(0xFF070707).copy(alpha = (baseAlpha * 0.55f).coerceIn(0.02f, 0.60f))
                 )
             )
             effectiveIsDark -> Brush.verticalGradient(
                 listOf(
-                    Color(0xFF1E293B).copy(alpha = (surfaceOpacity * 1.10f).coerceIn(0.05f, 0.14f)),
-                    Color(0xFF0F172A).copy(alpha = (surfaceOpacity * 0.70f).coerceIn(0.03f, 0.09f))
+                    Color(0xFF1E293B).copy(alpha = (baseAlpha * 1.10f).coerceIn(0.05f, 0.85f)),
+                    Color(0xFF0F172A).copy(alpha = (baseAlpha * 0.75f).coerceIn(0.03f, 0.70f))
                 )
             )
             else -> Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = (surfaceOpacity * 1.20f).coerceIn(0.06f, 0.15f)),
-                    Color.White.copy(alpha = (surfaceOpacity * 0.65f).coerceIn(0.03f, 0.08f))
+                    Color.White.copy(alpha = (baseAlpha * 1.15f).coerceIn(0.06f, 0.85f)),
+                    Color.White.copy(alpha = (baseAlpha * 0.70f).coerceIn(0.03f, 0.65f))
                 )
             )
         }
@@ -189,18 +191,19 @@ fun Modifier.liquidFrostedGlass(
 
     // 3. INNER LENS CURVATURE OCCLUSION
     val innerLensOcclusion = remember(effectiveIsDark, innerDepthStrength) {
+        val depthAlpha = innerDepthStrength.coerceIn(0.0f, 1.0f)
         Brush.radialGradient(
             colors = if (effectiveIsDark) {
                 listOf(
                     Color.Transparent,
-                    Color.White.copy(alpha = (innerDepthStrength * 0.04f).coerceIn(0.005f, 0.020f)),
-                    Color.Black.copy(alpha = (innerDepthStrength * 0.12f).coerceIn(0.010f, 0.045f))
+                    Color.White.copy(alpha = (depthAlpha * 0.04f).coerceIn(0.005f, 0.040f)),
+                    Color.Black.copy(alpha = (depthAlpha * 0.16f).coerceIn(0.010f, 0.160f))
                 )
             } else {
                 listOf(
                     Color.Transparent,
-                    Color.White.copy(alpha = (innerDepthStrength * 0.08f).coerceIn(0.010f, 0.035f)),
-                    Color.Black.copy(alpha = (innerDepthStrength * 0.08f).coerceIn(0.008f, 0.030f))
+                    Color.White.copy(alpha = (depthAlpha * 0.08f).coerceIn(0.010f, 0.080f)),
+                    Color.Black.copy(alpha = (depthAlpha * 0.08f).coerceIn(0.008f, 0.080f))
                 )
             }
         )
@@ -208,24 +211,24 @@ fun Modifier.liquidFrostedGlass(
 
     // 4. SPECULAR TOP-EDGE CREST REFLECTION
     val topCrestReflection = remember(effectiveIsDark, isFocused, accentColor, highlightStrength) {
-        val crestAlpha = highlightStrength.coerceIn(0.3f, 1.0f)
+        val crestAlpha = highlightStrength.coerceIn(0.2f, 1.0f)
         Brush.verticalGradient(
             colors = if (isFocused) {
                 listOf(
-                    accentColor.copy(alpha = (0.60f * crestAlpha).coerceAtMost(0.95f)),
-                    accentColor.copy(alpha = (0.20f * crestAlpha).coerceAtMost(0.40f)),
+                    accentColor.copy(alpha = (0.70f * crestAlpha).coerceAtMost(0.95f)),
+                    accentColor.copy(alpha = (0.25f * crestAlpha).coerceAtMost(0.40f)),
                     Color.Transparent
                 )
             } else if (effectiveIsDark) {
                 listOf(
-                    Color.White.copy(alpha = (0.45f * crestAlpha).coerceAtMost(0.80f)),
-                    Color.White.copy(alpha = (0.12f * crestAlpha).coerceAtMost(0.25f)),
+                    Color.White.copy(alpha = (0.50f * crestAlpha).coerceAtMost(0.85f)),
+                    Color.White.copy(alpha = (0.15f * crestAlpha).coerceAtMost(0.30f)),
                     Color.Transparent
                 )
             } else {
                 listOf(
-                    Color.White.copy(alpha = (0.85f * crestAlpha).coerceAtMost(0.95f)),
-                    Color.White.copy(alpha = (0.22f * crestAlpha).coerceAtMost(0.35f)),
+                    Color.White.copy(alpha = (0.90f * crestAlpha).coerceAtMost(0.98f)),
+                    Color.White.copy(alpha = (0.35f * crestAlpha).coerceAtMost(0.50f)),
                     Color.Transparent
                 )
             }
@@ -234,11 +237,11 @@ fun Modifier.liquidFrostedGlass(
 
     // 5. SPECULAR LIQUID RIM / BORDER
     val specularRimBrush = remember(effectiveIsDark, isFocused, accentColor, highlightStrength) {
-        val rimAlpha = highlightStrength.coerceIn(0.3f, 1.0f)
+        val rimAlpha = highlightStrength.coerceIn(0.2f, 1.0f)
         if (isFocused) {
             Brush.verticalGradient(
                 listOf(
-                    accentColor.copy(alpha = (0.90f * rimAlpha).coerceAtMost(1.0f)),
+                    accentColor.copy(alpha = (0.95f * rimAlpha).coerceAtMost(1.0f)),
                     accentColor.copy(alpha = (0.45f * rimAlpha).coerceAtMost(0.60f)),
                     accentColor.copy(alpha = (0.20f * rimAlpha).coerceAtMost(0.30f))
                 )
@@ -246,17 +249,17 @@ fun Modifier.liquidFrostedGlass(
         } else if (effectiveIsDark) {
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = (0.42f * rimAlpha).coerceAtMost(0.70f)),
-                    Color.White.copy(alpha = (0.14f * rimAlpha).coerceAtMost(0.25f)),
-                    Color.White.copy(alpha = (0.04f * rimAlpha).coerceAtMost(0.10f))
+                    Color.White.copy(alpha = (0.48f * rimAlpha).coerceAtMost(0.75f)),
+                    Color.White.copy(alpha = (0.18f * rimAlpha).coerceAtMost(0.32f)),
+                    Color.White.copy(alpha = (0.06f * rimAlpha).coerceAtMost(0.14f))
                 )
             )
         } else {
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = (0.85f * rimAlpha).coerceAtMost(0.95f)),
-                    Color.White.copy(alpha = (0.30f * rimAlpha).coerceAtMost(0.45f)),
-                    Color(0xFFCBD5E1).copy(alpha = (0.16f * rimAlpha).coerceAtMost(0.25f))
+                    Color.White.copy(alpha = (0.92f * rimAlpha).coerceAtMost(0.98f)),
+                    Color.White.copy(alpha = (0.40f * rimAlpha).coerceAtMost(0.55f)),
+                    Color(0xFFCBD5E1).copy(alpha = (0.22f * rimAlpha).coerceAtMost(0.35f))
                 )
             )
         }

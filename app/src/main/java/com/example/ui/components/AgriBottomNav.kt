@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.example.ui.glass.LocalLiquidHazeState
 import com.example.ui.glass.liquidFrostedGlass
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
@@ -155,6 +156,10 @@ fun AgriBottomNav(
         label = "BlobScaleY"
     )
 
+    val effectiveHazeState = if (!isReduceTransparencyOrBatterySaver) {
+        hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
+    } else null
+
     // Floating Placement: lifted off the bottom edge
     Box(
         modifier = modifier
@@ -162,18 +167,19 @@ fun AgriBottomNav(
             .fillMaxWidth()
             .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 16.dp)
             .liquidFrostedGlass(
-                hazeState = if (!isReduceTransparencyOrBatterySaver) hazeState else null,
+                hazeState = effectiveHazeState,
                 isDark = isDark,
                 accentColor = animatedAccentColor,
                 shape = CircleShape,
-                elevation = 18.dp,
-                borderWidth = 1.2.dp,
-                blurRadius = 26.dp,
-                frostTintAlpha = 0.08f,
-                surfaceOpacity = 0.10f,
-                refractionStrength = 0.35f,
-                chromaticAberration = 0.07f,
-                highlightStrength = 0.85f
+                elevation = 16.dp,
+                borderWidth = 1.1.dp,
+                blurRadius = 28.dp,
+                frostTintAlpha = if (isDark) 0.55f else 0.50f,
+                surfaceOpacity = if (isDark) 0.28f else 0.22f,
+                refractionStrength = 0.25f,
+                chromaticAberration = 0.05f,
+                highlightStrength = 0.85f,
+                innerDepthStrength = 0.40f
             )
     ) {
         // Tab Content and Animated Liquid Blob Indicator
