@@ -107,19 +107,22 @@ fun LiquidGlassSegmentedSwitcher(
         else -> Color(0xFFE2E8F0)
     }
 
-    // Snappy tactile horizontal wobble / shake animation on tab switch
-    val wobbleOffset = remember { Animatable(0f) }
+    // Snappy tactile horizontal shake / vibration animation on tab switch
+    val shakeOffset = remember { Animatable(0f) }
     LaunchedEffect(selectedIndex) {
-        wobbleOffset.snapTo(0f)
-        wobbleOffset.animateTo(
+        shakeOffset.snapTo(0f)
+        shakeOffset.animateTo(
             targetValue = 0f,
             animationSpec = keyframes {
-                durationMillis = 320
+                durationMillis = 420
                 0f at 0
-                4f at 75 using FastOutSlowInEasing
-                -3f at 150 using FastOutSlowInEasing
-                1.5f at 225 using FastOutSlowInEasing
-                0f at 320
+                (-11f) at 60 using FastOutSlowInEasing
+                11f at 130 using FastOutSlowInEasing
+                (-8f) at 200 using FastOutSlowInEasing
+                7f at 270 using FastOutSlowInEasing
+                (-3.5f) at 340 using FastOutSlowInEasing
+                1.5f at 380 using FastOutSlowInEasing
+                0f at 420
             }
         )
     }
@@ -131,10 +134,10 @@ fun LiquidGlassSegmentedSwitcher(
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .height(50.dp)
             .shadow(
-                elevation = 4.dp,
+                elevation = 3.dp,
                 shape = containerShape,
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x25000000),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x15000000)
+                spotColor = if (isDark) Color.Black.copy(alpha = 0.30f) else Color(0x18000000),
+                ambientColor = if (isDark) Color.Black.copy(alpha = 0.15f) else Color(0x0C000000)
             )
             .clip(containerShape)
             .background(containerBgColor)
@@ -158,10 +161,10 @@ fun LiquidGlassSegmentedSwitcher(
                 label = "segmentedSlide"
             )
 
-            // Sliding 3D Bubble / Droplet Indicator
+            // Sliding Clean Pill Indicator with Shake Effect
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
                     .align(Alignment.CenterStart)
                     .width(slotWidth)
                     .fillMaxHeight()

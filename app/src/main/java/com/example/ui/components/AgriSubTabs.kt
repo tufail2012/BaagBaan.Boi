@@ -91,18 +91,21 @@ fun PruningSubTabs(
         else -> Color(0xFFE2E8F0)
     }
 
-    val wobbleOffset = remember { Animatable(0f) }
+    val shakeOffset = remember { Animatable(0f) }
     LaunchedEffect(selectedIndex) {
-        wobbleOffset.snapTo(0f)
-        wobbleOffset.animateTo(
+        shakeOffset.snapTo(0f)
+        shakeOffset.animateTo(
             targetValue = 0f,
             animationSpec = keyframes {
-                durationMillis = 320
+                durationMillis = 420
                 0f at 0
-                4f at 75 using FastOutSlowInEasing
-                -3f at 150 using FastOutSlowInEasing
-                1.5f at 225 using FastOutSlowInEasing
-                0f at 320
+                (-11f) at 60 using FastOutSlowInEasing
+                11f at 130 using FastOutSlowInEasing
+                (-8f) at 200 using FastOutSlowInEasing
+                7f at 270 using FastOutSlowInEasing
+                (-3.5f) at 340 using FastOutSlowInEasing
+                1.5f at 380 using FastOutSlowInEasing
+                0f at 420
             }
         )
     }
@@ -139,10 +142,10 @@ fun PruningSubTabs(
                 label = "pruningSlide"
             )
 
-            // Sliding 3D Bubble / Droplet Indicator
+            // Sliding Clean Pill Indicator with Shake Effect
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
                     .align(Alignment.CenterStart)
                     .width(slotWidth)
                     .fillMaxHeight()
@@ -268,18 +271,21 @@ fun RootstockSubTabs(
         "Geneva"
     }
 
-    val wobbleOffset = remember { Animatable(0f) }
+    val shakeOffset = remember { Animatable(0f) }
     LaunchedEffect(selectedIndex) {
-        wobbleOffset.snapTo(0f)
-        wobbleOffset.animateTo(
+        shakeOffset.snapTo(0f)
+        shakeOffset.animateTo(
             targetValue = 0f,
             animationSpec = keyframes {
-                durationMillis = 320
+                durationMillis = 420
                 0f at 0
-                4f at 75 using FastOutSlowInEasing
-                -3f at 150 using FastOutSlowInEasing
-                1.5f at 225 using FastOutSlowInEasing
-                0f at 320
+                (-11f) at 60 using FastOutSlowInEasing
+                11f at 130 using FastOutSlowInEasing
+                (-8f) at 200 using FastOutSlowInEasing
+                7f at 270 using FastOutSlowInEasing
+                (-3.5f) at 340 using FastOutSlowInEasing
+                1.5f at 380 using FastOutSlowInEasing
+                0f at 420
             }
         )
     }
@@ -339,10 +345,10 @@ fun RootstockSubTabs(
                 label = "rootstockWidth"
             )
 
-            // Sliding 3D Bubble / Droplet Indicator
+            // Sliding Clean Pill Indicator with Shake Effect
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + wobbleOffset.value.dp)
+                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
                     .align(Alignment.CenterStart)
                     .width(animatedWidth)
                     .fillMaxHeight()
