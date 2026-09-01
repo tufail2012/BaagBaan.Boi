@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.glass.LocalLiquidHazeState
 import com.example.ui.glass.liquidFrostedGlass
 import dev.chrisbanes.haze.HazeState
 
@@ -196,23 +197,29 @@ fun LiquidGlassSegmentedSwitcher(
         }
     }
 
+    val effectiveHazeState = if (!isReduceTransparencyOrBatterySaver) {
+        hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
+    } else null
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
             .height(48.dp)
             .liquidFrostedGlass(
-                hazeState = if (!isReduceTransparencyOrBatterySaver) hazeState else null,
+                hazeState = effectiveHazeState,
                 isDark = isDark,
                 accentColor = accentColor,
                 shape = containerShape,
                 elevation = if (isAmoled) 4.dp else 2.dp,
                 borderWidth = 1.dp,
                 blurRadius = 24.dp,
-                frostTintAlpha = 0.08f,
-                surfaceOpacity = 0.10f,
+                frostTintAlpha = if (isDark) 0.55f else 0.50f,
+                surfaceOpacity = if (isDark) 0.28f else 0.22f,
                 refractionStrength = 0.25f,
-                chromaticAberration = 0.05f
+                chromaticAberration = 0.05f,
+                highlightStrength = 0.85f,
+                innerDepthStrength = 0.40f
             )
     ) {
 

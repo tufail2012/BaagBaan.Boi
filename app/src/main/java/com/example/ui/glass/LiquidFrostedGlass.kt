@@ -1,7 +1,5 @@
 package com.example.ui.glass
 
-import android.graphics.RuntimeShader
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,13 +20,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.AppThemeMode
+import com.example.ui.components.LocalHazeState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -41,77 +38,32 @@ import dev.chrisbanes.haze.hazeEffect
 val LocalLiquidHazeState = compositionLocalOf<HazeState?> { null }
 
 /**
- * AGSL Shader source for true Optical Liquid Lens Refraction and Chromatic Dispersion.
- * Active on Android 13+ (API 33 / Tiramisu), gracefully skipped on older Android APIs.
- */
-private const val LIQUID_GLASS_AGSL = """
-    uniform shader image;
-    uniform float2 resolution;
-    uniform float refraction;
-    uniform float chromaticAberration;
-    uniform float innerDepth;
-
-    half4 main(float2 coord) {
-        if (resolution.x <= 0.0 || resolution.y <= 0.0) {
-            return image.eval(coord);
-        }
-        
-        float2 uv = coord / resolution;
-        float2 center = float2(0.5, 0.5);
-        float2 delta = uv - center;
-        float dist = length(delta);
-        
-        // Physical lens curvature displacement near borders
-        float edgeFactor = smoothstep(0.20, 0.50, dist);
-        float2 displacement = delta * edgeFactor * refraction * 4.0;
-        
-        if (chromaticAberration > 0.005) {
-            float2 rOffset = displacement * (1.0 + chromaticAberration * 2.0);
-            float2 gOffset = displacement;
-            float2 bOffset = displacement * (1.0 - chromaticAberration * 2.0);
-            
-            float r = image.eval(coord + rOffset).r;
-            float g = image.eval(coord + gOffset).g;
-            float b = image.eval(coord + bOffset).b;
-            float a = image.eval(coord + gOffset).a;
-            
-            half4 color = half4(r, g, b, a);
-            float depthOcclusion = 1.0 - (edgeFactor * innerDepth * 0.10);
-            return color * depthOcclusion;
-        } else {
-            half4 color = image.eval(coord + displacement);
-            float depthOcclusion = 1.0 - (edgeFactor * innerDepth * 0.10);
-            return color * depthOcclusion;
-        }
-    }
-"""
-
-/**
  * Unified Central Frosted Liquid Glass Engine.
  *
  * RENDERING PIPELINE:
- * 1. ACTUAL BACKDROP: Real background canvas captured via root `hazeSource`.
- * 2. BACKDROP FROST & BLUR: Hardware-accelerated Haze backdrop blur (24-28dp) with calibrated tinting.
- * 3. OPTICAL PROCESSING: AGSL RuntimeShader lens curvature and chromatic edge dispersion on API 33+.
- * 4. TRANSLUCENT GLASS BASE: Subtle, non-milky surface gradient letting 100% of backdrop colors shine through.
- * 5. SPECULAR LIGHTING & DEPTH: Top-edge crest reflection, soft inner lens occlusion, and ambient elevation shadow.
- * 6. CRISP CONTENT: 100% sharp text, icons, and UI controls.
+ * 1. REAL BACKDROP SAMPLING: Background canvas captured via root `hazeSource`.
+ * 2. BACKDROP FROST & BLUR: Hardware-accelerated Haze backdrop blur (24-28dp) with calibrated translucent tinting.
+ * 3. TRANSLUCENT GLASS BODY: Permeable, non-opaque surface gradient letting backdrop colors shine through.
+ * 4. OPTICAL DEPTH & OCCLUSION: Radial lens occlusion giving physical thickness to the glass container.
+ * 5. SPECULAR TOP LIGHTING: Luminous top-crest reflection and gradient illumination.
+ * 6. CRISP CONTENT: 100% sharp text, icons, and interactive controls rendered without distortion.
+ * 7. PERIMETER SPECULAR RIM: Multi-stop gradient border creating glass refraction along the edge.
  */
 @Composable
 fun Modifier.liquidFrostedGlass(
-    hazeState: HazeState? = LocalLiquidHazeState.current,
+    hazeState: HazeState? = null,
     isDark: Boolean = isSystemInDarkTheme(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(18.dp),
     elevation: Dp = 4.dp,
     borderWidth: Dp = 1.dp,
     blurRadius: Dp = 24.dp,
-    frostTintAlpha: Float = 0.08f,
-    surfaceOpacity: Float = 0.10f,
-    refractionStrength: Float = 0.30f,
-    chromaticAberration: Float = 0.06f,
-    innerDepthStrength: Float = 0.25f,
-    highlightStrength: Float = 0.70f,
+    frostTintAlpha: Float = if (isDark) 0.55f else 0.50f,
+    surfaceOpacity: Float = if (isDark) 0.28f else 0.22f,
+    refractionStrength: Float = 0.25f,
+    chromaticAberration: Float = 0.05f,
+    innerDepthStrength: Float = 0.40f,
+    highlightStrength: Float = 0.85f,
     themeMode: AppThemeMode? = null,
     isFocused: Boolean = false,
     flatStyle: Boolean = false
@@ -135,29 +87,27 @@ fun Modifier.liquidFrostedGlass(
         (borderWidth * 0.90f).coerceAtLeast(0.8.dp)
     }
 
-    // 1. BACKDROP BLUR & TINT
+    val effectiveHazeState = hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
+
+    // 1. BACKDROP BLUR & TINT (True translucent frost without opaque background blocking)
     val hazeStyle = remember(
         effectiveIsDark,
         isAmoled,
         accentColor,
-        screenBgColor,
         blurRadius,
         frostTintAlpha
     ) {
         val tintAlpha = frostTintAlpha.coerceIn(0.02f, 0.90f)
         when {
             isAmoled -> HazeStyle(
-                backgroundColor = Color.Black,
-                tint = HazeTint(accentColor.copy(alpha = (tintAlpha * 0.40f).coerceIn(0.04f, 0.35f))),
+                tint = HazeTint(accentColor.copy(alpha = (tintAlpha * 0.35f).coerceIn(0.04f, 0.35f))),
                 blurRadius = blurRadius
             )
             effectiveIsDark -> HazeStyle(
-                backgroundColor = screenBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )
             else -> HazeStyle(
-                backgroundColor = screenBgColor,
                 tint = HazeTint(Color.White.copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )
@@ -277,17 +227,6 @@ fun Modifier.liquidFrostedGlass(
         accentColor.copy(alpha = 0.08f)
     }
 
-    // 7. RUNTIME AGSL SHADER (API 33+)
-    val runtimeShader = remember {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                RuntimeShader(LIQUID_GLASS_AGSL)
-            } else null
-        } catch (e: Throwable) {
-            null
-        }
-    }
-
     return this
         // Soft elevation shadow
         .then(
@@ -305,29 +244,10 @@ fun Modifier.liquidFrostedGlass(
         )
         // Clip to exact shape boundary
         .clip(shape)
-        // AGSL Optical Lens Refraction (API 33+)
-        .then(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && runtimeShader != null && refractionStrength > 0.01f) {
-                Modifier.graphicsLayer {
-                    try {
-                        runtimeShader.setFloatUniform("resolution", size.width, size.height)
-                        runtimeShader.setFloatUniform("refraction", refractionStrength)
-                        runtimeShader.setFloatUniform("chromaticAberration", chromaticAberration)
-                        runtimeShader.setFloatUniform("innerDepth", innerDepthStrength)
-                        val effect = android.graphics.RenderEffect.createRuntimeShaderEffect(runtimeShader, "image")
-                        this.renderEffect = effect.asComposeRenderEffect()
-                    } catch (e: Throwable) {
-                        // Safe fallback on hardware without AGSL support
-                    }
-                }
-            } else {
-                Modifier
-            }
-        )
         // LAYER 1: Hardware Backdrop Blur via Haze
         .then(
-            if (hazeState != null) {
-                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            if (effectiveHazeState != null) {
+                Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
             } else {
                 Modifier
             }

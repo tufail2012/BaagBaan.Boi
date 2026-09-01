@@ -17,12 +17,19 @@ import dev.chrisbanes.haze.HazeState
  */
 @Composable
 fun Modifier.frostedGlassChrome(
-    hazeState: HazeState?,
+    hazeState: HazeState? = null,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(percent = 50),
     elevation: Dp = 12.dp,
-    borderWidth: Dp = 1.2.dp
+    borderWidth: Dp = 1.2.dp,
+    blurRadius: Dp = 26.dp,
+    frostTintAlpha: Float = if (isDark) 0.55f else 0.50f,
+    surfaceOpacity: Float = if (isDark) 0.28f else 0.22f,
+    refractionStrength: Float = 0.25f,
+    chromaticAberration: Float = 0.05f,
+    highlightStrength: Float = 0.85f,
+    innerDepthStrength: Float = 0.40f
 ): Modifier {
     return this.liquidFrostedGlass(
         hazeState = hazeState,
@@ -31,12 +38,13 @@ fun Modifier.frostedGlassChrome(
         shape = shape,
         elevation = elevation,
         borderWidth = borderWidth,
-        blurRadius = 26.dp,
-        frostTintAlpha = 0.08f,
-        surfaceOpacity = 0.10f,
-        refractionStrength = 0.35f,
-        chromaticAberration = 0.07f,
-        highlightStrength = 0.85f
+        blurRadius = blurRadius,
+        frostTintAlpha = frostTintAlpha,
+        surfaceOpacity = surfaceOpacity,
+        refractionStrength = refractionStrength,
+        chromaticAberration = chromaticAberration,
+        highlightStrength = highlightStrength,
+        innerDepthStrength = innerDepthStrength
     )
 }
 

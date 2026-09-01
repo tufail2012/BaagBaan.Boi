@@ -61,6 +61,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -77,6 +78,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import coil.compose.AsyncImage
+import com.example.ui.glass.LocalLiquidHazeState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import androidx.compose.ui.text.font.FontWeight
@@ -240,15 +242,19 @@ fun AgriDashboardScreen(
         getAppDimBackgroundBrush(dashboardAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(dashboardBgBrush)
-            .hazeSource(state = dashboardHazeState)
+    CompositionLocalProvider(
+        LocalHazeState provides dashboardHazeState,
+        LocalLiquidHazeState provides dashboardHazeState
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(dashboardBgBrush)
+                .hazeSource(state = dashboardHazeState)
         ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // Floating Glass Top Header
             Box(
                 modifier = Modifier
@@ -619,10 +625,13 @@ fun AgriDashboardScreen(
 
                 item { Spacer(modifier = Modifier.height(24.dp)) }
             }
-            }
         }
     }
+    }
+    }
 }
+
+
 
 @Composable
 private fun AccountBannerCard(
