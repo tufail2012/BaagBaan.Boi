@@ -185,7 +185,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Composable
 fun FarmerFormScreen(
     viewModel: CropViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: Any? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -661,7 +662,7 @@ fun FarmerFormScreen(
     val soilOptions = listOf("Clay Loam", "Sandy Loam", "Rich Alluvial", "Peaty", "Chalky / Rocky")
     val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "5 Years")
 
-    val textFieldShape = RoundedCornerShape(16.dp)
+    val textFieldShape = RoundedCornerShape(14.dp)
     val isDark = isAppInDarkMode()
 
     val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)

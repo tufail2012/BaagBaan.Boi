@@ -68,6 +68,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.AppThemeMode
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
@@ -608,30 +612,41 @@ fun Modifier.boundedFormFieldRipple(
 }
 
 /**
- * Elevation shadow helper.
+ * Elevation shadow helper for floating input containers.
  */
 fun Modifier.drawElevatedShadow(
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     isDark: Boolean,
     offsetY: Dp = 2.dp,
     blurRadius: Dp = 6.dp,
     elevationAlphaScale: Float = 1.0f
-): Modifier = this
+): Modifier = this.shadow(
+    elevation = 4.dp,
+    shape = shape,
+    spotColor = if (isDark) Color.Black.copy(alpha = 0.40f * elevationAlphaScale) else Color(0xFF64748B).copy(alpha = 0.15f * elevationAlphaScale),
+    ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f * elevationAlphaScale) else Color(0xFF94A3B8).copy(alpha = 0.10f * elevationAlphaScale)
+)
 
 fun Modifier.elevated3dShadow(
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     isDark: Boolean,
     offsetY: Dp = 4.dp,
     blurRadius: Dp = 8.dp
-): Modifier = this
+): Modifier = this.shadow(
+    elevation = 5.dp,
+    shape = shape,
+    spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF475569).copy(alpha = 0.18f),
+    ambientColor = if (isDark) Color.Black.copy(alpha = 0.30f) else Color(0xFF94A3B8).copy(alpha = 0.12f)
+)
 
 @Composable
 fun elevatedInputFieldColors(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
-    val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
+    val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+    val labelUnfocused = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
 
     return OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,
@@ -647,17 +662,17 @@ fun elevatedInputFieldColors(
         disabledBorderColor = Color.Transparent,
         errorBorderColor = MaterialTheme.colorScheme.error,
         focusedLabelColor = accentColor,
-        unfocusedLabelColor = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+        unfocusedLabelColor = labelUnfocused,
         disabledLabelColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLabelColor = MaterialTheme.colorScheme.error,
         cursorColor = accentColor,
         errorCursorColor = MaterialTheme.colorScheme.error,
         focusedLeadingIconColor = accentColor,
-        unfocusedLeadingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        unfocusedLeadingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
         disabledLeadingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLeadingIconColor = MaterialTheme.colorScheme.error,
         focusedTrailingIconColor = accentColor,
-        unfocusedTrailingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+        unfocusedTrailingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
         disabledTrailingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorTrailingIconColor = MaterialTheme.colorScheme.error,
         focusedPlaceholderColor = textSecondary,
@@ -675,12 +690,13 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Solid Background Modifier for Input Fields, Selectors, and Cards.
+ * Modern Glassmorphism Floating Container Background Modifier for Input Fields, Selectors, and Cards.
  * Applied across all forms and text fields:
- * - Solid pure white (#FFFFFF) in Light mode
- * - Solid dark color (#1E293B) in Dark mode
- * - Solid pure black (#000000) in AMOLED mode
- * - Clean crisp border with zero glass sheen and zero inner white strips.
+ * - Floating container geometry maintaining rectangular shape with slightly rounded corners.
+ * - Frosted liquid glass effect with translucent surface gradients.
+ * - Subtle background blur via Haze backdrop processing.
+ * - Soft, glowing borders with accent luminance and specular highlight rim reflection.
+ * - Subtle floating elevation shadow with soft ambient color tone.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -690,12 +706,14 @@ fun Modifier.glassCardBackground(
     shape: Shape? = null,
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
-    elevation: Dp = 0.dp,
-    borderWidth: Dp = 1.dp,
-    flatStyle: Boolean = true,
+    elevation: Dp = 4.dp,
+    borderWidth: Dp = 1.15.dp,
+    flatStyle: Boolean = false,
     isFocused: Boolean = false
 ): Modifier {
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 14.dp)
+    val actualHaze = hazeState as? HazeState
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val effectiveIsAmoled = when (themeMode) {
         AppThemeMode.AMOLED -> true
@@ -708,25 +726,119 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
-    val containerColor = when {
-        effectiveIsAmoled -> Color(0xFF000000) // Pure black in AMOLED mode
-        effectiveIsDark -> Color(0xFF1E293B)   // Solid dark color in Dark mode
-        else -> Color(0xFFFFFFFF)             // Pure white in Light mode
+    // Translucent liquid surface base tint
+    val baseTint = when {
+        effectiveIsAmoled -> Color(0xFF000000).copy(alpha = if (actualHaze != null) 0.60f else 0.85f)
+        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.55f else 0.82f)
+        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.65f else 0.88f)
     }
 
-    val borderColor = when {
-        isFocused -> accentColor
-        effectiveIsAmoled -> Color(0xFF262626)
-        effectiveIsDark -> Color(0xFF334155)
-        else -> Color(0xFFE2E8F0)
+    val surfaceBrush = Brush.verticalGradient(
+        colors = when {
+            effectiveIsAmoled -> listOf(
+                Color(0xFF1E1E24).copy(alpha = 0.85f),
+                Color(0xFF09090B).copy(alpha = 0.68f),
+                if (isFocused) accentColor.copy(alpha = 0.08f) else Color(0xFF121215).copy(alpha = 0.78f)
+            )
+            effectiveIsDark -> listOf(
+                Color(0xFF243044).copy(alpha = 0.82f),
+                Color(0xFF131D2E).copy(alpha = 0.65f),
+                if (isFocused) accentColor.copy(alpha = 0.09f) else Color(0xFF182234).copy(alpha = 0.75f)
+            )
+            else -> listOf(
+                Color.White.copy(alpha = 0.92f),
+                Color(0xFFF1F5F9).copy(alpha = 0.70f),
+                if (isFocused) accentColor.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.82f)
+            )
+        }
+    )
+
+    val hazeModifier = if (actualHaze != null) {
+        Modifier.hazeEffect(
+            state = actualHaze,
+            style = HazeStyle(
+                backgroundColor = surfaceColor,
+                tint = HazeTint(baseTint),
+                blurRadius = 24.dp,
+                noiseFactor = 0.02f
+            )
+        )
+    } else {
+        Modifier.background(baseTint)
     }
+
+    // Soft glowing border brush
+    val borderBrush = if (isFocused) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = if (effectiveIsDark) 0.90f else 0.98f),
+                accentColor,
+                accentColor.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.50f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = if (effectiveIsDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.40f),
+                    accentColor.copy(alpha = 0.35f),
+                    Color(0xFF334155).copy(alpha = 0.55f),
+                    accentColor.copy(alpha = 0.20f)
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.95f),
+                    accentColor.copy(alpha = 0.35f),
+                    Color(0xFFCBD5E1).copy(alpha = 0.75f),
+                    accentColor.copy(alpha = 0.25f)
+                )
+            }
+        )
+    }
+
+    val effectiveElevation = if (isFocused) (elevation + 4.dp).coerceAtLeast(6.dp) else elevation.coerceAtLeast(3.dp)
+    val effectiveBorderWidth = if (isFocused) (borderWidth * 1.4f).coerceAtLeast(1.5.dp) else borderWidth
 
     return this
+        // 1. Floating container soft drop shadow & subtle accent glow
+        .shadow(
+            elevation = effectiveElevation,
+            shape = effectiveShape,
+            spotColor = if (isFocused) accentColor.copy(alpha = 0.35f) else if (effectiveIsDark) Color.Black.copy(alpha = 0.45f) else accentColor.copy(alpha = 0.12f),
+            ambientColor = if (isFocused) accentColor.copy(alpha = 0.20f) else if (effectiveIsDark) Color.Black.copy(alpha = 0.25f) else Color(0xFF64748B).copy(alpha = 0.08f)
+        )
         .clip(effectiveShape)
-        .background(color = containerColor, shape = effectiveShape)
+        // 2. Translucent blurred backdrop
+        .then(hazeModifier)
+        // 3. Liquid glass gradient surface
+        .background(brush = surfaceBrush, shape = effectiveShape)
+        // 4. Specular liquid highlight on upper rim
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val highlightHeight = 16.dp.toPx()
+            val highlightWidth = w * 0.90f
+            val highlightX = (w - highlightWidth) / 2f
+            val highlightY = 1.dp.toPx()
+
+            drawOval(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (effectiveIsDark) 0.35f else 0.65f),
+                        accentColor.copy(alpha = if (isFocused) 0.15f else 0.05f),
+                        Color.Transparent
+                    ),
+                    startY = highlightY,
+                    endY = highlightY + highlightHeight
+                ),
+                topLeft = Offset(highlightX, highlightY),
+                size = Size(highlightWidth, highlightHeight)
+            )
+        }
+        // 5. Soft, glowing border
         .border(
-            width = if (isFocused) (borderWidth * 1.5f).coerceAtLeast(1.5.dp) else borderWidth,
-            color = borderColor,
+            border = BorderStroke(width = effectiveBorderWidth, brush = borderBrush),
             shape = effectiveShape
         )
 }

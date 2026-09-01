@@ -779,7 +779,10 @@ fun AgriCropMainScreen(
                                             )
                                         } else {
                                             when (viewMode) {
-                                                0 -> FarmerFormScreen(viewModel = viewModel)
+                                                0 -> FarmerFormScreen(
+                                                    viewModel = viewModel,
+                                                    hazeState = hazeState
+                                                )
                                                 else -> FarmerRecordsScreen(viewModel = viewModel)
                                             }
                                         }
