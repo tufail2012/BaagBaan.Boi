@@ -89,10 +89,20 @@ fun Modifier.liquidFrostedGlass(
 
     val effectiveHazeState = hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
 
-    // 1. BACKDROP BLUR & TINT (True translucent frost without opaque background blocking)
+    val safeBgColor = remember(effectiveIsDark, isAmoled, screenBgColor) {
+        when {
+            isAmoled -> Color(0xFF050505)
+            screenBgColor != Color.Unspecified && screenBgColor.alpha > 0.05f -> screenBgColor
+            effectiveIsDark -> Color(0xFF0F172A)
+            else -> Color(0xFFF8FAFC)
+        }
+    }
+
+    // 1. BACKDROP BLUR & TINT (True translucent frost with guaranteed non-null backgroundColor)
     val hazeStyle = remember(
         effectiveIsDark,
         isAmoled,
+        safeBgColor,
         accentColor,
         blurRadius,
         frostTintAlpha
@@ -100,14 +110,17 @@ fun Modifier.liquidFrostedGlass(
         val tintAlpha = frostTintAlpha.coerceIn(0.02f, 0.90f)
         when {
             isAmoled -> HazeStyle(
+                backgroundColor = Color.Black,
                 tint = HazeTint(accentColor.copy(alpha = (tintAlpha * 0.35f).coerceIn(0.04f, 0.35f))),
                 blurRadius = blurRadius
             )
             effectiveIsDark -> HazeStyle(
+                backgroundColor = safeBgColor,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )
             else -> HazeStyle(
+                backgroundColor = safeBgColor,
                 tint = HazeTint(Color.White.copy(alpha = tintAlpha)),
                 blurRadius = blurRadius
             )

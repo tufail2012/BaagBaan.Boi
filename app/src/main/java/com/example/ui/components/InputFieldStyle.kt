@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -749,12 +750,16 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Centralized Glass Background Modifier for Input Fields, Selectors, and Cards.
- * Fully migrated to the unified Frosted Liquid Glass engine.
+ * Centralized Liquid Glass Background Modifier for Input Fields, Selectors, and Cards.
+ * Implements the dedicated Liquid Glass Architecture:
+ * - Completely isolated from Haze to guarantee 100% crash safety.
+ * - Multi-layered optical pipeline: Soft ambient shadow -> Translucent glass body ->
+ *   Inner lens depth -> Specular top-crest reflection -> Fine perimeter rim -> Crisp content overlay.
+ * - Pristine floating liquid glass aesthetic allowing underlying background colors to shine through.
  */
 @Composable
 fun Modifier.glassCardBackground(
-    hazeState: HazeState? = LocalHazeState.current,
+    hazeState: HazeState? = null,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape? = null,
@@ -766,17 +771,189 @@ fun Modifier.glassCardBackground(
     isFocused: Boolean = false
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
-    return this.liquidFrostedGlass(
-        hazeState = hazeState,
-        isDark = isDark,
-        accentColor = accentColor,
-        shape = effectiveShape,
-        elevation = elevation,
-        borderWidth = borderWidth,
-        themeMode = themeMode,
-        isFocused = isFocused,
-        flatStyle = flatStyle
-    )
+    val effectiveIsDark = when (themeMode) {
+        AppThemeMode.DARK,
+        AppThemeMode.AMOLED -> true
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM,
+        null -> isDark
+    }
+
+    val screenBgColor = MaterialTheme.colorScheme.background
+    val isAmoled = themeMode == AppThemeMode.AMOLED ||
+            (effectiveIsDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black))
+
+    val effectiveElevation = if (flatStyle) 0.dp else elevation
+    val effectiveBorderWidth = if (isFocused) {
+        (borderWidth * 1.35f).coerceAtLeast(1.25.dp)
+    } else {
+        (borderWidth * 0.90f).coerceAtLeast(0.8.dp)
+    }
+
+    // 1. TRANSLUCENT LIQUID GLASS BODY (Permeable, non-opaque glass letting backdrop colors shine through)
+    val liquidGlassBody = remember(effectiveIsDark, isAmoled, isFocused, accentColor) {
+        when {
+            isAmoled -> Brush.verticalGradient(
+                listOf(
+                    Color(0xFF181818).copy(alpha = if (isFocused) 0.40f else 0.28f),
+                    Color(0xFF0A0A0A).copy(alpha = if (isFocused) 0.25f else 0.16f)
+                )
+            )
+            effectiveIsDark -> Brush.verticalGradient(
+                listOf(
+                    Color(0xFF1E293B).copy(alpha = if (isFocused) 0.42f else 0.30f),
+                    Color(0xFF0F172A).copy(alpha = if (isFocused) 0.28f else 0.18f)
+                )
+            )
+            else -> Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = if (isFocused) 0.55f else 0.42f),
+                    Color(0xFFF1F5F9).copy(alpha = if (isFocused) 0.35f else 0.22f)
+                )
+            )
+        }
+    }
+
+    // 2. INNER LENS CURVATURE OCCLUSION & DEPTH
+    val innerLensOcclusion = remember(effectiveIsDark, isAmoled) {
+        Brush.radialGradient(
+            colors = if (effectiveIsDark || isAmoled) {
+                listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.025f),
+                    Color.Black.copy(alpha = 0.120f)
+                )
+            } else {
+                listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.060f),
+                    Color(0xFF64748B).copy(alpha = 0.045f)
+                )
+            }
+        )
+    }
+
+    // 3. SPECULAR TOP-EDGE CREST REFLECTION (Gives true optical glass thickness)
+    val topCrestReflection = remember(effectiveIsDark, isFocused, accentColor) {
+        Brush.verticalGradient(
+            colors = if (isFocused) {
+                listOf(
+                    accentColor.copy(alpha = 0.75f),
+                    accentColor.copy(alpha = 0.25f),
+                    Color.Transparent
+                )
+            } else if (effectiveIsDark) {
+                listOf(
+                    Color.White.copy(alpha = 0.55f),
+                    Color.White.copy(alpha = 0.15f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.92f),
+                    Color.White.copy(alpha = 0.35f),
+                    Color.Transparent
+                )
+            }
+        )
+    }
+
+    // 4. SPECULAR LIQUID RIM / BORDER
+    val specularRimBrush = remember(effectiveIsDark, isFocused, accentColor) {
+        if (isFocused) {
+            Brush.verticalGradient(
+                listOf(
+                    accentColor.copy(alpha = 0.95f),
+                    accentColor.copy(alpha = 0.45f),
+                    accentColor.copy(alpha = 0.20f)
+                )
+            )
+        } else if (effectiveIsDark) {
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.50f),
+                    Color.White.copy(alpha = 0.18f),
+                    Color.White.copy(alpha = 0.06f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                listOf(
+                    Color.White.copy(alpha = 0.95f),
+                    Color.White.copy(alpha = 0.40f),
+                    Color(0xFFCBD5E1).copy(alpha = 0.25f)
+                )
+            )
+        }
+    }
+
+    // 5. AMBIENT & SPOT ELEVATION SHADOWS
+    val shadowAmbient = if (effectiveIsDark) {
+        Color.Black.copy(alpha = 0.25f)
+    } else {
+        Color(0xFF0F172A).copy(alpha = 0.04f)
+    }
+    val shadowSpot = if (effectiveIsDark) {
+        Color.Black.copy(alpha = 0.35f)
+    } else {
+        accentColor.copy(alpha = if (isFocused) 0.12f else 0.06f)
+    }
+
+    return this
+        // Soft elevation shadow
+        .then(
+            if (effectiveElevation > 0.dp) {
+                Modifier.shadow(
+                    elevation = effectiveElevation,
+                    shape = effectiveShape,
+                    clip = false,
+                    ambientColor = shadowAmbient,
+                    spotColor = shadowSpot
+                )
+            } else {
+                Modifier
+            }
+        )
+        // Clip to exact shape boundary
+        .clip(effectiveShape)
+        // LAYER 1: Translucent Liquid Glass Base
+        .background(brush = liquidGlassBody, shape = effectiveShape)
+        // LAYER 2: Inner Lens Curvature Occlusion
+        .background(brush = innerLensOcclusion, shape = effectiveShape)
+        // LAYER 3: Render Crisp Content, then overlay Specular Top-Edge Reflection
+        .drawWithContent {
+            // Draw crisp unblurred child content (text, icons, placeholders, cursor)
+            drawContent()
+
+            // Draw upper optical specular light crest (top 4.5dp)
+            val outline = effectiveShape.createOutline(size, layoutDirection, this)
+            clipPath(
+                path = Path().apply {
+                    addOutline(outline)
+                }
+            ) {
+                val crestHeight = 4.5.dp.toPx()
+                drawRect(
+                    brush = topCrestReflection,
+                    topLeft = Offset.Zero,
+                    size = Size(size.width, crestHeight)
+                )
+
+                if (isFocused) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            listOf(accentColor.copy(alpha = 0.035f), Color.Transparent)
+                        )
+                    )
+                }
+            }
+        }
+        // LAYER 4: Specular Liquid Rim Border
+        .border(
+            width = effectiveBorderWidth,
+            brush = specularRimBrush,
+            shape = effectiveShape
+        )
 }
 
 

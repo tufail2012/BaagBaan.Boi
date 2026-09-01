@@ -778,32 +778,41 @@ fun FarmerFormScreen(
     }
 
     val screenBgColor = MaterialTheme.colorScheme.background
-    val farmerHazeStyle = remember(isDark, screenBgColor) {
+    val safeScreenBg = remember(isDark, screenBgColor) {
+        if (screenBgColor != Color.Unspecified && screenBgColor.alpha > 0.05f) {
+            screenBgColor
+        } else if (isDark) {
+            Color(0xFF0F172A)
+        } else {
+            Color(0xFFF8FAFC)
+        }
+    }
+    val farmerHazeStyle = remember(isDark, safeScreenBg) {
         if (isDark) {
             HazeStyle(
-                backgroundColor = screenBgColor,
+                backgroundColor = safeScreenBg,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
                 blurRadius = 26.dp
             )
         } else {
             HazeStyle(
-                backgroundColor = screenBgColor,
+                backgroundColor = safeScreenBg,
                 tint = HazeTint(Color.White.copy(alpha = 0.25f)),
                 blurRadius = 26.dp
             )
         }
     }
 
-    val inputFieldHazeStyle = remember(isDark, screenBgColor) {
+    val inputFieldHazeStyle = remember(isDark, safeScreenBg) {
         if (isDark) {
             HazeStyle(
-                backgroundColor = screenBgColor,
+                backgroundColor = safeScreenBg,
                 tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.45f)),
                 blurRadius = 18.dp
             )
         } else {
             HazeStyle(
-                backgroundColor = screenBgColor,
+                backgroundColor = safeScreenBg,
                 tint = HazeTint(Color.White.copy(alpha = 0.55f)),
                 blurRadius = 18.dp
             )
