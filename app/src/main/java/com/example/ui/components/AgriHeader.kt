@@ -289,11 +289,19 @@ fun AgriHeader(
                     shape = CircleShape,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = animatedAccentColor,
-                        unfocusedBorderColor = if (isDark) Color(0xFF333333) else Color(0xFFDDDDDD),
-                        focusedContainerColor = if (isDark) Color(0xFF1E1E1E) else Color(0xFFF8F9FA),
-                        unfocusedContainerColor = if (isDark) Color(0xFF181818) else Color(0xFFF1F3F5),
-                        focusedTextColor = if (isDark) Color.White else Color.Black,
-                        unfocusedTextColor = if (isDark) Color.White else Color.Black
+                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                        focusedContainerColor = when {
+                            themeMode == AppThemeMode.AMOLED -> Color(0xFF000000)
+                            isDark -> Color(0xFF1E293B)
+                            else -> Color(0xFFFFFFFF)
+                        },
+                        unfocusedContainerColor = when {
+                            themeMode == AppThemeMode.AMOLED -> Color(0xFF000000)
+                            isDark -> Color(0xFF1E293B)
+                            else -> Color(0xFFFFFFFF)
+                        },
+                        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
                     ),
                     modifier = Modifier
                         .weight(1f)

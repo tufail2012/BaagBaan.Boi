@@ -422,14 +422,19 @@ fun Modifier.bringIntoViewOnFocus(): Modifier {
 
 @Composable
 fun isAppInDarkMode(): Boolean {
-    return MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    return MaterialTheme.colorScheme.surface.luminance() < 0.5f || MaterialTheme.colorScheme.background.luminance() < 0.5f
+}
+
+@Composable
+fun isAppInAmoledMode(): Boolean {
+    val bg = MaterialTheme.colorScheme.background
+    val surface = MaterialTheme.colorScheme.surface
+    return bg == Color.Black || bg == Color(0xFF000000) || (surface.luminance() < 0.04f && bg.luminance() < 0.04f)
 }
 
 /**
- * Interactive water-ripple wave effect on glass.
- * When tapped/clicked, triggers a fluid water-droplet impact expanding from the exact
- * horizontal center toward both the left and right edges simultaneously.
- * The wave is soft, smooth, subtle, and strictly clipped within [shape].
+ * Clean water-ripple interaction effect for form fields.
+ * Subtle, soft accent color wave with zero specular glare, zero white crests, and zero glass strips.
  */
 @Composable
 fun Modifier.centerWaterRipple(
@@ -450,7 +455,7 @@ fun Modifier.centerWaterRipple(
                     animProgress.animateTo(
                         targetValue = 1f,
                         animationSpec = tween(
-                            durationMillis = 480,
+                            durationMillis = 400,
                             easing = CubicBezierEasing(0.18f, 0.70f, 0.20f, 1.0f)
                         )
                     )
@@ -497,21 +502,19 @@ fun Modifier.centerWaterRipple(
                     val centerX = size.width / 2f
                     val centerY = size.height / 2f
 
-                    // Max horizontal spread reaches slightly past edges for full wash
                     val maxSpread = (size.width / 2f) * 1.12f
                     val currentSpread = maxSpread * progress
+                    val fadeAlpha = ((1f - progress) * (if (isDark) 0.30f else 0.20f)).coerceIn(0f, 1f)
 
-                    val fadeAlpha = ((1f - progress) * (if (isDark) 0.50f else 0.60f)).coerceIn(0f, 1f)
-
-                    // 1. Center droplet impact ring / glow (fades quickly at start)
+                    // 1. Center droplet impact glow (subtle accent tone, zero white glare)
                     val dropletDecay = (1f - (progress * 2.6f)).coerceIn(0f, 1f)
                     if (dropletDecay > 0f) {
-                        val dropRadius = 22.dp.toPx() * (0.8f + progress * 1.6f)
+                        val dropRadius = 20.dp.toPx() * (0.8f + progress * 1.4f)
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = dropletDecay * (if (isDark) 0.40f else 0.50f)),
-                                    accentColor.copy(alpha = dropletDecay * 0.30f),
+                                    accentColor.copy(alpha = dropletDecay * 0.20f),
+                                    accentColor.copy(alpha = dropletDecay * 0.08f),
                                     Color.Transparent
                                 ),
                                 center = Offset(centerX, centerY),
@@ -522,7 +525,7 @@ fun Modifier.centerWaterRipple(
                         )
                     }
 
-                    // 2. Horizontal water wave spreading left and right simultaneously
+                    // 2. Horizontal soft accent wave spreading left and right (zero white strips, zero glass reflection)
                     if (currentSpread > 1f) {
                         val leftEdge = (centerX - currentSpread).coerceAtLeast(0f)
                         val rightEdge = (centerX + currentSpread).coerceAtMost(size.width)
@@ -532,13 +535,9 @@ fun Modifier.centerWaterRipple(
                             val waveBrush = Brush.horizontalGradient(
                                 colorStops = arrayOf(
                                     0.00f to Color.Transparent,
-                                    0.07f to Color.White.copy(alpha = fadeAlpha * 0.90f),
-                                    0.18f to accentColor.copy(alpha = fadeAlpha * 0.55f),
-                                    0.35f to Color.White.copy(alpha = fadeAlpha * 0.20f),
-                                    0.50f to accentColor.copy(alpha = fadeAlpha * 0.12f),
-                                    0.65f to Color.White.copy(alpha = fadeAlpha * 0.20f),
-                                    0.82f to accentColor.copy(alpha = fadeAlpha * 0.55f),
-                                    0.93f to Color.White.copy(alpha = fadeAlpha * 0.90f),
+                                    0.25f to accentColor.copy(alpha = fadeAlpha * 0.45f),
+                                    0.50f to accentColor.copy(alpha = fadeAlpha * 0.15f),
+                                    0.75f to accentColor.copy(alpha = fadeAlpha * 0.45f),
                                     1.00f to Color.Transparent
                                 ),
                                 startX = leftEdge,
@@ -550,25 +549,6 @@ fun Modifier.centerWaterRipple(
                                 topLeft = Offset(leftEdge, 0f),
                                 size = Size(waveWidth, size.height)
                             )
-
-                            // Upper specular crest highlight
-                            val crestHeight = 3.dp.toPx()
-                            val topCrestBrush = Brush.horizontalGradient(
-                                colorStops = arrayOf(
-                                    0.00f to Color.Transparent,
-                                    0.08f to Color.White.copy(alpha = fadeAlpha * 0.85f),
-                                    0.50f to Color.White.copy(alpha = fadeAlpha * 0.25f),
-                                    0.92f to Color.White.copy(alpha = fadeAlpha * 0.85f),
-                                    1.00f to Color.Transparent
-                                ),
-                                startX = leftEdge,
-                                endX = rightEdge
-                            )
-                            drawRect(
-                                brush = topCrestBrush,
-                                topLeft = Offset(leftEdge, 0f),
-                                size = Size(waveWidth, crestHeight)
-                            )
                         }
                     }
                 }
@@ -578,11 +558,8 @@ fun Modifier.centerWaterRipple(
 
 /**
  * Modifier extension to attach a smooth, center-origin horizontal water ripple effect to form fields.
- * The water wave originates from the horizontal center of the field, expands towards both left and right edges,
- * is contained strictly within [shape], and provides responsive, fluid visual feedback without overflowing.
  * For clickable cards/selectors (onClick != null), applies the centralized glassCardBackground modifier.
- * For text input fields (onClick == null), applies center water ripple and focus handling without outer 3D drop-shadows
- * or outer borders that clash with OutlinedTextField's floating label geometry.
+ * For text input fields, applies clean background and focus handling with zero glass glare.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -631,7 +608,7 @@ fun Modifier.boundedFormFieldRipple(
 }
 
 /**
- * Standard elevation shadow helper.
+ * Elevation shadow helper.
  */
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
@@ -639,14 +616,14 @@ fun Modifier.drawElevatedShadow(
     offsetY: Dp = 2.dp,
     blurRadius: Dp = 6.dp,
     elevationAlphaScale: Float = 1.0f
-): Modifier = this.shadow(elevation = 2.dp, shape = shape, clip = false)
+): Modifier = this
 
 fun Modifier.elevated3dShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
     offsetY: Dp = 4.dp,
     blurRadius: Dp = 8.dp
-): Modifier = this.shadow(elevation = 3.dp, shape = shape, clip = false)
+): Modifier = this
 
 @Composable
 fun elevatedInputFieldColors(
@@ -698,11 +675,12 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Centralized Standard Material 3 Background Modifier for Input Fields, Selectors, and Cards.
- * Restores standard Material Design 3 surface containers:
- * - Solid opaque surfaceContainer / surface background.
- * - Standard M3 elevation and outline border.
- * - Zero blur, zero translucency, zero glass layers.
+ * Solid Background Modifier for Input Fields, Selectors, and Cards.
+ * Applied across all forms and text fields:
+ * - Solid pure white (#FFFFFF) in Light mode
+ * - Solid dark color (#1E293B) in Dark mode
+ * - Solid pure black (#000000) in AMOLED mode
+ * - Clean crisp border with zero glass sheen and zero inner white strips.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -712,38 +690,38 @@ fun Modifier.glassCardBackground(
     shape: Shape? = null,
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
-    elevation: Dp = 2.dp,
+    elevation: Dp = 0.dp,
     borderWidth: Dp = 1.dp,
-    flatStyle: Boolean = false,
+    flatStyle: Boolean = true,
     isFocused: Boolean = false
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
-    val effectiveElevation = if (flatStyle) 0.dp else elevation
 
-    val containerColor = if (themeMode == AppThemeMode.AMOLED) {
-        Color(0xFF0D0D0D)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
+    val effectiveIsAmoled = when (themeMode) {
+        AppThemeMode.AMOLED -> true
+        AppThemeMode.DARK, AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM, null -> isAppInAmoledMode()
+    }
+    val effectiveIsDark = when (themeMode) {
+        AppThemeMode.AMOLED, AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT -> false
+        AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
-    val borderColor = if (isFocused) {
-        accentColor
-    } else {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+    val containerColor = when {
+        effectiveIsAmoled -> Color(0xFF000000) // Pure black in AMOLED mode
+        effectiveIsDark -> Color(0xFF1E293B)   // Solid dark color in Dark mode
+        else -> Color(0xFFFFFFFF)             // Pure white in Light mode
+    }
+
+    val borderColor = when {
+        isFocused -> accentColor
+        effectiveIsAmoled -> Color(0xFF262626)
+        effectiveIsDark -> Color(0xFF334155)
+        else -> Color(0xFFE2E8F0)
     }
 
     return this
-        .then(
-            if (effectiveElevation > 0.dp) {
-                Modifier.shadow(
-                    elevation = effectiveElevation,
-                    shape = effectiveShape,
-                    clip = false
-                )
-            } else {
-                Modifier
-            }
-        )
         .clip(effectiveShape)
         .background(color = containerColor, shape = effectiveShape)
         .border(
