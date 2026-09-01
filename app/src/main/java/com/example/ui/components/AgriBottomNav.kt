@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -98,14 +99,15 @@ fun AgriBottomNav(
     }
 
     val containerShape = RoundedCornerShape(percent = 50)
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     // Floating pill container background: real blurred translucency when haze is active, solid semi-opaque fallback
     val containerBgColor = if (isDark) {
-        if (hazeState != null) Color(0xFF0F172A).copy(alpha = 0.65f)
-        else Color(0xFF1E293B).copy(alpha = 0.95f)
+        if (hazeState != null) surfaceColor.copy(alpha = 0.65f)
+        else surfaceColor.copy(alpha = 0.95f)
     } else {
-        if (hazeState != null) Color(0xFFFFFFFF).copy(alpha = 0.70f)
-        else Color(0xFFFFFFFF).copy(alpha = 0.95f)
+        if (hazeState != null) surfaceColor.copy(alpha = 0.70f)
+        else surfaceColor.copy(alpha = 0.95f)
     }
 
     val containerBorder = BorderStroke(
@@ -132,6 +134,7 @@ fun AgriBottomNav(
                 Modifier.hazeEffect(
                     state = hazeState,
                     style = HazeStyle(
+                        backgroundColor = surfaceColor,
                         tint = HazeTint(containerBgColor),
                         blurRadius = 24.dp,
                         noiseFactor = 0.05f
