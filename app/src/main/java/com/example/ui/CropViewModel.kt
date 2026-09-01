@@ -728,6 +728,31 @@ class CropViewModel(
         }
     }
 
+    fun onPaymentStatusSelected(status: String) {
+        paymentStatus.value = status
+        val isImportedRootstocks = serviceType.value.equals("Rootstocks", ignoreCase = true)
+        val graftingChargesNum = if (isImportedRootstocks && graftingCharges.value.isNotBlank()) (graftingCharges.value.toDoubleOrNull() ?: 0.0) else 0.0
+        val vLines = varietyLines.value
+        val totalAmount = if (vLines.isNotEmpty()) {
+            calculateTotalAmountMultiVariety(vLines) + graftingChargesNum
+        } else {
+            val qtyNum = quantity.value.toDoubleOrNull() ?: quantity.value.toIntOrNull()?.toDouble() ?: 0.0
+            val priceNum = landAreaAcres.value.toDoubleOrNull() ?: 0.0
+            (qtyNum * priceNum) + graftingChargesNum
+        }
+        when (status) {
+            "Pending" -> amountPaid.value = "0"
+            "Fully Paid" -> amountPaid.value = if (totalAmount > 0 && totalAmount % 1.0 == 0.0) totalAmount.toLong().toString() else if (totalAmount > 0) totalAmount.toString() else "0"
+            "Advance Paid" -> {
+                val currentPaid = amountPaid.value.toDoubleOrNull() ?: 0.0
+                if (currentPaid <= 0.0 || (totalAmount > 0 && currentPaid >= totalAmount)) {
+                    val half = totalAmount / 2.0
+                    amountPaid.value = if (half > 0 && half % 1.0 == 0.0) half.toLong().toString() else if (half > 0) half.toString() else "0"
+                }
+            }
+        }
+    }
+
     private val editingPaymentHistoryJson = MutableStateFlow("")
     var editingOldRecord: CropRecord? = null
 

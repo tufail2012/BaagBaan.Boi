@@ -466,8 +466,8 @@ fun GardenPlanningFormTab(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val textFieldShape = RoundedCornerShape(16.dp)
-    val pillShape = RoundedCornerShape(24.dp)
+    val textFieldShape = RoundedCornerShape(14.dp)
+    val pillShape = textFieldShape
 
     var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
 
@@ -1504,61 +1504,23 @@ fun GardenPlanningFormTab(
         }
 
         // Section Header: PAYMENT STATUS
+        val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning")
         Text(
             text = "PAYMENT STATUS",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = gardenAccent,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        // Dynamic Payment Status Option Badges (Non-interactive, auto-calculated)
-        val paymentStatusOptions = listOf("Pending", "Advance Paid", "Fully Paid")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            paymentStatusOptions.forEach { statusOption ->
-                val isSelected = paymentStatus.equals(statusOption, ignoreCase = true)
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    border = BorderStroke(
-                        1.dp,
-                        if (isSelected) MaterialTheme.colorScheme.primary else if (isDark) Color(0xFF4A4D58) else Color(0xFFD0D0D0)
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .boundedFormFieldRipple(shape = RoundedCornerShape(24.dp))
-                        .testTag("garden_payment_status_$statusOption")
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Auto-calculated & Locked",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
-                            Text(
-                                text = statusOption,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else if (isDark) Color.White else Color(0xFF333333)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        PaymentStatusSelector(
+            selectedStatus = paymentStatus,
+            onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
+            accentColor = gardenAccent,
+            isDark = isDark,
+            testTagPrefix = "garden_payment_status"
+        )
 
         // Amount Paid Input Field
         OutlinedTextField(

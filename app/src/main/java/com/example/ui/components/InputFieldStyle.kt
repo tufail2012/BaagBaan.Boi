@@ -72,6 +72,23 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
@@ -261,7 +278,7 @@ fun AppOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
@@ -348,7 +365,7 @@ fun AppOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
@@ -437,139 +454,25 @@ fun isAppInAmoledMode(): Boolean {
 }
 
 /**
- * Clean water-ripple interaction effect for form fields.
- * Subtle, soft accent color wave with zero specular glare, zero white crests, and zero glass strips.
+ * Clean interaction helper for form fields.
  */
 @Composable
 fun Modifier.centerWaterRipple(
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     interactionSource: MutableInteractionSource? = null,
     enabled: Boolean = true
-): Modifier {
-    val coroutineScope = rememberCoroutineScope()
-    val isDark = isAppInDarkMode()
-    val animProgress = remember { Animatable(0f) }
-
-    val triggerWave: () -> Unit = remember(coroutineScope, enabled) {
-        {
-            if (enabled) {
-                coroutineScope.launch {
-                    animProgress.snapTo(0f)
-                    animProgress.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(
-                            durationMillis = 400,
-                            easing = CubicBezierEasing(0.18f, 0.70f, 0.20f, 1.0f)
-                        )
-                    )
-                    animProgress.snapTo(0f)
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(interactionSource, enabled) {
-        if (interactionSource != null && enabled) {
-            interactionSource.interactions.collect { interaction ->
-                if (interaction is PressInteraction.Press) {
-                    triggerWave()
-                }
-            }
-        }
-    }
-
-    return this
-        .pointerInput(enabled) {
-            if (enabled) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        if (event.changes.any { it.changedToDown() }) {
-                            triggerWave()
-                        }
-                    }
-                }
-            }
-        }
-        .drawWithContent {
-            drawContent()
-
-            val progress = animProgress.value
-            if (progress > 0f && progress < 1f) {
-                val outline = shape.createOutline(size, layoutDirection, this)
-                clipPath(
-                    path = Path().apply {
-                        addOutline(outline)
-                    }
-                ) {
-                    val centerX = size.width / 2f
-                    val centerY = size.height / 2f
-
-                    val maxSpread = (size.width / 2f) * 1.12f
-                    val currentSpread = maxSpread * progress
-                    val fadeAlpha = ((1f - progress) * (if (isDark) 0.30f else 0.20f)).coerceIn(0f, 1f)
-
-                    // 1. Center droplet impact glow (subtle accent tone, zero white glare)
-                    val dropletDecay = (1f - (progress * 2.6f)).coerceIn(0f, 1f)
-                    if (dropletDecay > 0f) {
-                        val dropRadius = 20.dp.toPx() * (0.8f + progress * 1.4f)
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    accentColor.copy(alpha = dropletDecay * 0.20f),
-                                    accentColor.copy(alpha = dropletDecay * 0.08f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(centerX, centerY),
-                                radius = dropRadius
-                            ),
-                            radius = dropRadius,
-                            center = Offset(centerX, centerY)
-                        )
-                    }
-
-                    // 2. Horizontal soft accent wave spreading left and right (zero white strips, zero glass reflection)
-                    if (currentSpread > 1f) {
-                        val leftEdge = (centerX - currentSpread).coerceAtLeast(0f)
-                        val rightEdge = (centerX + currentSpread).coerceAtMost(size.width)
-                        val waveWidth = rightEdge - leftEdge
-
-                        if (waveWidth > 0f) {
-                            val waveBrush = Brush.horizontalGradient(
-                                colorStops = arrayOf(
-                                    0.00f to Color.Transparent,
-                                    0.25f to accentColor.copy(alpha = fadeAlpha * 0.45f),
-                                    0.50f to accentColor.copy(alpha = fadeAlpha * 0.15f),
-                                    0.75f to accentColor.copy(alpha = fadeAlpha * 0.45f),
-                                    1.00f to Color.Transparent
-                                ),
-                                startX = leftEdge,
-                                endX = rightEdge
-                            )
-
-                            drawRect(
-                                brush = waveBrush,
-                                topLeft = Offset(leftEdge, 0f),
-                                size = Size(waveWidth, size.height)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-}
+): Modifier = this
 
 /**
- * Modifier extension to attach a smooth, center-origin horizontal water ripple effect to form fields.
- * For clickable cards/selectors (onClick != null), applies the centralized glassCardBackground modifier.
- * For text input fields, applies clean background and focus handling with zero glass glare.
+ * Modifier extension to apply clean frosted glass background and focus handling to form fields.
+ * Maintains a clean, semi-transparent frosted glass backdrop with uniform opacity.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
     hazeState: Any? = null,
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = RoundedCornerShape(14.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -593,12 +496,6 @@ fun Modifier.boundedFormFieldRipple(
             shape = shape,
             isFocused = effectiveIsFocused
         )
-        .centerWaterRipple(
-            shape = shape,
-            accentColor = accentColor,
-            interactionSource = interactionSource,
-            enabled = enabled
-        )
     return if (onClick != null) {
         baseMod.clickable(
             interactionSource = interactionSource,
@@ -612,32 +509,22 @@ fun Modifier.boundedFormFieldRipple(
 }
 
 /**
- * Elevation shadow helper for floating input containers.
+ * Flat elevation helper (zero unwanted grey shadows or top shades).
  */
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(14.dp),
-    isDark: Boolean,
-    offsetY: Dp = 2.dp,
-    blurRadius: Dp = 6.dp,
+    isDark: Boolean = false,
+    offsetY: Dp = 0.dp,
+    blurRadius: Dp = 0.dp,
     elevationAlphaScale: Float = 1.0f
-): Modifier = this.shadow(
-    elevation = 4.dp,
-    shape = shape,
-    spotColor = if (isDark) Color.Black.copy(alpha = 0.40f * elevationAlphaScale) else Color(0xFF64748B).copy(alpha = 0.15f * elevationAlphaScale),
-    ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f * elevationAlphaScale) else Color(0xFF94A3B8).copy(alpha = 0.10f * elevationAlphaScale)
-)
+): Modifier = this
 
 fun Modifier.elevated3dShadow(
     shape: Shape = RoundedCornerShape(14.dp),
-    isDark: Boolean,
-    offsetY: Dp = 4.dp,
-    blurRadius: Dp = 8.dp
-): Modifier = this.shadow(
-    elevation = 5.dp,
-    shape = shape,
-    spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF475569).copy(alpha = 0.18f),
-    ambientColor = if (isDark) Color.Black.copy(alpha = 0.30f) else Color(0xFF94A3B8).copy(alpha = 0.12f)
-)
+    isDark: Boolean = false,
+    offsetY: Dp = 0.dp,
+    blurRadius: Dp = 0.dp
+): Modifier = this
 
 @Composable
 fun elevatedInputFieldColors(
@@ -646,7 +533,7 @@ fun elevatedInputFieldColors(
 ): TextFieldColors {
     val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-    val labelUnfocused = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+    val labelUnfocused = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
     return OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,
@@ -690,13 +577,12 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Modern Glassmorphism Floating Container Background Modifier for Input Fields, Selectors, and Cards.
+ * Clean Glassmorphism Backdrop Modifier for Input Fields, Selectors, and Cards.
  * Applied across all forms and text fields:
- * - Floating container geometry maintaining rectangular shape with slightly rounded corners.
- * - Frosted liquid glass effect with translucent surface gradients.
+ * - Rectangular container geometry with subtle rounded corners (not pill-shaped).
+ * - Clean, semi-transparent frosted glass backdrop with uniform opacity across the entire container.
  * - Subtle background blur via Haze backdrop processing.
- * - Soft, glowing borders with accent luminance and specular highlight rim reflection.
- * - Subtle floating elevation shadow with soft ambient color tone.
+ * - Crisp, clean border stroke with zero solid white strips, zero top shadows, and zero grey gradients.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -706,9 +592,9 @@ fun Modifier.glassCardBackground(
     shape: Shape? = null,
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
-    elevation: Dp = 4.dp,
-    borderWidth: Dp = 1.15.dp,
-    flatStyle: Boolean = false,
+    elevation: Dp = 0.dp,
+    borderWidth: Dp = 1.dp,
+    flatStyle: Boolean = true,
     isFocused: Boolean = false
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 14.dp)
@@ -726,121 +612,179 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
-    // Translucent liquid surface base tint
-    val baseTint = when {
-        effectiveIsAmoled -> Color(0xFF000000).copy(alpha = if (actualHaze != null) 0.60f else 0.85f)
-        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.55f else 0.82f)
-        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.65f else 0.88f)
+    // Clean, uniform semi-transparent frosted glass backdrop tint
+    val glassTint = when {
+        effectiveIsAmoled -> Color(0xFF0A0A0C).copy(alpha = if (actualHaze != null) 0.55f else 0.75f)
+        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.45f else 0.65f)
+        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.55f else 0.75f)
     }
-
-    val surfaceBrush = Brush.verticalGradient(
-        colors = when {
-            effectiveIsAmoled -> listOf(
-                Color(0xFF1E1E24).copy(alpha = 0.85f),
-                Color(0xFF09090B).copy(alpha = 0.68f),
-                if (isFocused) accentColor.copy(alpha = 0.08f) else Color(0xFF121215).copy(alpha = 0.78f)
-            )
-            effectiveIsDark -> listOf(
-                Color(0xFF243044).copy(alpha = 0.82f),
-                Color(0xFF131D2E).copy(alpha = 0.65f),
-                if (isFocused) accentColor.copy(alpha = 0.09f) else Color(0xFF182234).copy(alpha = 0.75f)
-            )
-            else -> listOf(
-                Color.White.copy(alpha = 0.92f),
-                Color(0xFFF1F5F9).copy(alpha = 0.70f),
-                if (isFocused) accentColor.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.82f)
-            )
-        }
-    )
 
     val hazeModifier = if (actualHaze != null) {
         Modifier.hazeEffect(
             state = actualHaze,
             style = HazeStyle(
                 backgroundColor = surfaceColor,
-                tint = HazeTint(baseTint),
-                blurRadius = 24.dp,
-                noiseFactor = 0.02f
+                tint = HazeTint(glassTint),
+                blurRadius = 20.dp,
+                noiseFactor = 0f
             )
         )
     } else {
-        Modifier.background(baseTint)
+        Modifier.background(glassTint)
     }
 
-    // Soft glowing border brush
-    val borderBrush = if (isFocused) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = if (effectiveIsDark) 0.90f else 0.98f),
-                accentColor,
-                accentColor.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.50f)
-            )
-        )
+    // Crisp, clean border stroke
+    val borderStroke = if (isFocused) {
+        BorderStroke(1.5.dp, accentColor)
     } else {
-        Brush.verticalGradient(
-            colors = if (effectiveIsDark) {
-                listOf(
-                    Color.White.copy(alpha = 0.40f),
-                    accentColor.copy(alpha = 0.35f),
-                    Color(0xFF334155).copy(alpha = 0.55f),
-                    accentColor.copy(alpha = 0.20f)
-                )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.35f),
-                    Color(0xFFCBD5E1).copy(alpha = 0.75f),
-                    accentColor.copy(alpha = 0.25f)
-                )
-            }
-        )
+        val borderColor = if (effectiveIsDark) {
+            Color(0xFF334155).copy(alpha = 0.65f)
+        } else {
+            Color(0xFFCBD5E1).copy(alpha = 0.85f)
+        }
+        BorderStroke(1.dp, borderColor)
     }
-
-    val effectiveElevation = if (isFocused) (elevation + 4.dp).coerceAtLeast(6.dp) else elevation.coerceAtLeast(3.dp)
-    val effectiveBorderWidth = if (isFocused) (borderWidth * 1.4f).coerceAtLeast(1.5.dp) else borderWidth
 
     return this
-        // 1. Floating container soft drop shadow & subtle accent glow
-        .shadow(
-            elevation = effectiveElevation,
-            shape = effectiveShape,
-            spotColor = if (isFocused) accentColor.copy(alpha = 0.35f) else if (effectiveIsDark) Color.Black.copy(alpha = 0.45f) else accentColor.copy(alpha = 0.12f),
-            ambientColor = if (isFocused) accentColor.copy(alpha = 0.20f) else if (effectiveIsDark) Color.Black.copy(alpha = 0.25f) else Color(0xFF64748B).copy(alpha = 0.08f)
-        )
         .clip(effectiveShape)
-        // 2. Translucent blurred backdrop
         .then(hazeModifier)
-        // 3. Liquid glass gradient surface
-        .background(brush = surfaceBrush, shape = effectiveShape)
-        // 4. Specular liquid highlight on upper rim
-        .drawWithContent {
-            drawContent()
-            val w = size.width
-            val highlightHeight = 16.dp.toPx()
-            val highlightWidth = w * 0.90f
-            val highlightX = (w - highlightWidth) / 2f
-            val highlightY = 1.dp.toPx()
-
-            drawOval(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (effectiveIsDark) 0.35f else 0.65f),
-                        accentColor.copy(alpha = if (isFocused) 0.15f else 0.05f),
-                        Color.Transparent
-                    ),
-                    startY = highlightY,
-                    endY = highlightY + highlightHeight
-                ),
-                topLeft = Offset(highlightX, highlightY),
-                size = Size(highlightWidth, highlightHeight)
-            )
-        }
-        // 5. Soft, glowing border
+        .background(color = glassTint, shape = effectiveShape)
         .border(
-            border = BorderStroke(width = effectiveBorderWidth, brush = borderBrush),
+            border = borderStroke,
             shape = effectiveShape
         )
+}
+
+/**
+ * Modern Payment Status Button Row.
+ * Ensures the selected button maintains the dynamic theme color (or section accent color),
+ * with glowing border, elevated shadow, and high-contrast text that is always clearly visible.
+ */
+@Composable
+fun PaymentStatusSelector(
+    selectedStatus: String,
+    onStatusSelected: (String) -> Unit,
+    accentColor: Color,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+    testTagPrefix: String = "payment_status"
+) {
+    val paymentStatusOptions = listOf("Pending", "Advance Paid", "Fully Paid")
+    
+    // Calculate high contrast text color for the selected theme color
+    val isLightAccent = (0.299f * accentColor.red + 0.587f * accentColor.green + 0.114f * accentColor.blue) > 0.62f
+    val selectedTextColor = if (isLightAccent) Color(0xFF0F172A) else Color.White
+    val selectedIconColor = selectedTextColor
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        paymentStatusOptions.forEach { statusOption ->
+            val isSelected = selectedStatus.equals(statusOption, ignoreCase = true)
+            
+            val buttonShape = RoundedCornerShape(24.dp)
+            
+            // Container surface brush & border
+            val backgroundBrush = if (isSelected) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = 0.95f),
+                        accentColor
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color(0xFF1E293B).copy(alpha = 0.75f),
+                            Color(0xFF0F172A).copy(alpha = 0.85f)
+                        )
+                    } else {
+                        listOf(
+                            Color.White.copy(alpha = 0.95f),
+                            Color(0xFFF1F5F9).copy(alpha = 0.85f)
+                        )
+                    }
+                )
+            }
+
+            val borderStroke = if (isSelected) {
+                BorderStroke(
+                    width = 1.35.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (isDark) 0.70f else 0.90f),
+                            accentColor,
+                            accentColor.copy(alpha = 0.80f)
+                        )
+                    )
+                )
+            } else {
+                BorderStroke(
+                    width = 1.dp,
+                    color = if (isDark) Color(0xFF334155).copy(alpha = 0.80f) else Color(0xFFCBD5E1)
+                )
+            }
+
+            val textColor = if (isSelected) {
+                selectedTextColor
+            } else {
+                if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
+            }
+
+            Surface(
+                shape = buttonShape,
+                color = Color.Transparent,
+                border = borderStroke,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .shadow(
+                        elevation = if (isSelected) 4.dp else 1.dp,
+                        shape = buttonShape,
+                        spotColor = if (isSelected) accentColor.copy(alpha = 0.45f) else Color.Black.copy(alpha = 0.10f),
+                        ambientColor = if (isSelected) accentColor.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.05f)
+                    )
+                    .clip(buttonShape)
+                    .background(brush = backgroundBrush, shape = buttonShape)
+                    .clickable { onStatusSelected(statusOption) }
+                    .testTag("${testTagPrefix}_$statusOption")
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (isSelected) {
+                            val icon = when (statusOption) {
+                                "Fully Paid" -> Icons.Default.CheckCircle
+                                "Advance Paid" -> Icons.Default.AccountBalanceWallet
+                                else -> Icons.Default.Lock
+                            }
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "$statusOption selected",
+                                tint = selectedIconColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                        Text(
+                            text = statusOption,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                            color = textColor,
+                            maxLines = 1,
+                            letterSpacing = 0.2.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 

@@ -2013,7 +2013,7 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        val pillShape = RoundedCornerShape(28.dp)
+        val pillShape = textFieldShape
 
         val sanitizeCurrencyInput: (String) -> String = { input ->
             val filtered = input.filter { it.isDigit() || it == '.' }
@@ -2364,58 +2364,18 @@ fun FarmerFormScreen(
             text = "PAYMENT STATUS",
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
+            color = formAccent,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        val paymentStatusOptions = listOf("Pending", "Advance Paid", "Fully Paid")
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            paymentStatusOptions.forEach { statusOption ->
-                val isSelected = paymentStatus.equals(statusOption, ignoreCase = true)
-                Surface(
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color.Transparent,
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        if (isSelected) MaterialTheme.colorScheme.primary else if (isDark) Color(0xFF4A4D58).copy(alpha = 0.6f) else Color(0xFFD0D0D0).copy(alpha = 0.8f)
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f) else (if (isDark) Color(0xFF1E293B).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.5f)))
-                        .boundedFormFieldRipple(shape = RoundedCornerShape(24.dp))
-                        .testTag("payment_status_$statusOption")
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Auto-calculated & Locked",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                            }
-                            Text(
-                                text = statusOption,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) Color.White else if (isDark) Color.White else Color(0xFF333333)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        PaymentStatusSelector(
+            selectedStatus = paymentStatus,
+            onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
+            accentColor = formAccent,
+            isDark = isDark,
+            testTagPrefix = "payment_status"
+        )
 
         // Input Field: Amount Paid (₹)
         OutlinedTextField(
