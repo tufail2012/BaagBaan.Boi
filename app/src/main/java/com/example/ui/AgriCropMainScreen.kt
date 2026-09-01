@@ -716,7 +716,7 @@ fun AgriCropMainScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(innerPadding)
+                                .padding(top = innerPadding.calculateTopPadding())
                         ) {
                             when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
