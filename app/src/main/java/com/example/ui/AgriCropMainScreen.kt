@@ -58,6 +58,8 @@ import com.example.ui.components.ContactDirectoryDialog
 import com.example.ui.components.BookingConfirmationOverlay
 import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.BusinessInfoDialog
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.MessageTemplateManagerScreen
 import com.example.ui.components.AgriDashboardScreen
 import com.example.data.BusinessInfoRepository
@@ -151,6 +153,8 @@ fun AgriCropMainScreen(
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
     val filteredCropRecords by viewModel.filteredRecords.collectAsState()
     val cropRecordsCount = filteredCropRecords.size
+
+    val hazeState = remember { HazeState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -708,7 +712,8 @@ fun AgriCropMainScreen(
                                         }
                                     }
                                 },
-                                accentColor = sectionAccentColor
+                                accentColor = sectionAccentColor,
+                                hazeState = hazeState
                             )
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -717,6 +722,7 @@ fun AgriCropMainScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(top = innerPadding.calculateTopPadding())
+                                .hazeSource(state = hazeState)
                         ) {
                             when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {

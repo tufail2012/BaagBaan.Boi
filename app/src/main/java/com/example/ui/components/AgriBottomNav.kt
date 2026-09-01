@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,15 +37,17 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.getSectionAccentColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 data class AgriNavItem(
     val title: String,
@@ -57,7 +58,7 @@ data class AgriNavItem(
 
 /**
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
- * Features a floating rounded pill container with backdrop blur (API 31+) or solid semi-opaque fallback,
+ * Features a floating rounded pill container with real backdrop blur via Haze (and solid fallback),
  * icon-only tabs (no labels), a glossy water-droplet styled selected tab indicator with specular highlight,
  * and high-contrast pure black/pure white unselected icons.
  */
@@ -67,7 +68,7 @@ fun AgriBottomNav(
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
-    hazeState: Any? = null
+    hazeState: HazeState? = null
 ) {
     val navItems = remember {
         listOf(
@@ -82,7 +83,6 @@ fun AgriBottomNav(
 
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
-    val isApi31Plus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
     val selectedIndex = remember(selectedCategory) {
         val idx = navItems.indexOfFirst { item ->
@@ -99,35 +99,48 @@ fun AgriBottomNav(
 
     val containerShape = RoundedCornerShape(percent = 50)
 
-    // Floating pill container background: real blurred translucency for API 31+, solid semi-opaque for older OS
+    // Floating pill container background: real blurred translucency when haze is active, solid semi-opaque fallback
     val containerBgColor = if (isDark) {
-        if (isApi31Plus) Color(0xFF0F172A).copy(alpha = 0.70f)
-        else Color(0xFF1E293B).copy(alpha = 0.96f)
+        if (hazeState != null) Color(0xFF0F172A).copy(alpha = 0.65f)
+        else Color(0xFF1E293B).copy(alpha = 0.95f)
     } else {
-        if (isApi31Plus) Color(0xFFFFFFFF).copy(alpha = 0.74f)
-        else Color(0xFFFFFFFF).copy(alpha = 0.96f)
+        if (hazeState != null) Color(0xFFFFFFFF).copy(alpha = 0.70f)
+        else Color(0xFFFFFFFF).copy(alpha = 0.95f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
-        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.14f) else Color(0xFF000000).copy(alpha = 0.08f)
+        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.16f) else Color(0xFF000000).copy(alpha = 0.09f)
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating pill container box
+        // Floating pill container box (Height increased to 66.dp for better breathing room)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp),
+                .height(66.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Background Glass Pill (Isolated background layer)
+            // Layer 1: Background Glass Pill (Isolated background layer with real backdrop blur)
+            val hazeModifier = if (hazeState != null) {
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        tint = HazeTint(containerBgColor),
+                        blurRadius = 24.dp,
+                        noiseFactor = 0.05f
+                    )
+                )
+            } else {
+                Modifier.background(containerBgColor)
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -138,7 +151,7 @@ fun AgriBottomNav(
                         ambientColor = if (isDark) Color.Black.copy(alpha = 0.3f) else Color(0x20000000)
                     )
                     .clip(containerShape)
-                    .background(containerBgColor)
+                    .then(hazeModifier)
                     .border(containerBorder, containerShape)
             )
 
@@ -146,7 +159,7 @@ fun AgriBottomNav(
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 6.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -182,10 +195,10 @@ private fun DropletTabItem(
     modifier: Modifier = Modifier
 ) {
     val dropletShape = RoundedCornerShape(
-        topStart = 20.dp,
-        topEnd = 14.dp,
-        bottomStart = 14.dp,
-        bottomEnd = 20.dp
+        topStart = 22.dp,
+        topEnd = 16.dp,
+        bottomStart = 16.dp,
+        bottomEnd = 22.dp
     )
 
     // Pure black in light theme, pure white in dark/AMOLED theme with no grey/muted tones
@@ -195,7 +208,7 @@ private fun DropletTabItem(
     Box(
         modifier = modifier
             .testTag(item.testTag)
-            .height(56.dp)
+            .height(58.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -204,29 +217,29 @@ private fun DropletTabItem(
         contentAlignment = Alignment.Center
     ) {
         if (isSelected) {
-            // Selected item: Water droplet pill highlight sized to the icon
+            // Selected item: Clearly visible Water droplet pill highlight sized to the icon
             Box(
                 modifier = Modifier
-                    .width(48.dp)
-                    .height(40.dp)
+                    .width(50.dp)
+                    .height(44.dp)
                     .shadow(
                         elevation = 6.dp,
                         shape = dropletShape,
-                        spotColor = accentColor.copy(alpha = 0.5f),
-                        ambientColor = accentColor.copy(alpha = 0.25f)
+                        spotColor = accentColor.copy(alpha = 0.55f),
+                        ambientColor = accentColor.copy(alpha = 0.30f)
                     )
                     .clip(dropletShape)
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                accentColor.copy(alpha = if (isDark) 0.38f else 0.26f),
-                                accentColor.copy(alpha = if (isDark) 0.18f else 0.12f)
+                                accentColor.copy(alpha = if (isDark) 0.48f else 0.38f),
+                                accentColor.copy(alpha = if (isDark) 0.28f else 0.20f)
                             )
                         )
                     )
                     .border(
-                        width = 1.dp,
-                        color = accentColor.copy(alpha = if (isDark) 0.50f else 0.35f),
+                        width = 1.5.dp,
+                        color = accentColor.copy(alpha = if (isDark) 0.65f else 0.50f),
                         shape = dropletShape
                     )
                     .drawWithContent {
@@ -234,27 +247,27 @@ private fun DropletTabItem(
                         // Specular highlight: soft white reflection arc near the top-left of the droplet
                         val highlightBrush = Brush.radialGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = if (isDark) 0.75f else 0.90f),
-                                Color.White.copy(alpha = 0.25f),
+                                Color.White.copy(alpha = if (isDark) 0.85f else 0.95f),
+                                Color.White.copy(alpha = 0.35f),
                                 Color.Transparent
                             ),
-                            center = Offset(size.width * 0.26f, size.height * 0.24f),
-                            radius = size.width * 0.38f
+                            center = Offset(size.width * 0.28f, size.height * 0.24f),
+                            radius = size.width * 0.40f
                         )
                         drawCircle(
                             brush = highlightBrush,
                             radius = size.width * 0.32f,
-                            center = Offset(size.width * 0.26f, size.height * 0.24f)
+                            center = Offset(size.width * 0.28f, size.height * 0.24f)
                         )
-                        // Soft top-left curved specular arc
+                        // Soft top-left curved specular arc mimicking light glint on droplet
                         drawArc(
-                            color = Color.White.copy(alpha = if (isDark) 0.65f else 0.80f),
+                            color = Color.White.copy(alpha = if (isDark) 0.75f else 0.90f),
                             startAngle = 180f,
-                            sweepAngle = 100f,
+                            sweepAngle = 105f,
                             useCenter = false,
-                            topLeft = Offset(2f, 2f),
-                            size = Size(size.width - 4f, size.height - 4f),
-                            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                            topLeft = Offset(2.5f, 2.5f),
+                            size = Size(size.width - 5f, size.height - 5f),
+                            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
                         )
                     },
                 contentAlignment = Alignment.Center
@@ -263,11 +276,11 @@ private fun DropletTabItem(
                     imageVector = item.icon,
                     contentDescription = item.title,
                     tint = selectedIconColor,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(25.dp)
                 )
             }
         } else {
-            // Unselected tab: icon only, pure solid color
+            // Unselected tab: icon only, pure solid color (pure black in light, pure white in dark)
             Icon(
                 imageVector = item.icon,
                 contentDescription = item.title,
@@ -277,4 +290,5 @@ private fun DropletTabItem(
         }
     }
 }
+
 
