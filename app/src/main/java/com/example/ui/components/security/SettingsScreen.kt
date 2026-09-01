@@ -84,15 +84,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
-import com.example.ui.components.LocalHazeState
 import com.example.ui.theme.getAppDimBackgroundBrush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.example.security.AppLockManager
 import com.example.security.LockAfterDuration
 import com.example.security.UnlockMethod
@@ -344,19 +341,16 @@ fun SettingsScreen(
     }
 
     val settingsAccent = getSectionAccentColor("Settings", customPaletteColor = customPaletteColor)
-    val settingsHazeState = remember { HazeState() }
     val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
     val settingsBgBrush = remember(isDark, isAmoled, settingsAccent) {
         getAppDimBackgroundBrush(settingsAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    CompositionLocalProvider(LocalHazeState provides settingsHazeState) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(settingsBgBrush)
-                .hazeSource(state = settingsHazeState)
-        ) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(settingsBgBrush)
+    ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -367,7 +361,6 @@ fun SettingsScreen(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = settingsHazeState,
                         isDark = isDark,
                         accentColor = settingsAccent,
                         shape = RoundedCornerShape(percent = 50)
@@ -437,7 +430,6 @@ fun SettingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(state = settingsHazeState)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -976,7 +968,6 @@ fun SettingsScreen(
             }
         }
     }
-}
 }
 
 @Composable

@@ -31,8 +31,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.BusinessInfo
 import com.example.data.BusinessInfoRepository
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +41,6 @@ fun BusinessInfoDialog(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val isDark = isSystemInDarkTheme()
-    val businessHazeState = remember { HazeState() }
 
     // Observe live business info from repository
     val cloudBusinessInfo by BusinessInfoRepository.businessInfo.collectAsState()
@@ -105,7 +102,6 @@ fun BusinessInfoDialog(
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .frostedGlassChrome(
-                            hazeState = businessHazeState,
                             isDark = isDark,
                             accentColor = MaterialTheme.colorScheme.primary,
                             shape = RoundedCornerShape(percent = 50)
@@ -183,7 +179,6 @@ fun BusinessInfoDialog(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(state = businessHazeState)
                     .padding(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState())

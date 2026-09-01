@@ -1,34 +1,7 @@
 package com.example.ui.components
 
-import android.content.Context
-import android.os.PowerManager
-import android.provider.Settings
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.LocalShipping
@@ -38,34 +11,22 @@ import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ripple
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.ui.glass.LocalLiquidHazeState
-import com.example.ui.glass.liquidFrostedGlass
+import androidx.compose.ui.unit.sp
 import com.example.ui.theme.getSectionAccentColor
-import dev.chrisbanes.haze.HazeState
-import kotlinx.coroutines.launch
 
 data class AgriNavItem(
     val title: String,
@@ -74,13 +35,18 @@ data class AgriNavItem(
     val testTag: String
 )
 
+/**
+ * Standard Material Design 3 Navigation Bar for Baagbaan BOI.
+ * Employs Compose Material 3 NavigationBar + NavigationBarItem with solid surfaceContainer,
+ * standard tonal elevation, solid indicator, and zero translucency/blur.
+ */
 @Composable
 fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
-    hazeState: HazeState? = null
+    hazeState: Any? = null
 ) {
     val navItems = remember {
         listOf(
@@ -93,22 +59,7 @@ fun AgriBottomNav(
         )
     }
 
-    val context = LocalContext.current
-    val isDark = isAppInDarkMode()
     val haptic = LocalHapticFeedback.current
-    val scope = rememberCoroutineScope()
-
-    // Check accessibility Reduce Transparency or Battery Saver mode for performance fallback
-    val isReduceTransparencyOrBatterySaver = remember(context) {
-        try {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            val isPowerSave = powerManager?.isPowerSaveMode == true
-            val reduceTransparency = Settings.Secure.getInt(context.contentResolver, "reduce_transparency", 0) == 1
-            isPowerSave || reduceTransparency
-        } catch (e: Exception) {
-            false
-        }
-    }
 
     val selectedIndex = remember(selectedCategory) {
         val idx = navItems.indexOfFirst { item ->
@@ -119,271 +70,48 @@ fun AgriBottomNav(
         if (idx >= 0) idx else 0
     }
 
-    // Dynamic Section Accent Color matching the active section
     val activeSectionAccent = remember(selectedCategory, accentColor) {
         accentColor ?: getSectionAccentColor(selectedCategory)
     }
 
-    val animatedAccentColor by animateColorAsState(
-        targetValue = activeSectionAccent,
-        animationSpec = tween(durationMillis = 280),
-        label = "BottomNavAccentColor"
-    )
-
-    val capsuleShape = CircleShape
-
-    var previousIndex by remember { mutableIntStateOf(selectedIndex) }
-    val isMoving = previousIndex != selectedIndex
-    LaunchedEffect(selectedIndex) {
-        previousIndex = selectedIndex
-    }
-
-    val blobStretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.08f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "BlobScaleX"
-    )
-
-    val blobSquashScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.90f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "BlobScaleY"
-    )
-
-    val effectiveHazeState = if (!isReduceTransparencyOrBatterySaver) {
-        hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
-    } else null
-
-    // Floating Placement: lifted off the bottom edge
-    Box(
+    NavigationBar(
         modifier = modifier
-            .navigationBarsPadding()
             .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 16.dp)
-            .liquidFrostedGlass(
-                hazeState = effectiveHazeState,
-                isDark = isDark,
-                accentColor = animatedAccentColor,
-                shape = CircleShape,
-                elevation = 16.dp,
-                borderWidth = 1.1.dp,
-                blurRadius = 28.dp,
-                frostTintAlpha = if (isDark) 0.55f else 0.50f,
-                surfaceOpacity = if (isDark) 0.28f else 0.22f,
-                refractionStrength = 0.25f,
-                chromaticAberration = 0.05f,
-                highlightStrength = 0.85f,
-                innerDepthStrength = 0.40f
-            )
+            .navigationBarsPadding(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 3.dp
     ) {
-        // Tab Content and Animated Liquid Blob Indicator
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(68.dp)
-                .padding(horizontal = 6.dp)
-        ) {
-            val totalWidth = maxWidth
-            val tabCount = navItems.size
-            val tabWidth = totalWidth / tabCount
-
-            // Active pill dimensions: Spans the tab slot width with subtle, clean margins
-            val horizontalMargin = 4.dp
-            val blobBaseWidth = (tabWidth - (horizontalMargin * 2)).coerceAtLeast(36.dp)
-            val blobTargetWidth = if (isMoving) (blobBaseWidth + 3.dp) else blobBaseWidth
-            val blobHeight = 54.dp
-
-            val animatedBlobWidth by animateDpAsState(
-                targetValue = blobTargetWidth,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
+        navItems.forEachIndexed { index, item ->
+            val isSelected = index == selectedIndex
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onCategorySelected(item.serviceCategory)
+                },
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.title
+                    )
+                },
+                label = {
+                    Text(
+                        text = item.title,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTextColor = activeSectionAccent,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
-                label = "BlobWidth"
+                modifier = Modifier.testTag(item.testTag)
             )
-
-            // Calculate target horizontal offset for sliding liquid blob capsule
-            val targetOffset = (tabWidth * selectedIndex) + ((tabWidth - animatedBlobWidth) / 2)
-            val animatedBlobOffset by animateDpAsState(
-                targetValue = targetOffset,
-                animationSpec = spring(
-                    dampingRatio = 0.72f,
-                    stiffness = Spring.StiffnessMediumLow
-                ),
-                label = "SlidingBlobOffset"
-            )
-
-            // Liquid Glass Blob Material & Refraction tinted with active section accent
-            val blobGradient = if (!isDark) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.85f),
-                        animatedAccentColor.copy(alpha = 0.22f),
-                        Color.White.copy(alpha = 0.65f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        animatedAccentColor.copy(alpha = 0.38f),
-                        animatedAccentColor.copy(alpha = 0.25f),
-                        Color(0xFF0F172A).copy(alpha = 0.70f)
-                    )
-                )
-            }
-
-            val blobBorderColor = if (!isDark) {
-                Color.White.copy(alpha = 0.85f)
-            } else {
-                Color.White.copy(alpha = 0.35f)
-            }
-
-            // 1. SIGNATURE SLIDING & SQUASHING/STRETCHING LIQUID CAPSULE / PILL
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = animatedBlobOffset)
-                    .width(animatedBlobWidth)
-                    .height(blobHeight)
-                    .graphicsLayer {
-                        scaleX = blobStretchScaleX
-                        scaleY = blobSquashScaleY
-                    }
-                    .shadow(
-                        elevation = 6.dp,
-                        shape = capsuleShape,
-                        clip = false,
-                        ambientColor = animatedAccentColor.copy(alpha = if (!isDark) 0.22f else 0.35f),
-                        spotColor = animatedAccentColor.copy(alpha = if (!isDark) 0.32f else 0.50f)
-                    )
-                    .clip(capsuleShape)
-                    .background(blobGradient)
-                    .border(
-                        width = 1.dp,
-                        color = blobBorderColor,
-                        shape = capsuleShape
-                    )
-            ) {
-                // Internal soft reflection layer
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(capsuleShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = if (!isDark) 0.35f else 0.15f)
-                                )
-                            )
-                        )
-                )
-
-                // Pristine top curvature specular highlight on the liquid capsule
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth(0.76f)
-                        .height(10.dp)
-                        .padding(top = 2.dp)
-                        .clip(capsuleShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (!isDark) 0.80f else 0.50f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
-
-            // 2. TAB ICONS ROW
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                navItems.forEachIndexed { index, item ->
-                    val isSelected = index == selectedIndex
-                    val scale = remember { Animatable(1f) }
-                    val itemAccentColor = getSectionAccentColor(item.serviceCategory, customPaletteColor = accentColor)
-
-                    // Inactive tabs: muted grey-violet; Selected tab: dynamic section accent
-                    val inactiveColor = if (!isDark) {
-                        Color(0xFF8E84A3) // Muted grey-violet for light theme
-                    } else {
-                        Color(0xFF9E95B3) // Muted grey-violet for dark theme
-                    }
-
-                    val animatedIconColor by animateColorAsState(
-                        targetValue = if (isSelected) animatedAccentColor else inactiveColor,
-                        animationSpec = tween(durationMillis = 260),
-                        label = "NavIconColor_$index"
-                    )
-
-                    val animatedIconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.15f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        ),
-                        label = "NavIconScale_$index"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(68.dp)
-                            .testTag(item.testTag)
-                            .clip(RoundedCornerShape(32.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = ripple(
-                                    bounded = true,
-                                    color = itemAccentColor.copy(alpha = 0.22f)
-                                ),
-                                onClick = {
-                                    scope.launch {
-                                        scale.animateTo(
-                                            0.84f,
-                                            animationSpec = tween(70, easing = FastOutSlowInEasing)
-                                        )
-                                        scale.animateTo(
-                                            1f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessLow
-                                            )
-                                        )
-                                    }
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onCategorySelected(item.serviceCategory)
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.title,
-                            tint = animatedIconColor,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .scale(scale.value)
-                                .graphicsLayer {
-                                    scaleX = animatedIconScale
-                                    scaleY = animatedIconScale
-                                }
-                        )
-                    }
-                }
-            }
         }
     }
 }

@@ -11,8 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -112,7 +110,6 @@ fun SeasonalRemindersDialog(
         }
     }
 
-    val seasonalHazeState = remember { HazeState() }
     val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     val seasonalBgBrush = remember(isDark, seasonalAccent) {
         getAppDimBackgroundBrush(seasonalAccent, isDark = isDark)
@@ -124,7 +121,6 @@ fun SeasonalRemindersDialog(
         modifier = modifier
             .fillMaxSize()
             .background(seasonalBgBrush)
-            .hazeSource(state = seasonalHazeState)
             .testTag("seasonal_reminders_dialog")
     ) {
         Column(
@@ -137,7 +133,6 @@ fun SeasonalRemindersDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = seasonalHazeState,
                         isDark = isDark,
                         accentColor = seasonalAccent,
                         shape = RoundedCornerShape(percent = 50)

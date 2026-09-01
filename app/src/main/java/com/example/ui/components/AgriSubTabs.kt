@@ -1,33 +1,14 @@
 package com.example.ui.components
 
-import android.content.Context
-import android.os.PowerManager
-import android.provider.Settings
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -37,42 +18,29 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.glass.LocalLiquidHazeState
-import com.example.ui.glass.liquidFrostedGlass
 import com.example.ui.theme.getSectionAccentColor
-import dev.chrisbanes.haze.HazeState
 
 /**
  * Pruning Sub-Tabs (Summer Pruning / Winter Pruning)
- * Styled with Liquid Glass material: backdrop blur, specular top edge highlight,
- * spring-animated selection indicator with squash & stretch, and section accent tinting (Red).
+ * Styled with standard Compose Material 3 SegmentedButton with solid fills and clean M3 typography.
  */
 @Composable
 fun PruningSubTabs(
@@ -80,46 +48,62 @@ fun PruningSubTabs(
     onSelectSubTab: (String) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = getSectionAccentColor("Pruning"),
-    hazeState: HazeState? = null
+    hazeState: Any? = null
 ) {
     val subTabs = listOf("Summer Pruning", "Winter Pruning")
     val selectedIndex = if (selectedSubTab.contains("Winter", ignoreCase = true)) 1 else 0
+    val haptic = LocalHapticFeedback.current
 
-    LiquidGlassTabSwitcher(
-        tabCount = subTabs.size,
-        selectedIndex = selectedIndex,
-        accentColor = accentColor,
-        hazeState = hazeState,
+    SingleChoiceSegmentedButtonRow(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .height(44.dp)
     ) {
         subTabs.forEachIndexed { index, tabName ->
             val isSelected = index == selectedIndex
             val isSummer = tabName.contains("Summer", ignoreCase = true)
             val icon = if (isSummer) Icons.Default.WbSunny else Icons.Default.AcUnit
-            val iconTint = if (isSummer) {
-                if (isSelected) Color(0xFFFFB300) else Color(0xFFF57C00)
-            } else {
-                if (isSelected) Color(0xFF38BDF8) else Color(0xFF0288D1)
-            }
 
-            LiquidGlassSubTabButton(
-                title = tabName,
-                isSelected = isSelected,
-                icon = icon,
-                iconTint = iconTint,
-                accentColor = accentColor,
-                testTag = "subtab_${tabName.lowercase().replace(" ", "_")}",
-                onClick = { onSelectSubTab(tabName) },
-                modifier = Modifier.weight(1f)
-            )
+            SegmentedButton(
+                selected = isSelected,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelectSubTab(tabName)
+                },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = subTabs.size),
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant
+                ),
+                icon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("subtab_${tabName.lowercase().replace(" ", "_")}")
+            ) {
+                Text(
+                    text = tabName,
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
         }
     }
 }
 
 /**
  * Rootstock Sub-Tabs (M9-T337, MM111, Geneva dropdown)
- * Styled with Liquid Glass material: backdrop blur, specular top edge highlight,
- * spring-animated selection indicator with squash & stretch, and section accent tinting (Emerald).
+ * Styled with standard Compose Material 3 SegmentedButton with solid fills.
  */
 @Composable
 fun RootstockSubTabs(
@@ -128,7 +112,7 @@ fun RootstockSubTabs(
     onSelectSubTab: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = getSectionAccentColor("Rootstocks"),
-    hazeState: HazeState? = null
+    hazeState: Any? = null
 ) {
     var genevaMenuExpanded by remember { mutableStateOf(false) }
     val genevaOptions = listOf("G41", "G214", "G11", "G35", "G969", "G890")
@@ -147,390 +131,152 @@ fun RootstockSubTabs(
         "Geneva"
     }
 
-    LiquidGlassTabSwitcher(
-        tabCount = 3,
-        selectedIndex = selectedIndex,
-        accentColor = accentColor,
-        hazeState = hazeState,
-        modifier = modifier
-    ) {
-        // 1. M9-T337
-        LiquidGlassSubTabButton(
-            title = "M9-T337",
-            isSelected = selectedIndex == 0,
-            accentColor = accentColor,
-            testTag = "subtab_m9_t337",
-            onClick = { onSelectSubTab("M9-T337", null) },
-            modifier = Modifier.weight(1f)
-        )
-
-        // 2. MM111
-        LiquidGlassSubTabButton(
-            title = "MM111",
-            isSelected = selectedIndex == 1,
-            accentColor = accentColor,
-            testTag = "subtab_mm111",
-            onClick = { onSelectSubTab("MM111", null) },
-            modifier = Modifier.weight(1f)
-        )
-
-        // 3. Geneva Dropdown
-        Box(
-            modifier = Modifier.weight(1.2f)
-        ) {
-            LiquidGlassSubTabButton(
-                title = activeGenevaLabel,
-                isSelected = selectedIndex == 2,
-                hasDropdown = true,
-                accentColor = accentColor,
-                testTag = "subtab_geneva",
-                onClick = { genevaMenuExpanded = true },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            DropdownMenu(
-                expanded = genevaMenuExpanded,
-                onDismissRequest = { genevaMenuExpanded = false }
-            ) {
-                Text(
-                    text = "Geneva Rootstocks",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                )
-
-                genevaOptions.forEach { option ->
-                    val isOptionSelected = selectedGenevaOption == option && isGenevaSelected
-                    DropdownMenuItem(
-                        text = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = option,
-                                    fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (isOptionSelected) accentColor else MaterialTheme.colorScheme.onSurface
-                                )
-                                if (isOptionSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = accentColor,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                        },
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            genevaMenuExpanded = false
-                            onSelectSubTab("Geneva", option)
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Reusable Liquid Glass Container for Sub-Tabs with sliding stadium capsule indicator,
- * spring-based squash/stretch physics, real-time Haze backdrop blur, and AMOLED boost.
- */
-@Composable
-fun LiquidGlassTabSwitcher(
-    tabCount: Int,
-    selectedIndex: Int,
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-    hazeState: HazeState? = null,
-    content: @Composable RowScope.() -> Unit
-) {
-    val context = LocalContext.current
-    val isDark = isAppInDarkMode()
-    val screenBgColor = MaterialTheme.colorScheme.background
-    val isAmoled = isDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black)
-
-    val isReduceTransparencyOrBatterySaver = remember(context) {
-        try {
-            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            val isPowerSave = powerManager?.isPowerSaveMode == true
-            val reduceTransparency = Settings.Secure.getInt(context.contentResolver, "reduce_transparency", 0) == 1
-            isPowerSave || reduceTransparency
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    val containerShape = CircleShape
-    val capsuleShape = CircleShape
-
-    var previousIndex by remember { mutableIntStateOf(selectedIndex) }
-    val isMoving = previousIndex != selectedIndex
-    LaunchedEffect(selectedIndex) {
-        previousIndex = selectedIndex
-    }
-
-    val blobStretchScaleX by animateFloatAsState(
-        targetValue = if (isMoving) 1.06f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "BlobScaleX"
-    )
-
-    val blobSquashScaleY by animateFloatAsState(
-        targetValue = if (isMoving) 0.92f else 1.0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "BlobScaleY"
-    )
-
-    val activePillGradient = remember(isDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    accentColor.copy(alpha = 0.78f),
-                    accentColor.copy(alpha = 0.55f)
-                )
-            )
-            isDark -> Brush.verticalGradient(
-                colors = listOf(
-                    accentColor.copy(alpha = 0.65f),
-                    accentColor.copy(alpha = 0.42f)
-                )
-            )
-            else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.88f),
-                    lerp(Color.White, accentColor, 0.15f).copy(alpha = 0.82f),
-                    Color.White.copy(alpha = 0.78f)
-                )
-            )
-        }
-    }
-
-    val activePillBorderBrush = remember(isDark, isAmoled, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.70f),
-                    accentColor.copy(alpha = 0.60f),
-                    Color.White.copy(alpha = 0.20f)
-                )
-            )
-            isDark -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.50f),
-                    accentColor.copy(alpha = 0.45f),
-                    Color.White.copy(alpha = 0.15f)
-                )
-            )
-            else -> Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.35f),
-                    Color.White.copy(alpha = 0.45f)
-                )
-            )
-        }
-    }
-
-    val effectiveHazeState = if (!isReduceTransparencyOrBatterySaver) {
-        hazeState ?: LocalLiquidHazeState.current ?: LocalHazeState.current
-    } else null
-
-    Box(
+    SingleChoiceSegmentedButtonRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .height(46.dp)
-            .liquidFrostedGlass(
-                hazeState = effectiveHazeState,
-                isDark = isDark,
-                accentColor = accentColor,
-                shape = containerShape,
-                elevation = if (isAmoled) 4.dp else 2.dp,
-                borderWidth = 1.dp,
-                blurRadius = 24.dp,
-                frostTintAlpha = if (isDark) 0.55f else 0.50f,
-                surfaceOpacity = if (isDark) 0.28f else 0.22f,
-                refractionStrength = 0.25f,
-                chromaticAberration = 0.05f,
-                highlightStrength = 0.85f,
-                innerDepthStrength = 0.40f
-            )
+            .height(44.dp)
     ) {
-
-        BoxWithConstraints(
+        // 1. M9-T337
+        SegmentedButton(
+            selected = selectedIndex == 0,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onSelectSubTab("M9-T337", null)
+            },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant
+            ),
+            icon = {},
             modifier = Modifier
-                .fillMaxSize()
-                .padding(3.dp)
+                .weight(1f)
+                .testTag("subtab_m9_t337")
         ) {
-            val totalWidth = maxWidth
-            val count = tabCount.coerceAtLeast(1)
-            val tabWidth = totalWidth / count
-            val pillHeight = 40.dp
-            val pillTargetWidth = tabWidth
-
-            val animatedOffset by animateDpAsState(
-                targetValue = tabWidth * selectedIndex,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "SubTabPillOffset"
-            )
-
-            // Sliding Spring Liquid Stadium Capsule Indicator
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = animatedOffset)
-                    .width(pillTargetWidth)
-                    .height(pillHeight)
-                    .graphicsLayer {
-                        scaleX = blobStretchScaleX
-                        scaleY = blobSquashScaleY
-                    }
-                    .shadow(
-                        elevation = if (isAmoled) 6.dp else 4.dp,
-                        shape = capsuleShape,
-                        clip = false,
-                        ambientColor = if (isDark) accentColor.copy(alpha = 0.35f) else Color(0xFF0F172A).copy(alpha = 0.08f),
-                        spotColor = if (isDark) accentColor.copy(alpha = 0.50f) else accentColor.copy(alpha = 0.16f)
-                    )
-                    .clip(capsuleShape)
-                    .background(activePillGradient)
-                    .border(
-                        width = 1.dp,
-                        brush = activePillBorderBrush,
-                        shape = capsuleShape
-                    )
-            ) {
-                // Internal soft reflection sheen
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clip(capsuleShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.25f else 0.50f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-
-                // Top specular highlight curve
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth(0.78f)
-                        .height(10.dp)
-                        .padding(top = 2.dp)
-                        .clip(capsuleShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (isAmoled) 0.70f else if (isDark) 0.50f else 0.80f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
-
-            // Interactive Tab Row
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-fun LiquidGlassSubTabButton(
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    icon: ImageVector? = null,
-    iconTint: Color? = null,
-    hasDropdown: Boolean = false,
-    testTag: String = ""
-) {
-    val haptic = LocalHapticFeedback.current
-    val isDark = isAppInDarkMode()
-    val screenBgColor = MaterialTheme.colorScheme.background
-    val isAmoled = isDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black)
-
-    val textColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            if (isDark || isAmoled) Color.White else accentColor
-        } else {
-            if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF475569)
-        },
-        label = "subtab_text"
-    )
-
-    val capsuleShape = RoundedCornerShape(percent = 50)
-
-    Box(
-        modifier = modifier
-            .fillMaxHeight()
-            .clip(capsuleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(bounded = true, color = accentColor.copy(alpha = 0.20f)),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
-                }
-            )
-            .then(if (testTag.isNotEmpty()) Modifier.testTag(testTag) else Modifier),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint ?: textColor,
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-            }
             Text(
-                text = title,
+                text = "M9-T337",
                 fontSize = 12.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = textColor,
-                maxLines = 1
+                fontWeight = if (selectedIndex == 0) FontWeight.Bold else FontWeight.Medium
             )
-            if (hasDropdown) {
-                Spacer(modifier = Modifier.width(2.dp))
-                Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
-                    contentDescription = "Expand Geneva Menu",
-                    tint = textColor,
-                    modifier = Modifier.size(18.dp)
-                )
+        }
+
+        // 2. MM111
+        SegmentedButton(
+            selected = selectedIndex == 1,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onSelectSubTab("MM111", null)
+            },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant
+            ),
+            icon = {},
+            modifier = Modifier
+                .weight(1f)
+                .testTag("subtab_mm111")
+        ) {
+            Text(
+                text = "MM111",
+                fontSize = 12.sp,
+                fontWeight = if (selectedIndex == 1) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+
+        // 3. Geneva Dropdown
+        SegmentedButton(
+            selected = selectedIndex == 2,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                genevaMenuExpanded = true
+            },
+            shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+            colors = SegmentedButtonDefaults.colors(
+                activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                inactiveContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                inactiveContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant
+            ),
+            icon = {},
+            modifier = Modifier
+                .weight(1.2f)
+                .testTag("subtab_geneva")
+        ) {
+            Box {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = activeGenevaLabel,
+                        fontSize = 12.sp,
+                        fontWeight = if (selectedIndex == 2) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = "Expand Geneva Menu",
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = genevaMenuExpanded,
+                    onDismissRequest = { genevaMenuExpanded = false }
+                ) {
+                    Text(
+                        text = "Geneva Rootstocks",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+
+                    genevaOptions.forEach { option ->
+                        val isOptionSelected = selectedGenevaOption == option && isGenevaSelected
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = option,
+                                        fontWeight = if (isOptionSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isOptionSelected) accentColor else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (isOptionSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                genevaMenuExpanded = false
+                                onSelectSubTab("Geneva", option)
+                            }
+                        )
+                    }
+                }
             }
         }
     }

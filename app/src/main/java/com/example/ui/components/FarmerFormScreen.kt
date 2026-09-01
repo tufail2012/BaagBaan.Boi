@@ -47,11 +47,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -192,7 +187,6 @@ fun FarmerFormScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier
 ) {
-    val farmerHazeState = remember { HazeState() }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -787,38 +781,6 @@ fun FarmerFormScreen(
             Color(0xFFF8FAFC)
         }
     }
-    val farmerHazeStyle = remember(isDark, safeScreenBg) {
-        if (isDark) {
-            HazeStyle(
-                backgroundColor = safeScreenBg,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.40f)),
-                blurRadius = 26.dp
-            )
-        } else {
-            HazeStyle(
-                backgroundColor = safeScreenBg,
-                tint = HazeTint(Color.White.copy(alpha = 0.25f)),
-                blurRadius = 26.dp
-            )
-        }
-    }
-
-    val inputFieldHazeStyle = remember(isDark, safeScreenBg) {
-        if (isDark) {
-            HazeStyle(
-                backgroundColor = safeScreenBg,
-                tint = HazeTint(Color(0xFF0F172A).copy(alpha = 0.45f)),
-                blurRadius = 18.dp
-            )
-        } else {
-            HazeStyle(
-                backgroundColor = safeScreenBg,
-                tint = HazeTint(Color.White.copy(alpha = 0.55f)),
-                blurRadius = 18.dp
-            )
-        }
-    }
-
     val accentColorHex by viewModel.accentColorHex.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val parsedPaletteColor = remember(accentColorHex) {
@@ -834,25 +796,23 @@ fun FarmerFormScreen(
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    CompositionLocalProvider(LocalHazeState provides farmerHazeState) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         Box(
-            modifier = modifier.fillMaxSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(backgroundBrush)
-                    .hazeSource(state = farmerHazeState)
-            )
+            modifier = Modifier
+                .fillMaxSize()
+                .background(backgroundBrush)
+        )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         // Serial Number Manual Field with inner Save Icon & Full Width
         val isSerialLocked by viewModel.isSerialLocked.collectAsState()
 
@@ -1110,7 +1070,6 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                     .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
             ) {
                 Column(
@@ -2083,7 +2042,6 @@ fun FarmerFormScreen(
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                     .background(if (isInsufficientStock) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
             ) {
                 Row(
@@ -2129,7 +2087,6 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                     .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
             ) {
                 Column(
@@ -2430,7 +2387,6 @@ fun FarmerFormScreen(
                         .weight(1f)
                         .height(44.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .hazeEffect(state = farmerHazeState, style = inputFieldHazeStyle)
                         .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.85f) else (if (isDark) Color(0xFF1E293B).copy(alpha = 0.4f) else Color.White.copy(alpha = 0.5f)))
                         .boundedFormFieldRipple(shape = RoundedCornerShape(24.dp))
                         .testTag("payment_status_$statusOption")
@@ -2658,7 +2614,6 @@ fun FarmerFormScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                 .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
             shape = RoundedCornerShape(20.dp),
             color = Color.Transparent,
@@ -2770,7 +2725,6 @@ fun FarmerFormScreen(
                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                 )
                 .clip(messageCardShape)
-                .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                 .background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
                 .testTag("new_entry_message_preview_card"),
             shape = messageCardShape,
@@ -2901,7 +2855,6 @@ fun FarmerFormScreen(
                                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                                 )
                                 .clip(RoundedCornerShape(14.dp))
-                                .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                                 .background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f)),
                             shape = RoundedCornerShape(14.dp),
                             color = Color.Transparent,
@@ -2959,7 +2912,6 @@ fun FarmerFormScreen(
                                             spotColor = if (isDark) Color.Black else Color(0x25000000)
                                         )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .hazeEffect(state = farmerHazeState, style = inputFieldHazeStyle)
                                         .background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
                                 ) {
                                     Text(
@@ -3174,7 +3126,6 @@ fun FarmerFormScreen(
 
         Spacer(modifier = Modifier.height(100.dp))
     }
-}
 
     // Multiple Phone Numbers Selection Dialog
     if (multiplePhoneNumbers != null) {
@@ -3216,7 +3167,6 @@ fun FarmerFormScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .hazeEffect(state = farmerHazeState, style = inputFieldHazeStyle)
                                 .background(if (isDark) Color(0xFF22242B).copy(alpha = 0.50f) else Color(0xFFF5F5F5).copy(alpha = 0.75f))
                         ) {
                             Row(
@@ -3270,7 +3220,6 @@ fun FarmerFormScreen(
                     .fillMaxWidth()
                     .padding(8.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .hazeEffect(state = farmerHazeState, style = farmerHazeStyle)
                     .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.75f) else Color.White.copy(alpha = 0.85f))
             ) {
                 Column(
@@ -3311,7 +3260,6 @@ fun FarmerFormScreen(
                             .fillMaxWidth()
                             .height(420.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .hazeEffect(state = farmerHazeState, style = inputFieldHazeStyle)
                             .background(if (isDark) Color(0xFF0F172A).copy(alpha = 0.40f) else Color.White.copy(alpha = 0.60f))
                     ) {
                         Image(

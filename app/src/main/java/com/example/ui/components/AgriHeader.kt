@@ -97,7 +97,6 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
-import dev.chrisbanes.haze.HazeState
 import com.example.ui.AppThemeMode
 
 import androidx.compose.animation.animateColorAsState
@@ -144,7 +143,7 @@ fun AgriHeader(
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    hazeState: HazeState? = null,
+    hazeState: Any? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

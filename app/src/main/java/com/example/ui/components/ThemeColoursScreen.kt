@@ -53,8 +53,6 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.AppThemeMode
 import com.example.ui.components.glassCardBackground
 import com.example.ui.theme.getAppDimBackgroundBrush
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 // 16 Distinct theme color options in HEX
 val ThemeColorPalette16 = listOf(
@@ -109,7 +107,6 @@ fun ThemeColoursDialog(
         AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
     val isAmoled = themeMode == AppThemeMode.AMOLED
-    val themeHazeState = remember { HazeState() }
 
     val currentAccentColor = remember(selectedColorHex) {
         try {
@@ -139,7 +136,6 @@ fun ThemeColoursDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = themeHazeState,
                         isDark = isDark,
                         accentColor = currentAccentColor,
                         shape = RoundedCornerShape(percent = 50)
@@ -222,7 +218,6 @@ fun ThemeColoursDialog(
                 isDark = isDark,
                 themeModeState = themeMode,
                 currentAccentColor = currentAccentColor,
-                hazeState = themeHazeState,
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)
@@ -241,7 +236,6 @@ fun ThemeColoursContent(
     isDark: Boolean = false,
     themeModeState: AppThemeMode = AppThemeMode.SYSTEM,
     currentAccentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -249,7 +243,6 @@ fun ThemeColoursContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .verticalScroll(scrollState)
     ) {

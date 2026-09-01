@@ -13,8 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -136,8 +134,6 @@ fun InventoryManagementDialog(
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
-    val inventoryHazeState = remember { HazeState() }
-
     val inventoryAccent = getSectionAccentColor(
         "Inventory",
         customPaletteColor = parsedPaletteColor,
@@ -148,13 +144,11 @@ fun InventoryManagementDialog(
         getAppDimBackgroundBrush(inventoryAccent, isDark = isDark)
     }
 
-    CompositionLocalProvider(LocalHazeState provides inventoryHazeState) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(inventoryBgBrush)
-                .hazeSource(state = inventoryHazeState)
-        ) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(inventoryBgBrush)
+    ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -165,7 +159,6 @@ fun InventoryManagementDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = inventoryHazeState,
                         isDark = isDark,
                         accentColor = inventoryAccent,
                         shape = RoundedCornerShape(percent = 50)
@@ -769,7 +762,6 @@ fun InventoryManagementDialog(
             }
         )
     }
-}
 }
 
 @Composable

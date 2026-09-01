@@ -101,8 +101,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.example.data.AppDatabase
 import com.example.data.CropRecord
 import com.example.data.FarmerContact
@@ -501,20 +499,17 @@ fun ContactDirectoryDialog(
 
     val isDark = isAppInDarkMode()
     val contactAccent = getSectionAccentColor("Contact Directory", customPaletteColor = customPaletteColor)
-    val contactHazeState = remember { HazeState() }
     val contactsBgBrush = remember(isDark, contactAccent) {
         getAppDimBackgroundBrush(contactAccent, isDark = isDark)
     }
 
     BackHandler(onBack = onDismiss)
 
-    CompositionLocalProvider(LocalHazeState provides contactHazeState) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(contactsBgBrush)
-                .hazeSource(state = contactHazeState)
-        ) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(contactsBgBrush)
+    ) {
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
@@ -525,7 +520,6 @@ fun ContactDirectoryDialog(
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .frostedGlassChrome(
-                            hazeState = contactHazeState,
                             isDark = isDark,
                             accentColor = contactAccent,
                             shape = RoundedCornerShape(percent = 50)
@@ -982,7 +976,6 @@ fun ContactDirectoryDialog(
             shape = RoundedCornerShape(16.dp)
         )
     }
-}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

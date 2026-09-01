@@ -18,8 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
@@ -255,7 +253,6 @@ fun PaymentRemindersDialog(
         )
     }
 
-    val paymentHazeState = remember { HazeState() }
     val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     val paymentBgBrush = remember(isDark, paymentAccent) {
         getAppDimBackgroundBrush(paymentAccent, isDark = isDark)
@@ -263,14 +260,12 @@ fun PaymentRemindersDialog(
 
     BackHandler(onBack = onDismiss)
 
-    CompositionLocalProvider(LocalHazeState provides paymentHazeState) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(paymentBgBrush)
-                .hazeSource(state = paymentHazeState)
-                .testTag("payment_reminders_dialog")
-        ) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(paymentBgBrush)
+            .testTag("payment_reminders_dialog")
+    ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -281,7 +276,6 @@ fun PaymentRemindersDialog(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = paymentHazeState,
                         isDark = isDark,
                         accentColor = paymentAccent,
                         shape = RoundedCornerShape(percent = 50)
@@ -566,7 +560,6 @@ fun PaymentRemindersDialog(
                 }
             }
         }
-    }
 }
 
 @Composable

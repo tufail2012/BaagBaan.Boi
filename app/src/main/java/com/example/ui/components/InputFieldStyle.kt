@@ -79,18 +79,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.nativeCanvas
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
-import com.example.ui.glass.liquidFrostedGlass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
-/**
- * CompositionLocal providing active HazeState for Liquid Glass blur across the hierarchy
- */
-val LocalHazeState = compositionLocalOf<HazeState?> { null }
 
 /**
  * Forwarding function to single source of truth in Color.kt
@@ -248,7 +238,7 @@ fun AppOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = LocalHazeState.current,
+    hazeState: Any? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -335,7 +325,7 @@ fun AppOutlinedTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = LocalHazeState.current,
+    hazeState: Any? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -597,7 +587,7 @@ fun Modifier.centerWaterRipple(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
-    hazeState: HazeState? = LocalHazeState.current,
+    hazeState: Any? = null,
     shape: Shape = RoundedCornerShape(16.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
@@ -641,8 +631,7 @@ fun Modifier.boundedFormFieldRipple(
 }
 
 /**
- * Underlying canvas shadow drawer for glass containers.
- * Employs dual-layer ambient and directional shadow with corner-radius compensation.
+ * Standard elevation shadow helper.
  */
 fun Modifier.drawElevatedShadow(
     shape: Shape = RoundedCornerShape(16.dp),
@@ -650,55 +639,14 @@ fun Modifier.drawElevatedShadow(
     offsetY: Dp = 2.dp,
     blurRadius: Dp = 6.dp,
     elevationAlphaScale: Float = 1.0f
-): Modifier = this.drawBehind {
-    val ambientAlpha = (if (isDark) 0.09f else 0.03f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
-    val spotAlpha = (if (isDark) 0.15f else 0.045f) * elevationAlphaScale.coerceIn(0.5f, 2.0f)
-
-    val ambientColor = Color.Black.copy(alpha = ambientAlpha)
-    val spotColor = Color.Black.copy(alpha = spotAlpha)
-
-    drawIntoCanvas { canvas ->
-        // Ambient soft blur
-        val ambientPaint = Paint()
-        val ambientFrameworkPaint = ambientPaint.asFrameworkPaint()
-        ambientFrameworkPaint.color = ambientColor.toArgb()
-        val ambientBlurPx = (blurRadius * 1.2f).toPx()
-        if (ambientBlurPx > 0f) {
-            ambientFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
-                ambientBlurPx,
-                android.graphics.BlurMaskFilter.Blur.NORMAL
-            )
-        }
-        val outline = shape.createOutline(size, layoutDirection, this)
-        canvas.save()
-        canvas.translate(0f, 1.dp.toPx())
-        canvas.drawOutline(outline, ambientPaint)
-        canvas.restore()
-
-        // Directional key shadow
-        val spotPaint = Paint()
-        val spotFrameworkPaint = spotPaint.asFrameworkPaint()
-        spotFrameworkPaint.color = spotColor.toArgb()
-        val spotBlurPx = blurRadius.toPx()
-        if (spotBlurPx > 0f) {
-            spotFrameworkPaint.maskFilter = android.graphics.BlurMaskFilter(
-                spotBlurPx,
-                android.graphics.BlurMaskFilter.Blur.NORMAL
-            )
-        }
-        canvas.save()
-        canvas.translate(0f, offsetY.toPx())
-        canvas.drawOutline(outline, spotPaint)
-        canvas.restore()
-    }
-}
+): Modifier = this.shadow(elevation = 2.dp, shape = shape, clip = false)
 
 fun Modifier.elevated3dShadow(
     shape: Shape = RoundedCornerShape(16.dp),
     isDark: Boolean,
     offsetY: Dp = 4.dp,
     blurRadius: Dp = 8.dp
-): Modifier = this
+): Modifier = this.shadow(elevation = 3.dp, shape = shape, clip = false)
 
 @Composable
 fun elevatedInputFieldColors(
@@ -750,208 +698,57 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Centralized Liquid Glass Background Modifier for Input Fields, Selectors, and Cards.
- * Implements the dedicated Liquid Glass Architecture:
- * - Completely isolated from Haze to guarantee 100% crash safety.
- * - Multi-layered optical pipeline: Soft ambient shadow -> Translucent glass body ->
- *   Inner lens depth -> Specular top-crest reflection -> Fine perimeter rim -> Crisp content overlay.
- * - Pristine floating liquid glass aesthetic allowing underlying background colors to shine through.
+ * Centralized Standard Material 3 Background Modifier for Input Fields, Selectors, and Cards.
+ * Restores standard Material Design 3 surface containers:
+ * - Solid opaque surfaceContainer / surface background.
+ * - Standard M3 elevation and outline border.
+ * - Zero blur, zero translucency, zero glass layers.
  */
 @Composable
 fun Modifier.glassCardBackground(
-    hazeState: HazeState? = null,
+    hazeState: Any? = null,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape? = null,
     cornerRadius: Dp? = null,
     themeMode: AppThemeMode? = null,
-    elevation: Dp = 4.dp,
+    elevation: Dp = 2.dp,
     borderWidth: Dp = 1.dp,
     flatStyle: Boolean = false,
     isFocused: Boolean = false
 ): Modifier {
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
-    val effectiveIsDark = when (themeMode) {
-        AppThemeMode.DARK,
-        AppThemeMode.AMOLED -> true
-        AppThemeMode.LIGHT -> false
-        AppThemeMode.SYSTEM,
-        null -> isDark
-    }
-
-    val screenBgColor = MaterialTheme.colorScheme.background
-    val isAmoled = themeMode == AppThemeMode.AMOLED ||
-            (effectiveIsDark && (screenBgColor.luminance() < 0.01f || screenBgColor == Color.Black))
-
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
     val effectiveElevation = if (flatStyle) 0.dp else elevation
-    val effectiveBorderWidth = if (isFocused) {
-        (borderWidth * 1.35f).coerceAtLeast(1.25.dp)
+
+    val containerColor = if (themeMode == AppThemeMode.AMOLED) {
+        Color(0xFF0D0D0D)
     } else {
-        (borderWidth * 0.90f).coerceAtLeast(0.8.dp)
+        MaterialTheme.colorScheme.surfaceContainer
     }
 
-    // 1. TRANSLUCENT LIQUID GLASS BODY (Permeable, non-opaque glass letting backdrop colors shine through)
-    val liquidGlassBody = remember(effectiveIsDark, isAmoled, isFocused, accentColor) {
-        when {
-            isAmoled -> Brush.verticalGradient(
-                listOf(
-                    Color(0xFF181818).copy(alpha = if (isFocused) 0.40f else 0.28f),
-                    Color(0xFF0A0A0A).copy(alpha = if (isFocused) 0.25f else 0.16f)
-                )
-            )
-            effectiveIsDark -> Brush.verticalGradient(
-                listOf(
-                    Color(0xFF1E293B).copy(alpha = if (isFocused) 0.42f else 0.30f),
-                    Color(0xFF0F172A).copy(alpha = if (isFocused) 0.28f else 0.18f)
-                )
-            )
-            else -> Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = if (isFocused) 0.55f else 0.42f),
-                    Color(0xFFF1F5F9).copy(alpha = if (isFocused) 0.35f else 0.22f)
-                )
-            )
-        }
-    }
-
-    // 2. INNER LENS CURVATURE OCCLUSION & DEPTH
-    val innerLensOcclusion = remember(effectiveIsDark, isAmoled) {
-        Brush.radialGradient(
-            colors = if (effectiveIsDark || isAmoled) {
-                listOf(
-                    Color.Transparent,
-                    Color.White.copy(alpha = 0.025f),
-                    Color.Black.copy(alpha = 0.120f)
-                )
-            } else {
-                listOf(
-                    Color.Transparent,
-                    Color.White.copy(alpha = 0.060f),
-                    Color(0xFF64748B).copy(alpha = 0.045f)
-                )
-            }
-        )
-    }
-
-    // 3. SPECULAR TOP-EDGE CREST REFLECTION (Gives true optical glass thickness)
-    val topCrestReflection = remember(effectiveIsDark, isFocused, accentColor) {
-        Brush.verticalGradient(
-            colors = if (isFocused) {
-                listOf(
-                    accentColor.copy(alpha = 0.75f),
-                    accentColor.copy(alpha = 0.25f),
-                    Color.Transparent
-                )
-            } else if (effectiveIsDark) {
-                listOf(
-                    Color.White.copy(alpha = 0.55f),
-                    Color.White.copy(alpha = 0.15f),
-                    Color.Transparent
-                )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.92f),
-                    Color.White.copy(alpha = 0.35f),
-                    Color.Transparent
-                )
-            }
-        )
-    }
-
-    // 4. SPECULAR LIQUID RIM / BORDER
-    val specularRimBrush = remember(effectiveIsDark, isFocused, accentColor) {
-        if (isFocused) {
-            Brush.verticalGradient(
-                listOf(
-                    accentColor.copy(alpha = 0.95f),
-                    accentColor.copy(alpha = 0.45f),
-                    accentColor.copy(alpha = 0.20f)
-                )
-            )
-        } else if (effectiveIsDark) {
-            Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.50f),
-                    Color.White.copy(alpha = 0.18f),
-                    Color.White.copy(alpha = 0.06f)
-                )
-            )
-        } else {
-            Brush.verticalGradient(
-                listOf(
-                    Color.White.copy(alpha = 0.95f),
-                    Color.White.copy(alpha = 0.40f),
-                    Color(0xFFCBD5E1).copy(alpha = 0.25f)
-                )
-            )
-        }
-    }
-
-    // 5. AMBIENT & SPOT ELEVATION SHADOWS
-    val shadowAmbient = if (effectiveIsDark) {
-        Color.Black.copy(alpha = 0.25f)
+    val borderColor = if (isFocused) {
+        accentColor
     } else {
-        Color(0xFF0F172A).copy(alpha = 0.04f)
-    }
-    val shadowSpot = if (effectiveIsDark) {
-        Color.Black.copy(alpha = 0.35f)
-    } else {
-        accentColor.copy(alpha = if (isFocused) 0.12f else 0.06f)
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
     }
 
     return this
-        // Soft elevation shadow
         .then(
             if (effectiveElevation > 0.dp) {
                 Modifier.shadow(
                     elevation = effectiveElevation,
                     shape = effectiveShape,
-                    clip = false,
-                    ambientColor = shadowAmbient,
-                    spotColor = shadowSpot
+                    clip = false
                 )
             } else {
                 Modifier
             }
         )
-        // Clip to exact shape boundary
         .clip(effectiveShape)
-        // LAYER 1: Translucent Liquid Glass Base
-        .background(brush = liquidGlassBody, shape = effectiveShape)
-        // LAYER 2: Inner Lens Curvature Occlusion
-        .background(brush = innerLensOcclusion, shape = effectiveShape)
-        // LAYER 3: Render Crisp Content, then overlay Specular Top-Edge Reflection
-        .drawWithContent {
-            // Draw crisp unblurred child content (text, icons, placeholders, cursor)
-            drawContent()
-
-            // Draw upper optical specular light crest (top 4.5dp)
-            val outline = effectiveShape.createOutline(size, layoutDirection, this)
-            clipPath(
-                path = Path().apply {
-                    addOutline(outline)
-                }
-            ) {
-                val crestHeight = 4.5.dp.toPx()
-                drawRect(
-                    brush = topCrestReflection,
-                    topLeft = Offset.Zero,
-                    size = Size(size.width, crestHeight)
-                )
-
-                if (isFocused) {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            listOf(accentColor.copy(alpha = 0.035f), Color.Transparent)
-                        )
-                    )
-                }
-            }
-        }
-        // LAYER 4: Specular Liquid Rim Border
+        .background(color = containerColor, shape = effectiveShape)
         .border(
-            width = effectiveBorderWidth,
-            brush = specularRimBrush,
+            width = if (isFocused) (borderWidth * 1.5f).coerceAtLeast(1.5.dp) else borderWidth,
+            color = borderColor,
             shape = effectiveShape
         )
 }

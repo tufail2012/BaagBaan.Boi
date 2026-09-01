@@ -78,7 +78,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import coil.compose.AsyncImage
-import com.example.ui.glass.LocalLiquidHazeState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import androidx.compose.ui.text.font.FontWeight
@@ -99,8 +98,6 @@ import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 @Composable
 fun AgriDashboardScreen(
@@ -135,7 +132,6 @@ fun AgriDashboardScreen(
         customPaletteColor = parsedPaletteColor,
         defaultColor = MaterialTheme.colorScheme.primary
     )
-    val dashboardHazeState = remember { HazeState() }
 
     val context = LocalContext.current
     var currentUser by remember {
@@ -242,19 +238,14 @@ fun AgriDashboardScreen(
         getAppDimBackgroundBrush(dashboardAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    CompositionLocalProvider(
-        LocalHazeState provides dashboardHazeState,
-        LocalLiquidHazeState provides dashboardHazeState
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(dashboardBgBrush)
     ) {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .background(dashboardBgBrush)
-                .hazeSource(state = dashboardHazeState)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
             // Floating Glass Top Header
             Box(
                 modifier = Modifier
@@ -262,7 +253,6 @@ fun AgriDashboardScreen(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = dashboardHazeState,
                         isDark = isDark,
                         accentColor = dashboardAccent,
                         shape = RoundedCornerShape(percent = 50)
@@ -628,10 +618,7 @@ fun AgriDashboardScreen(
         }
     }
     }
-    }
 }
-
-
 
 @Composable
 private fun AccountBannerCard(

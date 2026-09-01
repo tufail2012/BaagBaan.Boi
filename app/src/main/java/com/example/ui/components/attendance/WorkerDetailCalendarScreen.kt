@@ -83,8 +83,6 @@ import java.util.Locale
 import androidx.compose.foundation.isSystemInDarkTheme
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 @Composable
 fun WorkerDetailCalendarScreen(
@@ -121,7 +119,6 @@ fun WorkerDetailCalendarScreen(
     val absentDays = workerMonthRecords.count { it.status == AttendanceStatus.ABSENT }
 
     val isDark = isSystemInDarkTheme()
-    val workerHazeState = remember { HazeState() }
 
     Scaffold(
         topBar = {
@@ -131,7 +128,6 @@ fun WorkerDetailCalendarScreen(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = workerHazeState,
                         isDark = isDark,
                         accentColor = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(percent = 50)
@@ -179,7 +175,6 @@ fun WorkerDetailCalendarScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(state = workerHazeState)
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
                 .imePadding()

@@ -48,8 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.frostedGlassChrome
 import com.example.data.AttendanceRecord
 import com.example.data.AttendanceStatus
@@ -92,7 +90,6 @@ fun DailyMarkingScreen(
     val unmarkedCount = (activeWorkers.size - (presentCount + absentCount)).coerceAtLeast(0)
 
     val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val dailyHazeState = remember { HazeState() }
 
     Scaffold(
         topBar = {
@@ -102,7 +99,6 @@ fun DailyMarkingScreen(
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .frostedGlassChrome(
-                        hazeState = dailyHazeState,
                         isDark = isDark,
                         accentColor = MaterialTheme.colorScheme.primary,
                         shape = RoundedCornerShape(percent = 50)
@@ -171,7 +167,6 @@ fun DailyMarkingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(state = dailyHazeState)
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
         ) {
