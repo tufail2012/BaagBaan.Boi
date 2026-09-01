@@ -103,6 +103,17 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 import androidx.compose.material.icons.filled.AccountCircle
 import com.example.ui.theme.getSectionAccentColor
@@ -324,18 +335,18 @@ fun AgriHeader(
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier
                             .widthIn(min = 230.dp, max = 285.dp)
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
+                            .frostedLiquidGlassMenuBackground(
+                                hazeState = hazeState,
                                 isDark = isDark,
                                 themeMode = themeMode,
-                                elevation = 12.dp,
-                                borderWidth = 1.25.dp,
-                                flatStyle = true
+                                accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
+                                shape = RoundedCornerShape(22.dp)
                             ),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(22.dp),
                         containerColor = Color.Transparent,
-                        border = null
+                        border = null,
+                        shadowElevation = 0.dp,
+                        tonalElevation = 0.dp
                     ) {
                         OverflowMenuContent(
                             themeMode = themeMode,
@@ -509,18 +520,18 @@ fun AgriHeader(
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier
                                     .widthIn(min = 230.dp, max = 285.dp)
-                                    .glassCardBackground(
-                                        cornerRadius = 20.dp,
-                                        accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
+                                    .frostedLiquidGlassMenuBackground(
+                                        hazeState = hazeState,
                                         isDark = isDark,
                                         themeMode = themeMode,
-                                        elevation = 12.dp,
-                                        borderWidth = 1.25.dp,
-                                        flatStyle = true
+                                        accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
+                                        shape = RoundedCornerShape(22.dp)
                                     ),
-                                shape = RoundedCornerShape(20.dp),
+                                shape = RoundedCornerShape(22.dp),
                                 containerColor = Color.Transparent,
-                                border = null
+                                border = null,
+                                shadowElevation = 0.dp,
+                                tonalElevation = 0.dp
                             ) {
                                 OverflowMenuContent(
                                     themeMode = themeMode,
@@ -1012,10 +1023,10 @@ private fun OverflowMenuContent(
             .testTag("scan_qr_menu_item$tagSuffix")
     )
 
-    // Divider before Settings
+    // Divider before Settings with subtle glowing accent tint
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isDark) 0.35f else 0.5f)
+        color = (parsedPaletteColor ?: getSectionAccentColor("Profile")).copy(alpha = if (isDark) 0.28f else 0.18f)
     )
 
     // 6. Settings
@@ -1113,5 +1124,134 @@ private fun HeaderProfileAvatar(
             }
         }
     }
+}
+
+/**
+ * Frosted Liquid Glass Menu Background Modifier for the Profile Menu.
+ * - Translucent surface with delicate liquid glass gradient.
+ * - Subtle background blur via Haze backdrop processing.
+ * - Soft, glowing border using the profile accent color with specular highlight edges.
+ * - Ambient drop shadow/glow for a floating liquid glass appearance.
+ * - Top specular meniscus light reflection for physical 3D depth and volume.
+ */
+@Composable
+fun Modifier.frostedLiquidGlassMenuBackground(
+    hazeState: Any? = null,
+    isDark: Boolean = isAppInDarkMode(),
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    accentColor: Color = Color(0xFF10B981),
+    shape: Shape = RoundedCornerShape(22.dp)
+): Modifier {
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
+    val actualHaze = hazeState as? HazeState
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
+    // Translucent liquid surface base tint
+    val baseTint = when {
+        isAmoled -> Color(0xFF000000).copy(alpha = if (actualHaze != null) 0.65f else 0.88f)
+        isDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.60f else 0.85f)
+        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.68f else 0.90f)
+    }
+
+    val surfaceBrush = Brush.verticalGradient(
+        colors = when {
+            isAmoled -> listOf(
+                Color(0xFF18181B).copy(alpha = 0.85f),
+                Color(0xFF000000).copy(alpha = 0.70f),
+                Color(0xFF09090B).copy(alpha = 0.80f)
+            )
+            isDark -> listOf(
+                Color(0xFF1E293B).copy(alpha = 0.82f),
+                Color(0xFF0F172A).copy(alpha = 0.68f),
+                accentColor.copy(alpha = 0.05f),
+                Color(0xFF0F172A).copy(alpha = 0.78f)
+            )
+            else -> listOf(
+                Color.White.copy(alpha = 0.90f),
+                Color(0xFFF8FAFC).copy(alpha = 0.72f),
+                accentColor.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.84f)
+            )
+        }
+    )
+
+    val hazeModifier = if (actualHaze != null) {
+        Modifier.hazeEffect(
+            state = actualHaze,
+            style = HazeStyle(
+                backgroundColor = surfaceColor,
+                tint = HazeTint(baseTint),
+                blurRadius = 28.dp,
+                noiseFactor = 0.02f
+            )
+        )
+    } else {
+        Modifier.background(baseTint)
+    }
+
+    // Soft glowing border brush with accent radiance and specular top edge
+    val glowingBorderBrush = Brush.verticalGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.60f),
+                accentColor.copy(alpha = 0.70f),
+                accentColor.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.55f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.95f),
+                accentColor.copy(alpha = 0.60f),
+                accentColor.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.50f)
+            )
+        }
+    )
+
+    return this
+        // 1. Soft glowing outer elevation shadow
+        .shadow(
+            elevation = 14.dp,
+            shape = shape,
+            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.35f else 0.22f),
+            ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.12f)
+        )
+        .clip(shape)
+        // 2. Translucent blurred backdrop (Haze)
+        .then(hazeModifier)
+        // 3. Liquid glass gradient surface
+        .background(brush = surfaceBrush, shape = shape)
+        // 4. Specular liquid highlight & reflection on upper rim
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+
+            // Top specular meniscus light glow
+            val highlightHeight = 32.dp.toPx()
+            val highlightWidth = w * 0.88f
+            val highlightX = (w - highlightWidth) / 2f
+            val highlightY = 1.5.dp.toPx()
+
+            drawOval(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.40f else 0.70f),
+                        accentColor.copy(alpha = 0.10f),
+                        Color.Transparent
+                    ),
+                    startY = highlightY,
+                    endY = highlightY + highlightHeight
+                ),
+                topLeft = Offset(highlightX, highlightY),
+                size = Size(highlightWidth, highlightHeight)
+            )
+        }
+        // 5. Soft, glowing border
+        .border(
+            border = BorderStroke(width = 1.25.dp, brush = glowingBorderBrush),
+            shape = shape
+        )
 }
 
