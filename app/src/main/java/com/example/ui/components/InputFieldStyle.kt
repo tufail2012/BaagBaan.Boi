@@ -788,11 +788,12 @@ fun PaymentStatusSelector(
 }
 
 /**
- * Clean pill indicator modifier.
+ * Fluid Water-like Liquid Pill Indicator Modifier.
  * Features:
- * - Uniform, smooth translucent fill with a lighter, softer color shade.
- * - Zero wave-like texture, zero inner reflective layers or gradient bars.
- * - Subtle elevation drop shadow and soft outline border.
+ * - Fluid translucent water gradient with reduced color intensity for high contrast & legibility.
+ * - Subtle bubbly blur halo & soft glowing drop shadow.
+ * - Delicate water-surface meniscus reflection on the top rim (zero wavy distortion).
+ * - Refractive liquid border stroke adapting smoothly to Dark, AMOLED, and Light themes.
  */
 @Composable
 fun Modifier.bubbleDropletPillIndicator(
@@ -801,36 +802,89 @@ fun Modifier.bubbleDropletPillIndicator(
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode()
 ): Modifier {
-    val dropShadowColor = if (isDark) accentColor.copy(alpha = 0.22f) else accentColor.copy(alpha = 0.16f)
-    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x14000000)
+    val dropShadowGlow = if (isDark) accentColor.copy(alpha = 0.32f) else accentColor.copy(alpha = 0.22f)
+    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x14000000)
 
-    // Lighter, cleaner, softer color shade
-    val pillBgColor = if (isDark) {
-        accentColor.copy(alpha = 0.18f)
+    // Reduced color intensity for crystal-clear icon & text contrast in both modes
+    val liquidWaterBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                accentColor.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.12f),
+                accentColor.copy(alpha = 0.20f)
+            )
+        )
     } else {
-        accentColor.copy(alpha = 0.14f)
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.14f),
+                accentColor.copy(alpha = 0.20f)
+            )
+        )
     }
 
-    val borderStrokeColor = if (isDark) {
-        accentColor.copy(alpha = 0.45f)
+    val liquidBorderBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.50f),
+                accentColor.copy(alpha = 0.25f)
+            )
+        )
     } else {
-        accentColor.copy(alpha = 0.35f)
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.85f),
+                accentColor.copy(alpha = 0.40f),
+                accentColor.copy(alpha = 0.25f)
+            )
+        )
     }
 
     return this
+        // 1. Subtle bubbly blur halo / glowing elevation
         .shadow(
-            elevation = if (isDark) 3.dp else 2.dp,
+            elevation = if (isDark) 4.dp else 3.dp,
             shape = shape,
-            spotColor = dropShadowColor,
+            spotColor = dropShadowGlow,
             ambientColor = ambientShadowColor
         )
         .clip(shape)
+        // 2. Base semi-transparent liquid body
         .background(
-            color = pillBgColor,
+            color = if (isDark) accentColor.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.35f),
             shape = shape
         )
+        // 3. Fluid translucent water gradient
+        .background(
+            brush = liquidWaterBrush,
+            shape = shape
+        )
+        // 4. Clean liquid top meniscus reflection (linear, clean water surface - no wave distortion)
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val meniscusHeight = 1.8.dp.toPx()
+            val meniscusMargin = 4.dp.toPx()
+
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (isDark) 0.38f else 0.65f),
+                        Color.Transparent
+                    ),
+                    startX = meniscusMargin,
+                    endX = w - meniscusMargin
+                ),
+                topLeft = Offset(meniscusMargin, 1.dp.toPx()),
+                size = Size(w - (meniscusMargin * 2), meniscusHeight)
+            )
+        }
+        // 5. Delicate liquid border
         .border(
-            BorderStroke(width = 1.dp, color = borderStrokeColor),
+            BorderStroke(width = 1.dp, brush = liquidBorderBrush),
             shape = shape
         )
 }

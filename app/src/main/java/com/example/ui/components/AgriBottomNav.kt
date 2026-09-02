@@ -113,37 +113,17 @@ fun AgriBottomNav(
     val containerShape = RoundedCornerShape(percent = 50)
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Translucent blurred glass container background
+    // Translucent blurred glass container background that absorbs background shade while obscuring underlying text
     val containerBgColor = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = if (hazeState != null) 0.50f else 0.88f)
-        isDark -> Color(0xFF0F172A).copy(alpha = if (hazeState != null) 0.45f else 0.85f)
-        else -> Color(0xFFFFFFFF).copy(alpha = if (hazeState != null) 0.42f else 0.85f)
+        isAmoled -> Color(0xFF000000).copy(alpha = if (hazeState != null) 0.58f else 0.88f)
+        isDark -> Color(0xFF0F172A).copy(alpha = if (hazeState != null) 0.55f else 0.85f)
+        else -> Color(0xFFFFFFFF).copy(alpha = if (hazeState != null) 0.52f else 0.88f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
-        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.16f) else Color(0xFF000000).copy(alpha = 0.08f)
+        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.18f) else Color(0xFF000000).copy(alpha = 0.10f)
     )
-
-    // Snappy tactile horizontal shake / vibration animation on tab switch
-    val shakeOffset = remember { Animatable(0f) }
-    LaunchedEffect(selectedIndex) {
-        shakeOffset.snapTo(0f)
-        shakeOffset.animateTo(
-            targetValue = 0f,
-            animationSpec = keyframes {
-                durationMillis = 420
-                0f at 0
-                (-11f) at 60 using FastOutSlowInEasing
-                11f at 130 using FastOutSlowInEasing
-                (-8f) at 200 using FastOutSlowInEasing
-                7f at 270 using FastOutSlowInEasing
-                (-3.5f) at 340 using FastOutSlowInEasing
-                1.5f at 380 using FastOutSlowInEasing
-                0f at 420
-            }
-        )
-    }
 
     Box(
         modifier = modifier
@@ -166,8 +146,8 @@ fun AgriBottomNav(
                     style = HazeStyle(
                         backgroundColor = surfaceColor,
                         tint = HazeTint(containerBgColor),
-                        blurRadius = 32.dp,
-                        noiseFactor = 0.02f
+                        blurRadius = 36.dp, // High blur to obscure text details beneath
+                        noiseFactor = 0.04f
                     )
                 )
             } else {
@@ -180,15 +160,15 @@ fun AgriBottomNav(
                     .shadow(
                         elevation = 8.dp,
                         shape = containerShape,
-                        spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x30000000),
-                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f) else Color(0x18000000)
+                        spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
+                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f) else Color(0x12000000)
                     )
                     .clip(containerShape)
                     .then(hazeModifier)
                     .border(containerBorder, containerShape)
             )
 
-            // Layer 2: Interactive Tabs with Sliding 3D Bubble / Droplet Indicator
+            // Layer 2: Interactive Tabs with Fluid Liquid Indicator
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
@@ -197,28 +177,29 @@ fun AgriBottomNav(
                 val totalWidth = maxWidth
                 val itemCount = navItems.size
                 val slotWidth = totalWidth / itemCount
-                val pillWidth = minOf(54.dp, slotWidth - 2.dp)
+                val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
                 val pillHeight = 48.dp
 
-                val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - pillWidth) / 2
+                val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - basePillWidth) / 2
 
+                // Smooth, natural fluid spring slide animation
                 val animatedOffsetX by animateDpAsState(
                     targetValue = targetIndicatorOffset,
                     animationSpec = spring(
-                        dampingRatio = 0.62f, // Springy bounce physics
-                        stiffness = 380f
+                        dampingRatio = 0.72f, // Natural fluid spring physics
+                        stiffness = 320f
                     ),
                     label = "bottomNavPillSlide"
                 )
 
                 val dropletPillShape = RoundedCornerShape(percent = 50)
 
-                // Clean Sliding Pill Indicator with Shake Effect
+                // Fluid Water-like Sliding Liquid Pill Indicator
                 Box(
                     modifier = Modifier
-                        .offset(x = animatedOffsetX + shakeOffset.value.dp)
+                        .offset(x = animatedOffsetX)
                         .align(Alignment.CenterStart)
-                        .width(pillWidth)
+                        .width(basePillWidth)
                         .height(pillHeight)
                         .bubbleDropletPillIndicator(
                             shape = dropletPillShape,

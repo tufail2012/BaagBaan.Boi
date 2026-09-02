@@ -1127,12 +1127,12 @@ private fun HeaderProfileAvatar(
 }
 
 /**
- * Frosted Liquid Glass Menu Background Modifier for the Profile Menu.
+ * Noisy Frosted Liquid Glass Menu Background Modifier for the Profile Menu.
  * - Translucent surface with delicate liquid glass gradient.
- * - Subtle background blur via Haze backdrop processing.
- * - Soft, glowing border using the profile accent color with specular highlight edges.
+ * - Deep background blur and tactile noise diffusion via Haze backdrop processing.
+ * - Clean geometric top edge highlight (zero wave / curved distortion).
+ * - Soft, glowing border using the profile accent color.
  * - Ambient drop shadow/glow for a floating liquid glass appearance.
- * - Top specular meniscus light reflection for physical 3D depth and volume.
  */
 @Composable
 fun Modifier.frostedLiquidGlassMenuBackground(
@@ -1181,31 +1181,31 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             style = HazeStyle(
                 backgroundColor = surfaceColor,
                 tint = HazeTint(baseTint),
-                blurRadius = 28.dp,
-                noiseFactor = 0.02f
+                blurRadius = 32.dp,
+                noiseFactor = 0.08f // Noisy liquid glass blur texture
             )
         )
     } else {
         Modifier.background(baseTint)
     }
 
-    // Soft glowing border brush with accent radiance and specular top edge
+    // Soft glowing border brush with accent radiance
     val glowingBorderBrush = Brush.verticalGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.60f),
-                accentColor.copy(alpha = 0.70f),
-                accentColor.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.25f),
-                accentColor.copy(alpha = 0.55f)
+                Color.White.copy(alpha = 0.50f),
+                accentColor.copy(alpha = 0.65f),
+                accentColor.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.20f),
+                accentColor.copy(alpha = 0.50f)
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.95f),
-                accentColor.copy(alpha = 0.60f),
-                accentColor.copy(alpha = 0.30f),
-                Color.White.copy(alpha = 0.45f),
-                accentColor.copy(alpha = 0.50f)
+                Color.White.copy(alpha = 0.90f),
+                accentColor.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.40f),
+                accentColor.copy(alpha = 0.45f)
             )
         }
     )
@@ -1219,33 +1219,29 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.12f)
         )
         .clip(shape)
-        // 2. Translucent blurred backdrop (Haze)
+        // 2. Translucent noisy blurred backdrop (Haze)
         .then(hazeModifier)
         // 3. Liquid glass gradient surface
         .background(brush = surfaceBrush, shape = shape)
-        // 4. Specular liquid highlight & reflection on upper rim
+        // 4. Linear specular frosted glass top highlight (no wave shape)
         .drawWithContent {
             drawContent()
             val w = size.width
+            val highlightHeight = 2.dp.toPx()
+            val margin = 8.dp.toPx()
 
-            // Top specular meniscus light glow
-            val highlightHeight = 32.dp.toPx()
-            val highlightWidth = w * 0.88f
-            val highlightX = (w - highlightWidth) / 2f
-            val highlightY = 1.5.dp.toPx()
-
-            drawOval(
-                brush = Brush.verticalGradient(
+            drawRect(
+                brush = Brush.horizontalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.40f else 0.70f),
-                        accentColor.copy(alpha = 0.10f),
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.45f else 0.75f),
                         Color.Transparent
                     ),
-                    startY = highlightY,
-                    endY = highlightY + highlightHeight
+                    startX = margin,
+                    endX = w - margin
                 ),
-                topLeft = Offset(highlightX, highlightY),
-                size = Size(highlightWidth, highlightHeight)
+                topLeft = Offset(margin, 1.dp.toPx()),
+                size = Size(w - (margin * 2), highlightHeight)
             )
         }
         // 5. Soft, glowing border

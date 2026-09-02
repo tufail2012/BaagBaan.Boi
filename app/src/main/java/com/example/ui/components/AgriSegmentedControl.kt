@@ -107,26 +107,6 @@ fun LiquidGlassSegmentedSwitcher(
         else -> Color(0xFFE2E8F0)
     }
 
-    // Snappy tactile horizontal shake / vibration animation on tab switch
-    val shakeOffset = remember { Animatable(0f) }
-    LaunchedEffect(selectedIndex) {
-        shakeOffset.snapTo(0f)
-        shakeOffset.animateTo(
-            targetValue = 0f,
-            animationSpec = keyframes {
-                durationMillis = 420
-                0f at 0
-                (-11f) at 60 using FastOutSlowInEasing
-                11f at 130 using FastOutSlowInEasing
-                (-8f) at 200 using FastOutSlowInEasing
-                7f at 270 using FastOutSlowInEasing
-                (-3.5f) at 340 using FastOutSlowInEasing
-                1.5f at 380 using FastOutSlowInEasing
-                0f at 420
-            }
-        )
-    }
-
     // Outer floating pill container
     Box(
         modifier = modifier
@@ -152,19 +132,20 @@ fun LiquidGlassSegmentedSwitcher(
             val slotWidth = totalWidth / itemCount
             val targetOffset = slotWidth * selectedIndex
 
+            // Natural smooth fluid spring slide
             val animatedOffsetX by animateDpAsState(
                 targetValue = targetOffset,
                 animationSpec = spring(
-                    dampingRatio = 0.62f, // Spring physics for natural bounce
-                    stiffness = 380f
+                    dampingRatio = 0.72f, // Natural fluid spring physics
+                    stiffness = 320f
                 ),
                 label = "segmentedSlide"
             )
 
-            // Sliding Clean Pill Indicator with Shake Effect
+            // Fluid Water-like Sliding Liquid Pill Indicator
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
+                    .offset(x = animatedOffsetX)
                     .align(Alignment.CenterStart)
                     .width(slotWidth)
                     .fillMaxHeight()

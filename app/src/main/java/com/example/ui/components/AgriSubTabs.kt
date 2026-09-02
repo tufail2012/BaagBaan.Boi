@@ -91,25 +91,6 @@ fun PruningSubTabs(
         else -> Color(0xFFE2E8F0)
     }
 
-    val shakeOffset = remember { Animatable(0f) }
-    LaunchedEffect(selectedIndex) {
-        shakeOffset.snapTo(0f)
-        shakeOffset.animateTo(
-            targetValue = 0f,
-            animationSpec = keyframes {
-                durationMillis = 420
-                0f at 0
-                (-11f) at 60 using FastOutSlowInEasing
-                11f at 130 using FastOutSlowInEasing
-                (-8f) at 200 using FastOutSlowInEasing
-                7f at 270 using FastOutSlowInEasing
-                (-3.5f) at 340 using FastOutSlowInEasing
-                1.5f at 380 using FastOutSlowInEasing
-                0f at 420
-            }
-        )
-    }
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -133,19 +114,20 @@ fun PruningSubTabs(
             val slotWidth = totalWidth / 2
             val targetOffset = slotWidth * selectedIndex
 
+            // Natural smooth fluid spring slide
             val animatedOffsetX by animateDpAsState(
                 targetValue = targetOffset,
                 animationSpec = spring(
-                    dampingRatio = 0.62f,
-                    stiffness = 380f
+                    dampingRatio = 0.72f, // Natural fluid spring physics
+                    stiffness = 320f
                 ),
                 label = "pruningSlide"
             )
 
-            // Sliding Clean Pill Indicator with Shake Effect
+            // Fluid Water-like Sliding Liquid Pill Indicator
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
+                    .offset(x = animatedOffsetX)
                     .align(Alignment.CenterStart)
                     .width(slotWidth)
                     .fillMaxHeight()
@@ -271,25 +253,6 @@ fun RootstockSubTabs(
         "Geneva"
     }
 
-    val shakeOffset = remember { Animatable(0f) }
-    LaunchedEffect(selectedIndex) {
-        shakeOffset.snapTo(0f)
-        shakeOffset.animateTo(
-            targetValue = 0f,
-            animationSpec = keyframes {
-                durationMillis = 420
-                0f at 0
-                (-11f) at 60 using FastOutSlowInEasing
-                11f at 130 using FastOutSlowInEasing
-                (-8f) at 200 using FastOutSlowInEasing
-                7f at 270 using FastOutSlowInEasing
-                (-3.5f) at 340 using FastOutSlowInEasing
-                1.5f at 380 using FastOutSlowInEasing
-                0f at 420
-            }
-        )
-    }
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -327,11 +290,12 @@ fun RootstockSubTabs(
                 else -> width2
             }
 
+            // Natural smooth fluid spring slide
             val animatedOffsetX by animateDpAsState(
                 targetValue = targetOffset,
                 animationSpec = spring(
-                    dampingRatio = 0.62f,
-                    stiffness = 380f
+                    dampingRatio = 0.72f, // Natural fluid spring physics
+                    stiffness = 320f
                 ),
                 label = "rootstockSlide"
             )
@@ -339,16 +303,16 @@ fun RootstockSubTabs(
             val animatedWidth by animateDpAsState(
                 targetValue = targetWidth,
                 animationSpec = spring(
-                    dampingRatio = 0.62f,
-                    stiffness = 380f
+                    dampingRatio = 0.72f,
+                    stiffness = 320f
                 ),
                 label = "rootstockWidth"
             )
 
-            // Sliding Clean Pill Indicator with Shake Effect
+            // Fluid Water-like Sliding Liquid Pill Indicator
             Box(
                 modifier = Modifier
-                    .offset(x = animatedOffsetX + shakeOffset.value.dp)
+                    .offset(x = animatedOffsetX)
                     .align(Alignment.CenterStart)
                     .width(animatedWidth)
                     .fillMaxHeight()
