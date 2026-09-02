@@ -1151,33 +1151,33 @@ fun Modifier.frostedLiquidGlassMenuBackground(
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Ultra-high opacity frosted glass tint ensuring complete obscurity of underlying content while diffusing light
-    val glassTint = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = 0.90f)
-        isDark -> Color(0xFF0B132B).copy(alpha = 0.88f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.88f)
+    // Solid opaque base layer ensures 100% complete obscurity of underlying text and form shapes
+    val solidBaseColor = when {
+        isAmoled -> Color(0xFF000000)
+        isDark -> Color(0xFF0F172A)
+        else -> Color(0xFFF8FAFC)
     }
 
-    // High-opacity frosted liquid glass gradient with top-to-bottom light transmission and accent diffusion
-    val translucentGlassBrush = Brush.verticalGradient(
+    // Frosted liquid glass gradient: provides specular top reflection, rich accent light transmission, and deep ambient tone
+    val liquidGlassGradient = Brush.verticalGradient(
         colors = when {
             isAmoled -> listOf(
-                Color.White.copy(alpha = 0.18f),
-                Color(0xFF12131A).copy(alpha = 0.92f),
-                accentColor.copy(alpha = 0.12f),
-                Color(0xFF000000).copy(alpha = 0.96f)
+                Color.White.copy(alpha = 0.28f),
+                Color(0xFF141620),
+                accentColor.copy(alpha = 0.30f),
+                Color(0xFF000000)
             )
             isDark -> listOf(
-                Color.White.copy(alpha = 0.22f),
-                Color(0xFF1E293B).copy(alpha = 0.90f),
-                accentColor.copy(alpha = 0.14f),
-                Color(0xFF0F172A).copy(alpha = 0.94f)
+                Color.White.copy(alpha = 0.32f),
+                Color(0xFF1E293B),
+                accentColor.copy(alpha = 0.32f),
+                Color(0xFF0B132B)
             )
             else -> listOf(
-                Color.White.copy(alpha = 0.94f),
-                Color(0xFFF8FAFC).copy(alpha = 0.88f),
-                accentColor.copy(alpha = 0.10f),
-                Color(0xFFE2E8F0).copy(alpha = 0.92f)
+                Color.White,
+                Color(0xFFFFFFFF),
+                accentColor.copy(alpha = 0.22f),
+                Color(0xFFEDF2F7)
             )
         }
     )
@@ -1210,18 +1210,10 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else Color(0x14000000)
         )
         .clip(shape)
-        // 2. Real Haze backdrop blur with explicit backgroundColor
-        .hazeEffect(
-            state = hazeState,
-            style = HazeStyle(
-                backgroundColor = surfaceColor, // CRITICAL: Kept in every theme to prevent crashes
-                tint = HazeTint(glassTint),
-                blurRadius = 24.dp,
-                noiseFactor = 0.02f // very subtle tactile glass grain
-            )
-        )
-        // 3. Translucent liquid glass gradient & color diffusion
-        .background(brush = translucentGlassBrush, shape = shape)
+        // 2. Base solid opaque barrier guaranteeing 100% obscurity of underlying text/shapes
+        .background(color = solidBaseColor, shape = shape)
+        // 3. Frosted liquid glass gradient with light transmission and vibrant accent diffusion
+        .background(brush = liquidGlassGradient, shape = shape)
         // 4. Subtle top inner specular reflection / edge sheen
         .drawWithContent {
             drawContent()

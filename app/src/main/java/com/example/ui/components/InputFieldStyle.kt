@@ -781,32 +781,29 @@ fun Modifier.bubbleDropletPillIndicator(
 ): Modifier {
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    val glassTint = when {
-        isAmoled ->
-            Color.Black.copy(alpha = 0.90f)
-        isDark ->
-            Color(0xFF0B132B).copy(alpha = 0.88f)
-        else ->
-            Color.White.copy(alpha = 0.88f)
+    val solidPillBase = when {
+        isAmoled -> Color(0xFF161922)
+        isDark -> Color(0xFF1E293B)
+        else -> Color(0xFFFFFFFF)
     }
 
     // 1dp glass rim with top specular highlight and delicate accent refraction
     val liquidBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.70f),
-                Color.White.copy(alpha = 0.28f),
-                accentColor.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.18f)
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.40f),
+                accentColor.copy(alpha = 0.50f),
+                Color.White.copy(alpha = 0.25f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.90f),
-                Color.White.copy(alpha = 0.40f),
-                accentColor.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.30f)
+                Color.White,
+                Color.White.copy(alpha = 0.70f),
+                accentColor.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.60f)
             )
         )
     }
@@ -820,62 +817,48 @@ fun Modifier.bubbleDropletPillIndicator(
             scaleY = 1.015f
             cameraDistance = 16f * density
             shadowElevation =
-                if (isDark || isAmoled) 3.5.dp.toPx()
-                else 2.5.dp.toPx()
+                if (isDark || isAmoled) 4.dp.toPx()
+                else 3.dp.toPx()
             this.shape = shape
             this.clip = false
         }
         // 2. Soft floating shadow
         .shadow(
-            elevation = if (isDark || isAmoled) 3.5.dp else 2.5.dp,
+            elevation = if (isDark || isAmoled) 4.dp else 3.dp,
             shape = shape,
             spotColor =
                 if (isDark || isAmoled)
-                    Color.Black.copy(alpha = 0.35f)
+                    Color.Black.copy(alpha = 0.50f)
                 else
-                    Color.Black.copy(alpha = 0.10f),
+                    Color.Black.copy(alpha = 0.16f),
             ambientColor =
                 if (isDark || isAmoled)
-                    Color.Black.copy(alpha = 0.20f)
+                    Color.Black.copy(alpha = 0.30f)
                 else
-                    Color.Black.copy(alpha = 0.06f)
+                    Color.Black.copy(alpha = 0.10f)
         )
         // 3. Clip to shape
         .clip(shape)
-        // 4. Haze backdrop blur (when hazeState provided)
-        .let { mod ->
-            if (hazeState != null) {
-                mod.hazeEffect(
-                    state = hazeState,
-                    style = HazeStyle(
-                        backgroundColor = surfaceColor,
-                        tint = HazeTint(glassTint),
-                        blurRadius = 24.dp,
-                        noiseFactor = 0.02f
-                    )
-                )
-            } else {
-                mod
-            }
-        }
-        // 5. Ultra-high opacity frosted glass surface gradient with top-down light diffusion and accent glow
+        // 4. Solid opaque base layer ensuring 100% complete obscurity of underlying text/shapes
+        .background(color = solidPillBase, shape = shape)
+        // 5. Frosted liquid glass gradient with light transmission and vibrant accent reflection
         .background(
             brush = if (isDark || isAmoled) {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.22f),
-                        Color(0xFF1E293B).copy(alpha = 0.90f),
-                        accentColor.copy(alpha = 0.18f),
-                        Color(0xFF0F172A).copy(alpha = 0.94f)
+                        Color.White.copy(alpha = 0.35f),
+                        Color(0xFF1E293B),
+                        accentColor.copy(alpha = 0.38f),
+                        Color(0xFF0F172A)
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.94f),
-                        Color(0xFFF1F5F9).copy(alpha = 0.88f),
-                        accentColor.copy(alpha = 0.14f),
-                        Color(0xFFE2E8F0).copy(alpha = 0.90f)
+                        Color.White,
+                        Color(0xFFF8FAFC),
+                        accentColor.copy(alpha = 0.28f),
+                        Color(0xFFE2E8F0)
                     )
                 )
             },
