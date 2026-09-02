@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Brightness4
@@ -333,7 +334,8 @@ fun AgriHeader(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                         modifier = Modifier
-                            .widthIn(min = 230.dp, max = 285.dp)
+                            .widthIn(min = 250.dp, max = 310.dp)
+                            .padding(vertical = 4.dp)
                             .frostedLiquidGlassMenuBackground(
                                 hazeState = hazeState,
                                 isDark = isDark,
@@ -352,6 +354,7 @@ fun AgriHeader(
                             currentUserEmail = currentUserEmail,
                             tagSuffix = "",
                             parsedPaletteColor = parsedPaletteColor,
+                            hazeState = hazeState,
                             onDismiss = { menuExpanded = false },
                             onNavigateToDashboard = onNavigateToDashboard,
                             onNavigateToInventory = onNavigateToInventory,
@@ -518,7 +521,8 @@ fun AgriHeader(
                                 expanded = menuExpanded,
                                 onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier
-                                    .widthIn(min = 230.dp, max = 285.dp)
+                                    .widthIn(min = 250.dp, max = 310.dp)
+                                    .padding(vertical = 4.dp)
                                     .frostedLiquidGlassMenuBackground(
                                         hazeState = hazeState,
                                         isDark = isDark,
@@ -537,6 +541,7 @@ fun AgriHeader(
                                     currentUserEmail = currentUserEmail,
                                     tagSuffix = "_2",
                                     parsedPaletteColor = parsedPaletteColor,
+                                    hazeState = hazeState,
                                     onDismiss = { menuExpanded = false },
                                     onNavigateToDashboard = onNavigateToDashboard,
                                     onNavigateToInventory = onNavigateToInventory,
@@ -766,6 +771,7 @@ private fun OverflowMenuContent(
     currentUserEmail: String?,
     tagSuffix: String = "",
     parsedPaletteColor: Color? = null,
+    hazeState: HazeState? = null,
     onDismiss: () -> Unit,
     onNavigateToDashboard: () -> Unit,
     onNavigateToInventory: () -> Unit,
@@ -789,275 +795,252 @@ private fun OverflowMenuContent(
         AppThemeMode.LIGHT -> false
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
     }
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
     val itemTextColor = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
 
     // 1. Dashboard
+    val dashboardAccent = getSectionAccentColor("Dashboard", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Dashboard,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Dashboard"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Dashboard",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.Dashboard,
+                title = "Dashboard",
+                accentColor = dashboardAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToDashboard()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = dashboardAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("dashboard_menu_item$tagSuffix")
     )
 
     // 2. Inventory
+    val inventoryAccent = getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Inventory2,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Inventory",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.Inventory2,
+                title = "Inventory",
+                accentColor = inventoryAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToInventory()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = inventoryAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("inventory_menu_item$tagSuffix")
     )
 
     // 3. Attendance
+    val attendanceAccent = getSectionAccentColor("Attendance", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.EventAvailable,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Attendance"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Attendance",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.EventAvailable,
+                title = "Attendance",
+                accentColor = attendanceAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToAttendance()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = attendanceAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("attendance_menu_item$tagSuffix")
     )
 
     // 4. Contact Directory
+    val contactsAccent = getSectionAccentColor("Contact Directory", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Contacts,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Contact Directory"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Contact Directory",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.Contacts,
+                title = "Contact Directory",
+                accentColor = contactsAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToContactDirectory()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = contactsAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("contact_directory_menu_item$tagSuffix")
     )
 
     // 5. Payment Reminder
+    val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ReceiptLong,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Payment Reminder"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Payment Reminder",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.ReceiptLong,
+                title = "Payment Reminder",
+                accentColor = paymentAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToPaymentReminders()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = paymentAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("payment_reminders_menu_item$tagSuffix")
     )
 
-    // Seasonal Reminders
+    // 6. Seasonal Reminders
+    val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Park,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Seasonal Reminders"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Seasonal Reminders",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.Park,
+                title = "Seasonal Reminders",
+                accentColor = seasonalAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToSeasonalReminders()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = seasonalAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("seasonal_reminders_menu_item$tagSuffix")
     )
 
-    // 6. Scan QR
+    // 7. Scan QR
+    val scanQrAccent = getSectionAccentColor("Scan QR", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Scan QR"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Scan QR",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.QrCodeScanner,
+                title = "Scan QR",
+                accentColor = scanQrAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToQrScanner()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = scanQrAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("scan_qr_menu_item$tagSuffix")
     )
 
     // Divider before Settings with subtle glowing accent tint
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        color = (parsedPaletteColor ?: getSectionAccentColor("Profile")).copy(alpha = if (isDark) 0.28f else 0.18f)
+        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+        color = (parsedPaletteColor ?: getSectionAccentColor("Profile")).copy(alpha = if (isDark) 0.22f else 0.16f)
     )
 
-    // 6. Settings
+    // 8. Settings
+    val settingsAccent = getSectionAccentColor("Settings", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = getSectionAccentColor("Settings"),
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Settings",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = itemTextColor
-                )
-            }
+            FrostedMenuItemContent(
+                icon = Icons.Default.Settings,
+                title = "Settings",
+                accentColor = settingsAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
         },
         onClick = {
             onDismiss()
             onNavigateToSettings?.invoke()
         },
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .frostedLiquidGlassMenuItem(
+                hazeState = hazeState,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                accentColor = settingsAccent,
+                shape = RoundedCornerShape(14.dp)
+            )
             .testTag("settings_menu_item$tagSuffix")
     )
 }
@@ -1149,38 +1132,6 @@ fun Modifier.frostedLiquidGlassMenuBackground(
     shape: Shape = RoundedCornerShape(22.dp)
 ): Modifier {
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
-    // Solid opaque base layer ensures 100% complete obscurity of underlying text and form shapes
-    val solidBaseColor = when {
-        isAmoled -> Color(0xFF000000) // AMOLED pure black for pixels off
-        isDark -> Color(0xFF0C0B0F)   // Deep black charcoal matching reference screenshot
-        else -> Color(0xFFF8FAFC)
-    }
-
-    // Frosted liquid glass gradient: provides specular top reflection, rich accent light transmission, and deep ambient tone
-    val liquidGlassGradient = Brush.verticalGradient(
-        colors = when {
-            isAmoled -> listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color(0xFF141216),
-                accentColor.copy(alpha = 0.18f),
-                Color(0xFF000000) // Pure black for AMOLED
-            )
-            isDark -> listOf(
-                Color.White.copy(alpha = 0.28f),
-                Color(0xFF242127),
-                accentColor.copy(alpha = 0.15f),
-                Color(0xFF0C0B0F) // Deep glossy tone matching screenshot
-            )
-            else -> listOf(
-                Color.White,
-                Color(0xFFFFFFFF),
-                accentColor.copy(alpha = 0.22f),
-                Color(0xFFEDF2F7)
-            )
-        }
-    )
 
     // Thin bright 1dp glass rim with specular top highlight and accent refraction
     val glassRimBrush = Brush.verticalGradient(
@@ -1201,6 +1152,20 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         }
     )
 
+    val hazeStyle = HazeStyle(
+        backgroundColor = if (isDark || isAmoled) Color(0xFF0C0B0F).copy(alpha = 0.72f) else Color(0xFFFFFFFF).copy(alpha = 0.75f),
+        blurRadius = 24.dp,
+        tints = listOf(
+            HazeTint(
+                color = if (isDark || isAmoled) {
+                    Color(0xFF14121A).copy(alpha = 0.65f)
+                } else {
+                    Color.White.copy(alpha = 0.72f)
+                }
+            )
+        )
+    )
+
     return this
         // 1. Soft floating 3D elevation shadow
         .shadow(
@@ -1210,10 +1175,31 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else Color(0x14000000)
         )
         .clip(shape)
-        // 2. Base solid opaque barrier guaranteeing 100% obscurity of underlying text/shapes
-        .background(color = solidBaseColor, shape = shape)
-        // 3. Frosted liquid glass gradient with light transmission and vibrant accent diffusion
-        .background(brush = liquidGlassGradient, shape = shape)
+        // 2. Real frosted backdrop blur via Haze
+        .hazeEffect(state = hazeState, style = hazeStyle)
+        // 3. Soft translucent liquid glass gradient letting background hints come through gently
+        .background(
+            brush = if (isDark || isAmoled) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.18f),
+                        Color(0xFF242127).copy(alpha = 0.45f),
+                        accentColor.copy(alpha = 0.12f),
+                        Color(0xFF0C0B0F).copy(alpha = 0.65f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.85f),
+                        Color.White.copy(alpha = 0.50f),
+                        accentColor.copy(alpha = 0.10f),
+                        Color(0xFFF1F5F9).copy(alpha = 0.60f)
+                    )
+                )
+            },
+            shape = shape
+        )
         // 4. Subtle top inner specular reflection / edge sheen
         .drawWithContent {
             drawContent()
@@ -1240,5 +1226,193 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             border = BorderStroke(width = 1.dp, brush = glassRimBrush),
             shape = shape
         )
+}
+
+/**
+ * Frosted Liquid Glass Modifier for settings and profile menu items:
+ * Dashboard, Inventory, Attendance, Contact Directory, Payment Reminder, Seasonal Reminders, etc.
+ *
+ * Provides a soft, translucent glassy pill with subtle optical blur via Haze,
+ * delicate specular rim lighting, item accent refraction, and a soft 3D elevation.
+ */
+@Composable
+fun Modifier.frostedLiquidGlassMenuItem(
+    hazeState: HazeState? = null,
+    isDark: Boolean = isAppInDarkMode(),
+    isAmoled: Boolean = isAppInAmoledMode(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    shape: Shape = RoundedCornerShape(14.dp)
+): Modifier {
+    val hazeStyle = if (hazeState != null) {
+        HazeStyle(
+            backgroundColor = if (isDark || isAmoled) Color(0xFF14121A).copy(alpha = 0.35f) else Color.White.copy(alpha = 0.45f),
+            blurRadius = 16.dp,
+            tints = listOf(
+                HazeTint(
+                    color = if (isDark || isAmoled) {
+                        accentColor.copy(alpha = 0.10f)
+                    } else {
+                        Color.White.copy(alpha = 0.50f)
+                    }
+                )
+            )
+        )
+    } else null
+
+    // Subtle 1dp glass rim with top specular sheen and accent refraction
+    val glassRimBrush = Brush.verticalGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.12f),
+                accentColor.copy(alpha = 0.28f),
+                Color.White.copy(alpha = 0.05f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.90f),
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.22f),
+                Color.White.copy(alpha = 0.30f)
+            )
+        }
+    )
+
+    // Soft translucent liquid glass gradient letting background hints come through gently
+    val glassGradient = if (isDark || isAmoled) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.12f),
+                Color(0xFF221F28).copy(alpha = 0.35f),
+                accentColor.copy(alpha = 0.10f),
+                Color(0xFF100F14).copy(alpha = 0.45f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.08f),
+                Color(0xFFF1F5F9).copy(alpha = 0.40f)
+            )
+        )
+    }
+
+    return this
+        .shadow(
+            elevation = 2.dp,
+            shape = shape,
+            spotColor = if (isDark || isAmoled) accentColor.copy(alpha = 0.18f) else Color(0x15000000),
+            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.25f) else Color(0x0A000000)
+        )
+        .clip(shape)
+        .then(
+            if (hazeState != null && hazeStyle != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
+        .background(brush = glassGradient, shape = shape)
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val highlightHeight = 1.2.dp.toPx()
+            val margin = 8.dp.toPx()
+
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.40f else 0.75f),
+                        Color.Transparent
+                    ),
+                    startX = margin,
+                    endX = w - margin
+                ),
+                topLeft = Offset(margin, 0.8.dp.toPx()),
+                size = Size(w - (margin * 2), highlightHeight)
+            )
+        }
+        .border(
+            border = BorderStroke(width = 1.dp, brush = glassRimBrush),
+            shape = shape
+        )
+}
+
+/**
+ * Reusable frosted liquid glass item content with a circular glass droplet icon container,
+ * crisp typography, and a subtle navigation chevron.
+ */
+@Composable
+private fun FrostedMenuItemContent(
+    icon: ImageVector,
+    title: String,
+    accentColor: Color,
+    textColor: Color,
+    isDark: Boolean
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Frosted liquid droplet circular container for the icon
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = if (isDark) {
+                            listOf(
+                                Color.White.copy(alpha = 0.20f),
+                                accentColor.copy(alpha = 0.22f),
+                                accentColor.copy(alpha = 0.10f)
+                            )
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = 0.90f),
+                                accentColor.copy(alpha = 0.18f),
+                                accentColor.copy(alpha = 0.08f)
+                            )
+                        }
+                    ),
+                    shape = CircleShape
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (isDark) 0.40f else 0.80f),
+                            accentColor.copy(alpha = 0.30f)
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = title,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = textColor,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = if (isDark) Color.White.copy(alpha = 0.32f) else Color.Black.copy(alpha = 0.22f),
+            modifier = Modifier.size(16.dp)
+        )
+    }
 }
 
