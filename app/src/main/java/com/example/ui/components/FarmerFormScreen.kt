@@ -814,8 +814,8 @@ fun FarmerFormScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-        // Clearance for top floating sticky toggle header
-        Spacer(modifier = Modifier.height(52.dp))
+        // Clearance for top floating sticky toggle header (toggle height 50dp + 12dp vertical padding + margin = 72dp)
+        Spacer(modifier = Modifier.height(72.dp))
 
         // Serial Number Manual Field with inner Save Icon & Full Width
         val isSerialLocked by viewModel.isSerialLocked.collectAsState()

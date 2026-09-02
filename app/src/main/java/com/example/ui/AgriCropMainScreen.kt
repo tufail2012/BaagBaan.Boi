@@ -711,6 +711,7 @@ fun AgriCropMainScreen(
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
                     ) { innerPadding ->
+                        android.util.Log.d("HazeDebug", "source identity: ${System.identityHashCode(hazeState)}")
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -768,6 +769,7 @@ fun AgriCropMainScreen(
                                                     }
                                                 },
                                                 onNavigateToSettings = { isSettingsActive = true },
+                                                hazeState = hazeState,
                                                 modifier = Modifier.fillMaxSize()
                                             )
                                         } else {

@@ -66,11 +66,11 @@ data class SegmentedTabEntry(
 fun AgriSegmentedControl(
     selectedMode: Int, // 0 = New Entry, 1 = Records, 2 = Analytics etc.
     onModeSelected: (Int) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
     newEntryLabel: String = "New Entry",
     recordsLabel: String = "Records",
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: Any? = null
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val items = listOf(
         SegmentedTabEntry(title = newEntryLabel, testTag = "tab_new_entry"),
@@ -92,9 +92,9 @@ fun LiquidGlassSegmentedSwitcher(
     items: List<SegmentedTabEntry>,
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: Any? = null
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
@@ -104,36 +104,20 @@ fun LiquidGlassSegmentedSwitcher(
     val itemShape = RoundedCornerShape(percent = 50)
 
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val actualHaze = hazeState as? HazeState
 
-    // Translucent glassmorphic container background matching the bottom nav (strictly non-opaque)
+    // Translucent frosted glassmorphic container background (65% opacity light, 70% dark/amoled)
     val containerBgColor = if (isDark || isAmoled) {
-        Color.Black.copy(alpha = 0.45f)
+        Color(0xFF1E293B).copy(alpha = 0.70f)
     } else {
-        Color.White.copy(alpha = 0.35f)
+        Color.White.copy(alpha = 0.65f)
     }
 
-    val containerBorderColor = if (isDark || isAmoled) {
-        Color.White.copy(alpha = 0.16f)
-    } else {
-        Color.White.copy(alpha = 0.40f)
-    }
+    // Temporary visible debug marker: Bright green border to unequivocally confirm this build is running
+    val containerBorderColor = Color(0xFF00FF00)
 
-    val glassModifier = if (actualHaze != null) {
-        Modifier.hazeEffect(
-            state = actualHaze,
-            style = HazeStyle(
-                backgroundColor = surfaceColor,
-                tint = HazeTint(containerBgColor),
-                blurRadius = 32.dp,
-                noiseFactor = 0.02f
-            )
-        )
-    } else {
-        Modifier.background(containerBgColor)
-    }
+    android.util.Log.d("HazeDebug", "effect identity: ${System.identityHashCode(hazeState)}")
 
-    // Outer floating pill container
+    // Outer floating pill container with direct real backdrop blur
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -146,8 +130,8 @@ fun LiquidGlassSegmentedSwitcher(
                 ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
             )
             .clip(containerShape)
-            .then(glassModifier)
-            .border(BorderStroke(1.dp, containerBorderColor), containerShape)
+            .background(containerBgColor)
+            .border(BorderStroke(2.dp, containerBorderColor), containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(

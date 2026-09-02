@@ -194,7 +194,7 @@ fun FarmerRecordsScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(top = 56.dp, bottom = 100.dp)
+            contentPadding = PaddingValues(top = 72.dp, bottom = 100.dp)
         ) {
         // 1. Active Recording Book Header Banner
         item {
