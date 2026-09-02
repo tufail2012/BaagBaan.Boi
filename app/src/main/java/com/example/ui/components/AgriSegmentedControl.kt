@@ -34,7 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -104,17 +108,55 @@ fun LiquidGlassSegmentedSwitcher(
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
-    val containerBgColor = when {
-        isAmoled -> Color(0xFF09090B).copy(alpha = 0.55f)
-        isDark -> Color(0xFF0F172A).copy(alpha = 0.45f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.55f)
+    // Translucent glass tint letting real background colors diffuse through cleanly
+    val glassTint = when {
+        isAmoled -> Color(0xFF000000).copy(alpha = 0.28f)
+        isDark -> Color(0xFF0B132B).copy(alpha = 0.22f)
+        else -> Color(0xFFFFFFFF).copy(alpha = 0.18f)
     }
 
-    val containerBorderColor = when {
-        isAmoled -> Color.White.copy(alpha = 0.15f)
-        isDark -> Color.White.copy(alpha = 0.18f)
-        else -> Color(0xFFE2E8F0).copy(alpha = 0.90f)
-    }
+    // Translucent liquid glass gradient with subtle accent color diffusion
+    val translucentGlassBrush = Brush.verticalGradient(
+        colors = when {
+            isAmoled -> listOf(
+                Color.White.copy(alpha = 0.08f),
+                Color(0xFF09090B).copy(alpha = 0.18f),
+                accentColor.copy(alpha = 0.03f),
+                Color.Black.copy(alpha = 0.26f)
+            )
+            isDark -> listOf(
+                Color.White.copy(alpha = 0.12f),
+                Color(0xFF1E293B).copy(alpha = 0.15f),
+                accentColor.copy(alpha = 0.04f),
+                Color(0xFF0F172A).copy(alpha = 0.22f)
+            )
+            else -> listOf(
+                Color.White.copy(alpha = 0.38f),
+                Color(0xFFF8FAFC).copy(alpha = 0.12f),
+                accentColor.copy(alpha = 0.03f),
+                Color.White.copy(alpha = 0.25f)
+            )
+        }
+    )
+
+    // Thin bright 1dp glass rim with specular top highlight and accent refraction
+    val glassRimBrush = Brush.verticalGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.65f), // Bright specular top rim
+                Color.White.copy(alpha = 0.25f), // Clear glass sides
+                accentColor.copy(alpha = 0.30f), // Accent color refraction
+                Color.White.copy(alpha = 0.15f)  // Soft bottom rim
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.95f), // Crisp bright top rim
+                Color.White.copy(alpha = 0.40f), // Translucent sides
+                accentColor.copy(alpha = 0.25f), // Soft accent diffusion
+                Color.White.copy(alpha = 0.35f)  // Subtle bottom rim
+            )
+        }
+    )
 
     // Outer floating pill container
     Box(
@@ -122,23 +164,51 @@ fun LiquidGlassSegmentedSwitcher(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
             .height(50.dp)
+            // 1. Soft floating 3D elevation shadow
             .shadow(
-                elevation = 6.dp,
+                elevation = 10.dp,
                 shape = containerShape,
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x18000000),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
+                spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0x24000000),
+                ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else Color(0x10000000)
             )
             .clip(containerShape)
+            // 2. Real Haze backdrop blur with explicit backgroundColor
             .hazeEffect(
                 state = hazeState,
                 style = HazeStyle(
-                    backgroundColor = surfaceColor,
-                    tint = HazeTint(containerBgColor),
-                    blurRadius = 32.dp,
+                    backgroundColor = surfaceColor, // Kept in every theme to prevent crashes
+                    tint = HazeTint(glassTint),
+                    blurRadius = 24.dp,
                     noiseFactor = 0.02f
                 )
             )
-            .border(BorderStroke(1.dp, containerBorderColor), containerShape)
+            // 3. Translucent liquid glass gradient & color diffusion
+            .background(brush = translucentGlassBrush, shape = containerShape)
+            // 4. Subtle top inner specular reflection / edge sheen
+            .drawWithContent {
+                drawContent()
+                val w = size.width
+                val highlightHeight = 1.2.dp.toPx()
+                val margin = 14.dp.toPx()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.80f),
+                            Color.Transparent
+                        ),
+                        startX = margin,
+                        endX = w - margin
+                    ),
+                    topLeft = Offset(margin, 1.dp.toPx()),
+                    size = Size(w - (margin * 2), highlightHeight)
+                )
+            }
+            // 5. Thin bright 1dp glass rim
+            .border(
+                border = BorderStroke(width = 1.dp, brush = glassRimBrush),
+                shape = containerShape
+            )
             .padding(4.dp)
     ) {
         BoxWithConstraints(

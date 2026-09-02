@@ -761,9 +761,10 @@ fun PaymentStatusSelector(
 /**
  * Persistent 3D Fluid Liquid Pill Indicator Modifier.
  * Features:
+ * - True translucent liquid glass highlight (NOT an opaque solid pill).
  * - Persistent 3D look using graphicsLayer (subtle rotationX, slight scale, and elevation/drop shadow).
  * - Embossed physical depth with top specular meniscus reflection and subtle bottom bevel shadow.
- * - Soft liquid/bubbly blur layer with reduced color saturation for high contrast in both Dark and Light modes.
+ * - Soft liquid/glass glow layer with clear color diffusion for high contrast in both Dark and Light modes.
  * - Static while active with zero continuous looping animations.
  */
 @Composable
@@ -773,44 +774,46 @@ fun Modifier.bubbleDropletPillIndicator(
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode()
 ): Modifier {
-    val dropShadowGlow = if (isDark) accentColor.copy(alpha = 0.35f) else accentColor.copy(alpha = 0.24f)
-    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x18000000)
+    val dropShadowGlow = if (isDark || isAmoled) accentColor.copy(alpha = 0.30f) else accentColor.copy(alpha = 0.20f)
+    val ambientShadowColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.40f) else Color(0x12000000)
 
-    // Reduced color intensity for crystal-clear icon & text contrast in both modes
-    val liquidWaterBrush = if (isDark) {
+    // True translucent liquid glass highlight gradient
+    val liquidWaterBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                accentColor.copy(alpha = 0.28f),
-                accentColor.copy(alpha = 0.12f),
-                accentColor.copy(alpha = 0.22f)
+                Color.White.copy(alpha = 0.16f),
+                accentColor.copy(alpha = 0.20f),
+                accentColor.copy(alpha = 0.10f),
+                Color.Black.copy(alpha = 0.18f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.60f),
-                accentColor.copy(alpha = 0.15f),
-                accentColor.copy(alpha = 0.22f)
+                Color.White.copy(alpha = 0.55f),
+                Color.White.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.30f)
             )
         )
     }
 
-    val liquidBorderBrush = if (isDark) {
+    val liquidBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.50f),
-                accentColor.copy(alpha = 0.55f),
-                accentColor.copy(alpha = 0.30f),
-                Color.Black.copy(alpha = 0.20f)
+                Color.White.copy(alpha = 0.70f), // Crisp specular top meniscus
+                accentColor.copy(alpha = 0.50f), // Accent refraction
+                accentColor.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.15f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.90f),
-                accentColor.copy(alpha = 0.45f),
-                accentColor.copy(alpha = 0.30f),
-                Color.Black.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.95f), // Bright specular top meniscus
+                Color.White.copy(alpha = 0.50f),
+                accentColor.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.30f)
             )
         )
     }
@@ -823,21 +826,21 @@ fun Modifier.bubbleDropletPillIndicator(
             this.scaleX = 1.02f
             this.scaleY = 1.02f
             this.cameraDistance = 16f * density
-            this.shadowElevation = if (isDark) 6.dp.toPx() else 4.dp.toPx()
+            this.shadowElevation = if (isDark || isAmoled) 5.dp.toPx() else 3.5.dp.toPx()
             this.shape = shape
             this.clip = false
         }
         // 2. Subtle bubbly blur halo / glowing elevation
         .shadow(
-            elevation = if (isDark) 5.dp else 3.5.dp,
+            elevation = if (isDark || isAmoled) 4.5.dp else 3.dp,
             shape = shape,
             spotColor = dropShadowGlow,
             ambientColor = ambientShadowColor
         )
         .clip(shape)
-        // 3. Base semi-transparent liquid body with reduced color saturation
+        // 3. Base semi-transparent liquid body
         .background(
-            color = if (isDark) accentColor.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.38f),
+            color = if (isDark || isAmoled) accentColor.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.22f),
             shape = shape
         )
         // 4. Fluid translucent water gradient
@@ -851,14 +854,14 @@ fun Modifier.bubbleDropletPillIndicator(
             val w = size.width
             val h = size.height
 
-            // Top specular meniscus reflection (clean water surface)
-            val meniscusHeight = 2.dp.toPx()
+            // Top specular meniscus reflection (clean water / glass surface)
+            val meniscusHeight = 1.5.dp.toPx()
             val meniscusMargin = 4.dp.toPx()
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark) 0.42f else 0.70f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.60f else 0.85f),
                         Color.Transparent
                     ),
                     startX = meniscusMargin,
@@ -869,12 +872,12 @@ fun Modifier.bubbleDropletPillIndicator(
             )
 
             // Bottom subtle bevel shadow for physical 3D embossed depth
-            val bevelHeight = 2.5.dp.toPx()
+            val bevelHeight = 2.dp.toPx()
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.Black.copy(alpha = if (isDark) 0.25f else 0.10f)
+                        Color.Black.copy(alpha = if (isDark || isAmoled) 0.25f else 0.08f)
                     ),
                     startY = h - bevelHeight,
                     endY = h
