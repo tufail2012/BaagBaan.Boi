@@ -148,6 +148,7 @@ fun LiquidGlassSegmentedSwitcher(
                     .width(slotWidth)
                     .fillMaxHeight()
                     .bubbleDropletPillIndicator(
+                        hazeState = hazeState,
                         shape = itemShape,
                         accentColor = accentColor,
                         isDark = isDark,

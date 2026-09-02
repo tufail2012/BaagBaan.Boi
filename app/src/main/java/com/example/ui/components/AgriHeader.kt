@@ -1151,33 +1151,33 @@ fun Modifier.frostedLiquidGlassMenuBackground(
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Translucent glass tint letting real background colors diffuse through cleanly
+    // Ultra-high opacity frosted glass tint ensuring complete obscurity of underlying content while diffusing light
     val glassTint = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = 0.35f)
-        isDark -> Color(0xFF0B132B).copy(alpha = 0.28f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.22f)
+        isAmoled -> Color(0xFF000000).copy(alpha = 0.90f)
+        isDark -> Color(0xFF0B132B).copy(alpha = 0.88f)
+        else -> Color(0xFFFFFFFF).copy(alpha = 0.88f)
     }
 
-    // Translucent liquid glass gradient with subtle accent color diffusion
+    // High-opacity frosted liquid glass gradient with top-to-bottom light transmission and accent diffusion
     val translucentGlassBrush = Brush.verticalGradient(
         colors = when {
             isAmoled -> listOf(
-                Color.White.copy(alpha = 0.08f),
-                Color(0xFF09090B).copy(alpha = 0.20f),
-                accentColor.copy(alpha = 0.04f),
-                Color.Black.copy(alpha = 0.30f)
+                Color.White.copy(alpha = 0.18f),
+                Color(0xFF12131A).copy(alpha = 0.92f),
+                accentColor.copy(alpha = 0.12f),
+                Color(0xFF000000).copy(alpha = 0.96f)
             )
             isDark -> listOf(
-                Color.White.copy(alpha = 0.12f),
-                Color(0xFF1E293B).copy(alpha = 0.18f),
-                accentColor.copy(alpha = 0.05f),
-                Color(0xFF0F172A).copy(alpha = 0.25f)
+                Color.White.copy(alpha = 0.22f),
+                Color(0xFF1E293B).copy(alpha = 0.90f),
+                accentColor.copy(alpha = 0.14f),
+                Color(0xFF0F172A).copy(alpha = 0.94f)
             )
             else -> listOf(
-                Color.White.copy(alpha = 0.40f),
-                Color(0xFFF8FAFC).copy(alpha = 0.15f),
-                accentColor.copy(alpha = 0.04f),
-                Color.White.copy(alpha = 0.28f)
+                Color.White.copy(alpha = 0.94f),
+                Color(0xFFF8FAFC).copy(alpha = 0.88f),
+                accentColor.copy(alpha = 0.10f),
+                Color(0xFFE2E8F0).copy(alpha = 0.92f)
             )
         }
     )

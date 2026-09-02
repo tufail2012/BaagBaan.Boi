@@ -175,6 +175,7 @@ fun AgriBottomNav(
                         .width(basePillWidth)
                         .height(pillHeight)
                         .bubbleDropletPillIndicator(
+                            hazeState = hazeState,
                             shape = dropletPillShape,
                             accentColor = activeSectionAccent,
                             isDark = isDark,

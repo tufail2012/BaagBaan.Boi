@@ -58,6 +58,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
@@ -769,63 +773,55 @@ fun PaymentStatusSelector(
  */
 @Composable
 fun Modifier.bubbleDropletPillIndicator(
+    hazeState: HazeState? = null,
     shape: Shape = RoundedCornerShape(percent = 50),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode()
 ): Modifier {
-    val dropShadowColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.35f) else Color(0x16000000)
-    val ambientShadowColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.20f) else Color(0x0C000000)
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // True translucent liquid glass highlight gradient (subtle glass lens reflection)
-    val liquidWaterBrush = if (isDark || isAmoled) {
+    val glassTint = when {
+        isAmoled ->
+            Color.Black.copy(alpha = 0.90f)
+        isDark ->
+            Color(0xFF0B132B).copy(alpha = 0.88f)
+        else ->
+            Color.White.copy(alpha = 0.88f)
+    }
+
+    // 1dp glass rim with top specular highlight and delicate accent refraction
+    val liquidBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.14f),
-                Color.White.copy(alpha = 0.04f),
-                accentColor.copy(alpha = 0.08f),
-                Color.Black.copy(alpha = 0.14f)
+                Color.White.copy(alpha = 0.70f),
+                Color.White.copy(alpha = 0.28f),
+                accentColor.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.18f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.42f),
-                Color.White.copy(alpha = 0.18f),
-                accentColor.copy(alpha = 0.07f),
-                Color.White.copy(alpha = 0.26f)
+                Color.White.copy(alpha = 0.90f),
+                Color.White.copy(alpha = 0.40f),
+                accentColor.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.30f)
             )
         )
     }
 
-    // Thin bright 1dp glass rim with specular top highlight and accent refraction (aligned with Profile Menu)
-    val liquidBorderBrush = Brush.verticalGradient(
-        colors = if (isDark || isAmoled) {
-            listOf(
-                Color.White.copy(alpha = 0.70f), // Bright specular top rim
-                Color.White.copy(alpha = 0.28f), // Clear glass sides
-                accentColor.copy(alpha = 0.35f), // Accent color refraction
-                Color.White.copy(alpha = 0.18f)  // Soft bottom rim
-            )
-        } else {
-            listOf(
-                Color.White.copy(alpha = 0.95f), // Crisp bright top rim
-                Color.White.copy(alpha = 0.45f), // Translucent sides
-                accentColor.copy(alpha = 0.30f), // Soft accent diffusion
-                Color.White.copy(alpha = 0.40f)  // Subtle bottom rim
-            )
-        }
-    )
-
     return this
         // 1. Persistent 3D transformation & elevation via graphicsLayer
         .graphicsLayer {
-            this.rotationX = 2.5f // Subtle top-down 3D bevel perspective
-            this.rotationY = 0f
-            this.scaleX = 1.015f
-            this.scaleY = 1.015f
-            this.cameraDistance = 16f * density
-            this.shadowElevation = if (isDark || isAmoled) 3.5.dp.toPx() else 2.5.dp.toPx()
+            rotationX = 2.5f
+            rotationY = 0f
+            scaleX = 1.015f
+            scaleY = 1.015f
+            cameraDistance = 16f * density
+            shadowElevation =
+                if (isDark || isAmoled) 3.5.dp.toPx()
+                else 2.5.dp.toPx()
             this.shape = shape
             this.clip = false
         }
@@ -833,41 +829,84 @@ fun Modifier.bubbleDropletPillIndicator(
         .shadow(
             elevation = if (isDark || isAmoled) 3.5.dp else 2.5.dp,
             shape = shape,
-            spotColor = dropShadowColor,
-            ambientColor = ambientShadowColor
+            spotColor =
+                if (isDark || isAmoled)
+                    Color.Black.copy(alpha = 0.35f)
+                else
+                    Color.Black.copy(alpha = 0.10f),
+            ambientColor =
+                if (isDark || isAmoled)
+                    Color.Black.copy(alpha = 0.20f)
+                else
+                    Color.Black.copy(alpha = 0.06f)
         )
+        // 3. Clip to shape
         .clip(shape)
-        // 3. Base semi-transparent glass body
+        // 4. Haze backdrop blur (when hazeState provided)
+        .let { mod ->
+            if (hazeState != null) {
+                mod.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        backgroundColor = surfaceColor,
+                        tint = HazeTint(glassTint),
+                        blurRadius = 24.dp,
+                        noiseFactor = 0.02f
+                    )
+                )
+            } else {
+                mod
+            }
+        }
+        // 5. Ultra-high opacity frosted glass surface gradient with top-down light diffusion and accent glow
         .background(
-            color = if (isDark || isAmoled) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.16f),
+            brush = if (isDark || isAmoled) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.22f),
+                        Color(0xFF1E293B).copy(alpha = 0.90f),
+                        accentColor.copy(alpha = 0.18f),
+                        Color(0xFF0F172A).copy(alpha = 0.94f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.94f),
+                        Color(0xFFF1F5F9).copy(alpha = 0.88f),
+                        accentColor.copy(alpha = 0.14f),
+                        Color(0xFFE2E8F0).copy(alpha = 0.90f)
+                    )
+                )
+            },
             shape = shape
         )
-        // 4. Fluid translucent glass highlight gradient
-        .background(
-            brush = liquidWaterBrush,
-            shape = shape
-        )
-        // 5. 3D Embossed lighting: top specular reflection & bottom bevel shadow
+        // 6. 3D Embossed lighting: top specular reflection & subtle bottom bevel
         .drawWithContent {
             drawContent()
             val w = size.width
             val h = size.height
 
-            // Top specular meniscus reflection (clean water / glass surface aligned with Profile Menu sheen)
             val highlightHeight = 1.5.dp.toPx()
             val meniscusMargin = 6.dp.toPx()
+
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.80f),
+                        Color.White.copy(
+                            alpha = if (isDark || isAmoled) 0.45f else 0.65f
+                        ),
                         Color.Transparent
                     ),
                     startX = meniscusMargin,
                     endX = w - meniscusMargin
                 ),
                 topLeft = Offset(meniscusMargin, 1.dp.toPx()),
-                size = Size(w - (meniscusMargin * 2), highlightHeight)
+                size = Size(
+                    w - (meniscusMargin * 2),
+                    highlightHeight
+                )
             )
 
             // Bottom subtle bevel shadow for physical 3D embossed depth
@@ -876,7 +915,9 @@ fun Modifier.bubbleDropletPillIndicator(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.Black.copy(alpha = if (isDark || isAmoled) 0.18f else 0.06f)
+                        Color.Black.copy(
+                            alpha = if (isDark || isAmoled) 0.12f else 0.04f
+                        )
                     ),
                     startY = h - bevelHeight,
                     endY = h
@@ -885,9 +926,12 @@ fun Modifier.bubbleDropletPillIndicator(
                 size = Size(w - (meniscusMargin * 2), bevelHeight)
             )
         }
-        // 6. Refractive 1dp glass border matching Profile Menu rim logic
+        // 7. Refractive 1dp glass border
         .border(
-            BorderStroke(width = 1.dp, brush = liquidBorderBrush),
+            BorderStroke(
+                width = 1.dp,
+                brush = liquidBorderBrush
+            ),
             shape = shape
         )
 }
