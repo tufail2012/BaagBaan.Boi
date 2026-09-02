@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -788,12 +789,12 @@ fun PaymentStatusSelector(
 }
 
 /**
- * Fluid Water-like Liquid Pill Indicator Modifier.
+ * Persistent 3D Fluid Liquid Pill Indicator Modifier.
  * Features:
- * - Fluid translucent water gradient with reduced color intensity for high contrast & legibility.
- * - Subtle bubbly blur halo & soft glowing drop shadow.
- * - Delicate water-surface meniscus reflection on the top rim (zero wavy distortion).
- * - Refractive liquid border stroke adapting smoothly to Dark, AMOLED, and Light themes.
+ * - Persistent 3D look using graphicsLayer (subtle rotationX, slight scale, and elevation/drop shadow).
+ * - Embossed physical depth with top specular meniscus reflection and subtle bottom bevel shadow.
+ * - Soft liquid/bubbly blur layer with reduced color saturation for high contrast in both Dark and Light modes.
+ * - Static while active with zero continuous looping animations.
  */
 @Composable
 fun Modifier.bubbleDropletPillIndicator(
@@ -802,24 +803,24 @@ fun Modifier.bubbleDropletPillIndicator(
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode()
 ): Modifier {
-    val dropShadowGlow = if (isDark) accentColor.copy(alpha = 0.32f) else accentColor.copy(alpha = 0.22f)
-    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x14000000)
+    val dropShadowGlow = if (isDark) accentColor.copy(alpha = 0.35f) else accentColor.copy(alpha = 0.24f)
+    val ambientShadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x18000000)
 
     // Reduced color intensity for crystal-clear icon & text contrast in both modes
     val liquidWaterBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                accentColor.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.28f),
                 accentColor.copy(alpha = 0.12f),
-                accentColor.copy(alpha = 0.20f)
+                accentColor.copy(alpha = 0.22f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.55f),
-                accentColor.copy(alpha = 0.14f),
-                accentColor.copy(alpha = 0.20f)
+                Color.White.copy(alpha = 0.60f),
+                accentColor.copy(alpha = 0.15f),
+                accentColor.copy(alpha = 0.22f)
             )
         )
     }
@@ -827,52 +828,67 @@ fun Modifier.bubbleDropletPillIndicator(
     val liquidBorderBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.45f),
-                accentColor.copy(alpha = 0.50f),
-                accentColor.copy(alpha = 0.25f)
+                Color.White.copy(alpha = 0.50f),
+                accentColor.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.30f),
+                Color.Black.copy(alpha = 0.20f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.85f),
-                accentColor.copy(alpha = 0.40f),
-                accentColor.copy(alpha = 0.25f)
+                Color.White.copy(alpha = 0.90f),
+                accentColor.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.30f),
+                Color.Black.copy(alpha = 0.08f)
             )
         )
     }
 
     return this
-        // 1. Subtle bubbly blur halo / glowing elevation
+        // 1. Persistent 3D transformation & elevation via graphicsLayer
+        .graphicsLayer {
+            this.rotationX = 3.5f // Subtle top-down 3D bevel perspective
+            this.rotationY = 0f
+            this.scaleX = 1.02f
+            this.scaleY = 1.02f
+            this.cameraDistance = 16f * density
+            this.shadowElevation = if (isDark) 6.dp.toPx() else 4.dp.toPx()
+            this.shape = shape
+            this.clip = false
+        }
+        // 2. Subtle bubbly blur halo / glowing elevation
         .shadow(
-            elevation = if (isDark) 4.dp else 3.dp,
+            elevation = if (isDark) 5.dp else 3.5.dp,
             shape = shape,
             spotColor = dropShadowGlow,
             ambientColor = ambientShadowColor
         )
         .clip(shape)
-        // 2. Base semi-transparent liquid body
+        // 3. Base semi-transparent liquid body with reduced color saturation
         .background(
-            color = if (isDark) accentColor.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.35f),
+            color = if (isDark) accentColor.copy(alpha = 0.09f) else Color.White.copy(alpha = 0.38f),
             shape = shape
         )
-        // 3. Fluid translucent water gradient
+        // 4. Fluid translucent water gradient
         .background(
             brush = liquidWaterBrush,
             shape = shape
         )
-        // 4. Clean liquid top meniscus reflection (linear, clean water surface - no wave distortion)
+        // 5. 3D Embossed lighting: top specular reflection & bottom bevel shadow
         .drawWithContent {
             drawContent()
             val w = size.width
-            val meniscusHeight = 1.8.dp.toPx()
-            val meniscusMargin = 4.dp.toPx()
+            val h = size.height
 
+            // Top specular meniscus reflection (clean water surface)
+            val meniscusHeight = 2.dp.toPx()
+            val meniscusMargin = 4.dp.toPx()
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark) 0.38f else 0.65f),
+                        Color.White.copy(alpha = if (isDark) 0.42f else 0.70f),
                         Color.Transparent
                     ),
                     startX = meniscusMargin,
@@ -881,8 +897,23 @@ fun Modifier.bubbleDropletPillIndicator(
                 topLeft = Offset(meniscusMargin, 1.dp.toPx()),
                 size = Size(w - (meniscusMargin * 2), meniscusHeight)
             )
+
+            // Bottom subtle bevel shadow for physical 3D embossed depth
+            val bevelHeight = 2.5.dp.toPx()
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Black.copy(alpha = if (isDark) 0.25f else 0.10f)
+                    ),
+                    startY = h - bevelHeight,
+                    endY = h
+                ),
+                topLeft = Offset(meniscusMargin, h - bevelHeight),
+                size = Size(w - (meniscusMargin * 2), bevelHeight)
+            )
         }
-        // 5. Delicate liquid border
+        // 6. Refractive liquid border
         .border(
             BorderStroke(width = 1.dp, brush = liquidBorderBrush),
             shape = shape

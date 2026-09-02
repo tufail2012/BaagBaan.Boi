@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -48,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -226,6 +228,34 @@ fun AgriBottomNav(
                             label = "navIconColor"
                         )
 
+                        // 3D Embossed lift, scale, and subtle rotation tilt
+                        val scale by animateFloatAsState(
+                            targetValue = if (isSelected) 1.10f else 1.0f,
+                            animationSpec = spring(
+                                dampingRatio = 0.72f,
+                                stiffness = 320f
+                            ),
+                            label = "navIconScale"
+                        )
+
+                        val liftY by animateDpAsState(
+                            targetValue = if (isSelected) (-2).dp else 0.dp,
+                            animationSpec = spring(
+                                dampingRatio = 0.72f,
+                                stiffness = 320f
+                            ),
+                            label = "navIconLift"
+                        )
+
+                        val rotX by animateFloatAsState(
+                            targetValue = if (isSelected) 6f else 0f,
+                            animationSpec = spring(
+                                dampingRatio = 0.72f,
+                                stiffness = 320f
+                            ),
+                            label = "navIconRotX"
+                        )
+
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -245,7 +275,15 @@ fun AgriBottomNav(
                                 imageVector = item.icon,
                                 contentDescription = item.title,
                                 tint = iconColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                        translationY = liftY.toPx()
+                                        rotationX = rotX
+                                        cameraDistance = 16f * density
+                                    }
                             )
                         }
                     }

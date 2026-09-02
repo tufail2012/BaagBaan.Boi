@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -47,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -160,6 +162,34 @@ fun PruningSubTabs(
                         label = "pruningTabColor"
                     )
 
+                    // 3D Embossed lift, scale, and subtle rotation tilt
+                    val scale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1.0f,
+                        animationSpec = spring(
+                            dampingRatio = 0.72f,
+                            stiffness = 320f
+                        ),
+                        label = "pruningScale"
+                    )
+
+                    val liftY by animateDpAsState(
+                        targetValue = if (isSelected) (-1.5).dp else 0.dp,
+                        animationSpec = spring(
+                            dampingRatio = 0.72f,
+                            stiffness = 320f
+                        ),
+                        label = "pruningLift"
+                    )
+
+                    val rotX by animateFloatAsState(
+                        targetValue = if (isSelected) 4f else 0f,
+                        animationSpec = spring(
+                            dampingRatio = 0.72f,
+                            stiffness = 320f
+                        ),
+                        label = "pruningRotX"
+                    )
+
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -180,7 +210,14 @@ fun PruningSubTabs(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                                translationY = liftY.toPx()
+                                rotationX = rotX
+                                cameraDistance = 16f * density
+                            }
                         ) {
                             Icon(
                                 imageVector = icon,
@@ -336,6 +373,21 @@ fun RootstockSubTabs(
                     targetValue = if (isM9Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                     label = "m9Color"
                 )
+                val m9Scale by animateFloatAsState(
+                    targetValue = if (isM9Selected) 1.05f else 1.0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "m9Scale"
+                )
+                val m9LiftY by animateDpAsState(
+                    targetValue = if (isM9Selected) (-1.5).dp else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "m9Lift"
+                )
+                val m9RotX by animateFloatAsState(
+                    targetValue = if (isM9Selected) 4f else 0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "m9RotX"
+                )
                 Box(
                     modifier = Modifier
                         .weight(1.0f)
@@ -358,7 +410,14 @@ fun RootstockSubTabs(
                         text = "M9-T337",
                         fontSize = 12.sp,
                         fontWeight = if (isM9Selected) FontWeight.Bold else FontWeight.Medium,
-                        color = m9Color
+                        color = m9Color,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = m9Scale
+                            scaleY = m9Scale
+                            translationY = m9LiftY.toPx()
+                            rotationX = m9RotX
+                            cameraDistance = 16f * density
+                        }
                     )
                 }
 
@@ -367,6 +426,21 @@ fun RootstockSubTabs(
                 val mm111Color by animateColorAsState(
                     targetValue = if (isMM111Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                     label = "mm111Color"
+                )
+                val mm111Scale by animateFloatAsState(
+                    targetValue = if (isMM111Selected) 1.05f else 1.0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "mm111Scale"
+                )
+                val mm111LiftY by animateDpAsState(
+                    targetValue = if (isMM111Selected) (-1.5).dp else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "mm111Lift"
+                )
+                val mm111RotX by animateFloatAsState(
+                    targetValue = if (isMM111Selected) 4f else 0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "mm111RotX"
                 )
                 Box(
                     modifier = Modifier
@@ -390,7 +464,14 @@ fun RootstockSubTabs(
                         text = "MM111",
                         fontSize = 12.sp,
                         fontWeight = if (isMM111Selected) FontWeight.Bold else FontWeight.Medium,
-                        color = mm111Color
+                        color = mm111Color,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = mm111Scale
+                            scaleY = mm111Scale
+                            translationY = mm111LiftY.toPx()
+                            rotationX = mm111RotX
+                            cameraDistance = 16f * density
+                        }
                     )
                 }
 
@@ -399,6 +480,21 @@ fun RootstockSubTabs(
                 val genevaColor by animateColorAsState(
                     targetValue = if (isGenevaActive) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                     label = "genevaColor"
+                )
+                val genevaScale by animateFloatAsState(
+                    targetValue = if (isGenevaActive) 1.05f else 1.0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "genevaScale"
+                )
+                val genevaLiftY by animateDpAsState(
+                    targetValue = if (isGenevaActive) (-1.5).dp else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "genevaLift"
+                )
+                val genevaRotX by animateFloatAsState(
+                    targetValue = if (isGenevaActive) 4f else 0f,
+                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
+                    label = "genevaRotX"
                 )
                 Box(
                     modifier = Modifier
@@ -418,7 +514,14 @@ fun RootstockSubTabs(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = genevaScale
+                            scaleY = genevaScale
+                            translationY = genevaLiftY.toPx()
+                            rotationX = genevaRotX
+                            cameraDistance = 16f * density
+                        }
                     ) {
                         Text(
                             text = activeGenevaLabel,
