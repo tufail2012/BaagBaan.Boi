@@ -113,18 +113,17 @@ fun AgriBottomNav(
     }
 
     val containerShape = RoundedCornerShape(percent = 50)
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Semi-transparent frosted glass container background that diffuses underlying content
-    val containerBgColor = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = if (hazeState != null) 0.65f else 0.90f)
-        isDark -> Color(0xFF0F172A).copy(alpha = if (hazeState != null) 0.60f else 0.88f)
-        else -> Color.White.copy(alpha = if (hazeState != null) 0.55f else 0.88f)
+    // Translucent glassmorphic container background (strictly non-opaque)
+    val containerBgColor = if (isDark || isAmoled) {
+        Color.Black.copy(alpha = 0.45f)
+    } else {
+        Color.White.copy(alpha = 0.35f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
-        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.18f) else Color(0xFF000000).copy(alpha = 0.09f)
+        color = if (isDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.40f)
     )
 
     Box(
@@ -141,19 +140,17 @@ fun AgriBottomNav(
                 .height(68.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Enhanced Frosted Glass Pill Container with High Backdrop Diffusion
-            val hazeModifier = if (hazeState != null) {
+            // Layer 1: Pure Semi-Transparent Frosted Glass Pill Container (No Opaque Surfaces)
+            val glassModifier = if (hazeState != null) {
                 Modifier
                     .hazeEffect(
                         state = hazeState,
                         style = HazeStyle(
-                            backgroundColor = surfaceColor,
                             tint = HazeTint(containerBgColor),
-                            blurRadius = 56.dp, // Heavy backdrop diffusion: obscures text details into soft ambient tint silhouettes
-                            noiseFactor = 0.05f
+                            blurRadius = 32.dp,
+                            noiseFactor = 0.02f
                         )
                     )
-                    .background(containerBgColor) // Ensure semi-transparent frosted surface layer
             } else {
                 Modifier.background(containerBgColor)
             }
@@ -162,13 +159,13 @@ fun AgriBottomNav(
                 modifier = Modifier
                     .fillMaxSize()
                     .shadow(
-                        elevation = 8.dp,
+                        elevation = 6.dp,
                         shape = containerShape,
-                        spotColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0x25000000),
-                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.25f) else Color(0x12000000)
+                        spotColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x18000000),
+                        ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
                     )
                     .clip(containerShape)
-                    .then(hazeModifier)
+                    .then(glassModifier)
                     .border(containerBorder, containerShape)
             )
 
