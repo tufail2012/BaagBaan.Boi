@@ -115,56 +115,6 @@ fun AgriBottomNav(
 
     val containerShape = RoundedCornerShape(percent = 50)
 
-    // Translucent glass tint letting real background colors diffuse through cleanly
-    val glassTint = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = 0.28f)
-        isDark -> Color(0xFF0B132B).copy(alpha = 0.22f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.18f)
-    }
-
-    // Translucent liquid glass gradient with subtle accent color diffusion
-    val translucentGlassBrush = Brush.verticalGradient(
-        colors = when {
-            isAmoled -> listOf(
-                Color.White.copy(alpha = 0.08f),
-                Color(0xFF09090B).copy(alpha = 0.18f),
-                activeSectionAccent.copy(alpha = 0.03f),
-                Color.Black.copy(alpha = 0.26f)
-            )
-            isDark -> listOf(
-                Color.White.copy(alpha = 0.12f),
-                Color(0xFF1E293B).copy(alpha = 0.15f),
-                activeSectionAccent.copy(alpha = 0.04f),
-                Color(0xFF0F172A).copy(alpha = 0.22f)
-            )
-            else -> listOf(
-                Color.White.copy(alpha = 0.38f),
-                Color(0xFFF8FAFC).copy(alpha = 0.12f),
-                activeSectionAccent.copy(alpha = 0.03f),
-                Color.White.copy(alpha = 0.25f)
-            )
-        }
-    )
-
-    // Thin bright 1dp glass rim with specular top highlight and accent refraction
-    val glassRimBrush = Brush.verticalGradient(
-        colors = if (isDark || isAmoled) {
-            listOf(
-                Color.White.copy(alpha = 0.65f), // Bright specular top rim
-                Color.White.copy(alpha = 0.25f), // Clear glass sides
-                activeSectionAccent.copy(alpha = 0.30f), // Accent color refraction
-                Color.White.copy(alpha = 0.15f)  // Soft bottom rim
-            )
-        } else {
-            listOf(
-                Color.White.copy(alpha = 0.95f), // Crisp bright top rim
-                Color.White.copy(alpha = 0.40f), // Translucent sides
-                activeSectionAccent.copy(alpha = 0.25f), // Soft accent diffusion
-                Color.White.copy(alpha = 0.35f)  // Subtle bottom rim
-            )
-        }
-    )
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -179,52 +129,14 @@ fun AgriBottomNav(
                 .height(68.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Layer 1: True Frosted Liquid Glass Background using the Profile Menu source of truth
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    // 1. Soft floating 3D elevation shadow
-                    .shadow(
-                        elevation = 12.dp,
-                        shape = containerShape,
-                        spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0x28000000),
-                        ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else Color(0x12000000)
-                    )
-                    .clip(containerShape)
-                    // 2. Real Haze backdrop blur with explicit backgroundColor
-                    .hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            backgroundColor = surfaceColor, // Kept in every theme to prevent crashes
-                            tint = HazeTint(glassTint),
-                            blurRadius = 24.dp,
-                            noiseFactor = 0.02f
-                        )
-                    )
-                    // 3. Translucent liquid glass gradient & color diffusion
-                    .background(brush = translucentGlassBrush, shape = containerShape)
-                    // 4. Subtle top inner specular reflection / edge sheen
-                    .drawWithContent {
-                        drawContent()
-                        val w = size.width
-                        val highlightHeight = 1.2.dp.toPx()
-                        val margin = 16.dp.toPx()
-                        drawRect(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.80f),
-                                    Color.Transparent
-                                ),
-                                startX = margin,
-                                endX = w - margin
-                            ),
-                            topLeft = Offset(margin, 1.dp.toPx()),
-                            size = Size(w - (margin * 2), highlightHeight)
-                        )
-                    }
-                    // 5. Thin bright 1dp glass rim
-                    .border(
-                        border = BorderStroke(width = 1.dp, brush = glassRimBrush),
+                    .frostedLiquidGlassMenuBackground(
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = activeSectionAccent,
                         shape = containerShape
                     )
             )
