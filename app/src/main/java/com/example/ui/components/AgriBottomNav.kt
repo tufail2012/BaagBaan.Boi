@@ -49,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -129,13 +130,14 @@ fun AgriBottomNav(
                 .height(68.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: True Frosted Liquid Glass Background using the Profile Menu source of truth
+            // Layer 1: Frosted Liquid Glass Background with Deep Blur & Zero Transparency
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .frostedLiquidGlassMenuBackground(
+                    .deepBlurNavBarBackground(
                         hazeState = hazeState,
                         isDark = isDark,
+                        isAmoled = isAmoled,
                         accentColor = activeSectionAccent,
                         shape = containerShape
                     )
@@ -150,8 +152,9 @@ fun AgriBottomNav(
                 val totalWidth = maxWidth
                 val itemCount = navItems.size
                 val slotWidth = totalWidth / itemCount
-                val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
+                val isLight = !isDark && !isAmoled
                 val pillHeight = 48.dp
+                val basePillWidth = if (isLight) minOf(48.dp, slotWidth - 4.dp) else minOf(54.dp, slotWidth - 2.dp)
 
                 val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - basePillWidth) / 2
 
@@ -191,7 +194,7 @@ fun AgriBottomNav(
                 ) {
                     navItems.forEachIndexed { index, item ->
                         val isSelected = index == selectedIndex
-                        val unselectedColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        val unselectedColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF7E8B9B)
                         val selectedColor = if (isDark) Color.White else activeSectionAccent
 
                         val iconColor by animateColorAsState(
@@ -263,4 +266,148 @@ fun AgriBottomNav(
             }
         }
     }
+}
+
+/**
+ * Gradient Color Blur Navigation Bar Modifier for Baagbaan BOI.
+ * Features:
+ * - Real optical backdrop blur via Haze with an elegant tinted color gradient.
+ * - Multi-stop vibrant color gradient overlay blending seamlessly across the bar.
+ * - Specular sheen highlight, frosted micro-grain noise, and subtle refractive rim.
+ */
+fun Modifier.deepBlurNavBarBackground(
+    hazeState: HazeState?,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    accentColor: Color,
+    shape: Shape = RoundedCornerShape(percent = 50)
+): Modifier {
+    // Dynamic complementary color pairing for rich chromatic gradient blur
+    val secondaryGradientColor = if (isDark || isAmoled) {
+        Color(
+            red = (accentColor.red * 0.45f + 0.15f).coerceIn(0f, 1f),
+            green = (accentColor.green * 0.35f + 0.10f).coerceIn(0f, 1f),
+            blue = (accentColor.blue * 0.70f + 0.30f).coerceIn(0f, 1f)
+        )
+    } else {
+        Color(
+            red = (accentColor.red * 0.35f + 0.65f).coerceIn(0f, 1f),
+            green = (accentColor.green * 0.50f + 0.50f).coerceIn(0f, 1f),
+            blue = (accentColor.blue * 0.85f + 0.15f).coerceIn(0f, 1f)
+        )
+    }
+
+    val hazeStyle = HazeStyle(
+        backgroundColor = if (isAmoled) {
+            Color.Black.copy(alpha = 0.70f)
+        } else if (isDark) {
+            Color(0xFF0F0E13).copy(alpha = 0.70f)
+        } else {
+            Color(0xFFFAF5F2).copy(alpha = 0.65f)
+        },
+        blurRadius = 32.dp, // Optical backdrop blur
+        tints = listOf(
+            HazeTint(
+                color = if (isDark || isAmoled) {
+                    accentColor.copy(alpha = 0.30f)
+                } else {
+                    accentColor.copy(alpha = 0.22f)
+                }
+            )
+        ),
+        noiseFactor = 0.20f
+    )
+
+    val glassRimBrush = Brush.linearGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.40f),
+                secondaryGradientColor.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.10f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.95f),
+                accentColor.copy(alpha = 0.50f),
+                secondaryGradientColor.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.65f)
+            )
+        }
+    )
+
+    return this
+        // 1. Soft 3D floating drop shadow with ambient color glow
+        .shadow(
+            elevation = 18.dp,
+            shape = shape,
+            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.55f) else Color(0x35000000),
+            ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.30f else 0.22f)
+        )
+        .clip(shape)
+        // 2. Real optical backdrop blur via Haze
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
+        // 3. Vibrant chromatic gradient blur overlay
+        .background(
+            brush = if (isDark || isAmoled) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = 0.32f),
+                        Color(0xFF1E1B28).copy(alpha = 0.82f),
+                        secondaryGradientColor.copy(alpha = 0.28f),
+                        Color(0xFF0F0E16).copy(alpha = 0.88f)
+                    )
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = 0.28f),
+                        Color(0xFFFFF7F2).copy(alpha = 0.82f),
+                        secondaryGradientColor.copy(alpha = 0.25f),
+                        Color(0xFFF3E8FF).copy(alpha = 0.85f)
+                    )
+                )
+            },
+            shape = shape
+        )
+        // 4. Soft noise grain overlay and specular top highlight
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val highlightHeight = 1.5.dp.toPx()
+            val margin = 12.dp.toPx()
+
+            // Soft procedural micro-grain overlay for tactile frosted noisy blur
+            drawRect(
+                brush = SoftNoiseTexture.getOrCreateBrush(),
+                alpha = if (isDark || isAmoled) 0.14f else 0.16f
+            )
+
+            // Top specular shine with soft gradient refraction
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.85f),
+                        Color.Transparent
+                    ),
+                    startX = margin,
+                    endX = w - margin
+                ),
+                topLeft = Offset(margin, 1.dp.toPx()),
+                size = Size(w - (margin * 2), highlightHeight)
+            )
+        }
+        // 5. Crisp refractive gradient glass border
+        .border(
+            width = 1.dp,
+            brush = glassRimBrush,
+            shape = shape
+        )
 }

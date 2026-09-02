@@ -1143,27 +1143,29 @@ fun Modifier.frostedLiquidGlassMenuBackground(
                 Color.White.copy(alpha = 0.05f)  // Soft bottom rim
             )
         } else {
+            // Light mode matching uploaded reference pic
             listOf(
-                Color.White.copy(alpha = 0.95f), // Crisp bright top rim
-                Color.White.copy(alpha = 0.45f), // Translucent sides
-                accentColor.copy(alpha = 0.30f), // Soft accent diffusion
-                Color.White.copy(alpha = 0.40f)  // Subtle bottom rim
+                Color.White,
+                Color.White.copy(alpha = 0.75f),
+                accentColor.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.50f)
             )
         }
     )
 
     val hazeStyle = HazeStyle(
-        backgroundColor = if (isDark || isAmoled) Color(0xFF0C0B0F).copy(alpha = 0.72f) else Color(0xFFFFFFFF).copy(alpha = 0.75f),
+        backgroundColor = if (isDark || isAmoled) Color(0xFF0C0B0F).copy(alpha = 0.72f) else Color(0xFFFAF4F1).copy(alpha = 0.80f),
         blurRadius = 24.dp,
         tints = listOf(
             HazeTint(
                 color = if (isDark || isAmoled) {
                     Color(0xFF14121A).copy(alpha = 0.65f)
                 } else {
-                    Color.White.copy(alpha = 0.72f)
+                    Color.White.copy(alpha = 0.70f)
                 }
             )
-        )
+        ),
+        noiseFactor = 0.22f
     )
 
     return this
@@ -1171,8 +1173,8 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0x30000000),
-            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else Color(0x14000000)
+            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0x28000000),
+            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else accentColor.copy(alpha = 0.10f)
         )
         .clip(shape)
         // 2. Real frosted backdrop blur via Haze
@@ -1189,29 +1191,36 @@ fun Modifier.frostedLiquidGlassMenuBackground(
                     )
                 )
             } else {
+                // Light mode warm frosted glass gradient matching uploaded pic
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.85f),
-                        Color.White.copy(alpha = 0.50f),
-                        accentColor.copy(alpha = 0.10f),
-                        Color(0xFFF1F5F9).copy(alpha = 0.60f)
+                        Color.White.copy(alpha = 0.92f),
+                        Color(0xFFFAF4F1).copy(alpha = 0.85f),
+                        accentColor.copy(alpha = 0.12f),
+                        Color(0xFFF6ECE7).copy(alpha = 0.88f)
                     )
                 )
             },
             shape = shape
         )
-        // 4. Subtle top inner specular reflection / edge sheen
+        // 4. Subtle top inner specular reflection / edge sheen & Soft Noisy Grain Overlay
         .drawWithContent {
             drawContent()
             val w = size.width
             val highlightHeight = 1.5.dp.toPx()
             val margin = 10.dp.toPx()
 
+            // Soft procedural micro-grain overlay for tactile frosted noisy blur
+            drawRect(
+                brush = SoftNoiseTexture.getOrCreateBrush(),
+                alpha = if (isDark || isAmoled) 0.14f else 0.16f
+            )
+
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.80f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.85f),
                         Color.Transparent
                     ),
                     startX = margin,
@@ -1255,7 +1264,8 @@ fun Modifier.frostedLiquidGlassMenuItem(
                         Color.White.copy(alpha = 0.50f)
                     }
                 )
-            )
+            ),
+            noiseFactor = 0.20f
         )
     } else null
 
@@ -1291,10 +1301,10 @@ fun Modifier.frostedLiquidGlassMenuItem(
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.75f),
-                Color.White.copy(alpha = 0.45f),
-                accentColor.copy(alpha = 0.08f),
-                Color(0xFFF1F5F9).copy(alpha = 0.40f)
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.60f),
+                accentColor.copy(alpha = 0.10f),
+                Color(0xFFF8EEEA).copy(alpha = 0.60f)
             )
         )
     }
@@ -1320,6 +1330,12 @@ fun Modifier.frostedLiquidGlassMenuItem(
             val w = size.width
             val highlightHeight = 1.2.dp.toPx()
             val margin = 8.dp.toPx()
+
+            // Soft procedural micro-grain overlay for tactile frosted noisy blur
+            drawRect(
+                brush = SoftNoiseTexture.getOrCreateBrush(),
+                alpha = if (isDark || isAmoled) 0.12f else 0.15f
+            )
 
             drawRect(
                 brush = Brush.horizontalGradient(

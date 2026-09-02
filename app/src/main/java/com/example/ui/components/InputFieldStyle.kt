@@ -903,55 +903,80 @@ fun Modifier.bubbleDropletPillIndicator(
         )
         // 3. Clip to shape
         .clip(shape)
-        // 4. Solid opaque base layer ensuring 100% complete obscurity of underlying text/shapes
-        .background(color = solidPillBase, shape = shape)
-        // 5. Vibrant 3D glossy gel gradient in accentColor matching reference screenshot
+        // 4. Frosted backdrop blur via Haze in dark mode; in light mode keep solid to remove transparency
+        .then(
+            if (hazeState != null && (isDark || isAmoled)) {
+                val pillHazeStyle = HazeStyle(
+                    backgroundColor = Color(0xFF121017).copy(alpha = 0.50f),
+                    blurRadius = 18.dp,
+                    tints = listOf(
+                        HazeTint(color = accentColor.copy(alpha = 0.40f))
+                    ),
+                    noiseFactor = 0.20f
+                )
+                Modifier.hazeEffect(state = hazeState, style = pillHazeStyle)
+            } else {
+                Modifier
+            }
+        )
+        // 5. Solid base layer in light mode (completely removing transparency) / translucent gel base in dark mode
+        .background(
+            color = if (isDark || isAmoled) {
+                if (isAmoled) Color.Black.copy(alpha = 0.55f) else Color(0xFF0C0B0F).copy(alpha = 0.60f)
+            } else {
+                Color.White
+            },
+            shape = shape
+        )
+        // 6. 3D frosted glass pill: crisp solid white glass in Light Mode (matching photo reference), vibrant gel in Dark Mode
         .background(
             brush = if (isDark || isAmoled) {
                 val darkShade = Color(
                     red = (accentColor.red * 0.55f).coerceIn(0f, 1f),
                     green = (accentColor.green * 0.55f).coerceIn(0f, 1f),
                     blue = (accentColor.blue * 0.55f).coerceIn(0f, 1f),
-                    alpha = 1f
+                    alpha = 0.85f
                 )
                 Brush.verticalGradient(
                     colors = listOf(
-                        accentColor,
                         accentColor.copy(alpha = 0.92f),
+                        accentColor.copy(alpha = 0.82f),
                         darkShade
                     )
                 )
             } else {
+                // Light mode: Solid elevated frosted white glass pill without transparency
                 Brush.verticalGradient(
                     colors = listOf(
-                        accentColor,
-                        accentColor.copy(alpha = 0.88f),
-                        Color(
-                            red = (accentColor.red * 0.7f).coerceIn(0f, 1f),
-                            green = (accentColor.green * 0.7f).coerceIn(0f, 1f),
-                            blue = (accentColor.blue * 0.7f).coerceIn(0f, 1f),
-                            alpha = 1f
-                        )
+                        Color.White,
+                        Color.White,
+                        Color(0xFFFAF5F2)
                     )
                 )
             },
             shape = shape
         )
-        // 6. 3D Embossed lighting: top specular gel shine dome reflection
+        // 7. 3D Embossed lighting & Soft Noisy Grain Overlay
         .drawWithContent {
             drawContent()
             val w = size.width
             val h = size.height
 
-            // Top specular capsule reflection (glossy gel shine seen in reference screenshot)
+            // Soft tactile micro-grain overlay for noisy frosted glass
+            drawRect(
+                brush = SoftNoiseTexture.getOrCreateBrush(),
+                alpha = if (isDark || isAmoled) 0.12f else 0.15f
+            )
+
+            // Top specular capsule reflection (glossy gel/glass shine)
             val gelHighlightHeight = h * 0.45f
             val margin = 4.dp.toPx()
 
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.48f),
-                        Color.White.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.48f else 0.85f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.15f else 0.25f),
                         Color.Transparent
                     )
                 ),
@@ -959,7 +984,7 @@ fun Modifier.bubbleDropletPillIndicator(
                 size = Size(w - (margin * 2), gelHighlightHeight)
             )
         }
-        // 7. Refractive 1dp glass border
+        // 8. Refractive 1dp glass border
         .border(
             BorderStroke(
                 width = 1.dp,

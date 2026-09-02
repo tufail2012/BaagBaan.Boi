@@ -698,9 +698,13 @@ fun AgriCropMainScreen(
                                 .fillMaxSize()
                                 .padding(top = innerPadding.calculateTopPadding())
                                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                                .hazeSource(state = hazeState)
                         ) {
-                            when {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .hazeSource(state = hazeState)
+                            ) {
+                                when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
                                     UserBookingsSection(viewModel = userDashboardViewModel)
                                 }
@@ -764,6 +768,7 @@ fun AgriCropMainScreen(
                                     }
                                 }
                             }
+                        }
 
                             // Floating Sticky Header with Backdrop Blur for New Entry / Records toggle
                             val isCropService = !selectedService.equals("Bookings", ignoreCase = true) &&
