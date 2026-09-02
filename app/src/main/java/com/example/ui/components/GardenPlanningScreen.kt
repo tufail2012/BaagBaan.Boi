@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.example.ui.components.BrandedPullToRefreshBox
@@ -370,11 +372,13 @@ fun GardenPlanningScreen(
         )
     }
 
+    val hazeState = remember { HazeState() }
+
     Surface(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().hazeSource(state = hazeState)) {
             // Consistent Main App Header
             if (showHeader) {
                 AgriHeader(
@@ -406,7 +410,8 @@ fun GardenPlanningScreen(
                 onLogout = onLogout,
                 onManualSync = onManualSync,
                 onNavigateToSettings = onNavigateToSettings,
-                onBack = null
+                onBack = null,
+                hazeState = hazeState
             )
             }
 
@@ -422,6 +427,7 @@ fun GardenPlanningScreen(
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
                 onModeSelected = { viewModel.selectedTabIndex.value = it },
+                hazeState = hazeState,
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntries.size})",
                 accentColor = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)

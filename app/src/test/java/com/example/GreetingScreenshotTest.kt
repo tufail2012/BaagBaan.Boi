@@ -17,6 +17,7 @@ import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
 import com.example.ui.theme.MyApplicationTheme
+import dev.chrisbanes.haze.HazeState
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -44,10 +45,12 @@ class GreetingScreenshotTest {
   fun local_plants_header_light_mode_screenshot() {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.LIGHT) {
+        val hazeState = HazeState()
         AgriHeader(
           title = "Local Plants",
           themeMode = AppThemeMode.LIGHT,
-          onSelectThemeMode = {}
+          onSelectThemeMode = {},
+          hazeState = hazeState
         )
       }
     }
@@ -59,10 +62,12 @@ class GreetingScreenshotTest {
   fun local_plants_header_dark_mode_screenshot() {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DARK) {
+        val hazeState = HazeState()
         AgriHeader(
           title = "Local Plants",
           themeMode = AppThemeMode.DARK,
-          onSelectThemeMode = {}
+          onSelectThemeMode = {},
+          hazeState = hazeState
         )
       }
     }
@@ -74,11 +79,13 @@ class GreetingScreenshotTest {
   fun pruning_subtabs_light_mode_screenshot() {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.LIGHT) {
+        val hazeState = HazeState()
         Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
           Column {
             AgriSegmentedControl(
               selectedMode = 0,
               onModeSelected = {},
+              hazeState = hazeState,
               recordsLabel = "Records (12)"
             )
             PruningSubTabs(
@@ -97,11 +104,13 @@ class GreetingScreenshotTest {
   fun pruning_subtabs_dark_mode_screenshot() {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DARK) {
+        val hazeState = HazeState()
         Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(16.dp)) {
           Column {
             AgriSegmentedControl(
               selectedMode = 0,
               onModeSelected = {},
+              hazeState = hazeState,
               recordsLabel = "Records (12)"
             )
             PruningSubTabs(

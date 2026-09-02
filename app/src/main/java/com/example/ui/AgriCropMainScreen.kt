@@ -688,28 +688,6 @@ fun AgriCropMainScreen(
                                 }
                             }
                         },
-                        bottomBar = {
-                            AgriBottomNav(
-                                selectedCategory = selectedService,
-                                onCategorySelected = { category ->
-                                    val targetIndex = mainTabs.indexOfFirst { it.equals(category, ignoreCase = true) }
-                                    viewModel.selectServiceCategory(category)
-                                    if (category.equals("Garden Planning", ignoreCase = true) || category.equals("Garden", ignoreCase = true)) {
-                                        gardenPlanningViewModel.resetToNewEntry()
-                                    }
-                                    if (targetIndex >= 0) {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(
-                                                page = targetIndex,
-                                                animationSpec = tween(durationMillis = 300)
-                                            )
-                                        }
-                                    }
-                                },
-                                accentColor = sectionAccentColor,
-                                hazeState = hazeState
-                            )
-                        },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
                     ) { innerPadding ->
                         Box(
@@ -793,14 +771,39 @@ fun AgriCropMainScreen(
                                 AgriSegmentedControl(
                                     selectedMode = viewMode,
                                     onModeSelected = { viewModel.setViewMode(it) },
+                                    hazeState = hazeState,
                                     recordsLabel = "Records ($cropRecordsCount)",
                                     accentColor = sectionAccentColor,
-                                    hazeState = hazeState,
                                     modifier = Modifier
                                         .align(Alignment.TopCenter)
                                         .zIndex(10f)
                                 )
                             }
+
+                            // Floating Bottom Navigation Bar with Backdrop Blur overlaid inside hazeSource
+                            AgriBottomNav(
+                                selectedCategory = selectedService,
+                                onCategorySelected = { category ->
+                                    val targetIndex = mainTabs.indexOfFirst { it.equals(category, ignoreCase = true) }
+                                    viewModel.selectServiceCategory(category)
+                                    if (category.equals("Garden Planning", ignoreCase = true) || category.equals("Garden", ignoreCase = true)) {
+                                        gardenPlanningViewModel.resetToNewEntry()
+                                    }
+                                    if (targetIndex >= 0) {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(
+                                                page = targetIndex,
+                                                animationSpec = tween(durationMillis = 300)
+                                            )
+                                        }
+                                    }
+                                },
+                                hazeState = hazeState,
+                                accentColor = sectionAccentColor,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .zIndex(10f)
+                            )
 
                             // Full-screen booking confirmation overlay
                             BookingConfirmationOverlay()

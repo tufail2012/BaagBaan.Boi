@@ -66,11 +66,11 @@ data class SegmentedTabEntry(
 fun AgriSegmentedControl(
     selectedMode: Int, // 0 = New Entry, 1 = Records, 2 = Analytics etc.
     onModeSelected: (Int) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
     newEntryLabel: String = "New Entry",
     recordsLabel: String = "Records",
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val items = listOf(
         SegmentedTabEntry(title = newEntryLabel, testTag = "tab_new_entry"),
@@ -81,8 +81,8 @@ fun AgriSegmentedControl(
         items = items,
         selectedIndex = selectedMode.coerceIn(0, items.size - 1),
         onItemSelected = onModeSelected,
-        accentColor = accentColor,
         hazeState = hazeState,
+        accentColor = accentColor,
         modifier = modifier
     )
 }
@@ -92,9 +92,9 @@ fun LiquidGlassSegmentedSwitcher(
     items: List<SegmentedTabEntry>,
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
@@ -116,20 +116,6 @@ fun LiquidGlassSegmentedSwitcher(
         else -> Color(0xFFE2E8F0).copy(alpha = 0.90f)
     }
 
-    val hazeModifier = if (hazeState != null) {
-        Modifier.hazeEffect(
-            state = hazeState,
-            style = HazeStyle(
-                backgroundColor = surfaceColor,
-                tint = HazeTint(containerBgColor),
-                blurRadius = 32.dp,
-                noiseFactor = 0.02f
-            )
-        )
-    } else {
-        Modifier.background(containerBgColor)
-    }
-
     // Outer floating pill container
     Box(
         modifier = modifier
@@ -143,7 +129,15 @@ fun LiquidGlassSegmentedSwitcher(
                 ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
             )
             .clip(containerShape)
-            .then(hazeModifier)
+            .hazeEffect(
+                state = hazeState,
+                style = HazeStyle(
+                    backgroundColor = surfaceColor,
+                    tint = HazeTint(containerBgColor),
+                    blurRadius = 32.dp,
+                    noiseFactor = 0.02f
+                )
+            )
             .border(BorderStroke(1.dp, containerBorderColor), containerShape)
             .padding(4.dp)
     ) {

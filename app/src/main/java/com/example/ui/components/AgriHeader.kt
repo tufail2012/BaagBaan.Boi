@@ -154,7 +154,7 @@ fun AgriHeader(
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    hazeState: HazeState? = null,
+    hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1142,7 +1142,7 @@ private fun HeaderProfileAvatar(
  */
 @Composable
 fun Modifier.frostedLiquidGlassMenuBackground(
-    hazeState: HazeState? = null,
+    hazeState: HazeState,
     isDark: Boolean = isAppInDarkMode(),
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     accentColor: Color = Color(0xFF10B981),
@@ -1156,27 +1156,6 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         isAmoled -> Color(0xFF000000).copy(alpha = 0.35f)
         isDark -> Color(0xFF0B132B).copy(alpha = 0.28f)
         else -> Color(0xFFFFFFFF).copy(alpha = 0.22f)
-    }
-
-    // Haze backdrop blur modifier with mandatory explicit backgroundColor
-    val hazeModifier = if (hazeState != null) {
-        Modifier.hazeEffect(
-            state = hazeState,
-            style = HazeStyle(
-                backgroundColor = surfaceColor, // CRITICAL: Kept in every theme to prevent crashes
-                tint = HazeTint(glassTint),
-                blurRadius = 24.dp,
-                noiseFactor = 0.02f // very subtle tactile glass grain
-            )
-        )
-    } else {
-        Modifier.background(
-            color = when {
-                isAmoled -> Color(0xFF0A0A0C).copy(alpha = 0.85f)
-                isDark -> Color(0xFF0F172A).copy(alpha = 0.80f)
-                else -> Color(0xFFFFFFFF).copy(alpha = 0.78f)
-            }
-        )
     }
 
     // Translucent liquid glass gradient with subtle accent color diffusion
@@ -1232,7 +1211,15 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         )
         .clip(shape)
         // 2. Real Haze backdrop blur with explicit backgroundColor
-        .then(hazeModifier)
+        .hazeEffect(
+            state = hazeState,
+            style = HazeStyle(
+                backgroundColor = surfaceColor, // CRITICAL: Kept in every theme to prevent crashes
+                tint = HazeTint(glassTint),
+                blurRadius = 24.dp,
+                noiseFactor = 0.02f // very subtle tactile glass grain
+            )
+        )
         // 3. Translucent liquid glass gradient & color diffusion
         .background(brush = translucentGlassBrush, shape = shape)
         // 4. Subtle top inner specular reflection / edge sheen

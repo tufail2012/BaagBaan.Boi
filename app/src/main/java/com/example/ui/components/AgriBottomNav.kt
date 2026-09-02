@@ -80,9 +80,9 @@ data class AgriNavItem(
 fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color? = null,
-    hazeState: HazeState? = null
+    accentColor: Color? = null
 ) {
     val navItems = remember {
         listOf(
@@ -126,20 +126,6 @@ fun AgriBottomNav(
         color = if (isDark || isAmoled) Color.White.copy(alpha = 0.16f) else Color(0xFFE2E8F0).copy(alpha = 0.90f)
     )
 
-    val hazeModifier = if (hazeState != null) {
-        Modifier.hazeEffect(
-            state = hazeState,
-            style = HazeStyle(
-                backgroundColor = surfaceColor,
-                tint = HazeTint(containerBgColor),
-                blurRadius = 32.dp,
-                noiseFactor = 0.02f
-            )
-        )
-    } else {
-        Modifier.background(containerBgColor)
-    }
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -164,7 +150,15 @@ fun AgriBottomNav(
                         ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
                     )
                     .clip(containerShape)
-                    .then(hazeModifier)
+                    .hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            backgroundColor = surfaceColor,
+                            tint = HazeTint(containerBgColor),
+                            blurRadius = 32.dp,
+                            noiseFactor = 0.02f
+                        )
+                    )
                     .border(containerBorder, containerShape)
             )
 

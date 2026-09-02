@@ -1,5 +1,7 @@
 package com.example.ui.components.attendance
 
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberCoroutineScope
@@ -154,6 +156,8 @@ fun AttendanceHomeScreen(
         }
     }
 
+    val hazeState = remember { HazeState() }
+
     Scaffold(
         topBar = {
             Column {
@@ -186,7 +190,8 @@ fun AttendanceHomeScreen(
                     currentUserPhotoUrl = currentUserPhotoUrl,
                     onLogout = onLogout,
                     onManualSync = onManualSync,
-                    onBack = onNavigateBack
+                    onBack = onNavigateBack,
+                    hazeState = hazeState
                 )
 
                 Surface(
@@ -244,6 +249,7 @@ fun AttendanceHomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
+                .hazeSource(state = hazeState)
         ) {
             // Month Selector Bar
             Surface(
