@@ -126,6 +126,8 @@ fun AgriBottomNav(
         color = if (isDark) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.40f)
     )
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -146,6 +148,7 @@ fun AgriBottomNav(
                     .hazeEffect(
                         state = hazeState,
                         style = HazeStyle(
+                            backgroundColor = surfaceColor,
                             tint = HazeTint(containerBgColor),
                             blurRadius = 32.dp,
                             noiseFactor = 0.02f
