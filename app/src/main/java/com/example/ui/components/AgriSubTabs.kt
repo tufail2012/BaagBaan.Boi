@@ -82,13 +82,13 @@ fun PruningSubTabs(
 
     val containerBgColor = when {
         isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF1E293B)
+        isDark -> Color(0xFF202532)
         else -> Color(0xFFFFFFFF)
     }
 
     val containerBorderColor = when {
         isAmoled -> Color(0xFF262626)
-        isDark -> Color(0xFF334155)
+        isDark -> Color(0xFF384050)
         else -> Color(0xFFE2E8F0)
     }
 
@@ -153,9 +153,9 @@ fun PruningSubTabs(
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
-                            accentColor
+                            Color.White
                         } else {
-                            if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                         },
                         animationSpec = tween(durationMillis = 200),
                         label = "pruningTabColor"
@@ -265,13 +265,13 @@ fun RootstockSubTabs(
 
     val containerBgColor = when {
         isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF1E293B)
+        isDark -> Color(0xFF202532)
         else -> Color(0xFFFFFFFF)
     }
 
     val containerBorderColor = when {
         isAmoled -> Color(0xFF262626)
-        isDark -> Color(0xFF334155)
+        isDark -> Color(0xFF384050)
         else -> Color(0xFFE2E8F0)
     }
 
@@ -368,7 +368,7 @@ fun RootstockSubTabs(
                 // 1. M9-T337
                 val isM9Selected = selectedIndex == 0
                 val m9Color by animateColorAsState(
-                    targetValue = if (isM9Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    targetValue = if (isM9Selected) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
                     label = "m9Color"
                 )
                 val m9Scale by animateFloatAsState(
@@ -422,7 +422,7 @@ fun RootstockSubTabs(
                 // 2. MM111
                 val isMM111Selected = selectedIndex == 1
                 val mm111Color by animateColorAsState(
-                    targetValue = if (isMM111Selected) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    targetValue = if (isMM111Selected) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
                     label = "mm111Color"
                 )
                 val mm111Scale by animateFloatAsState(
@@ -476,7 +476,7 @@ fun RootstockSubTabs(
                 // 3. Geneva Dropdown
                 val isGenevaActive = selectedIndex == 2
                 val genevaColor by animateColorAsState(
-                    targetValue = if (isGenevaActive) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                    targetValue = if (isGenevaActive) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
                     label = "genevaColor"
                 )
                 val genevaScale by animateFloatAsState(

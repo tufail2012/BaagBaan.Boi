@@ -52,15 +52,11 @@ fun MyApplicationTheme(
             )
         }
         isDark -> {
-            val darkBg = getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = false)
-            val hsv = FloatArray(3)
-            android.graphics.Color.RGBToHSV(
-                (accentColor.red * 255f).toInt().coerceIn(0, 255),
-                (accentColor.green * 255f).toInt().coerceIn(0, 255),
-                (accentColor.blue * 255f).toInt().coerceIn(0, 255),
-                hsv
-            )
-            val darkSurface = Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.10f, 0.13f)))
+            val darkBg = Color(0xFF000000) // Pitch black background matching reference screenshot
+            val darkSurface = Color(0xFF141217)
+            val darkSurfaceVariant = Color(0xFF1E1C23)
+            val darkSurfaceContainer = Color(0xFF18161D)
+            val darkSurfaceContainerHigh = Color(0xFF242127)
             darkColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,
@@ -69,11 +65,14 @@ fun MyApplicationTheme(
                 secondary = accentColor,
                 background = darkBg,
                 surface = darkSurface,
-                surfaceVariant = Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.08f, 0.16f))),
-                onBackground = Color.White,
-                onSurface = Color.White,
-                onSurfaceVariant = Color(0xFFB0B0B0),
-                outline = Color(0xFF383838)
+                surfaceVariant = darkSurfaceVariant,
+                surfaceContainer = darkSurfaceContainer,
+                surfaceContainerHigh = darkSurfaceContainerHigh,
+                onBackground = Color(0xFFFFFFFF),
+                onSurface = Color(0xFFFFFFFF),
+                onSurfaceVariant = Color(0xFFCBD5E1),
+                outline = Color(0xFF38343E),
+                outlineVariant = Color(0xFF28252E)
             )
         }
         else -> {

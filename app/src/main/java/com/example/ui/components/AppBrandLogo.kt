@@ -52,13 +52,13 @@ fun AppBrandLogo(
 
     val backgroundColor = when {
         isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF121212)
+        isDark -> Color(0xFF222632)
         else -> Color(0xFFFFFFFF)
     }
 
     val borderColor = when {
         isAmoled -> Color(0xFF262626)
-        isDark -> Color(0xFF2E2E2E)
+        isDark -> Color(0xFF383F4F)
         else -> Color(0xFFE5E7EB)
     }
 

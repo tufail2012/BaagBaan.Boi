@@ -167,9 +167,9 @@ fun LiquidGlassSegmentedSwitcher(
 
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) {
-                            if (isDark) accentColor else accentColor
+                            Color.White
                         } else {
-                            if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                         },
                         animationSpec = tween(durationMillis = 200),
                         label = "tabTextColor"

@@ -424,37 +424,48 @@ fun GardenPlanningScreen(
                     null
                 }
             }
+            val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
                 onModeSelected = { viewModel.selectedTabIndex.value = it },
                 hazeState = hazeState,
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntries.size})",
-                accentColor = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
+                accentColor = gardenAccent
             )
 
-            when (selectedTabIndex) {
-                0 -> {
-                    GardenPlanningFormTab(
-                        viewModel = viewModel,
-                        isDark = isDark,
-                        onSaved = { viewModel.selectedTabIndex.value = 1 }
-                    )
-                }
-                1 -> {
-                    GardenPlanningRecordsTab(
-                        viewModel = viewModel,
-                        entries = filteredEntries,
-                        isDark = isDark,
-                        onEdit = { entry ->
-                            viewModel.loadEntryForEdit(entry)
-                            viewModel.selectedTabIndex.value = 0
-                        },
-                        onAddNewEntry = {
-                            viewModel.clearForm()
-                            viewModel.selectedTabIndex.value = 0
-                        }
-                    )
+            // Smooth rounded container between header/segmented control and sections
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+            ) {
+                when (selectedTabIndex) {
+                    0 -> {
+                        GardenPlanningFormTab(
+                            viewModel = viewModel,
+                            isDark = isDark,
+                            onSaved = { viewModel.selectedTabIndex.value = 1 },
+                            customPaletteColor = gardenAccent
+                        )
+                    }
+                    1 -> {
+                        GardenPlanningRecordsTab(
+                            viewModel = viewModel,
+                            entries = filteredEntries,
+                            isDark = isDark,
+                            onEdit = { entry ->
+                                viewModel.loadEntryForEdit(entry)
+                                viewModel.selectedTabIndex.value = 0
+                            },
+                            onAddNewEntry = {
+                                viewModel.clearForm()
+                                viewModel.selectedTabIndex.value = 0
+                            },
+                            customPaletteColor = gardenAccent
+                        )
+                    }
                 }
             }
         }
@@ -464,15 +475,52 @@ fun GardenPlanningScreen(
 enum class LastEditedField { AREA, TOTAL_PLANTS, NONE }
 
 @Composable
+private fun FormSectionHeader(
+    title: String,
+    accentColor: Color,
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = accentColor.copy(alpha = if (isDark) 0.16f else 0.08f),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = if (isDark) 0.35f else 0.22f)),
+        modifier = modifier.padding(top = 10.dp, bottom = 2.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(accentColor)
+            )
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = accentColor,
+                letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
+@Composable
 fun GardenPlanningFormTab(
     viewModel: GardenPlanningViewModel,
     isDark: Boolean,
-    onSaved: () -> Unit
+    onSaved: () -> Unit,
+    customPaletteColor: Color? = null
 ) {
+    val gardenAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val textFieldShape = RoundedCornerShape(14.dp)
+    val textFieldShape = RoundedCornerShape(22.dp)
     val pillShape = textFieldShape
 
     var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
@@ -708,6 +756,7 @@ fun GardenPlanningFormTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -771,13 +820,10 @@ fun GardenPlanningFormTab(
         )
 
         // Section Header: FARMER DETAILS
-        Text(
-            text = "FARMER DETAILS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 4.dp)
+        FormSectionHeader(
+            title = "FARMER DETAILS",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         // Farmer Name
@@ -909,13 +955,10 @@ fun GardenPlanningFormTab(
         )
 
         // Section Header: GARDEN PLANNING SPECIFICATION
-        Text(
-            text = "GARDEN PLANNING SPECIFICATION",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 8.dp)
+        FormSectionHeader(
+            title = "GARDEN PLANNING SPECIFICATION",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         if (isMultiVarietyEnabled) {
@@ -1238,13 +1281,10 @@ fun GardenPlanningFormTab(
         }
 
         // Section Header: COST & QUANTITY DETAILS
-        Text(
-            text = "COST & QUANTITY DETAILS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 8.dp)
+        FormSectionHeader(
+            title = "COST & QUANTITY DETAILS",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         if (isMultiVarietyEnabled && varietyLines.isNotEmpty()) {
@@ -1510,14 +1550,10 @@ fun GardenPlanningFormTab(
         }
 
         // Section Header: PAYMENT STATUS
-        val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning")
-        Text(
-            text = "PAYMENT STATUS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = gardenAccent,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
+        FormSectionHeader(
+            title = "PAYMENT STATUS",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         PaymentStatusSelector(
@@ -1562,7 +1598,7 @@ fun GardenPlanningFormTab(
                 .fillMaxWidth()
                 .glassCardBackground(
                     isDark = isDark,
-                    accentColor = MaterialTheme.colorScheme.primary,
+                    accentColor = gardenAccent,
                     shape = RoundedCornerShape(16.dp)
                 )
         ) {
@@ -1577,7 +1613,7 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Total Amount:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(calculatedCost.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(calculatedCost.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
                 }
 
                 Row(
@@ -1585,7 +1621,7 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Amount Paid:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) gardenAccent.copy(alpha = 0.90f) else gardenAccent)
                 }
 
                 HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))
@@ -1594,20 +1630,17 @@ fun GardenPlanningFormTab(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Remaining Balance:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text("Remaining Balance:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = gardenAccent)
                 }
             }
         }
 
         // Section Title: SCHEDULE & DATES (Matching Local Plants tab)
-        Text(
-            text = "SCHEDULE & DATES",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
+        FormSectionHeader(
+            title = "SCHEDULE & DATES",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         Row(
@@ -1717,13 +1750,10 @@ fun GardenPlanningFormTab(
         }
 
         // Section Header: SPECIAL INSTRUCTIONS / NOTES
-        Text(
-            text = "SPECIAL INSTRUCTIONS / NOTES",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 8.dp)
+        FormSectionHeader(
+            title = "SPECIAL INSTRUCTIONS / NOTES",
+            accentColor = gardenAccent,
+            isDark = isDark
         )
 
         // Notes
@@ -2014,8 +2044,10 @@ fun GardenPlanningRecordsTab(
     entries: List<GardenPlanningEntry>,
     isDark: Boolean,
     onEdit: (GardenPlanningEntry) -> Unit,
-    onAddNewEntry: () -> Unit = {}
+    onAddNewEntry: () -> Unit = {},
+    customPaletteColor: Color? = null
 ) {
+    val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -2047,7 +2079,8 @@ fun GardenPlanningRecordsTab(
             onEdit = { entry ->
                 selectedDetailEntry = null
                 onEdit(entry)
-            }
+            },
+            paletteAccent = paletteAccent
         )
     }
 
@@ -2098,6 +2131,7 @@ fun GardenPlanningRecordsTab(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -2135,7 +2169,8 @@ fun GardenPlanningRecordsTab(
                 receivedPayment = receivedPayment,
                 pendingPayment = pendingPayment,
                 totalQuantity = totalQuantity,
-                isDark = isDark
+                isDark = isDark,
+                paletteAccent = paletteAccent
             )
         }
 
@@ -2206,7 +2241,8 @@ fun GardenPlanningRecordsTab(
                             onEdit = { onEdit(entry) },
                             onDelete = { entryToDelete = entry },
                             context = context,
-                            isDark = isDark
+                            isDark = isDark,
+                            paletteAccent = paletteAccent
                         )
                     }
                 }
@@ -2355,16 +2391,20 @@ private fun GardenPlanningRecordCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     context: Context,
-    isDark: Boolean = isAppInDarkMode()
+    isDark: Boolean = isAppInDarkMode(),
+    paletteAccent: Color = MaterialTheme.colorScheme.primary
 ) {
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
-    val avatarBgColor = MaterialTheme.colorScheme.primary
+    val avatarBgColor = paletteAccent
 
     val (statusBadgeBg, statusBadgeText) = when (entry.paymentStatus) {
         "Cancelled" -> Pair(if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2), if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626))
-        "Fully Paid" -> Pair(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7), if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D))
+        "Fully Paid" -> Pair(
+            paletteAccent.copy(alpha = if (isDark) 0.30f else 0.15f),
+            if (isDark) paletteAccent.copy(alpha = 0.95f) else paletteAccent
+        )
         "Advance Paid" -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
-        else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
+        else -> Pair(paletteAccent.copy(alpha = if (isDark) 0.25f else 0.12f), paletteAccent)
     }
 
     Box(
@@ -2372,7 +2412,7 @@ private fun GardenPlanningRecordCard(
             .fillMaxWidth()
             .glassCardBackground(
                 isDark = isDark,
-                accentColor = MaterialTheme.colorScheme.primary,
+                accentColor = paletteAccent,
                 shape = RoundedCornerShape(16.dp)
             )
             .clip(RoundedCornerShape(16.dp))
@@ -2596,12 +2636,12 @@ private fun GardenPlanningRecordCard(
                         text = "View Details",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = paletteAccent
                     )
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                         contentDescription = "View Details",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = paletteAccent,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -2710,7 +2750,8 @@ fun GardenBookingRecordDetailDialog(
     viewModel: GardenPlanningViewModel,
     isDark: Boolean,
     onDismiss: () -> Unit,
-    onEdit: (GardenPlanningEntry) -> Unit
+    onEdit: (GardenPlanningEntry) -> Unit,
+    paletteAccent: Color = MaterialTheme.colorScheme.primary
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -2779,7 +2820,7 @@ fun GardenBookingRecordDetailDialog(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.primary
+                            color = paletteAccent
                         ) {
                             Text(
                                 text = "Serial No. ${currentEntry.serialNumber.ifBlank { "01" }}",
@@ -2821,7 +2862,7 @@ fun GardenBookingRecordDetailDialog(
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Record",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = paletteAccent,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -2858,7 +2899,7 @@ fun GardenBookingRecordDetailDialog(
                         .fillMaxWidth()
                         .glassCardBackground(
                             isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
+                            accentColor = paletteAccent,
                             shape = RoundedCornerShape(20.dp)
                         )
                 ) {
@@ -2874,7 +2915,7 @@ fun GardenBookingRecordDetailDialog(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(paletteAccent),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -2893,7 +2934,7 @@ fun GardenBookingRecordDetailDialog(
                                 text = "Garden Planning",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = paletteAccent
                             )
                             Text(
                                 text = currentEntry.farmerName.ifBlank { "Farmer Name" },
@@ -3031,21 +3072,21 @@ fun GardenBookingRecordDetailDialog(
                         DetailRowItem(
                             label = "Total Amount",
                             value = "₹${totalRecordValue.toInt()}",
-                            valueColor = MaterialTheme.colorScheme.primary,
+                            valueColor = paletteAccent,
                             isBold = true,
                             isDark = isDark
                         )
                         DetailRowItem(
                             label = "Amount Paid",
                             value = "₹${totalPaidSoFar.toInt()}",
-                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            valueColor = if (remainingBalance <= 0) (if (isDark) paletteAccent.copy(alpha = 0.90f) else paletteAccent) else paletteAccent,
                             isBold = true,
                             isDark = isDark
                         )
                         DetailRowItem(
                             label = "Remaining Balance",
                             value = "₹${remainingBalance.toInt()}",
-                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            valueColor = if (remainingBalance <= 0) (if (isDark) paletteAccent.copy(alpha = 0.90f) else paletteAccent) else paletteAccent,
                             isBold = true,
                             isDark = isDark
                         )
@@ -3063,7 +3104,7 @@ fun GardenBookingRecordDetailDialog(
                         .fillMaxWidth()
                         .glassCardBackground(
                             isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
+                            accentColor = paletteAccent,
                             shape = RoundedCornerShape(22.dp)
                         )
                 ) {
@@ -3084,21 +3125,21 @@ fun GardenBookingRecordDetailDialog(
                                 Icon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = paletteAccent,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "Installment Payment Tracking",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = paletteAccent
                                 )
                             }
 
                             val (statusText, statusBg) = when {
-                                remainingBalance <= 0.01 -> "Fully Paid" to (if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                                remainingBalance <= 0.01 -> "Fully Paid" to paletteAccent
                                 totalPaidSoFar > 0 -> "Advance Paid" to Color(0xFFE65100)
-                                else -> "Pending" to MaterialTheme.colorScheme.primary
+                                else -> "Pending" to paletteAccent
                             }
 
                             Box(
@@ -3125,7 +3166,7 @@ fun GardenBookingRecordDetailDialog(
                                 .fillMaxWidth()
                                 .glassCardBackground(
                                     isDark = isDark,
-                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    accentColor = paletteAccent,
                                     shape = RoundedCornerShape(14.dp)
                                 )
                         ) {
@@ -3142,14 +3183,14 @@ fun GardenBookingRecordDetailDialog(
                                 SummaryLine(
                                     label = "Total Paid So Far:",
                                     value = "₹${totalPaidSoFar.toInt()}",
-                                    valueColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                                    valueColor = if (isDark) paletteAccent.copy(alpha = 0.90f) else paletteAccent,
                                     isDark = isDark
                                 )
                                 HorizontalDivider(color = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), thickness = 0.5.dp)
                                 SummaryLine(
                                     label = "Remaining Balance Due:",
                                     value = "₹${remainingBalance.toInt()}",
-                                    valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                                    valueColor = if (remainingBalance <= 0) (if (isDark) paletteAccent.copy(alpha = 0.90f) else paletteAccent) else paletteAccent,
                                     isBold = true,
                                     isDark = isDark
                                 )
@@ -3279,7 +3320,7 @@ fun GardenBookingRecordDetailDialog(
                                     .height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (canSave && !isSavingInstallment) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                                    containerColor = if (canSave && !isSavingInstallment) paletteAccent else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
                                     disabledContainerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
                                 )
                             ) {
@@ -3319,7 +3360,7 @@ fun GardenBookingRecordDetailDialog(
                                     text = "Total: ₹${totalPaidSoFar.toInt()}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = paletteAccent
                                 )
                             }
 
@@ -3332,7 +3373,7 @@ fun GardenBookingRecordDetailDialog(
                                             .fillMaxWidth()
                                             .glassCardBackground(
                                                 isDark = isDark,
-                                                accentColor = MaterialTheme.colorScheme.primary,
+                                                accentColor = paletteAccent,
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                     ) {
@@ -3356,13 +3397,13 @@ fun GardenBookingRecordDetailDialog(
                                                     )
                                                     Surface(
                                                         shape = RoundedCornerShape(10.dp),
-                                                        color = if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7)
+                                                        color = paletteAccent.copy(alpha = if (isDark) 0.30f else 0.15f)
                                                     ) {
                                                         Text(
                                                             text = if (inst.note.isNotBlank()) inst.note else inst.paymentMode,
                                                             fontSize = 10.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D),
+                                                            color = if (isDark) paletteAccent.copy(alpha = 0.95f) else paletteAccent,
                                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                                         )
                                                     }
@@ -3382,7 +3423,7 @@ fun GardenBookingRecordDetailDialog(
                                                     text = "+ ₹${inst.amount.toInt()}",
                                                     fontSize = 14.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
+                                                    color = if (isDark) paletteAccent.copy(alpha = 0.90f) else paletteAccent
                                                 )
                                                 IconButton(
                                                     onClick = {
@@ -4065,7 +4106,8 @@ private fun GardenRecordSummaryCards(
     receivedPayment: Double,
     pendingPayment: Double,
     totalQuantity: Int,
-    isDark: Boolean
+    isDark: Boolean,
+    paletteAccent: Color = MaterialTheme.colorScheme.primary
 ) {
     val numberFmt = NumberFormat.getNumberInstance(Locale("en", "IN"))
 
@@ -4082,7 +4124,7 @@ private fun GardenRecordSummaryCards(
                 title = "Total Payment",
                 value = "₹${numberFmt.format(totalPayment.toLong())}",
                 icon = Icons.Default.AccountBalanceWallet,
-                accentColor = MaterialTheme.colorScheme.primary,
+                accentColor = paletteAccent,
                 isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
@@ -4092,7 +4134,7 @@ private fun GardenRecordSummaryCards(
                 title = "Received Payment",
                 value = "₹${numberFmt.format(receivedPayment.toLong())}",
                 icon = Icons.Default.CheckCircle,
-                accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
+                accentColor = paletteAccent,
                 isDark = isDark,
                 modifier = Modifier.weight(1f)
             )

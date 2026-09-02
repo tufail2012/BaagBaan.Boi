@@ -661,7 +661,7 @@ fun FarmerFormScreen(
     val soilOptions = listOf("Clay Loam", "Sandy Loam", "Rich Alluvial", "Peaty", "Chalky / Rocky")
     val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "5 Years")
 
-    val textFieldShape = RoundedCornerShape(14.dp)
+    val textFieldShape = RoundedCornerShape(22.dp)
     val isDark = isAppInDarkMode()
 
     val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
@@ -776,7 +776,7 @@ fun FarmerFormScreen(
         if (screenBgColor != Color.Unspecified && screenBgColor.alpha > 0.05f) {
             screenBgColor
         } else if (isDark) {
-            Color(0xFF0F172A)
+            Color(0xFF202532)
         } else {
             Color(0xFFF8FAFC)
         }
@@ -808,6 +808,7 @@ fun FarmerFormScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .imePadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -2430,7 +2431,7 @@ fun FarmerFormScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("Amount Paid:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(paidAmountNum.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32))
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(paidAmountNum.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) formAccent.copy(alpha = 0.90f) else formAccent)
                 }
 
                 androidx.compose.material3.HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))

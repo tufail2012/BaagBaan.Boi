@@ -1153,8 +1153,8 @@ fun Modifier.frostedLiquidGlassMenuBackground(
 
     // Solid opaque base layer ensures 100% complete obscurity of underlying text and form shapes
     val solidBaseColor = when {
-        isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF0F172A)
+        isAmoled -> Color(0xFF000000) // AMOLED pure black for pixels off
+        isDark -> Color(0xFF0C0B0F)   // Deep black charcoal matching reference screenshot
         else -> Color(0xFFF8FAFC)
     }
 
@@ -1163,15 +1163,15 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         colors = when {
             isAmoled -> listOf(
                 Color.White.copy(alpha = 0.28f),
-                Color(0xFF141620),
-                accentColor.copy(alpha = 0.30f),
-                Color(0xFF000000)
+                Color(0xFF141216),
+                accentColor.copy(alpha = 0.18f),
+                Color(0xFF000000) // Pure black for AMOLED
             )
             isDark -> listOf(
-                Color.White.copy(alpha = 0.32f),
-                Color(0xFF1E293B),
-                accentColor.copy(alpha = 0.32f),
-                Color(0xFF0B132B)
+                Color.White.copy(alpha = 0.28f),
+                Color(0xFF242127),
+                accentColor.copy(alpha = 0.15f),
+                Color(0xFF0C0B0F) // Deep glossy tone matching screenshot
             )
             else -> listOf(
                 Color.White,
@@ -1186,10 +1186,10 @@ fun Modifier.frostedLiquidGlassMenuBackground(
     val glassRimBrush = Brush.verticalGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.70f), // Bright specular top rim
-                Color.White.copy(alpha = 0.28f), // Clear glass sides
-                accentColor.copy(alpha = 0.35f), // Accent color refraction
-                Color.White.copy(alpha = 0.18f)  // Soft bottom rim
+                Color.White.copy(alpha = 0.40f), // Crisp specular top rim
+                Color.White.copy(alpha = 0.15f), // Clear glass sides
+                accentColor.copy(alpha = 0.25f), // Accent color refraction
+                Color.White.copy(alpha = 0.05f)  // Soft bottom rim
             )
         } else {
             listOf(

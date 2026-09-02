@@ -387,7 +387,7 @@ private fun RecordSummaryCards(
                 targetValue = receivedPayment,
                 formatter = { "₹${numberFmt.format(it.toLong())}" },
                 icon = Icons.Default.CheckCircle,
-                accentColor = if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32),
+                accentColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.90f) else MaterialTheme.colorScheme.primary,
                 isDark = isDark,
                 modifier = Modifier.weight(1f)
             )
@@ -538,7 +538,7 @@ private fun FarmerRecordCard(
     val (statusBadgeBg, statusBadgeText) = when {
         record.isCancelled -> Pair(if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2), if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626))
         record.isReceived -> Pair(if (isDark) Color(0xFF134E4A) else Color(0xFFCCFBF1), if (isDark) Color(0xFF5EEAD4) else Color(0xFF0F766E))
-        record.isPaymentCleared() -> Pair(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7), if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D))
+        record.isPaymentCleared() -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.30f else 0.15f), if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.95f) else MaterialTheme.colorScheme.primary)
         record.amountPaid > 0 -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
         else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
     }

@@ -528,7 +528,7 @@ fun elevatedInputFieldColors(
 ): TextFieldColors {
     val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-    val labelUnfocused = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    val labelUnfocused = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
 
     return OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,
@@ -550,11 +550,11 @@ fun elevatedInputFieldColors(
         cursorColor = accentColor,
         errorCursorColor = MaterialTheme.colorScheme.error,
         focusedLeadingIconColor = accentColor,
-        unfocusedLeadingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+        unfocusedLeadingIconColor = accentColor,
         disabledLeadingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorLeadingIconColor = MaterialTheme.colorScheme.error,
         focusedTrailingIconColor = accentColor,
-        unfocusedTrailingIconColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
+        unfocusedTrailingIconColor = accentColor,
         disabledTrailingIconColor = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
         errorTrailingIconColor = MaterialTheme.colorScheme.error,
         focusedPlaceholderColor = textSecondary,
@@ -573,10 +573,8 @@ fun elevatedInputFieldColors(
 
 /**
  * Clean Backdrop Modifier for Input Fields, Selectors, and Cards.
- * Applied across all forms and text fields:
- * - Rectangular container geometry with subtle rounded corners (not pill-shaped).
- * - Clean, solid surface background.
- * - Crisp, clean border stroke.
+ * In Dark Mode, provides a rich glossy dark bevel card with top specular highlight,
+ * perfectly matching the reference screenshot.
  */
 @Composable
 fun Modifier.glassCardBackground(
@@ -590,7 +588,7 @@ fun Modifier.glassCardBackground(
     flatStyle: Boolean = true,
     isFocused: Boolean = false
 ): Modifier {
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 14.dp)
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 22.dp)
 
     val effectiveIsAmoled = when (themeMode) {
         AppThemeMode.AMOLED -> true
@@ -603,25 +601,93 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
-    val glassTint = when {
-        effectiveIsAmoled -> Color(0xFF0A0A0C).copy(alpha = 0.96f)
-        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = 0.95f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.94f)
+    if (effectiveIsDark) {
+        val cardBgBrush = Brush.verticalGradient(
+            colors = if (effectiveIsAmoled) {
+                listOf(
+                    Color(0xFF161418),
+                    Color(0xFF0C0B0E),
+                    Color(0xFF000000)
+                )
+            } else {
+                listOf(
+                    Color(0xFF242127),
+                    Color(0xFF151318),
+                    Color(0xFF0C0B0F)
+                )
+            }
+        )
+
+        val borderStroke = if (isFocused) {
+            BorderStroke(1.5.dp, accentColor)
+        } else {
+            val borderBrush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.32f),
+                    Color.White.copy(alpha = 0.10f),
+                    Color.White.copy(alpha = 0.04f)
+                )
+            )
+            BorderStroke(borderWidth, borderBrush)
+        }
+
+        return this
+            .then(
+                if (elevation > 0.dp) {
+                    Modifier.shadow(
+                        elevation = elevation,
+                        shape = effectiveShape,
+                        spotColor = Color.Black.copy(alpha = 0.50f),
+                        ambientColor = Color.Black.copy(alpha = 0.30f)
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .clip(effectiveShape)
+            .background(brush = cardBgBrush, shape = effectiveShape)
+            .drawWithContent {
+                drawContent()
+                if (!isFocused) {
+                    val w = size.width
+                    val highlightH = 1.5.dp.toPx()
+                    val margin = 14.dp.toPx()
+                    drawRect(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.25f),
+                                Color.Transparent
+                            ),
+                            startX = margin,
+                            endX = w - margin
+                        ),
+                        topLeft = Offset(margin, 1.dp.toPx()),
+                        size = Size(w - (margin * 2), highlightH)
+                    )
+                }
+            }
+            .border(
+                border = borderStroke,
+                shape = effectiveShape
+            )
     }
 
-    // Crisp, clean border stroke
+    val glassTint = Color(0xFFFFFFFF).copy(alpha = 0.94f)
     val borderStroke = if (isFocused) {
         BorderStroke(1.5.dp, accentColor)
     } else {
-        val borderColor = if (effectiveIsDark) {
-            Color(0xFF334155).copy(alpha = 0.65f)
-        } else {
-            Color(0xFFCBD5E1).copy(alpha = 0.85f)
-        }
-        BorderStroke(1.dp, borderColor)
+        BorderStroke(1.dp, Color(0xFFCBD5E1).copy(alpha = 0.85f))
     }
 
     return this
+        .then(
+            if (elevation > 0.dp) {
+                Modifier.shadow(elevation = elevation, shape = effectiveShape)
+            } else {
+                Modifier
+            }
+        )
         .clip(effectiveShape)
         .background(color = glassTint, shape = effectiveShape)
         .border(
@@ -664,16 +730,22 @@ fun PaymentStatusSelector(
             val backgroundBrush = if (isSelected) {
                 Brush.verticalGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = 0.95f),
-                        accentColor
+                        accentColor,
+                        accentColor.copy(alpha = 0.92f),
+                        Color(
+                            red = (accentColor.red * 0.6f).coerceIn(0f, 1f),
+                            green = (accentColor.green * 0.6f).coerceIn(0f, 1f),
+                            blue = (accentColor.blue * 0.6f).coerceIn(0f, 1f),
+                            alpha = 1f
+                        )
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colors = if (isDark) {
                         listOf(
-                            Color(0xFF1E293B).copy(alpha = 0.75f),
-                            Color(0xFF0F172A).copy(alpha = 0.85f)
+                            Color(0xFF242127),
+                            Color(0xFF151318)
                         )
                     } else {
                         listOf(
@@ -686,7 +758,7 @@ fun PaymentStatusSelector(
 
             val borderStroke = if (isSelected) {
                 BorderStroke(
-                    width = 1.35.dp,
+                    width = 1.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = if (isDark) 0.70f else 0.90f),
@@ -698,7 +770,7 @@ fun PaymentStatusSelector(
             } else {
                 BorderStroke(
                     width = 1.dp,
-                    color = if (isDark) Color(0xFF334155).copy(alpha = 0.80f) else Color(0xFFCBD5E1)
+                    color = if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1)
                 )
             }
 
@@ -782,19 +854,19 @@ fun Modifier.bubbleDropletPillIndicator(
     val surfaceColor = MaterialTheme.colorScheme.surface
 
     val solidPillBase = when {
-        isAmoled -> Color(0xFF161922)
-        isDark -> Color(0xFF1E293B)
+        isAmoled -> Color(0xFF000000)
+        isDark -> Color(0xFF0C0B0F)
         else -> Color(0xFFFFFFFF)
     }
 
-    // 1dp glass rim with top specular highlight and delicate accent refraction
+    // 1dp rim with top specular highlight and accent refraction
     val liquidBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.65f),
+                Color.White.copy(alpha = 0.25f),
                 accentColor.copy(alpha = 0.50f),
-                Color.White.copy(alpha = 0.25f)
+                Color.White.copy(alpha = 0.10f)
             )
         )
     } else {
@@ -824,89 +896,67 @@ fun Modifier.bubbleDropletPillIndicator(
         }
         // 2. Soft floating shadow
         .shadow(
-            elevation = if (isDark || isAmoled) 4.dp else 3.dp,
+            elevation = if (isDark || isAmoled) 6.dp else 3.dp,
             shape = shape,
-            spotColor =
-                if (isDark || isAmoled)
-                    Color.Black.copy(alpha = 0.50f)
-                else
-                    Color.Black.copy(alpha = 0.16f),
-            ambientColor =
-                if (isDark || isAmoled)
-                    Color.Black.copy(alpha = 0.30f)
-                else
-                    Color.Black.copy(alpha = 0.10f)
+            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.55f else 0.35f),
+            ambientColor = accentColor.copy(alpha = 0.25f)
         )
         // 3. Clip to shape
         .clip(shape)
         // 4. Solid opaque base layer ensuring 100% complete obscurity of underlying text/shapes
         .background(color = solidPillBase, shape = shape)
-        // 5. Frosted liquid glass gradient with light transmission and vibrant accent reflection
+        // 5. Vibrant 3D glossy gel gradient in accentColor matching reference screenshot
         .background(
             brush = if (isDark || isAmoled) {
+                val darkShade = Color(
+                    red = (accentColor.red * 0.55f).coerceIn(0f, 1f),
+                    green = (accentColor.green * 0.55f).coerceIn(0f, 1f),
+                    blue = (accentColor.blue * 0.55f).coerceIn(0f, 1f),
+                    alpha = 1f
+                )
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.35f),
-                        Color(0xFF1E293B),
-                        accentColor.copy(alpha = 0.38f),
-                        Color(0xFF0F172A)
+                        accentColor,
+                        accentColor.copy(alpha = 0.92f),
+                        darkShade
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White,
-                        Color(0xFFF8FAFC),
-                        accentColor.copy(alpha = 0.28f),
-                        Color(0xFFE2E8F0)
+                        accentColor,
+                        accentColor.copy(alpha = 0.88f),
+                        Color(
+                            red = (accentColor.red * 0.7f).coerceIn(0f, 1f),
+                            green = (accentColor.green * 0.7f).coerceIn(0f, 1f),
+                            blue = (accentColor.blue * 0.7f).coerceIn(0f, 1f),
+                            alpha = 1f
+                        )
                     )
                 )
             },
             shape = shape
         )
-        // 6. 3D Embossed lighting: top specular reflection & subtle bottom bevel
+        // 6. 3D Embossed lighting: top specular gel shine dome reflection
         .drawWithContent {
             drawContent()
             val w = size.width
             val h = size.height
 
-            val highlightHeight = 1.5.dp.toPx()
-            val meniscusMargin = 6.dp.toPx()
+            // Top specular capsule reflection (glossy gel shine seen in reference screenshot)
+            val gelHighlightHeight = h * 0.45f
+            val margin = 4.dp.toPx()
 
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color.White.copy(
-                            alpha = if (isDark || isAmoled) 0.45f else 0.65f
-                        ),
-                        Color.Transparent
-                    ),
-                    startX = meniscusMargin,
-                    endX = w - meniscusMargin
-                ),
-                topLeft = Offset(meniscusMargin, 1.dp.toPx()),
-                size = Size(
-                    w - (meniscusMargin * 2),
-                    highlightHeight
-                )
-            )
-
-            // Bottom subtle bevel shadow for physical 3D embossed depth
-            val bevelHeight = 1.8.dp.toPx()
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.Transparent,
-                        Color.Black.copy(
-                            alpha = if (isDark || isAmoled) 0.12f else 0.04f
-                        )
-                    ),
-                    startY = h - bevelHeight,
-                    endY = h
+                        Color.White.copy(alpha = 0.48f),
+                        Color.White.copy(alpha = 0.15f),
+                        Color.Transparent
+                    )
                 ),
-                topLeft = Offset(meniscusMargin, h - bevelHeight),
-                size = Size(w - (meniscusMargin * 2), bevelHeight)
+                topLeft = Offset(margin, 2.dp.toPx()),
+                size = Size(w - (margin * 2), gelHighlightHeight)
             )
         }
         // 7. Refractive 1dp glass border

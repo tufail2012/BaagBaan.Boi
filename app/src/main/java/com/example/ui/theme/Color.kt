@@ -70,13 +70,9 @@ fun getAppDimBackgroundColor(
     val hue = hsv[0]
 
     return when {
-        isAmoled -> {
-            val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.08f, 0.035f))
-            Color(toneRgb)
-        }
-        isDark -> {
-            val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.14f, 0.085f))
-            Color(toneRgb)
+        isAmoled || isDark -> {
+            // Pitch black background matching reference screenshot
+            Color(0xFF000000)
         }
         else -> {
             val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.055f, 0.950f))
@@ -102,20 +98,10 @@ fun getAppDimBackgroundBrush(
     val hue = hsv[0]
 
     return when {
-        isAmoled -> {
-            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.10f, 0.045f)))
-            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.05f, 0.020f)))
-            val bottomColor = Color(0xFF000000)
+        isAmoled || isDark -> {
+            // Pitch black background matching reference screenshot
             Brush.verticalGradient(
-                colors = listOf(topColor, midColor, bottomColor)
-            )
-        }
-        isDark -> {
-            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.16f, 0.095f)))
-            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.12f, 0.075f)))
-            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.08f, 0.055f)))
-            Brush.verticalGradient(
-                colors = listOf(topColor, midColor, bottomColor)
+                colors = listOf(Color(0xFF000000), Color(0xFF000000))
             )
         }
         else -> {

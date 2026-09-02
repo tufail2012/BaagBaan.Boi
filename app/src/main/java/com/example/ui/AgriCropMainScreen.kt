@@ -61,6 +61,9 @@ import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.BusinessInfoDialog
 import com.example.ui.components.MessageTemplateManagerScreen
 import com.example.ui.components.AgriDashboardScreen
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.example.data.BusinessInfoRepository
@@ -694,6 +697,7 @@ fun AgriCropMainScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(top = innerPadding.calculateTopPadding())
+                                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                                 .hazeSource(state = hazeState)
                         ) {
                             when {
