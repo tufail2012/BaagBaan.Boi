@@ -110,10 +110,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 
 import androidx.compose.material.icons.filled.AccountCircle
 import com.example.ui.theme.getSectionAccentColor
@@ -154,7 +150,6 @@ fun AgriHeader(
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
-    hazeState: Any? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -217,7 +212,6 @@ fun AgriHeader(
                 vertical = 6.dp
             )
             .frostedGlassChrome(
-                hazeState = hazeState,
                 isDark = isDark,
                 accentColor = animatedAccentColor,
                 shape = headerShape
@@ -336,7 +330,6 @@ fun AgriHeader(
                         modifier = Modifier
                             .widthIn(min = 230.dp, max = 285.dp)
                             .frostedLiquidGlassMenuBackground(
-                                hazeState = hazeState,
                                 isDark = isDark,
                                 themeMode = themeMode,
                                 accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
@@ -521,7 +514,6 @@ fun AgriHeader(
                                 modifier = Modifier
                                     .widthIn(min = 230.dp, max = 285.dp)
                                     .frostedLiquidGlassMenuBackground(
-                                        hazeState = hazeState,
                                         isDark = isDark,
                                         themeMode = themeMode,
                                         accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
@@ -1128,66 +1120,40 @@ private fun HeaderProfileAvatar(
 
 /**
  * Noisy Frosted Liquid Glass Menu Background Modifier for the Profile Menu.
- * - Translucent surface with delicate liquid glass gradient.
- * - Deep background blur and tactile noise diffusion via Haze backdrop processing.
- * - Clean geometric top edge highlight (zero wave / curved distortion).
+ * - Clean solid gradient surface.
  * - Soft, glowing border using the profile accent color.
- * - Ambient drop shadow/glow for a floating liquid glass appearance.
+ * - Ambient drop shadow/glow for a floating appearance.
  */
 @Composable
 fun Modifier.frostedLiquidGlassMenuBackground(
-    hazeState: Any? = null,
     isDark: Boolean = isAppInDarkMode(),
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     accentColor: Color = Color(0xFF10B981),
     shape: Shape = RoundedCornerShape(22.dp)
 ): Modifier {
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
-    val actualHaze = hazeState as? HazeState
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
-    // Translucent liquid surface base tint
-    val baseTint = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = if (actualHaze != null) 0.65f else 0.88f)
-        isDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.60f else 0.85f)
-        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.68f else 0.90f)
-    }
 
     val surfaceBrush = Brush.verticalGradient(
         colors = when {
             isAmoled -> listOf(
-                Color(0xFF18181B).copy(alpha = 0.85f),
-                Color(0xFF000000).copy(alpha = 0.70f),
-                Color(0xFF09090B).copy(alpha = 0.80f)
+                Color(0xFF18181B).copy(alpha = 0.98f),
+                Color(0xFF000000).copy(alpha = 0.96f),
+                Color(0xFF09090B).copy(alpha = 0.98f)
             )
             isDark -> listOf(
-                Color(0xFF1E293B).copy(alpha = 0.82f),
-                Color(0xFF0F172A).copy(alpha = 0.68f),
+                Color(0xFF1E293B).copy(alpha = 0.98f),
+                Color(0xFF0F172A).copy(alpha = 0.96f),
                 accentColor.copy(alpha = 0.05f),
-                Color(0xFF0F172A).copy(alpha = 0.78f)
+                Color(0xFF0F172A).copy(alpha = 0.97f)
             )
             else -> listOf(
-                Color.White.copy(alpha = 0.90f),
-                Color(0xFFF8FAFC).copy(alpha = 0.72f),
+                Color.White.copy(alpha = 0.98f),
+                Color(0xFFF8FAFC).copy(alpha = 0.96f),
                 accentColor.copy(alpha = 0.04f),
-                Color.White.copy(alpha = 0.84f)
+                Color.White.copy(alpha = 0.97f)
             )
         }
     )
-
-    val hazeModifier = if (actualHaze != null) {
-        Modifier.hazeEffect(
-            state = actualHaze,
-            style = HazeStyle(
-                backgroundColor = surfaceColor,
-                tint = HazeTint(baseTint),
-                blurRadius = 32.dp,
-                noiseFactor = 0.08f // Noisy liquid glass blur texture
-            )
-        )
-    } else {
-        Modifier.background(baseTint)
-    }
 
     // Soft glowing border brush with accent radiance
     val glowingBorderBrush = Brush.verticalGradient(
@@ -1219,11 +1185,9 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.12f)
         )
         .clip(shape)
-        // 2. Translucent noisy blurred backdrop (Haze)
-        .then(hazeModifier)
-        // 3. Liquid glass gradient surface
+        // 2. Gradient surface
         .background(brush = surfaceBrush, shape = shape)
-        // 4. Linear specular frosted glass top highlight (no wave shape)
+        // 3. Linear specular top highlight (no wave shape)
         .drawWithContent {
             drawContent()
             val w = size.width
@@ -1244,7 +1208,7 @@ fun Modifier.frostedLiquidGlassMenuBackground(
                 size = Size(w - (margin * 2), highlightHeight)
             )
         }
-        // 5. Soft, glowing border
+        // 4. Soft, glowing border
         .border(
             border = BorderStroke(width = 1.25.dp, brush = glowingBorderBrush),
             shape = shape

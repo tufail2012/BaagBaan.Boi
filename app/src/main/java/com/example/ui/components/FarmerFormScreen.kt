@@ -185,8 +185,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Composable
 fun FarmerFormScreen(
     viewModel: CropViewModel,
-    modifier: Modifier = Modifier,
-    hazeState: Any? = null
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()

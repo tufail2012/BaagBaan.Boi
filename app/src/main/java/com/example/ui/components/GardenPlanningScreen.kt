@@ -303,7 +303,6 @@ fun GardenPlanningScreen(
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
-    hazeState: dev.chrisbanes.haze.HazeState? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -420,11 +419,9 @@ fun GardenPlanningScreen(
                     null
                 }
             }
-            val localHaze = hazeState ?: remember { dev.chrisbanes.haze.HazeState() }
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
                 onModeSelected = { viewModel.selectedTabIndex.value = it },
-                hazeState = localHaze,
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntries.size})",
                 accentColor = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)

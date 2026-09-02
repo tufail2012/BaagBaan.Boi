@@ -69,8 +69,7 @@ fun PruningSubTabs(
     selectedSubTab: String,
     onSelectSubTab: (String) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = getSectionAccentColor("Pruning"),
-    hazeState: Any? = null
+    accentColor: Color = getSectionAccentColor("Pruning")
 ) {
     val subTabs = listOf("Summer Pruning", "Winter Pruning")
     val selectedIndex = if (selectedSubTab.contains("Winter", ignoreCase = true)) 1 else 0
@@ -253,8 +252,7 @@ fun RootstockSubTabs(
     selectedGenevaOption: String?,
     onSelectSubTab: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = getSectionAccentColor("Rootstocks"),
-    hazeState: Any? = null
+    accentColor: Color = getSectionAccentColor("Rootstocks")
 ) {
     var genevaMenuExpanded by remember { mutableStateOf(false) }
     val genevaOptions = listOf("G41", "G214", "G11", "G35", "G969", "G890")

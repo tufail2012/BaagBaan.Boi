@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun Modifier.frostedGlassChrome(
-    hazeState: Any? = null,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(percent = 50),

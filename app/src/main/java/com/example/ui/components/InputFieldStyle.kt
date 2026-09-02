@@ -69,10 +69,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ui.AppThemeMode
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -260,7 +256,6 @@ fun AppOutlinedTextField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    hazeState: Any? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -310,7 +305,6 @@ fun AppOutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
         modifier = modifier.boundedFormFieldRipple(
-            hazeState = hazeState,
             shape = shape,
             accentColor = accentColor,
             interactionSource = interactionSource,
@@ -347,7 +341,6 @@ fun AppOutlinedTextField(
     value: TextFieldValue,
     onValueChange: (TextFieldValue) -> Unit,
     modifier: Modifier = Modifier,
-    hazeState: Any? = null,
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
@@ -397,7 +390,6 @@ fun AppOutlinedTextField(
         value = value,
         onValueChange = effectiveOnValueChange,
         modifier = modifier.boundedFormFieldRipple(
-            hazeState = hazeState,
             shape = shape,
             accentColor = accentColor,
             interactionSource = interactionSource,
@@ -472,7 +464,6 @@ fun Modifier.centerWaterRipple(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
-    hazeState: Any? = null,
     shape: Shape = RoundedCornerShape(14.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
@@ -491,7 +482,6 @@ fun Modifier.boundedFormFieldRipple(
             isEventFocused = focusState.isFocused || focusState.hasFocus
         }
         .glassCardBackground(
-            hazeState = hazeState,
             isDark = isDark,
             accentColor = accentColor,
             shape = shape,
@@ -578,16 +568,14 @@ fun elevatedInputFieldColors(
 }
 
 /**
- * Clean Glassmorphism Backdrop Modifier for Input Fields, Selectors, and Cards.
+ * Clean Backdrop Modifier for Input Fields, Selectors, and Cards.
  * Applied across all forms and text fields:
  * - Rectangular container geometry with subtle rounded corners (not pill-shaped).
- * - Clean, semi-transparent frosted glass backdrop with uniform opacity across the entire container.
- * - Subtle background blur via Haze backdrop processing.
- * - Crisp, clean border stroke with zero solid white strips, zero top shadows, and zero grey gradients.
+ * - Clean, solid surface background.
+ * - Crisp, clean border stroke.
  */
 @Composable
 fun Modifier.glassCardBackground(
-    hazeState: Any? = null,
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape? = null,
@@ -599,8 +587,6 @@ fun Modifier.glassCardBackground(
     isFocused: Boolean = false
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 14.dp)
-    val actualHaze = hazeState as? HazeState
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val effectiveIsAmoled = when (themeMode) {
         AppThemeMode.AMOLED -> true
@@ -613,25 +599,10 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
-    // Clean, uniform semi-transparent frosted glass backdrop tint
     val glassTint = when {
-        effectiveIsAmoled -> Color(0xFF0A0A0C).copy(alpha = if (actualHaze != null) 0.55f else 0.75f)
-        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = if (actualHaze != null) 0.45f else 0.65f)
-        else -> Color(0xFFFFFFFF).copy(alpha = if (actualHaze != null) 0.55f else 0.75f)
-    }
-
-    val hazeModifier = if (actualHaze != null) {
-        Modifier.hazeEffect(
-            state = actualHaze,
-            style = HazeStyle(
-                backgroundColor = surfaceColor,
-                tint = HazeTint(glassTint),
-                blurRadius = 20.dp,
-                noiseFactor = 0f
-            )
-        )
-    } else {
-        Modifier.background(glassTint)
+        effectiveIsAmoled -> Color(0xFF0A0A0C).copy(alpha = 0.96f)
+        effectiveIsDark -> Color(0xFF0F172A).copy(alpha = 0.95f)
+        else -> Color(0xFFFFFFFF).copy(alpha = 0.94f)
     }
 
     // Crisp, clean border stroke
@@ -648,7 +619,6 @@ fun Modifier.glassCardBackground(
 
     return this
         .clip(effectiveShape)
-        .then(hazeModifier)
         .background(color = glassTint, shape = effectiveShape)
         .border(
             border = borderStroke,
