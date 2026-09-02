@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
@@ -665,15 +666,7 @@ fun AgriCropMainScreen(
                                     onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null
                                 )
 
-                                // Segmented toggle header (New Entry / Records) - shown only for Crop Services
-                                if (!selectedService.equals("Bookings", ignoreCase = true) && !selectedService.equals("Attendance", ignoreCase = true) && !selectedService.equals("Garden Planning", ignoreCase = true) && !selectedService.equals("Garden", ignoreCase = true)) {
-                                    AgriSegmentedControl(
-                                        selectedMode = viewMode,
-                                        onModeSelected = { viewModel.setViewMode(it) },
-                                        recordsLabel = "Records ($cropRecordsCount)",
-                                        accentColor = sectionAccentColor
-                                    )
-                                }
+
 
                                 // Dedicated Sub-Tabs for Pruning & Rootstocks
                                 if (selectedService.equals("Pruning", ignoreCase = true)) {
@@ -788,6 +781,25 @@ fun AgriCropMainScreen(
                                         }
                                     }
                                 }
+                            }
+
+                            // Floating Sticky Header with Backdrop Blur for New Entry / Records toggle
+                            val isCropService = !selectedService.equals("Bookings", ignoreCase = true) &&
+                                                !selectedService.equals("Attendance", ignoreCase = true) &&
+                                                !selectedService.equals("Garden Planning", ignoreCase = true) &&
+                                                !selectedService.equals("Garden", ignoreCase = true)
+
+                            if (isCropService) {
+                                AgriSegmentedControl(
+                                    selectedMode = viewMode,
+                                    onModeSelected = { viewModel.setViewMode(it) },
+                                    recordsLabel = "Records ($cropRecordsCount)",
+                                    accentColor = sectionAccentColor,
+                                    hazeState = hazeState,
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .zIndex(10f)
+                                )
                             }
 
                             // Full-screen booking confirmation overlay
