@@ -56,6 +56,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.getSectionAccentColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 data class AgriNavItem(
     val title: String,
@@ -67,7 +71,7 @@ data class AgriNavItem(
 /**
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
  * Features:
- * - High-opacity backdrop pill container ensuring zero text bleed-through.
+ * - Real backdrop blur of the content behind via Haze.
  * - Sliding 3D Bubble / Droplet indicator with spring physics and responsive horizontal wobble/shake feedback.
  * - Clean, semi-transparent active palette tint with raised 3D specular highlight and drop shadow.
  * - High-contrast unselected and selected navigation icons with haptic feedback.
@@ -77,7 +81,8 @@ fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color? = null
+    accentColor: Color? = null,
+    hazeState: HazeState? = null
 ) {
     val navItems = remember {
         listOf(
@@ -93,6 +98,7 @@ fun AgriBottomNav(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val selectedIndex = remember(selectedCategory) {
         val idx = navItems.indexOfFirst { item ->
@@ -109,17 +115,30 @@ fun AgriBottomNav(
 
     val containerShape = RoundedCornerShape(percent = 50)
 
-    // High-opacity backdrop (94-96%) ensuring text underneath is completely illegible
     val containerBgColor = when {
-        isAmoled -> Color(0xFF09090B).copy(alpha = 0.96f)
-        isDark -> Color(0xFF0F172A).copy(alpha = 0.95f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.94f)
+        isAmoled -> Color(0xFF09090B).copy(alpha = 0.55f)
+        isDark -> Color(0xFF0F172A).copy(alpha = 0.45f)
+        else -> Color(0xFFFFFFFF).copy(alpha = 0.55f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
         color = if (isDark || isAmoled) Color.White.copy(alpha = 0.16f) else Color(0xFFE2E8F0).copy(alpha = 0.90f)
     )
+
+    val hazeModifier = if (hazeState != null) {
+        Modifier.hazeEffect(
+            state = hazeState,
+            style = HazeStyle(
+                backgroundColor = surfaceColor,
+                tint = HazeTint(containerBgColor),
+                blurRadius = 32.dp,
+                noiseFactor = 0.02f
+            )
+        )
+    } else {
+        Modifier.background(containerBgColor)
+    }
 
     Box(
         modifier = modifier
@@ -145,7 +164,7 @@ fun AgriBottomNav(
                         ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
                     )
                     .clip(containerShape)
-                    .background(containerBgColor)
+                    .then(hazeModifier)
                     .border(containerBorder, containerShape)
             )
 

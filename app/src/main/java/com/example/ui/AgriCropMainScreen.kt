@@ -61,6 +61,8 @@ import com.example.ui.components.PaymentRemindersDialog
 import com.example.ui.components.BusinessInfoDialog
 import com.example.ui.components.MessageTemplateManagerScreen
 import com.example.ui.components.AgriDashboardScreen
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.data.BusinessInfoRepository
 import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
@@ -152,6 +154,8 @@ fun AgriCropMainScreen(
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
     val filteredCropRecords by viewModel.filteredRecords.collectAsState()
     val cropRecordsCount = filteredCropRecords.size
+
+    val hazeState = remember { HazeState() }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -659,7 +663,8 @@ fun AgriCropMainScreen(
                                             com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                                         }
                                     },
-                                    onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null
+                                    onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
+                                    hazeState = hazeState
                                 )
 
 
@@ -701,7 +706,8 @@ fun AgriCropMainScreen(
                                         }
                                     }
                                 },
-                                accentColor = sectionAccentColor
+                                accentColor = sectionAccentColor,
+                                hazeState = hazeState
                             )
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -710,6 +716,7 @@ fun AgriCropMainScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(top = innerPadding.calculateTopPadding())
+                                .hazeSource(state = hazeState)
                         ) {
                             when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
@@ -788,6 +795,7 @@ fun AgriCropMainScreen(
                                     onModeSelected = { viewModel.setViewMode(it) },
                                     recordsLabel = "Records ($cropRecordsCount)",
                                     accentColor = sectionAccentColor,
+                                    hazeState = hazeState,
                                     modifier = Modifier
                                         .align(Alignment.TopCenter)
                                         .zIndex(10f)

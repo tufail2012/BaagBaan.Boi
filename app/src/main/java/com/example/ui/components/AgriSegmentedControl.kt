@@ -43,6 +43,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 data class SegmentedTabEntry(
     val title: String,
@@ -53,7 +57,7 @@ data class SegmentedTabEntry(
  * Floating Pill Segmented Control (New Entry / Records toggle).
  * Features:
  * - Floating pill-shaped outer container with soft elevation shadow and crisp outline.
- * - Solid high-opacity background ensuring zero text bleed-through over any background content.
+ * - Real backdrop blur of the content behind via Haze.
  * - Sliding 3D Bubble / Droplet active indicator with horizontal spring and wobble physics.
  * - Clean, semi-transparent active palette tint with raised 3D specular highlight and drop shadow.
  * - High-contrast theme-aware typography with smooth color transitions.
@@ -65,7 +69,8 @@ fun AgriSegmentedControl(
     modifier: Modifier = Modifier,
     newEntryLabel: String = "New Entry",
     recordsLabel: String = "Records",
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    hazeState: HazeState? = null
 ) {
     val items = listOf(
         SegmentedTabEntry(title = newEntryLabel, testTag = "tab_new_entry"),
@@ -77,6 +82,7 @@ fun AgriSegmentedControl(
         selectedIndex = selectedMode.coerceIn(0, items.size - 1),
         onItemSelected = onModeSelected,
         accentColor = accentColor,
+        hazeState = hazeState,
         modifier = modifier
     )
 }
@@ -87,26 +93,41 @@ fun LiquidGlassSegmentedSwitcher(
     selectedIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    hazeState: HazeState? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
-    // High-opacity backdrop (94-96%) ensuring text underneath is completely illegible
     val containerBgColor = when {
-        isAmoled -> Color(0xFF09090B).copy(alpha = 0.96f)
-        isDark -> Color(0xFF0F172A).copy(alpha = 0.95f)
-        else -> Color(0xFFFFFFFF).copy(alpha = 0.94f)
+        isAmoled -> Color(0xFF09090B).copy(alpha = 0.55f)
+        isDark -> Color(0xFF0F172A).copy(alpha = 0.45f)
+        else -> Color(0xFFFFFFFF).copy(alpha = 0.55f)
     }
 
     val containerBorderColor = when {
         isAmoled -> Color.White.copy(alpha = 0.15f)
         isDark -> Color.White.copy(alpha = 0.18f)
         else -> Color(0xFFE2E8F0).copy(alpha = 0.90f)
+    }
+
+    val hazeModifier = if (hazeState != null) {
+        Modifier.hazeEffect(
+            state = hazeState,
+            style = HazeStyle(
+                backgroundColor = surfaceColor,
+                tint = HazeTint(containerBgColor),
+                blurRadius = 32.dp,
+                noiseFactor = 0.02f
+            )
+        )
+    } else {
+        Modifier.background(containerBgColor)
     }
 
     // Outer floating pill container
@@ -122,7 +143,7 @@ fun LiquidGlassSegmentedSwitcher(
                 ambientColor = if (isDark) Color.Black.copy(alpha = 0.20f) else Color(0x0E000000)
             )
             .clip(containerShape)
-            .background(containerBgColor)
+            .then(hazeModifier)
             .border(BorderStroke(1.dp, containerBorderColor), containerShape)
             .padding(4.dp)
     ) {
