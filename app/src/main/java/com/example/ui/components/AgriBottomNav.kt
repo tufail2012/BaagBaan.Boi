@@ -115,16 +115,16 @@ fun AgriBottomNav(
     val containerShape = RoundedCornerShape(percent = 50)
     val surfaceColor = MaterialTheme.colorScheme.surface
 
-    // Translucent blurred glass container background that absorbs background shade while obscuring underlying text
+    // Semi-transparent frosted glass container background that diffuses underlying content
     val containerBgColor = when {
-        isAmoled -> Color(0xFF000000).copy(alpha = if (hazeState != null) 0.58f else 0.88f)
-        isDark -> Color(0xFF0F172A).copy(alpha = if (hazeState != null) 0.55f else 0.85f)
-        else -> Color(0xFFFFFFFF).copy(alpha = if (hazeState != null) 0.52f else 0.88f)
+        isAmoled -> Color(0xFF000000).copy(alpha = if (hazeState != null) 0.65f else 0.90f)
+        isDark -> Color(0xFF0F172A).copy(alpha = if (hazeState != null) 0.60f else 0.88f)
+        else -> Color.White.copy(alpha = if (hazeState != null) 0.55f else 0.88f)
     }
 
     val containerBorder = BorderStroke(
         width = 1.dp,
-        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.18f) else Color(0xFF000000).copy(alpha = 0.10f)
+        color = if (isDark) Color(0xFFFFFFFF).copy(alpha = 0.18f) else Color(0xFF000000).copy(alpha = 0.09f)
     )
 
     Box(
@@ -141,17 +141,19 @@ fun AgriBottomNav(
                 .height(68.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Translucent Blurred Glass Pill Container
+            // Layer 1: Enhanced Frosted Glass Pill Container with High Backdrop Diffusion
             val hazeModifier = if (hazeState != null) {
-                Modifier.hazeEffect(
-                    state = hazeState,
-                    style = HazeStyle(
-                        backgroundColor = surfaceColor,
-                        tint = HazeTint(containerBgColor),
-                        blurRadius = 36.dp, // High blur to obscure text details beneath
-                        noiseFactor = 0.04f
+                Modifier
+                    .hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            backgroundColor = surfaceColor,
+                            tint = HazeTint(containerBgColor),
+                            blurRadius = 56.dp, // Heavy backdrop diffusion: obscures text details into soft ambient tint silhouettes
+                            noiseFactor = 0.05f
+                        )
                     )
-                )
+                    .background(containerBgColor) // Ensure semi-transparent frosted surface layer
             } else {
                 Modifier.background(containerBgColor)
             }
