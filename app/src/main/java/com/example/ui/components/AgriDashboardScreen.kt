@@ -108,6 +108,17 @@ import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
+import androidx.compose.runtime.compositionLocalOf
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+
+/**
+ * CompositionLocal providing HazeState across all etched glass surfaces on the dashboard.
+ */
+val LocalDashboardHazeState = compositionLocalOf<HazeState?> { null }
 
 /**
  * Inscribed / Etched Glass Typography Style.
@@ -210,72 +221,96 @@ fun Modifier.etchedGlassSurface(
     shape: Shape = RoundedCornerShape(18.dp),
     elevation: Dp = 4.dp,
     borderWidth: Dp = 1.2.dp,
-    showTopGlint: Boolean = true
+    showTopGlint: Boolean = true,
+    hazeState: HazeState? = LocalDashboardHazeState.current
 ): Modifier {
-    val spotShadowColor = if (isDark) {
-        if (isAmoled) Color.Black.copy(alpha = 0.75f) else Color.Black.copy(alpha = 0.55f)
+    val spotShadowColor = if (isAmoled) {
+        Color.Black.copy(alpha = 0.55f)
+    } else if (isDark) {
+        Color.Black.copy(alpha = 0.35f)
     } else {
-        accentColor.copy(alpha = 0.16f)
+        Color(0x22000000)
     }
-    val ambientShadowColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.08f)
+    val ambientShadowColor = if (isDark || isAmoled) {
+        accentColor.copy(alpha = 0.14f)
+    } else {
+        accentColor.copy(alpha = 0.10f)
+    }
 
-    val glassBaseBrush = if (isDark) {
-        if (isAmoled) {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color(0xFF201D28).copy(alpha = 0.88f),
-                    Color(0xFF131119).copy(alpha = 0.94f),
-                    Color(0xFF08070C).copy(alpha = 0.98f)
-                ),
-                start = Offset.Zero,
-                end = Offset.Infinite
-            )
+    // 1:1 match with Profile Menu & Bottom Navigation HazeStyle architecture
+    val hazeStyle = HazeStyle(
+        backgroundColor = if (isAmoled) {
+            Color.Black.copy(alpha = 0.35f)
+        } else if (isDark) {
+            Color(0xFF16141D).copy(alpha = 0.28f)
         } else {
-            Brush.linearGradient(
+            Color.White.copy(alpha = 0.25f)
+        },
+        blurRadius = 64.dp,
+        tints = listOf(
+            HazeTint(
+                color = accentColor.copy(alpha = 0.05f)
+            )
+        ),
+        noiseFactor = 0.08f
+    )
+
+    // Translucent reflective glass body wash matching Profile Menu (allowing backdrop colors to bleed naturally)
+    val glassBaseBrush = when {
+        isAmoled -> {
+            Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF2E2A38).copy(alpha = 0.86f),
-                    Color(0xFF221F2C).copy(alpha = 0.91f),
-                    Color(0xFF171520).copy(alpha = 0.96f)
-                ),
-                start = Offset.Zero,
-                end = Offset.Infinite
+                    Color.White.copy(alpha = 0.10f),          // Specular top glass reflection
+                    Color(0xFF100E14).copy(alpha = 0.25f),    // Translucent dark glass
+                    accentColor.copy(alpha = 0.08f),          // Uniform reflective color sheen
+                    Color(0xFF000000).copy(alpha = 0.35f)     // Pure black AMOLED foundation
+                )
             )
         }
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0xFFFFFFFF).copy(alpha = 0.94f),
-                Color(0xFFF8FAFC).copy(alpha = 0.84f),
-                Color(0xFFEFF3F8).copy(alpha = 0.90f)
-            ),
-            start = Offset.Zero,
-            end = Offset.Infinite
-        )
+        isDark -> {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.14f),          // Specular top glass reflection
+                    Color(0xFF221F2B).copy(alpha = 0.32f),    // Translucent dark charcoal glass
+                    accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                    Color(0xFF14121A).copy(alpha = 0.35f)     // Dark charcoal gray foundation
+                )
+            )
+        }
+        else -> {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
+                    Color.White.copy(alpha = 0.25f),          // Translucent light glass
+                    accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                    Color.White.copy(alpha = 0.35f)           // Base foundation
+                )
+            )
+        }
     }
 
-    val borderBrush = if (isDark) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.55f),
-                Color.White.copy(alpha = 0.22f),
-                accentColor.copy(alpha = 0.40f),
-                Color.White.copy(alpha = 0.08f)
-            ),
-            start = Offset.Zero,
-            end = Offset.Infinite
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.98f),
-                Color(0xFFCBD5E1).copy(alpha = 0.78f),
-                accentColor.copy(alpha = 0.35f),
-                Color(0xFF94A3B8).copy(alpha = 0.50f)
-            ),
-            start = Offset.Zero,
-            end = Offset.Infinite
-        )
-    }
+    // Specular reflective glass rim border
+    val borderBrush = Brush.linearGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.45f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.30f), // Reflective edge sheen
+                Color.White.copy(alpha = 0.15f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.20f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.10f)  // Soft specular bottom return
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.95f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.36f), // Reflective edge sheen in light mode
+                Color.White.copy(alpha = 0.55f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.22f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.45f)  // Soft specular bottom return
+            )
+        },
+        start = Offset.Zero,
+        end = Offset.Infinite
+    )
 
     return this
         .then(
@@ -292,19 +327,35 @@ fun Modifier.etchedGlassSurface(
             }
         )
         .clip(shape)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
         .background(brush = glassBaseBrush, shape = shape)
         .drawWithContent {
             drawContent()
+            val w = size.width
+            val margin = 14.dp.toPx()
+            val highlightH = 1.5.dp.toPx()
+
+            // Procedural analog micro-grain texture for tactile frosted glass feel
+            drawRect(
+                brush = SoftNoiseTexture.getOrCreateBrush(),
+                alpha = if (isDark || isAmoled) 0.07f else 0.09f
+            )
+
             if (showTopGlint) {
-                val w = size.width
-                val margin = 14.dp.toPx()
-                val highlightH = 1.5.dp.toPx()
-                // Top specular glint beam
+                // Top specular glint beam with subtle accent sheen
                 drawRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = if (isDark) 0.45f else 0.85f),
+                            accentColor.copy(alpha = if (isDark || isAmoled) 0.22f else 0.30f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.50f else 0.85f),
+                            accentColor.copy(alpha = if (isDark || isAmoled) 0.22f else 0.30f),
                             Color.Transparent
                         ),
                         startX = margin,
@@ -317,7 +368,7 @@ fun Modifier.etchedGlassSurface(
                 drawRect(
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.07f else 0.16f),
+                            Color.White.copy(alpha = if (isDark) 0.08f else 0.16f),
                             Color.Transparent
                         ),
                         start = Offset.Zero,
@@ -327,6 +378,103 @@ fun Modifier.etchedGlassSurface(
             }
         }
         .border(width = borderWidth, brush = borderBrush, shape = shape)
+}
+
+/**
+ * Colorful ambient backdrop canvas for the Dashboard screen.
+ * Renders luminous, harmonious color orbs and radiant gradient blooms behind the glass panels.
+ * When captured by HazeState via hazeSource, these shapes diffuse naturally through the frosted
+ * glass cards with optical light bleeding and depth, while maintaining high contrast in Light,
+ * Dark, and AMOLED modes.
+ */
+@Composable
+private fun DashboardAmbientBackdrop(
+    accentColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+    val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+    val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+    val hsv = remember(accentColor) {
+        val array = FloatArray(3)
+        android.graphics.Color.RGBToHSV(r, g, b, array)
+        array
+    }
+    val hue = hsv[0]
+
+    val secondaryColor = remember(hue, isDark) {
+        Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, if (isDark) 0.65f else 0.55f, 0.92f)))
+    }
+    val tertiaryColor = remember(hue, isDark) {
+        Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, if (isDark) 0.60f else 0.50f, 0.88f)))
+    }
+
+    // Alpha scales tuned for natural diffusion through 64.dp blur without blowing out contrast
+    val primaryAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.30f
+    val secondaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.24f else 0.26f
+    val tertiaryAlpha = if (isAmoled) 0.16f else if (isDark) 0.20f else 0.22f
+
+    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+
+        // 1. Top-right luminous accent orb (illuminating Header & Account banner)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(accentColor.copy(alpha = primaryAlpha), Color.Transparent),
+                center = Offset(w * 0.85f, h * 0.12f),
+                radius = w * 0.75f
+            ),
+            center = Offset(w * 0.85f, h * 0.12f),
+            radius = w * 0.75f
+        )
+
+        // 2. Upper-left harmonic bloom (illuminating Financial Breakdown card)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(secondaryColor.copy(alpha = secondaryAlpha), Color.Transparent),
+                center = Offset(w * 0.10f, h * 0.28f),
+                radius = w * 0.65f
+            ),
+            center = Offset(w * 0.10f, h * 0.28f),
+            radius = w * 0.65f
+        )
+
+        // 3. Mid-right organic diffusion bloom (behind Operational Summaries)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(tertiaryColor.copy(alpha = tertiaryAlpha), Color.Transparent),
+                center = Offset(w * 0.92f, h * 0.52f),
+                radius = w * 0.70f
+            ),
+            center = Offset(w * 0.92f, h * 0.52f),
+            radius = w * 0.70f
+        )
+
+        // 4. Lower-left radiant bloom (behind lower module cards & recent logs)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(accentColor.copy(alpha = primaryAlpha * 0.85f), Color.Transparent),
+                center = Offset(w * 0.12f, h * 0.76f),
+                radius = w * 0.75f
+            ),
+            center = Offset(w * 0.12f, h * 0.76f),
+            radius = w * 0.75f
+        )
+
+        // 5. Bottom-right subtle return pool
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(secondaryColor.copy(alpha = secondaryAlpha * 0.80f), Color.Transparent),
+                center = Offset(w * 0.82f, h * 0.95f),
+                radius = w * 0.60f
+            ),
+            center = Offset(w * 0.82f, h * 0.95f),
+            radius = w * 0.60f
+        )
+    }
 }
 
 /**
@@ -343,8 +491,11 @@ fun AgriDashboardScreen(
     onBack: () -> Unit,
     onNavigateToCategory: ((String) -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
+    val fallbackHazeState = remember { HazeState() }
+    val effectiveHazeState = hazeState ?: fallbackHazeState
     val context = LocalContext.current
     val isDark = isAppInDarkMode()
     val themeMode by viewModel.themeMode.collectAsState()
@@ -466,13 +617,32 @@ fun AgriDashboardScreen(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(dashboardBgBrush)
+        modifier = modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        // 1. Colorful background canvas with shapes & diffusion blooms captured by hazeSource
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = effectiveHazeState)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(dashboardBgBrush)
+            )
+
+            DashboardAmbientBackdrop(
+                accentColor = dashboardAccent,
+                isDark = isDark,
+                isAmoled = isAmoled
+            )
+        }
+
+        // 2. Foreground Glass Panels & Inscribed Content
+        CompositionLocalProvider(LocalDashboardHazeState provides effectiveHazeState) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // Floating Real Glass Top Header
             Box(
                 modifier = Modifier
@@ -957,6 +1127,7 @@ fun AgriDashboardScreen(
             }
         }
     }
+}
 }
 
 @Composable

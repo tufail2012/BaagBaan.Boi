@@ -387,6 +387,7 @@ fun AgriCropMainScreen(
                         isDashboardActive = false
                     },
                     onNavigateToSettings = { isSettingsActive = true },
+                    hazeState = hazeState,
                     modifier = modifier
                 )
             }
