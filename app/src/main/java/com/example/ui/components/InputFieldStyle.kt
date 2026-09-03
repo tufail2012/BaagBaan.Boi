@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.luminance
@@ -601,6 +603,56 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isFocused) 1f else 0f,
+        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        label = "inputFieldGlow"
+    )
+
+    val effectiveElevation = if (elevation > 0.dp) {
+        elevation + (4.dp * glowAlpha)
+    } else {
+        4.dp * glowAlpha
+    }
+
+    val glowShadowModifier = if (effectiveElevation > 0.dp) {
+        Modifier.shadow(
+            elevation = effectiveElevation,
+            shape = effectiveShape,
+            spotColor = if (isFocused || glowAlpha > 0.05f) {
+                accentColor.copy(alpha = (if (effectiveIsDark) 0.50f else 0.35f) * glowAlpha)
+            } else {
+                Color.Black.copy(alpha = if (effectiveIsDark) 0.50f else 0.10f)
+            },
+            ambientColor = if (isFocused || glowAlpha > 0.05f) {
+                accentColor.copy(alpha = 0.25f * glowAlpha)
+            } else {
+                Color.Black.copy(alpha = if (effectiveIsDark) 0.30f else 0.05f)
+            }
+        )
+    } else {
+        Modifier
+    }
+
+    val glowAuraModifier = if (glowAlpha > 0.01f) {
+        Modifier.drawBehind {
+            val outline = effectiveShape.createOutline(size, layoutDirection, this)
+            // Outer diffuse subtle glow rings using current accent color
+            drawOutline(
+                outline = outline,
+                color = accentColor.copy(alpha = (if (effectiveIsDark) 0.32f else 0.22f) * glowAlpha),
+                style = Stroke(width = 3.5.dp.toPx())
+            )
+            drawOutline(
+                outline = outline,
+                color = accentColor.copy(alpha = (if (effectiveIsDark) 0.14f else 0.09f) * glowAlpha),
+                style = Stroke(width = 7.dp.toPx())
+            )
+        }
+    } else {
+        Modifier
+    }
+
     if (effectiveIsDark) {
         val cardBgBrush = Brush.verticalGradient(
             colors = if (effectiveIsAmoled) {
@@ -618,7 +670,7 @@ fun Modifier.glassCardBackground(
             }
         )
 
-        val borderStroke = if (isFocused) {
+        val borderStroke = if (isFocused || glowAlpha > 0.05f) {
             BorderStroke(1.5.dp, accentColor)
         } else {
             val borderBrush = Brush.verticalGradient(
@@ -632,18 +684,8 @@ fun Modifier.glassCardBackground(
         }
 
         return this
-            .then(
-                if (elevation > 0.dp) {
-                    Modifier.shadow(
-                        elevation = elevation,
-                        shape = effectiveShape,
-                        spotColor = Color.Black.copy(alpha = 0.50f),
-                        ambientColor = Color.Black.copy(alpha = 0.30f)
-                    )
-                } else {
-                    Modifier
-                }
-            )
+            .then(glowShadowModifier)
+            .then(glowAuraModifier)
             .clip(effectiveShape)
             .background(brush = cardBgBrush, shape = effectiveShape)
             .drawWithContent {
@@ -674,20 +716,15 @@ fun Modifier.glassCardBackground(
     }
 
     val glassTint = Color(0xFFFFFFFF).copy(alpha = 0.94f)
-    val borderStroke = if (isFocused) {
+    val borderStroke = if (isFocused || glowAlpha > 0.05f) {
         BorderStroke(1.5.dp, accentColor)
     } else {
         BorderStroke(1.dp, Color(0xFFCBD5E1).copy(alpha = 0.85f))
     }
 
     return this
-        .then(
-            if (elevation > 0.dp) {
-                Modifier.shadow(elevation = elevation, shape = effectiveShape)
-            } else {
-                Modifier
-            }
-        )
+        .then(glowShadowModifier)
+        .then(glowAuraModifier)
         .clip(effectiveShape)
         .background(color = glassTint, shape = effectiveShape)
         .border(

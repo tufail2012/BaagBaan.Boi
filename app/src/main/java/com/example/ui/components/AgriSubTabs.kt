@@ -43,10 +43,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -125,6 +127,73 @@ fun PruningSubTabs(
                 label = "pruningSlide"
             )
 
+            // Soft water droplet spreading & expanding ripple wave on tab switch
+            val dropletSpread = remember { Animatable(1f) }
+            val dropletRipple = remember { Animatable(1f) }
+
+            LaunchedEffect(selectedIndex) {
+                launch {
+                    dropletSpread.snapTo(0.88f)
+                    dropletSpread.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = 0.60f, // Gentle water droplet surface tension
+                            stiffness = 250f
+                        )
+                    )
+                }
+                launch {
+                    dropletRipple.snapTo(0f)
+                    dropletRipple.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 450,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+
+            val offsetDelta = (targetOffset - animatedOffsetX).value
+            val glideStretch = (kotlin.math.abs(offsetDelta) / slotWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
+            val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
+            val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
+
+            // Subtle water droplet expanding ripple wave
+            if (dropletRipple.value < 0.99f) {
+                val rippleProgress = dropletRipple.value
+                val rippleAlpha = ((1f - rippleProgress) * if (!isDark && !isAmoled) 0.32f else 0.24f).coerceIn(0f, 1f)
+                val extraWidth = (rippleProgress * 14).dp
+                val extraHeight = (rippleProgress * 6).dp
+
+                Box(
+                    modifier = Modifier
+                        .offset(
+                            x = animatedOffsetX - (extraWidth / 2),
+                            y = -(extraHeight / 2)
+                        )
+                        .align(Alignment.CenterStart)
+                        .width(slotWidth + extraWidth)
+                        .fillMaxHeight()
+                        .clip(itemShape)
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = rippleAlpha),
+                                    Color.White.copy(alpha = rippleAlpha * 0.6f),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = itemShape
+                        )
+                        .background(
+                            color = accentColor.copy(alpha = rippleAlpha * 0.15f),
+                            shape = itemShape
+                        )
+                )
+            }
+
             // Fluid Water-like Sliding Liquid Pill Indicator
             Box(
                 modifier = Modifier
@@ -132,6 +201,10 @@ fun PruningSubTabs(
                     .align(Alignment.CenterStart)
                     .width(slotWidth)
                     .fillMaxHeight()
+                    .graphicsLayer {
+                        scaleX = dynamicScaleX
+                        scaleY = dynamicScaleY
+                    }
                     .bubbleDropletPillIndicator(
                         shape = itemShape,
                         accentColor = accentColor,
@@ -153,7 +226,7 @@ fun PruningSubTabs(
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
-                            if (isDark || isAmoled) Color.White else accentColor
+                            if (isDark || isAmoled) Color.White else Color.Black
                         } else {
                             if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                         },
@@ -344,6 +417,73 @@ fun RootstockSubTabs(
                 label = "rootstockWidth"
             )
 
+            // Soft water droplet spreading & expanding ripple wave on tab switch
+            val dropletSpread = remember { Animatable(1f) }
+            val dropletRipple = remember { Animatable(1f) }
+
+            LaunchedEffect(selectedIndex) {
+                launch {
+                    dropletSpread.snapTo(0.88f)
+                    dropletSpread.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = 0.60f, // Gentle water droplet surface tension
+                            stiffness = 250f
+                        )
+                    )
+                }
+                launch {
+                    dropletRipple.snapTo(0f)
+                    dropletRipple.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 450,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+
+            val offsetDelta = (targetOffset - animatedOffsetX).value
+            val glideStretch = (kotlin.math.abs(offsetDelta) / targetWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
+            val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
+            val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
+
+            // Subtle water droplet expanding ripple wave
+            if (dropletRipple.value < 0.99f) {
+                val rippleProgress = dropletRipple.value
+                val rippleAlpha = ((1f - rippleProgress) * if (!isDark && !isAmoled) 0.32f else 0.24f).coerceIn(0f, 1f)
+                val extraWidth = (rippleProgress * 14).dp
+                val extraHeight = (rippleProgress * 6).dp
+
+                Box(
+                    modifier = Modifier
+                        .offset(
+                            x = animatedOffsetX - (extraWidth / 2),
+                            y = -(extraHeight / 2)
+                        )
+                        .align(Alignment.CenterStart)
+                        .width(animatedWidth + extraWidth)
+                        .fillMaxHeight()
+                        .clip(itemShape)
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    accentColor.copy(alpha = rippleAlpha),
+                                    Color.White.copy(alpha = rippleAlpha * 0.6f),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = itemShape
+                        )
+                        .background(
+                            color = accentColor.copy(alpha = rippleAlpha * 0.15f),
+                            shape = itemShape
+                        )
+                )
+            }
+
             // Fluid Water-like Sliding Liquid Pill Indicator
             Box(
                 modifier = Modifier
@@ -351,6 +491,10 @@ fun RootstockSubTabs(
                     .align(Alignment.CenterStart)
                     .width(animatedWidth)
                     .fillMaxHeight()
+                    .graphicsLayer {
+                        scaleX = dynamicScaleX
+                        scaleY = dynamicScaleY
+                    }
                     .bubbleDropletPillIndicator(
                         shape = itemShape,
                         accentColor = accentColor,
@@ -369,7 +513,7 @@ fun RootstockSubTabs(
                 val isM9Selected = selectedIndex == 0
                 val m9Color by animateColorAsState(
                     targetValue = if (isM9Selected) {
-                        if (isDark || isAmoled) Color.White else accentColor
+                        if (isDark || isAmoled) Color.White else Color.Black
                     } else {
                         if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                     },
@@ -427,7 +571,7 @@ fun RootstockSubTabs(
                 val isMM111Selected = selectedIndex == 1
                 val mm111Color by animateColorAsState(
                     targetValue = if (isMM111Selected) {
-                        if (isDark || isAmoled) Color.White else accentColor
+                        if (isDark || isAmoled) Color.White else Color.Black
                     } else {
                         if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                     },
@@ -485,7 +629,7 @@ fun RootstockSubTabs(
                 val isGenevaActive = selectedIndex == 2
                 val genevaColor by animateColorAsState(
                     targetValue = if (isGenevaActive) {
-                        if (isDark || isAmoled) Color.White else accentColor
+                        if (isDark || isAmoled) Color.White else Color.Black
                     } else {
                         if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                     },

@@ -305,8 +305,8 @@ fun AgriBottomNav(
                 ) {
                     navItems.forEachIndexed { index, item ->
                         val isSelected = index == selectedIndex
-                        val unselectedColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF7E8B9B)
-                        val selectedColor = if (isDark) Color.White else activeSectionAccent
+                        val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF7E8B9B)
+                        val selectedColor = if (isDark || isAmoled) Color.White else Color.Black
 
                         val iconColor by animateColorAsState(
                             targetValue = if (isSelected) selectedColor else unselectedColor,
