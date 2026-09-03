@@ -171,18 +171,57 @@ fun AgriBottomNav(
                 val dropletPillShape = RoundedCornerShape(percent = 50)
 
                 // Fluid Water-like Sliding Liquid Pill Indicator
+                val animatedAccentColor = activeSectionAccent
+                val blobGradient = if (!isDark) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            animatedAccentColor.copy(alpha = 0.45f),
+                            animatedAccentColor.copy(alpha = 0.30f),
+                            Color.White.copy(alpha = 0.55f)
+                        )
+                    )
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            animatedAccentColor.copy(alpha = 0.38f),
+                            animatedAccentColor.copy(alpha = 0.25f),
+                            Color(0xFF0F172A).copy(alpha = 0.70f)
+                        )
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .offset(x = animatedOffsetX)
                         .align(Alignment.CenterStart)
                         .width(basePillWidth)
                         .height(pillHeight)
-                        .bubbleDropletPillIndicator(
-                            hazeState = hazeState,
+                        .shadow(
+                            elevation = 8.dp,
                             shape = dropletPillShape,
-                            accentColor = activeSectionAccent,
-                            isDark = isDark,
-                            isAmoled = isAmoled
+                            spotColor = animatedAccentColor.copy(alpha = if (isDark) 0.5f else 0.35f),
+                            ambientColor = animatedAccentColor.copy(alpha = 0.2f)
+                        )
+                        .clip(dropletPillShape)
+                        .background(brush = blobGradient, shape = dropletPillShape)
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = if (!isDark) {
+                                    listOf(
+                                        Color.White.copy(alpha = 0.8f),
+                                        animatedAccentColor.copy(alpha = 0.35f),
+                                        Color.White.copy(alpha = 0.4f)
+                                    )
+                                } else {
+                                    listOf(
+                                        Color.White.copy(alpha = 0.3f),
+                                        animatedAccentColor.copy(alpha = 0.4f),
+                                        Color.Transparent
+                                    )
+                                }
+                            ),
+                            shape = dropletPillShape
                         )
                 )
 
