@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -294,33 +295,26 @@ fun ThemeColoursContent(
                 )
 
                 val modes = listOf(
-                    ThemeModeOption(AppThemeMode.SYSTEM, "Follow System", Icons.Default.PhoneAndroid),
+                    ThemeModeOption(AppThemeMode.SYSTEM, "System", Icons.Default.PhoneAndroid),
                     ThemeModeOption(AppThemeMode.LIGHT, "Light", Icons.Default.LightMode),
                     ThemeModeOption(AppThemeMode.DARK, "Dark", Icons.Default.NightsStay),
                     ThemeModeOption(AppThemeMode.AMOLED, "AMOLED", Icons.Default.Contrast)
                 )
 
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    modes.chunked(2).forEach { rowModes ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            rowModes.forEach { option ->
-                                LargeThemeCard(
-                                    option = option,
-                                    isSelected = themeMode == option.mode,
-                                    onClick = { onSelectThemeMode(option.mode) },
-                                    currentAccentColor = currentAccentColor,
-                                    isDark = isDark,
-                                    themeMode = themeModeState,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                    modes.forEach { option ->
+                        LargeThemeCard(
+                            option = option,
+                            isSelected = themeMode == option.mode,
+                            onClick = { onSelectThemeMode(option.mode) },
+                            currentAccentColor = currentAccentColor,
+                            isDark = isDark,
+                            themeMode = themeModeState,
+                            modifier = Modifier.weight(1f)
+                        )
                     }
                 }
             }
@@ -480,15 +474,15 @@ fun ThemeColoursContent(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 8 Predefined Palettes arranged in 4 rows of 2 columns
+                // 8 Predefined Palettes arranged in 2 rows of 4 columns
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    PredefinedThemePalettes.chunked(2).forEach { rowPalettes ->
+                    PredefinedThemePalettes.chunked(4).forEach { rowPalettes ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             rowPalettes.forEach { palette ->
                                 val isSelected = selectedPaletteId.equals(palette.id, ignoreCase = true)
@@ -501,8 +495,10 @@ fun ThemeColoursContent(
                                     modifier = Modifier.weight(1f)
                                 )
                             }
-                            if (rowPalettes.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
+                            if (rowPalettes.size < 4) {
+                                repeat(4 - rowPalettes.size) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -638,7 +634,11 @@ private fun SolidColorSwatch(
 }
 
 /**
- * Predefined Palette Card with circular divided preview and role labels
+ * Predefined Palette Card:
+ * Compact design displaying only:
+ * - Palette name at top
+ * - Circular palette preview centered
+ * - When selected: accent border, subtle container tint, and checkmark badge at top-right
  */
 @Composable
 private fun PaletteCard(
@@ -651,125 +651,76 @@ private fun PaletteCard(
 ) {
     val activeBorderColor = palette.primary
     val inactiveBorderColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f)
-    val activeBgColor = if (isDark) palette.primary.copy(alpha = 0.14f) else palette.primary.copy(alpha = 0.06f)
+    val activeBgColor = if (isDark) palette.primary.copy(alpha = 0.16f) else palette.primary.copy(alpha = 0.08f)
     val inactiveBgColor = if (isDark) Color(0xFF141824).copy(alpha = 0.65f) else Color(0xFFF8FAFC)
 
     Card(
         onClick = onClick,
         modifier = modifier
+            .height(98.dp)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) activeBorderColor else inactiveBorderColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) activeBgColor else inactiveBgColor
         )
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(horizontal = 4.dp, vertical = 8.dp)
         ) {
-            // Palette Title
-            Text(
-                text = palette.name,
-                fontSize = 12.5.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                color = if (isSelected) {
-                    if (isDark) Color.White else palette.primary
-                } else if (isDark) Color.White else Color(0xFF0F172A),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Palette Title
+                Text(
+                    text = palette.name,
+                    fontSize = 11.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    color = if (isSelected) {
+                        if (isDark) Color.White else palette.primary
+                    } else if (isDark) Color.White else Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp)
+                )
 
-            Spacer(modifier = Modifier.height(10.dp))
+                // Circular Palette Preview (divided into 4 quarters or 2 vertical halves)
+                CircularPalettePreview(
+                    palette = palette,
+                    isSelected = isSelected,
+                    isDark = isDark,
+                    modifier = Modifier.size(38.dp)
+                )
 
-            // Circular Palette Preview (divided into 4 quarters or 2 vertical halves)
-            CircularPalettePreview(
-                palette = palette,
-                isSelected = isSelected,
-                isDark = isDark,
-                modifier = Modifier.size(72.dp)
-            )
+                Spacer(modifier = Modifier.height(2.dp))
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Role Labels and Color Names
-            if (!palette.isTwoColor) {
-                // 4-Color layout: 2 columns
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            // Top-right corner checkmark badge when selected
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(palette.primary)
+                        .align(Alignment.TopEnd),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Left Column: Primary & Tertiary
-                    Column(modifier = Modifier.weight(1f)) {
-                        PaletteRoleItem(
-                            roleLabel = "Primary",
-                            colorName = palette.primaryName,
-                            color = palette.primary,
-                            isDark = isDark
-                        )
-                        Spacer(modifier = Modifier.height(5.dp))
-                        PaletteRoleItem(
-                            roleLabel = "Tertiary",
-                            colorName = palette.tertiaryName,
-                            color = palette.tertiary,
-                            isDark = isDark
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Right Column: Secondary & Neutral
-                    Column(modifier = Modifier.weight(1f)) {
-                        PaletteRoleItem(
-                            roleLabel = "Secondary",
-                            colorName = palette.secondaryName,
-                            color = palette.secondary,
-                            isDark = isDark
-                        )
-                        Spacer(modifier = Modifier.height(5.dp))
-                        PaletteRoleItem(
-                            roleLabel = "Neutral",
-                            colorName = palette.neutralName,
-                            color = palette.neutral,
-                            isDark = isDark
-                        )
-                    }
-                }
-            } else {
-                // 2-Color layout (7. Monochrome, 8. Black & White)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Left Column: Primary (Text, Icons)
-                    Column(modifier = Modifier.weight(1f)) {
-                        PaletteRoleItem(
-                            roleLabel = "Primary",
-                            colorName = palette.primaryName,
-                            color = palette.primary,
-                            isDark = isDark,
-                            subtitle = "Text, Icons"
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    // Right Column: Secondary (Backgrounds)
-                    Column(modifier = Modifier.weight(1f)) {
-                        PaletteRoleItem(
-                            roleLabel = "Secondary",
-                            colorName = palette.secondaryName,
-                            color = palette.secondary,
-                            isDark = isDark,
-                            subtitle = "Backgrounds"
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Selected",
+                        tint = if (palette.primary.luminance() > 0.5f) Color.Black else Color.White,
+                        modifier = Modifier.size(11.dp)
+                    )
                 }
             }
         }
@@ -779,14 +730,14 @@ private fun PaletteCard(
 /**
  * Circular Palette Preview:
  * - 4-color palette: perfect circle divided into 4 quarters
- *   - Top-left quarter = Primary
- *   - Top-right quarter = Secondary
- *   - Bottom-left quarter = Tertiary
- *   - Bottom-right quarter = Neutral
+ *   - Top-left quarter = Primary (angles 180° to 270°)
+ *   - Top-right quarter = Secondary (angles 270° to 360°)
+ *   - Bottom-left quarter = Tertiary (angles 90° to 180°)
+ *   - Bottom-right quarter = Neutral (angles 0° to 90°)
  * - 2-color palette: perfect circle divided vertically into 2 equal halves
- *   - Left half = Primary
- *   - Right half = Secondary
- * - When selected: highlighted indicator ring around the entire circle and checkmark badge
+ *   - Left half = Primary (angles 90° to 270°)
+ *   - Right half = Secondary (angles 270° to 90°)
+ * Compact preview size (~38.dp), similar in size to Solid Color swatches.
  */
 @Composable
 private fun CircularPalettePreview(
@@ -795,164 +746,69 @@ private fun CircularPalettePreview(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val indicatorBorderColor = palette.primary
-
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
-        // Outer container: if selected, display highlight ring around the circle
-        Box(
+        Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (isSelected) {
-                        Modifier
-                            .border(
-                                width = 2.5.dp,
-                                color = indicatorBorderColor,
-                                shape = CircleShape
-                            )
-                            .padding(3.5.dp)
-                    } else {
-                        Modifier.padding(3.5.dp)
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .border(
-                        width = 1.dp,
-                        color = if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f),
-                        shape = CircleShape
-                    )
-            ) {
-                if (palette.isTwoColor) {
-                    // Left half = Primary (Text, Icons)
-                    drawArc(
-                        color = palette.primary,
-                        startAngle = 90f,
-                        sweepAngle = 180f,
-                        useCenter = true,
-                        size = size
-                    )
-                    // Right half = Secondary (Backgrounds)
-                    drawArc(
-                        color = palette.secondary,
-                        startAngle = 270f,
-                        sweepAngle = 180f,
-                        useCenter = true,
-                        size = size
-                    )
-                } else {
-                    // Top-left quarter = Primary (angles 180° to 270°)
-                    drawArc(
-                        color = palette.primary,
-                        startAngle = 180f,
-                        sweepAngle = 90f,
-                        useCenter = true,
-                        size = size
-                    )
-                    // Top-right quarter = Secondary (angles 270° to 360°)
-                    drawArc(
-                        color = palette.secondary,
-                        startAngle = 270f,
-                        sweepAngle = 90f,
-                        useCenter = true,
-                        size = size
-                    )
-                    // Bottom-left quarter = Tertiary (angles 90° to 180°)
-                    drawArc(
-                        color = palette.tertiary,
-                        startAngle = 90f,
-                        sweepAngle = 90f,
-                        useCenter = true,
-                        size = size
-                    )
-                    // Bottom-right quarter = Neutral (angles 0° to 90°)
-                    drawArc(
-                        color = palette.neutral,
-                        startAngle = 0f,
-                        sweepAngle = 90f,
-                        useCenter = true,
-                        size = size
-                    )
-                }
-            }
-
-            if (isSelected) {
-                // Floating center checkmark badge
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.72f))
-                        .border(1.dp, Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint = Color.White,
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Role indicator item with color dot, role label, and color name
- */
-@Composable
-private fun PaletteRoleItem(
-    roleLabel: String,
-    colorName: String,
-    color: Color,
-    isDark: Boolean,
-    subtitle: String? = null
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Box(
-            modifier = Modifier
-                .size(7.5.dp)
                 .clip(CircleShape)
-                .background(color)
                 .border(
-                    width = 0.5.dp,
-                    color = if (isDark) Color.White.copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.2f),
+                    width = 1.dp,
+                    color = if (isDark) Color.White.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.15f),
                     shape = CircleShape
                 )
-        )
-        Spacer(modifier = Modifier.width(3.5.dp))
-        Column {
-            Text(
-                text = roleLabel,
-                fontSize = 8.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
-            )
-            Text(
-                text = colorName,
-                fontSize = 7.5.sp,
-                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    fontSize = 7.sp,
-                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        ) {
+            if (palette.isTwoColor) {
+                // Left half = Primary (Text, Icons)
+                drawArc(
+                    color = palette.primary,
+                    startAngle = 90f,
+                    sweepAngle = 180f,
+                    useCenter = true,
+                    size = size
+                )
+                // Right half = Secondary (Backgrounds)
+                drawArc(
+                    color = palette.secondary,
+                    startAngle = 270f,
+                    sweepAngle = 180f,
+                    useCenter = true,
+                    size = size
+                )
+            } else {
+                // Top-left quarter = Primary (angles 180° to 270°)
+                drawArc(
+                    color = palette.primary,
+                    startAngle = 180f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    size = size
+                )
+                // Top-right quarter = Secondary (angles 270° to 360°)
+                drawArc(
+                    color = palette.secondary,
+                    startAngle = 270f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    size = size
+                )
+                // Bottom-right quarter = Tertiary (angles 0° to 90°)
+                drawArc(
+                    color = palette.tertiary,
+                    startAngle = 0f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    size = size
+                )
+                // Bottom-left quarter = Neutral (angles 90° to 180°)
+                drawArc(
+                    color = palette.neutral,
+                    startAngle = 90f,
+                    sweepAngle = 90f,
+                    useCenter = true,
+                    size = size
                 )
             }
         }
@@ -983,13 +839,13 @@ private fun LargeThemeCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .height(74.dp)
+            .height(72.dp)
             .border(
                 width = if (isSelected) 2.dp else 1.dp,
                 color = if (isSelected) activeBorderColor else inactiveBorderColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) activeContainerColor else inactiveContainerColor
         )
@@ -997,10 +853,11 @@ private fun LargeThemeCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp)
+                .padding(horizontal = 4.dp, vertical = 8.dp)
         ) {
             Column(
-                modifier = Modifier.align(Alignment.CenterStart),
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Icon(
@@ -1011,16 +868,19 @@ private fun LargeThemeCard(
                     } else {
                         if (isDark) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
                     },
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     text = option.title,
-                    fontSize = 13.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     color = if (isSelected) {
                         if (isDark) Color.White else currentAccentColor
-                    } else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    } else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -1030,7 +890,7 @@ private fun LargeThemeCard(
                     contentDescription = "Selected",
                     tint = currentAccentColor,
                     modifier = Modifier
-                        .size(18.dp)
+                        .size(15.dp)
                         .align(Alignment.TopEnd)
                 )
             }

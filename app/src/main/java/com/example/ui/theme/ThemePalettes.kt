@@ -3,20 +3,33 @@ package com.example.ui.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+
+/**
+ * Calculates high-contrast accessible text/icon color for any surface.
+ */
+fun getAccessibleTextColor(
+    surfaceColor: Color,
+    fallbackLight: Color = Color(0xFFFAFAFA),
+    fallbackDark: Color = Color(0xFF0F172A)
+): Color {
+    val lum = surfaceColor.luminance()
+    return if (lum > 0.48f) fallbackDark else fallbackLight
+}
 
 /**
  * Predefined 4-color and 2-color App Palettes
  *
  * COLOR ROLES:
- * - PRIMARY: Main/primary buttons, selected tab text/icons, active navigation icon,
+ * - PRIMARY: Main/primary action buttons, selected tab text/icons, active navigation icon,
  *            selected navigation pill, important action icons (Add, Save, Edit, Refresh),
- *            focused input-field border/glow, active indicators, important highlights.
- * - SECONDARY: Secondary button backgrounds, supporting cards and containers, soft
- *              input-field surface tints, chips, supporting UI surfaces, subtle background accents.
- * - TERTIARY: Status badges, notification accents, small highlights, supporting indicators,
- *             decorative accents, subtle gradient/reflection details.
- * - NEUTRAL: General text, form values, inactive text, inactive icons, borders, dividers,
- *            supporting structural elements. (Neutral is a ROLE, not a requirement to use black or gray).
+ *            focused input-field border/glow, active indicators, important interactive highlights.
+ * - SECONDARY: Supporting card surfaces, input-field surface tint, secondary button backgrounds,
+ *              chips, supporting containers, subtle UI surface accents.
+ * - TERTIARY: Status badges, notification accents, small visual highlights, supporting indicators,
+ *             secondary decorative accents, subtle gradient/reflection details.
+ * - NEUTRAL: General body text, form values, inactive tab text, inactive icons, borders, dividers,
+ *            structural UI elements, contrast areas.
  */
 data class AppPalette(
     val id: String,
@@ -26,11 +39,14 @@ data class AppPalette(
     val secondaryHex: String,
     val tertiaryHex: String = secondaryHex,
     val neutralHex: String = secondaryHex,
-    val primaryName: String,
-    val secondaryName: String,
+    val primaryName: String = "",
+    val secondaryName: String = "",
     val tertiaryName: String = "",
     val neutralName: String = ""
 ) {
+    val isPredefinedPalette: Boolean
+        get() = PredefinedThemePalettes.any { it.id.equals(id, ignoreCase = true) }
+
     val primary: Color get() = try {
         Color(android.graphics.Color.parseColor(primaryHex))
     } catch (e: Exception) {
@@ -56,24 +72,117 @@ data class AppPalette(
     }
 
     /**
-     * Resolves an adaptive contrast text color for the Neutral role in dark or light mode.
+     * Resolves the Primary color for interactive components across light, dark, and AMOLED modes.
+     * In 2-color palettes (Monochrome, Black & White), switches between White (in Dark/AMOLED)
+     * and Black (in Light) to guarantee perfect contrast and readability.
      */
-    fun getNeutralTextColor(isDark: Boolean): Color {
-        return if (isDark) {
-            if (isTwoColor) Color.White else neutral
+    fun getPrimary(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isDark || isAmoled) Color.White else Color(0xFF09090B)
         } else {
-            if (isTwoColor) Color(0xFF18181B) else Color(0xFF1E293B)
+            primary
         }
     }
 
     /**
-     * Resolves an adaptive border/divider color for the Neutral role in dark or light mode.
+     * Resolves the Secondary color for supporting surfaces, chips, and containers.
+     */
+    fun getSecondary(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isDark || isAmoled) Color(0xFF18181B) else Color(0xFFF4F4F5)
+        } else {
+            secondary
+        }
+    }
+
+    /**
+     * Resolves the Tertiary color for status badges, notification accents, and highlights.
+     */
+    fun getTertiary(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isDark || isAmoled) Color(0xFFA1A1AA) else Color(0xFF52525B)
+        } else {
+            tertiary
+        }
+    }
+
+    /**
+     * Resolves the Neutral color.
+     */
+    fun getNeutral(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isDark || isAmoled) Color.White else Color(0xFF0F172A)
+        } else {
+            neutral
+        }
+    }
+
+    /**
+     * Resolves high-contrast readable text for body, headings, and form values.
+     * Guaranteed never to produce dark text on dark surfaces or light text on light surfaces.
+     */
+    fun getNeutralTextColor(isDark: Boolean): Color {
+        return if (isDark) {
+            if (isTwoColor) Color(0xFFFAFAFA) else {
+                if (neutral.luminance() > 0.45f) neutral else Color(0xFFF8FAFC)
+            }
+        } else {
+            if (isTwoColor) Color(0xFF09090B) else Color(0xFF0F172A)
+        }
+    }
+
+    /**
+     * Resolves secondary/muted text color for inactive tabs, subtitles, and labels.
+     */
+    fun getNeutralMutedTextColor(isDark: Boolean): Color {
+        return if (isDark) {
+            if (isTwoColor) Color(0xFFD4D4D8) else Color(0xFFCBD5E1)
+        } else {
+            if (isTwoColor) Color(0xFF52525B) else Color(0xFF475569)
+        }
+    }
+
+    /**
+     * Resolves border and divider colors with high structural clarity.
      */
     fun getNeutralBorderColor(isDark: Boolean): Color {
         return if (isDark) {
             if (isTwoColor) Color(0xFF3F3F46) else neutral.copy(alpha = 0.35f)
         } else {
-            if (isTwoColor) Color(0xFFE4E4E7) else neutral.copy(alpha = 0.45f)
+            if (isTwoColor) Color(0xFFE4E4E7) else neutral.copy(alpha = 0.40f)
+        }
+    }
+
+    /**
+     * Resolves inactive icon color.
+     */
+    fun getNeutralIconColor(isDark: Boolean): Color {
+        return if (isDark) {
+            if (isTwoColor) Color(0xFFD4D4D8) else Color(0xFF94A3B8)
+        } else {
+            if (isTwoColor) Color(0xFF52525B) else Color(0xFF64748B)
+        }
+    }
+
+    /**
+     * Resolves supporting card background tint.
+     */
+    fun getSupportingCardTint(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isAmoled) Color(0xFF0A0A0A) else if (isDark) Color(0xFF18181B) else Color(0xFFF4F4F5)
+        } else {
+            if (isDark) secondary.copy(alpha = 0.12f) else secondary.copy(alpha = 0.08f)
+        }
+    }
+
+    /**
+     * Resolves input field inner surface tint.
+     */
+    fun getInputSurfaceTint(isDark: Boolean, isAmoled: Boolean = false): Color {
+        return if (isTwoColor) {
+            if (isDark || isAmoled) Color(0xFF141416) else Color(0xFFF9FAFB)
+        } else {
+            if (isDark) secondary.copy(alpha = 0.08f) else secondary.copy(alpha = 0.06f)
         }
     }
 }
@@ -93,7 +202,7 @@ val PredefinedThemePalettes = listOf(
         neutralHex = "#FFF8E7",
         primaryName = "Apple Red",
         secondaryName = "Coral Peach",
-        tertiaryName = "Fresh Leaf Green",
+        tertiaryName = "Leaf Green",
         neutralName = "Warm Cream"
     ),
     // 2. Royal Garden
@@ -103,7 +212,7 @@ val PredefinedThemePalettes = listOf(
         isTwoColor = false,
         primaryHex = "#7C3AED",
         secondaryHex = "#C084FC",
-        tertiaryHex = "#15803D",
+        tertiaryHex = "#10B981",
         neutralHex = "#EDE9FE",
         primaryName = "Royal Purple",
         secondaryName = "Soft Orchid",
@@ -116,8 +225,8 @@ val PredefinedThemePalettes = listOf(
         name = "3. Ocean Breeze",
         isTwoColor = false,
         primaryHex = "#0284C7",
-        secondaryHex = "#14B8A6",
-        tertiaryHex = "#5EEAD4",
+        secondaryHex = "#06B6D4",
+        tertiaryHex = "#2DD4BF",
         neutralHex = "#E0F2FE",
         primaryName = "Ocean Blue",
         secondaryName = "Aqua Teal",
@@ -129,12 +238,12 @@ val PredefinedThemePalettes = listOf(
         id = "tropical_garden",
         name = "4. Tropical Garden",
         isTwoColor = false,
-        primaryHex = "#059669",
-        secondaryHex = "#0D9488",
-        tertiaryHex = "#FACC15",
+        primaryHex = "#0F766E",
+        secondaryHex = "#06B6D4",
+        tertiaryHex = "#EAB308",
         neutralHex = "#BEF264",
-        primaryName = "Emerald Green",
-        secondaryName = "Tropical Teal",
+        primaryName = "Emerald Teal",
+        secondaryName = "Tropical Cyan",
         tertiaryName = "Golden Yellow",
         neutralName = "Fresh Lime"
     ),
@@ -162,19 +271,23 @@ val PredefinedThemePalettes = listOf(
         tertiaryHex = "#F472B6",
         neutralHex = "#FCE7F3",
         primaryName = "Berry Magenta",
-        secondaryName = "Violet",
-        tertiaryName = "Soft Rose",
-        neutralName = "Pale Pink"
+        secondaryName = "Soft Violet",
+        tertiaryName = "Rose Pink",
+        neutralName = "Pale Blush"
     ),
     // 7. Monochrome
     AppPalette(
         id = "monochrome",
         name = "7. Monochrome",
         isTwoColor = true,
-        primaryHex = "#212121",
+        primaryHex = "#18181B",
         secondaryHex = "#F4F4F5",
-        primaryName = "Black",
-        secondaryName = "White"
+        tertiaryHex = "#71717A",
+        neutralHex = "#D4D4D8",
+        primaryName = "Charcoal Black",
+        secondaryName = "Clean Off-White",
+        tertiaryName = "Mid Slate",
+        neutralName = "Zinc"
     ),
     // 8. Black & White
     AppPalette(
@@ -183,8 +296,12 @@ val PredefinedThemePalettes = listOf(
         isTwoColor = true,
         primaryHex = "#000000",
         secondaryHex = "#FFFFFF",
+        tertiaryHex = "#FFFFFF",
+        neutralHex = "#FFFFFF",
         primaryName = "Pure Black",
-        secondaryName = "Pure White"
+        secondaryName = "Pure White",
+        tertiaryName = "Pure White",
+        neutralName = "Pure Contrast"
     )
 )
 
@@ -222,3 +339,4 @@ fun resolveAppPalette(paletteId: String?, solidAccentHex: String): AppPalette {
 val LocalAppPalette = compositionLocalOf {
     PredefinedThemePalettes[0]
 }
+

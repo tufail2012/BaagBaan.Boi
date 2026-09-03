@@ -394,21 +394,25 @@ private fun DashboardAmbientBackdrop(
     isAmoled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
-    val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
-    val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
-    val hsv = remember(accentColor) {
-        val array = FloatArray(3)
-        android.graphics.Color.RGBToHSV(r, g, b, array)
-        array
-    }
-    val hue = hsv[0]
-
-    val secondaryColor = remember(hue, isDark) {
-        Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, if (isDark) 0.65f else 0.55f, 0.92f)))
-    }
-    val tertiaryColor = remember(hue, isDark) {
-        Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, if (isDark) 0.60f else 0.50f, 0.88f)))
+    val palette = com.example.ui.theme.LocalAppPalette.current
+    val (effectivePrimary, secondaryColor, tertiaryColor) = remember(palette, accentColor, isDark, isAmoled) {
+        if (!palette.isTwoColor && palette.id != "solid_active") {
+            Triple(
+                palette.getPrimary(isDark, isAmoled),
+                palette.getSecondary(isDark, isAmoled),
+                palette.getTertiary(isDark, isAmoled)
+            )
+        } else {
+            val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+            val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+            val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+            val hsv = FloatArray(3)
+            android.graphics.Color.RGBToHSV(r, g, b, hsv)
+            val hue = hsv[0]
+            val sec = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, if (isDark) 0.65f else 0.55f, 0.92f)))
+            val tert = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, if (isDark) 0.60f else 0.50f, 0.88f)))
+            Triple(accentColor, sec, tert)
+        }
     }
 
     // Alpha scales tuned for natural diffusion through 64.dp blur without blowing out contrast
@@ -423,7 +427,7 @@ private fun DashboardAmbientBackdrop(
         // 1. Top-right luminous accent orb (illuminating Header & Account banner)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(accentColor.copy(alpha = primaryAlpha), Color.Transparent),
+                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha), Color.Transparent),
                 center = Offset(w * 0.85f, h * 0.12f),
                 radius = w * 0.75f
             ),
