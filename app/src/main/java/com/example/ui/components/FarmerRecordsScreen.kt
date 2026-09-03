@@ -196,30 +196,31 @@ fun FarmerRecordsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(top = 72.dp, bottom = 100.dp)
         ) {
-        // 1. Active Recording Book Header Banner
-        item {
-            RecordingBookHeader(
-                title = bookTitle,
-                count = records.size
-            )
-        }
-
-        // 2. Search Bar with Payment Status Filter Dropdown
+        // 1 & 2. Sticky Top Section (Recording Book Header Banner + Search Bar & Filter)
         stickyHeader {
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                SearchBarWithStatusFilter(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
-                    selectedFilter = selectedPaymentFilter,
-                    onFilterSelected = { viewModel.setPaymentFilter(it) },
-                    placeholderText = "Search by farmer name, phone, serial no...",
-                    isDark = isDark,
-                    testTagPrefix = "crop_search",
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    RecordingBookHeader(
+                        title = bookTitle,
+                        count = records.size
+                    )
+                    SearchBarWithStatusFilter(
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
+                        selectedFilter = selectedPaymentFilter,
+                        onFilterSelected = { viewModel.setPaymentFilter(it) },
+                        placeholderText = "Search by farmer name, phone, serial no...",
+                        isDark = isDark,
+                        testTagPrefix = "crop_search",
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
             }
         }
 

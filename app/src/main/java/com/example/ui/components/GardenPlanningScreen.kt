@@ -949,8 +949,8 @@ fun GardenPlanningFormTab(
         if (isMultiVarietyEnabled) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9),
-                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                color = if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9),
+                border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("garden_multi_variety_section")
@@ -1278,8 +1278,8 @@ fun GardenPlanningFormTab(
 
             Surface(
                 shape = RoundedCornerShape(14.dp),
-                color = if (isDark) Color(0xFF1E293B) else Color.White,
-                border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                color = if (isDark) Color(0xFF171517) else Color.White,
+                border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("garden_multi_variety_pricing_card")
@@ -2120,30 +2120,31 @@ fun GardenPlanningRecordsTab(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-        // 1. Active Recording Book Header Banner (positioned directly ABOVE search box)
-        item {
-            RecordingBookHeader(
-                title = "Garden Planning Recording Book",
-                count = entries.size
-            )
-        }
-
-        // 2. Sticky Search Bar & Payment Status Filter Dropdown
+        // 1 & 2. Sticky Top Section (Recording Book Header Banner + Search Bar & Filter)
         stickyHeader {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                SearchBarWithStatusFilter(
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                    selectedFilter = selectedPaymentFilter,
-                    onFilterSelected = { viewModel.setPaymentFilter(it) },
-                    placeholderText = "Search by farmer name, phone, serial or address...",
-                    isDark = isDark,
-                    testTagPrefix = "garden_search",
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    RecordingBookHeader(
+                        title = "Garden Planning Recording Book",
+                        count = entries.size
+                    )
+                    SearchBarWithStatusFilter(
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                        selectedFilter = selectedPaymentFilter,
+                        onFilterSelected = { viewModel.setPaymentFilter(it) },
+                        placeholderText = "Search by farmer name, phone, serial or address...",
+                        isDark = isDark,
+                        testTagPrefix = "garden_search",
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
             }
         }
 

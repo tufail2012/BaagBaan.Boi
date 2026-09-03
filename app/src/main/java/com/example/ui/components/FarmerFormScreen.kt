@@ -1070,11 +1070,11 @@ fun FarmerFormScreen(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155).copy(alpha = 0.6f) else Color(0xFFE2E8F0).copy(alpha = 0.8f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE2E8F0).copy(alpha = 0.8f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
+                    .background(if (isDark) Color(0xFF171517) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
@@ -2087,11 +2087,11 @@ fun FarmerFormScreen(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color(0xFF334155).copy(alpha = 0.6f) else Color(0xFFCBD5E1).copy(alpha = 0.8f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1).copy(alpha = 0.8f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.45f) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
+                    .background(if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
