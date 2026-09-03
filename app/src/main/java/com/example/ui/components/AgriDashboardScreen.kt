@@ -4,16 +4,21 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,14 +54,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,19 +71,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.UserBooking
@@ -93,60 +102,278 @@ import com.example.data.isPaymentCleared
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.example.ui.components.BrandedPullToRefreshBox
+import com.example.ui.AppThemeMode
 import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 
+/**
+ * Inscribed / Etched Glass Typography Style.
+ * Renders text with sharp contrast, refined tracking, and physical specular drop highlights
+ * or luminous edge glows, creating the authentic optical illusion that text is physically
+ * written, laser-etched, or printed onto the glass surface.
+ */
+@Composable
+fun glassEtchedTextStyle(
+    isDark: Boolean,
+    color: Color? = null,
+    fontSize: TextUnit = 14.sp,
+    fontWeight: FontWeight = FontWeight.Normal,
+    isAccent: Boolean = false,
+    accentColor: Color = Color.Unspecified,
+    letterSpacing: TextUnit = 0.25.sp,
+    isProminent: Boolean = false,
+    isSecondary: Boolean = false
+): TextStyle {
+    val resolvedColor = color ?: if (isDark) {
+        when {
+            isAccent && accentColor != Color.Unspecified -> accentColor
+            isSecondary -> Color(0xFFCBD5E1)
+            else -> Color(0xFFFFFFFF)
+        }
+    } else {
+        when {
+            isAccent && accentColor != Color.Unspecified -> accentColor
+            isSecondary -> Color(0xFF334155)
+            else -> Color(0xFF0F172A)
+        }
+    }
+
+    val shadow = if (isDark) {
+        if (isAccent && accentColor != Color.Unspecified) {
+            Shadow(
+                color = accentColor.copy(alpha = if (isProminent) 0.70f else 0.45f),
+                offset = Offset(0f, 0f),
+                blurRadius = if (isProminent) 8f else 4f
+            )
+        } else if (isSecondary) {
+            Shadow(
+                color = Color.White.copy(alpha = 0.20f),
+                offset = Offset(0f, 0.5f),
+                blurRadius = 2f
+            )
+        } else {
+            Shadow(
+                color = Color.White.copy(alpha = if (isProminent) 0.55f else 0.35f),
+                offset = Offset(0f, 0.5f),
+                blurRadius = if (isProminent) 6f else 3f
+            )
+        }
+    } else {
+        if (isAccent && accentColor != Color.Unspecified) {
+            Shadow(
+                color = Color.White.copy(alpha = 0.95f),
+                offset = Offset(0f, 1.2f),
+                blurRadius = 1.5f
+            )
+        } else if (isSecondary) {
+            Shadow(
+                color = Color.White.copy(alpha = 0.90f),
+                offset = Offset(0f, 1f),
+                blurRadius = 1.2f
+            )
+        } else {
+            // Bright white specular relief under dark text: physically mimics light catching
+            // the engraved bevel or raised enamel stroke on glass
+            Shadow(
+                color = Color.White.copy(alpha = 0.98f),
+                offset = Offset(0f, 1.2f),
+                blurRadius = 1.5f
+            )
+        }
+    }
+
+    return TextStyle(
+        color = resolvedColor,
+        fontSize = fontSize,
+        fontWeight = fontWeight,
+        letterSpacing = letterSpacing,
+        shadow = shadow
+    )
+}
+
+/**
+ * Realistic Multi-Layer Frosted & Etched Glass Modifier.
+ * Transforms components into physical glass slabs featuring:
+ * - Floating depth shadows with subtle ambient reflection
+ * - Frosted, semi-translucent crystalline substrate gradient
+ * - Dual-layer beveled edge rim reflecting ambient light
+ * - Top-edge specular glint beam and 35-degree diagonal refraction sheen
+ */
+@Composable
+fun Modifier.etchedGlassSurface(
+    isDark: Boolean,
+    isAmoled: Boolean = false,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    shape: Shape = RoundedCornerShape(18.dp),
+    elevation: Dp = 4.dp,
+    borderWidth: Dp = 1.2.dp,
+    showTopGlint: Boolean = true
+): Modifier {
+    val spotShadowColor = if (isDark) {
+        if (isAmoled) Color.Black.copy(alpha = 0.75f) else Color.Black.copy(alpha = 0.55f)
+    } else {
+        accentColor.copy(alpha = 0.16f)
+    }
+    val ambientShadowColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.08f)
+
+    val glassBaseBrush = if (isDark) {
+        if (isAmoled) {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF201D28).copy(alpha = 0.88f),
+                    Color(0xFF131119).copy(alpha = 0.94f),
+                    Color(0xFF08070C).copy(alpha = 0.98f)
+                ),
+                start = Offset.Zero,
+                end = Offset.Infinite
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xFF2E2A38).copy(alpha = 0.86f),
+                    Color(0xFF221F2C).copy(alpha = 0.91f),
+                    Color(0xFF171520).copy(alpha = 0.96f)
+                ),
+                start = Offset.Zero,
+                end = Offset.Infinite
+            )
+        }
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFFFFFFF).copy(alpha = 0.94f),
+                Color(0xFFF8FAFC).copy(alpha = 0.84f),
+                Color(0xFFEFF3F8).copy(alpha = 0.90f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
+
+    val borderBrush = if (isDark) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.55f),
+                Color.White.copy(alpha = 0.22f),
+                accentColor.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.08f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.98f),
+                Color(0xFFCBD5E1).copy(alpha = 0.78f),
+                accentColor.copy(alpha = 0.35f),
+                Color(0xFF94A3B8).copy(alpha = 0.50f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
+
+    return this
+        .then(
+            if (elevation > 0.dp) {
+                Modifier.shadow(
+                    elevation = elevation,
+                    shape = shape,
+                    clip = false,
+                    spotColor = spotShadowColor,
+                    ambientColor = ambientShadowColor
+                )
+            } else {
+                Modifier
+            }
+        )
+        .clip(shape)
+        .background(brush = glassBaseBrush, shape = shape)
+        .drawWithContent {
+            drawContent()
+            if (showTopGlint) {
+                val w = size.width
+                val margin = 14.dp.toPx()
+                val highlightH = 1.5.dp.toPx()
+                // Top specular glint beam
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = if (isDark) 0.45f else 0.85f),
+                            Color.Transparent
+                        ),
+                        startX = margin,
+                        endX = w - margin
+                    ),
+                    topLeft = Offset(margin, 1.dp.toPx()),
+                    size = Size(w - (margin * 2), highlightH)
+                )
+                // Diagonal optical glass reflection sheen
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (isDark) 0.07f else 0.16f),
+                            Color.Transparent
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(size.width * 0.48f, size.height * 0.65f)
+                    )
+                )
+            }
+        }
+        .border(width = borderWidth, brush = borderBrush, shape = shape)
+}
+
+/**
+ * Main AgriCrop Executive Operations Dashboard.
+ * Designed with a realistic frosted and etched glass visual identity, featuring
+ * bright, sharp, luminous lettering that appears physically inscribed into the glass.
+ */
 @Composable
 fun AgriDashboardScreen(
     viewModel: CropViewModel,
     userDashboardViewModel: UserDashboardViewModel,
-    gardenPlanningViewModel: GardenPlanningViewModel? = null,
+    gardenPlanningViewModel: GardenPlanningViewModel,
     currentUserEmail: String? = null,
     onBack: () -> Unit,
     onNavigateToCategory: ((String) -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    BackHandler(onBack = onBack)
-
-    val allRecords by viewModel.allRecords.collectAsState()
-    val gardenEntries by (gardenPlanningViewModel?.allEntries ?: kotlinx.coroutines.flow.MutableStateFlow(emptyList())).collectAsState()
-    val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
-    val themeMode by viewModel.themeMode.collectAsState()
-    val accentColorHex by viewModel.accentColorHex.collectAsState()
-    val isDark = isAppInDarkMode()
-    val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
-
-    val parsedPaletteColor = remember(accentColorHex) {
-        try {
-            Color(android.graphics.Color.parseColor(accentColorHex))
-        } catch (e: Exception) {
-            null
-        }
-    }
-    val dashboardAccent = getSectionAccentColor(
-        "Dashboard",
-        customPaletteColor = parsedPaletteColor,
-        defaultColor = MaterialTheme.colorScheme.primary
-    )
-
     val context = LocalContext.current
+    val isDark = isAppInDarkMode()
+    val themeMode by viewModel.themeMode.collectAsState()
+    val isAmoled = themeMode == AppThemeMode.AMOLED || isAppInAmoledMode()
+
+    val dashboardAccent = MaterialTheme.colorScheme.primary
+
+    BackHandler {
+        onBack()
+    }
+
+    // Data streams
+    val allRecords by viewModel.allRecords.collectAsState()
+    val gardenEntries by gardenPlanningViewModel.allEntries.collectAsState()
+    val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
+
     var currentUser by remember {
         mutableStateOf(
             try {
-                com.example.util.SafeFirebase.getAuth(context)?.currentUser
+                FirebaseAuth.getInstance().currentUser
             } catch (e: Throwable) {
                 null
             }
         )
     }
 
-    DisposableEffect(context) {
+    DisposableEffect(Unit) {
         val auth = try {
-            com.example.util.SafeFirebase.getAuth(context)
+            FirebaseAuth.getInstance()
         } catch (e: Throwable) {
             null
         }
@@ -168,7 +395,7 @@ fun AgriDashboardScreen(
         if (allRecords.isNotEmpty() || gardenEntries.isNotEmpty()) {
             isInitialLoading = false
         } else {
-            kotlinx.coroutines.delay(300)
+            delay(300)
             isInitialLoading = false
         }
     }
@@ -246,16 +473,18 @@ fun AgriDashboardScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Floating Glass Top Header
+            // Floating Real Glass Top Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .frostedGlassChrome(
+                    .etchedGlassSurface(
                         isDark = isDark,
+                        isAmoled = isAmoled,
                         accentColor = dashboardAccent,
-                        shape = RoundedCornerShape(percent = 50)
+                        shape = RoundedCornerShape(percent = 50),
+                        elevation = 4.dp
                     )
             ) {
                 Row(
@@ -270,24 +499,31 @@ fun AgriDashboardScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f, fill = false)
                     ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("dashboard_back_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = dashboardAccent
-                            )
-                        }
-
+                        // Glass button well for Back button
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(dashboardAccent.copy(alpha = 0.15f)),
+                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
+                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
+                                .clickable { onBack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = dashboardAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // Glass Emblem Pod
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(dashboardAccent.copy(alpha = 0.18f))
+                                .border(1.2.dp, dashboardAccent.copy(alpha = 0.40f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -301,16 +537,23 @@ fun AgriDashboardScreen(
                         Column {
                             Text(
                                 text = "AgriCrop Operations Dashboard",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    isProminent = true
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "Comprehensive Operations & Financial Overview",
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    isSecondary = true
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -319,35 +562,41 @@ fun AgriDashboardScreen(
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         if (onNavigateToSettings != null) {
-                            IconButton(
-                                onClick = onNavigateToSettings,
+                            Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .testTag("dashboard_settings_button")
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
+                                    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
+                                    .clickable { onNavigateToSettings() },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = "Settings & Security",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
 
-                        IconButton(
-                            onClick = { userDashboardViewModel.refreshUser() },
+                        Box(
                             modifier = Modifier
-                                .size(36.dp)
-                                .testTag("dashboard_refresh_button")
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
+                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
+                                .clickable { userDashboardViewModel.refreshUser() },
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "Refresh Data",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(20.dp)
+                                tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -372,251 +621,341 @@ fun AgriDashboardScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(2.dp)) }
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item { Spacer(modifier = Modifier.height(2.dp)) }
 
-                // 1. Account & System Banner Card
-                item {
-                    AccountBannerCard(
-                        currentUser = currentUser,
-                        totalEntriesCount = totalRecordsCount,
-                        totalVolume = totalRevenue,
-                        accentColor = dashboardAccent,
-                        isDark = isDark
-                    )
-                }
-
-                // 2. Financial Overview & Payment Breakdown Card
-                item {
-                    FinancialBreakdownCard(
-                        totalRevenue = totalRevenue,
-                        totalPaid = totalPaid,
-                        totalRemaining = totalRemaining,
-                        paidRatio = paidRatio,
-                        fullyPaidCount = fullyPaidCount,
-                        advancePaidCount = advancePaidCount,
-                        pendingCount = pendingCount,
-                        totalRecordsCount = totalRecordsCount,
-                        accentColor = dashboardAccent,
-                        isDark = isDark
-                    )
-                }
-
-                // 3. Category Summaries Section Header
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Assessment,
-                                contentDescription = null,
-                                tint = dashboardAccent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "Operational Category Summaries",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Text(
-                            text = "6 Modules",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = dashboardAccent
+                    // 1. Account & System Banner Card
+                    item {
+                        AccountBannerCard(
+                            currentUser = currentUser,
+                            totalEntriesCount = totalRecordsCount,
+                            totalVolume = totalRevenue,
+                            accentColor = dashboardAccent,
+                            isDark = isDark,
+                            isAmoled = isAmoled
                         )
                     }
-                }
 
-                // 4. Summaries Grid
-                item {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Imported Plants
-                        CategorySummaryCard(
-                            title = "Imported Plants",
-                            icon = Icons.Default.LocalShipping,
-                            badgeColor = Color(0xFF0288D1),
-                            recordsCount = importedRecords.size,
-                            totalQuantity = importedRecords.sumOf { it.quantity },
-                            unitLabel = "Plants",
-                            totalValue = importedRecords.sumOf { it.calculateTotalAmount() },
-                            remainingBalance = importedRecords.sumOf { it.calculateRemainingBalance() },
-                            paidCount = importedRecords.count { it.isPaymentCleared() },
-                            onClick = { onNavigateToCategory?.invoke("Imported") },
-                            isDark = isDark
-                        )
-
-                        // Local Plants
-                        CategorySummaryCard(
-                            title = "Local Plants",
-                            icon = Icons.Outlined.LocalFlorist,
-                            badgeColor = Color(0xFF2E7D32),
-                            recordsCount = localRecords.size,
-                            totalQuantity = localRecords.sumOf { it.quantity },
-                            unitLabel = "Saplings",
-                            totalValue = localRecords.sumOf { it.calculateTotalAmount() },
-                            remainingBalance = localRecords.sumOf { it.calculateRemainingBalance() },
-                            paidCount = localRecords.count { it.isPaymentCleared() },
-                            onClick = { onNavigateToCategory?.invoke("Local Plants") },
-                            isDark = isDark
-                        )
-
-                        // Rootstock Inventories
-                        CategorySummaryCard(
-                            title = "Rootstock Inventories",
-                            icon = Icons.Default.Spa,
-                            badgeColor = Color(0xFFED6C02),
-                            recordsCount = rootstockRecords.size,
-                            totalQuantity = rootstockRecords.sumOf { it.quantity },
-                            unitLabel = "Rootstocks",
-                            totalValue = rootstockRecords.sumOf { it.calculateTotalAmount() },
-                            remainingBalance = rootstockRecords.sumOf { it.calculateRemainingBalance() },
-                            paidCount = rootstockRecords.count { it.isPaymentCleared() },
-                            onClick = { onNavigateToCategory?.invoke("Rootstocks") },
-                            isDark = isDark
-                        )
-
-                        // Site Visit Observations
-                        CategorySummaryCard(
-                            title = "Site Visit Observations",
-                            icon = Icons.Outlined.Assignment,
-                            badgeColor = Color(0xFF9C27B0),
-                            recordsCount = siteVisitRecords.size,
-                            totalQuantity = siteVisitRecords.sumOf { it.landAreaAcres.toInt().coerceAtLeast(1) },
-                            unitLabel = "Acres Visited",
-                            totalValue = siteVisitRecords.sumOf { it.calculateTotalAmount() },
-                            remainingBalance = siteVisitRecords.sumOf { it.calculateRemainingBalance() },
-                            paidCount = siteVisitRecords.count { it.isPaymentCleared() },
-                            onClick = { onNavigateToCategory?.invoke("Site Visit") },
-                            isDark = isDark
-                        )
-
-                        // Pruning Records
-                        CategorySummaryCard(
-                            title = "Pruning Records",
-                            icon = Icons.Default.ContentCut,
-                            badgeColor = Color(0xFFD32F2F),
-                            recordsCount = pruningRecords.size,
-                            totalQuantity = pruningRecords.sumOf { it.quantity },
-                            unitLabel = "Trees / Acres",
-                            totalValue = pruningRecords.sumOf { it.calculateTotalAmount() },
-                            remainingBalance = pruningRecords.sumOf { it.calculateRemainingBalance() },
-                            paidCount = pruningRecords.count { it.isPaymentCleared() },
-                            onClick = { onNavigateToCategory?.invoke("Pruning") },
-                            isDark = isDark
-                        )
-
-                        // Garden Planning
-                        CategorySummaryCard(
-                            title = "Garden Planning",
-                            icon = Icons.Default.Park,
-                            badgeColor = Color(0xFF00897B),
-                            recordsCount = gardenEntries.size,
-                            totalQuantity = gardenEntries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() },
-                            unitLabel = "Plants (Calculated)",
-                            totalValue = gardenRevenue,
-                            remainingBalance = gardenRemaining,
-                            paidCount = gardenFullyPaidCount,
-                            onClick = { onNavigateToCategory?.invoke("Garden Planning") },
-                            isDark = isDark
+                    // 2. Financial Overview & Payment Breakdown Card
+                    item {
+                        FinancialBreakdownCard(
+                            totalRevenue = totalRevenue,
+                            totalPaid = totalPaid,
+                            totalRemaining = totalRemaining,
+                            paidRatio = paidRatio,
+                            fullyPaidCount = fullyPaidCount,
+                            advancePaidCount = advancePaidCount,
+                            pendingCount = pendingCount,
+                            totalRecordsCount = totalRecordsCount,
+                            accentColor = dashboardAccent,
+                            isDark = isDark,
+                            isAmoled = isAmoled
                         )
                     }
-                }
 
-                // 5. Varieties & Inventory Snapshot
-                item {
-                    VarietyDistributionCard(
-                        allRecords = allRecords,
-                        accentColor = dashboardAccent,
-                        isDark = isDark
-                    )
-                }
-
-                // 6. Filterable Activity Log / Recent Records
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Recent Operations Log",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // 3. Operational Category Summaries Header
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
                         ) {
-                            val tabs = listOf("All", "Pending", "Paid", "Garden Planning")
-                            items(tabs) { tab ->
-                                FilterChip(
-                                    selected = selectedFilterTab == tab,
-                                    onClick = { selectedFilterTab = tab },
-                                    label = { Text(tab, fontSize = 12.sp) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = dashboardAccent,
-                                        selectedLabelColor = Color.White
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(30.dp)
+                                            .clip(CircleShape)
+                                            .background(dashboardAccent.copy(alpha = 0.16f))
+                                            .border(1.dp, dashboardAccent.copy(alpha = 0.35f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Assessment,
+                                            contentDescription = null,
+                                            tint = dashboardAccent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "Operational Category Summaries",
+                                        style = glassEtchedTextStyle(
+                                            isDark = isDark,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            isProminent = true
+                                        )
                                     )
+                                }
+
+                                // Frosted glass count pill
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(percent = 50))
+                                        .background(if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.75f))
+                                        .border(1.dp, dashboardAccent.copy(alpha = 0.40f), RoundedCornerShape(percent = 50))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "6 Modules",
+                                        style = glassEtchedTextStyle(
+                                            isDark = isDark,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            isAccent = true,
+                                            accentColor = dashboardAccent
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Module Category Cards
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Imported Plants
+                            CategorySummaryCard(
+                                title = "Imported Plants",
+                                icon = Icons.Default.Spa,
+                                badgeColor = Color(0xFF1E88E5),
+                                recordsCount = importedRecords.size,
+                                totalQuantity = importedRecords.sumOf { it.quantity },
+                                unitLabel = "Plants",
+                                totalValue = importedRecords.sumOf { it.calculateTotalAmount() },
+                                remainingBalance = importedRecords.sumOf { it.calculateRemainingBalance() },
+                                paidCount = importedRecords.count { it.isPaymentCleared() },
+                                onClick = { onNavigateToCategory?.invoke("Imported") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+
+                            // Local Plants
+                            CategorySummaryCard(
+                                title = "Local Plants",
+                                icon = Icons.Outlined.LocalFlorist,
+                                badgeColor = Color(0xFF43A047),
+                                recordsCount = localRecords.size,
+                                totalQuantity = localRecords.sumOf { it.quantity },
+                                unitLabel = "Plants",
+                                totalValue = localRecords.sumOf { it.calculateTotalAmount() },
+                                remainingBalance = localRecords.sumOf { it.calculateRemainingBalance() },
+                                paidCount = localRecords.count { it.isPaymentCleared() },
+                                onClick = { onNavigateToCategory?.invoke("Local Plants") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+
+                            // Rootstock
+                            CategorySummaryCard(
+                                title = "Rootstock",
+                                icon = Icons.Default.TrendingUp,
+                                badgeColor = Color(0xFF8E24AA),
+                                recordsCount = rootstockRecords.size,
+                                totalQuantity = rootstockRecords.sumOf { it.quantity },
+                                unitLabel = "Rootstocks",
+                                totalValue = rootstockRecords.sumOf { it.calculateTotalAmount() },
+                                remainingBalance = rootstockRecords.sumOf { it.calculateRemainingBalance() },
+                                paidCount = rootstockRecords.count { it.isPaymentCleared() },
+                                onClick = { onNavigateToCategory?.invoke("Rootstock") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+
+                            // Site Visits
+                            CategorySummaryCard(
+                                title = "Site Visits",
+                                icon = Icons.Default.EventAvailable,
+                                badgeColor = Color(0xFFFB8C00),
+                                recordsCount = siteVisitRecords.size,
+                                totalQuantity = siteVisitRecords.sumOf { it.landAreaAcres.toInt() },
+                                unitLabel = "Acres Visited",
+                                totalValue = siteVisitRecords.sumOf { it.calculateTotalAmount() },
+                                remainingBalance = siteVisitRecords.sumOf { it.calculateRemainingBalance() },
+                                paidCount = siteVisitRecords.count { it.isPaymentCleared() },
+                                onClick = { onNavigateToCategory?.invoke("Site Visit") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+
+                            // Pruning Records
+                            CategorySummaryCard(
+                                title = "Pruning Records",
+                                icon = Icons.Default.ContentCut,
+                                badgeColor = Color(0xFFD32F2F),
+                                recordsCount = pruningRecords.size,
+                                totalQuantity = pruningRecords.sumOf { it.quantity },
+                                unitLabel = "Trees / Acres",
+                                totalValue = pruningRecords.sumOf { it.calculateTotalAmount() },
+                                remainingBalance = pruningRecords.sumOf { it.calculateRemainingBalance() },
+                                paidCount = pruningRecords.count { it.isPaymentCleared() },
+                                onClick = { onNavigateToCategory?.invoke("Pruning") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+
+                            // Garden Planning
+                            CategorySummaryCard(
+                                title = "Garden Planning",
+                                icon = Icons.Default.Park,
+                                badgeColor = Color(0xFF00897B),
+                                recordsCount = gardenEntries.size,
+                                totalQuantity = gardenEntries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() },
+                                unitLabel = "Plants (Calculated)",
+                                totalValue = gardenRevenue,
+                                remainingBalance = gardenRemaining,
+                                paidCount = gardenFullyPaidCount,
+                                onClick = { onNavigateToCategory?.invoke("Garden Planning") },
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+                        }
+                    }
+
+                    // 5. Varieties & Inventory Snapshot
+                    item {
+                        VarietyDistributionCard(
+                            allRecords = allRecords,
+                            accentColor = dashboardAccent,
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                    }
+
+                    // 6. Filterable Activity Log / Recent Records
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Recent Operations Log",
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    fontSize = 15.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    isProminent = true
                                 )
+                            )
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                val tabs = listOf("All", "Pending", "Paid", "Garden Planning")
+                                items(tabs) { tab ->
+                                    val isSelected = selectedFilterTab == tab
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(percent = 50))
+                                            .then(
+                                                if (isSelected) {
+                                                    Modifier
+                                                        .background(
+                                                            Brush.horizontalGradient(
+                                                                listOf(
+                                                                    dashboardAccent.copy(alpha = if (isDark) 0.45f else 0.90f),
+                                                                    dashboardAccent.copy(alpha = if (isDark) 0.30f else 0.80f)
+                                                                )
+                                                            )
+                                                        )
+                                                        .border(
+                                                            1.2.dp,
+                                                            Brush.linearGradient(
+                                                                listOf(
+                                                                    Color.White.copy(alpha = 0.90f),
+                                                                    dashboardAccent,
+                                                                    Color.White.copy(alpha = 0.40f)
+                                                                )
+                                                            ),
+                                                            RoundedCornerShape(percent = 50)
+                                                        )
+                                                } else {
+                                                    Modifier
+                                                        .background(
+                                                            if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.70f)
+                                                        )
+                                                        .border(
+                                                            1.dp,
+                                                            if (isDark) Color.White.copy(alpha = 0.22f) else Color(0xFFCBD5E1).copy(alpha = 0.85f),
+                                                            RoundedCornerShape(percent = 50)
+                                                        )
+                                                }
+                                            )
+                                            .clickable { selectedFilterTab = tab }
+                                            .padding(horizontal = 13.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = tab,
+                                            style = glassEtchedTextStyle(
+                                                isDark = isDark,
+                                                color = if (isSelected) {
+                                                    if (isDark || isAmoled) Color.White else Color.Black
+                                                } else null,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                isSecondary = !isSelected,
+                                                isProminent = isSelected
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
-                }
 
-                if (selectedFilterTab == "Garden Planning") {
-                    if (gardenEntries.isEmpty()) {
-                        if (isInitialLoading) {
-                            items(3) {
-                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                    if (selectedFilterTab == "Garden Planning") {
+                        if (gardenEntries.isEmpty()) {
+                            if (isInitialLoading) {
+                                items(3) {
+                                    SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                                }
+                            } else {
+                                item {
+                                    EmptyStateCard(message = "No Garden Planning entries registered yet.", isDark = isDark, isAmoled = isAmoled)
+                                }
                             }
                         } else {
-                            item {
-                                EmptyStateCard(message = "No Garden Planning entries registered yet.", isDark = isDark)
+                            val displayGardenEntries = gardenEntries.take(8)
+                            items(displayGardenEntries) { entry ->
+                                GardenLogItemCard(entry = entry, isDark = isDark, isAmoled = isAmoled)
                             }
                         }
                     } else {
-                        items(gardenEntries.take(8)) { entry ->
-                            GardenLogItemCard(entry = entry, isDark = isDark)
-                        }
-                    }
-                } else {
-                    if (filteredLogRecords.isEmpty()) {
-                        if (isInitialLoading) {
-                            items(3) {
-                                SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                        if (filteredLogRecords.isEmpty()) {
+                            if (isInitialLoading) {
+                                items(3) {
+                                    SkeletonCard(isDark = isDark, lineCount = 3, hasActionRow = false)
+                                }
+                            } else {
+                                item {
+                                    EmptyStateCard(message = "No records found matching current filter.", isDark = isDark, isAmoled = isAmoled)
+                                }
                             }
                         } else {
-                            item {
-                                EmptyStateCard(message = "No records found matching current filter.", isDark = isDark)
+                            val displayRecords = filteredLogRecords.take(10)
+                            items(displayRecords) { record ->
+                                RecordLogItemCard(record = record, isDark = isDark, isAmoled = isAmoled)
                             }
                         }
-                    } else {
-                        items(filteredLogRecords.take(10)) { record ->
-                            RecordLogItemCard(record = record, isDark = isDark)
-                        }
                     }
-                }
 
-                item { Spacer(modifier = Modifier.height(24.dp)) }
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
+                }
             }
         }
-    }
     }
 }
 
@@ -626,18 +965,19 @@ private fun AccountBannerCard(
     totalEntriesCount: Int,
     totalVolume: Double,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val primaryText = currentUser?.displayName?.takeIf { it.isNotBlank() }
         ?: currentUser?.email?.takeIf { it.isNotBlank() }
-        ?: "Guest"
+        ?: "Guest Operator"
 
     val secondaryText = if (!currentUser?.displayName.isNullOrBlank() && !currentUser?.email.isNullOrBlank()) {
         currentUser!!.email!!
     } else if (currentUser != null) {
-        "AgriCrop Cloud Sync Enabled"
+        "AgriCrop Cloud Sync Active"
     } else {
-        "Local Guest Session"
+        "Local Operator Session"
     }
 
     val photoUrl = currentUser?.photoUrl
@@ -645,10 +985,12 @@ private fun AccountBannerCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = accentColor,
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(20.dp),
+                elevation = 5.dp
             )
     ) {
         Row(
@@ -663,52 +1005,92 @@ private fun AccountBannerCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                if (photoUrl != null) {
-                    AsyncImage(
-                        model = photoUrl,
-                        contentDescription = "User Avatar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(accentColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "User Account",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                // Frosted Glass Avatar Ring
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .border(
+                            1.5.dp,
+                            Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.85f),
+                                    accentColor.copy(alpha = 0.60f),
+                                    Color.White.copy(alpha = 0.20f)
+                                )
+                            ),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (photoUrl != null) {
+                        AsyncImage(
+                            model = photoUrl,
+                            contentDescription = "User Avatar",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(accentColor.copy(alpha = 0.25f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = "User Account",
+                                tint = accentColor,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
                     }
                 }
 
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = primaryText,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                isProminent = true
+                            ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Surface(
-                            shape = CircleShape,
-                            color = if (currentUser != null) Color(0xFF2E7D32) else MaterialTheme.colorScheme.outline
+                        // Inscribed glass badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(
+                                    if (currentUser != null) Color(0xFF2E7D32).copy(alpha = 0.22f)
+                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (currentUser != null) Color(0xFF2E7D32).copy(alpha = 0.65f)
+                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                                    RoundedCornerShape(percent = 50)
+                                )
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = if (currentUser != null) "ACTIVE" else "GUEST",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    color = if (currentUser != null) Color(0xFF4ADE80) else Color(0xFF94A3B8),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    letterSpacing = 0.4.sp
+                                )
                             )
                         }
                     }
@@ -716,23 +1098,37 @@ private fun AccountBannerCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = secondaryText,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            isSecondary = true
+                        )
                     )
                 }
             }
 
+            // Total Entries Glass Display
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "$totalEntriesCount",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = accentColor
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isAccent = true,
+                        accentColor = accentColor,
+                        isProminent = true
+                    )
                 )
                 Text(
                     text = "Total Entries",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        isSecondary = true
+                    )
                 )
             }
         }
@@ -750,17 +1146,20 @@ private fun FinancialBreakdownCard(
     pendingCount: Int,
     totalRecordsCount: Int,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = accentColor,
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(20.dp),
+                elevation = 5.dp
             )
     ) {
         Column(
@@ -779,17 +1178,29 @@ private fun FinancialBreakdownCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountBalanceWallet,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.16f))
+                            .border(1.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                     Text(
-                        text = "Financial & Payment Status Breakdown",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = "Financial & Payment Status",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isProminent = true
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -797,24 +1208,29 @@ private fun FinancialBreakdownCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = accentColor.copy(alpha = 0.15f),
-                    modifier = Modifier.wrapContentWidth()
+                // Illuminated Collection Ratio Glass Pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(accentColor.copy(alpha = 0.18f))
+                        .border(1.dp, accentColor.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "${(paidRatio * 100).toInt()}% Collected",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accentColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isAccent = true,
+                            accentColor = accentColor,
+                            isProminent = true
+                        )
                     )
                 }
             }
 
-            // Summary 3-Boxes
+            // Summary 3-Boxes in Sculpted Glass Pods
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -827,6 +1243,7 @@ private fun FinancialBreakdownCard(
                     icon = Icons.Default.TrendingUp,
                     accentColor = accentColor,
                     isDark = isDark,
+                    isAmoled = isAmoled,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -836,8 +1253,9 @@ private fun FinancialBreakdownCard(
                     targetValue = totalPaid,
                     formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.Payments,
-                    accentColor = Color(0xFF2E7D32),
+                    accentColor = Color(0xFF10B981),
                     isDark = isDark,
+                    isAmoled = isAmoled,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -847,35 +1265,103 @@ private fun FinancialBreakdownCard(
                     targetValue = totalRemaining,
                     formatter = { "₹${currencyFormat.format(it.toLong())}" },
                     icon = Icons.Default.ReceiptLong,
-                    accentColor = if (totalRemaining > 0) Color(0xFFD32F2F) else Color(0xFF2E7D32),
+                    accentColor = if (totalRemaining > 0) Color(0xFFEF4444) else Color(0xFF10B981),
                     isDark = isDark,
+                    isAmoled = isAmoled,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Progress bar
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Recessed Glass Groove Progress Bar
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Payment Collection Progress", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${(paidRatio * 100).toInt()}% Paid", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = accentColor)
+                    Text(
+                        text = "Payment Collection Progress",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            isSecondary = true
+                        )
+                    )
+                    Text(
+                        text = "${(paidRatio * 100).toInt()}% Paid",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isAccent = true,
+                            accentColor = accentColor
+                        )
+                    )
                 }
-                LinearProgressIndicator(
-                    progress = paidRatio,
+
+                // Sculpted Glass Groove Track
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = Color(0xFF2E7D32),
-                    trackColor = Color(0xFFD32F2F).copy(alpha = 0.25f)
-                )
+                        .height(9.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFFCBD5E1).copy(alpha = 0.40f))
+                        .border(
+                            0.8.dp,
+                            if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.10f),
+                            RoundedCornerShape(5.dp)
+                        )
+                ) {
+                    if (paidRatio > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(paidRatio)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            Color(0xFF059669),
+                                            Color(0xFF10B981),
+                                            Color(0xFF34D399)
+                                        )
+                                    )
+                                )
+                                .drawWithContent {
+                                    drawContent()
+                                    // Top specular glint on liquid bar
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.45f),
+                                                Color.Transparent
+                                            )
+                                        ),
+                                        size = Size(size.width, size.height * 0.4f)
+                                    )
+                                }
+                        )
+                    }
+                }
             }
 
-            Divider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
+            // Glass Seam Divider
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.Transparent,
+                                if (isDark) Color.White.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.10f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
 
-            // Payment Status Counts Row
+            // Payment Status Counts Row in Frosted Glass Pods
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
@@ -884,24 +1370,27 @@ private fun FinancialBreakdownCard(
                     label = "Fully Paid",
                     count = fullyPaidCount,
                     total = totalRecordsCount,
-                    color = Color(0xFF2E7D32),
-                    icon = Icons.Default.CheckCircle
+                    color = Color(0xFF10B981),
+                    icon = Icons.Default.CheckCircle,
+                    isDark = isDark
                 )
 
                 StatusBadgeCount(
                     label = "Advance Paid",
                     count = advancePaidCount,
                     total = totalRecordsCount,
-                    color = Color(0xFFED6C02),
-                    icon = Icons.Default.HourglassEmpty
+                    color = Color(0xFFF59E0B),
+                    icon = Icons.Default.HourglassEmpty,
+                    isDark = isDark
                 )
 
                 StatusBadgeCount(
                     label = "Pending",
                     count = pendingCount,
                     total = totalRecordsCount,
-                    color = Color(0xFFD32F2F),
-                    icon = Icons.Default.ReceiptLong
+                    color = Color(0xFFEF4444),
+                    icon = Icons.Default.ReceiptLong,
+                    isDark = isDark
                 )
             }
         }
@@ -917,40 +1406,81 @@ private fun FinancialMetricBox(
     icon: ImageVector,
     accentColor: Color,
     isDark: Boolean,
+    isAmoled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = accentColor,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp),
+                elevation = 2.dp,
+                borderWidth = 1.dp
             )
             .padding(10.dp)
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(imageVector = icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(14.dp))
-                Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = 0.16f))
+                        .border(0.8.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+                Text(
+                    text = label,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        isSecondary = true
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             if (targetValue != null && formatter != null) {
                 CountUpText(
                     targetValue = targetValue,
                     formatter = formatter,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isAccent = true,
+                        accentColor = accentColor,
+                        isProminent = true
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             } else {
                 Text(
                     text = value,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isAccent = true,
+                        accentColor = accentColor,
+                        isProminent = true
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -965,24 +1495,48 @@ private fun StatusBadgeCount(
     count: Int,
     total: Int,
     color: Color,
-    icon: ImageVector
+    icon: ImageVector,
+    isDark: Boolean
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(24.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.15f)),
+                .background(color.copy(alpha = 0.20f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
         }
         Column {
-            Text(text = "$count entries", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
-            Text(text = label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = "$count entries",
+                style = glassEtchedTextStyle(
+                    isDark = isDark,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    isAccent = true,
+                    accentColor = color,
+                    isProminent = true
+                )
+            )
+            Text(
+                text = label,
+                style = glassEtchedTextStyle(
+                    isDark = isDark,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    isSecondary = true
+                )
+            )
         }
     }
 }
@@ -999,19 +1553,22 @@ private fun CategorySummaryCard(
     remainingBalance: Double,
     paidCount: Int,
     onClick: () -> Unit,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = badgeColor,
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(16.dp),
+                elevation = 3.dp,
+                borderWidth = 1.2.dp
             )
-            .clip(RoundedCornerShape(14.dp))
             .clickable { onClick() }
             .padding(14.dp)
     ) {
@@ -1025,42 +1582,76 @@ private fun CategorySummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
+                // Frosted Glass Bubble for Category Icon
                 Box(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(badgeColor.copy(alpha = 0.15f)),
+                        .background(badgeColor.copy(alpha = 0.16f))
+                        .border(
+                            1.2.dp,
+                            Brush.linearGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.70f),
+                                    badgeColor.copy(alpha = 0.50f),
+                                    Color.Transparent
+                                )
+                            ),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = icon, contentDescription = title, tint = badgeColor, modifier = Modifier.size(22.dp))
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = badgeColor,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
 
                 Column {
                     Text(
                         text = title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isProminent = true
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "$recordsCount entries",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = badgeColor
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                isAccent = true,
+                                accentColor = badgeColor
+                            )
                         )
                         Text(
                             text = "•",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                isSecondary = true
+                            )
                         )
                         Text(
                             text = "$totalQuantity $unitLabel",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                isSecondary = true
+                            )
                         )
                     }
                 }
@@ -1070,36 +1661,70 @@ private fun CategorySummaryCard(
                 if (totalValue > 0) {
                     Text(
                         text = "₹${currencyFormat.format(totalValue.toLong())}",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isProminent = true
+                        )
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     if (remainingBalance > 0) {
-                        Text(
-                            text = "Due: ₹${currencyFormat.format(remainingBalance.toLong())}",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD32F2F)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(Color(0xFFEF4444).copy(alpha = 0.16f))
+                                .border(0.8.dp, Color(0xFFEF4444).copy(alpha = 0.40f), RoundedCornerShape(percent = 50))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Due: ₹${currencyFormat.format(remainingBalance.toLong())}",
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    color = Color(0xFFEF4444),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
                     } else {
-                        Text(
-                            text = "Cleared",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2E7D32)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(Color(0xFF10B981).copy(alpha = 0.16f))
+                                .border(0.8.dp, Color(0xFF10B981).copy(alpha = 0.40f), RoundedCornerShape(percent = 50))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "Cleared",
+                                style = glassEtchedTextStyle(
+                                    isDark = isDark,
+                                    color = Color(0xFF10B981),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
                     }
                 } else {
                     Text(
                         text = "$recordsCount Total",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = badgeColor
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = badgeColor
+                        )
                     )
                     Text(
                         text = "Active Module",
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Medium,
+                            isSecondary = true
+                        )
                     )
                 }
             }
@@ -1111,84 +1736,147 @@ private fun CategorySummaryCard(
 private fun VarietyDistributionCard(
     allRecords: List<CropRecord>,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val topVarieties = remember(allRecords) {
-        allRecords.groupingBy { it.plantVariety.ifBlank { "Unspecified" } }
-            .eachCount()
+        allRecords
+            .filter { it.plantVariety.isNotBlank() }
+            .groupBy { it.plantVariety.trim() }
+            .mapValues { it.value.sumOf { record -> record.quantity } }
             .toList()
             .sortedByDescending { it.second }
             .take(5)
     }
 
-    if (topVarieties.isEmpty()) return
+    val maxVarietyCount = remember(topVarieties) {
+        topVarieties.maxOfOrNull { it.second } ?: 1
+    }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = accentColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(18.dp),
+                elevation = 4.dp
             )
-            .padding(14.dp)
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.16f))
+                            .border(1.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Text(
+                        text = "Top Operational Varieties",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isProminent = true
+                        )
+                    )
+                }
                 Text(
-                    text = "Top Operational Varieties",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = "Inventory Ratio",
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        isSecondary = true
+                    )
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                val maxCount = topVarieties.firstOrNull()?.second ?: 1
-                topVarieties.forEach { (variety, count) ->
-                    val ratio = (count.toFloat() / maxCount).coerceIn(0.1f, 1f)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = variety,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.width(120.dp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        LinearProgressIndicator(
-                            progress = ratio,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = accentColor,
-                            trackColor = accentColor.copy(alpha = 0.2f)
-                        )
-
-                        Text(
-                            text = "$count",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = accentColor
-                        )
+            if (topVarieties.isEmpty()) {
+                Text(
+                    text = "No plant variety data recorded yet.",
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 12.sp,
+                        isSecondary = true
+                    )
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    topVarieties.forEach { (variety, count) ->
+                        val ratio = if (maxVarietyCount > 0) count.toFloat() / maxVarietyCount else 0f
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = variety,
+                                    style = glassEtchedTextStyle(
+                                        isDark = isDark,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                                Text(
+                                    text = "$count units",
+                                    style = glassEtchedTextStyle(
+                                        isDark = isDark,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        isAccent = true,
+                                        accentColor = accentColor
+                                    )
+                                )
+                            }
+                            // Recessed glass progress track
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(7.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0xFFCBD5E1).copy(alpha = 0.40f))
+                                    .border(
+                                        0.6.dp,
+                                        if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.08f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(ratio)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(
+                                                    accentColor.copy(alpha = 0.70f),
+                                                    accentColor
+                                                )
+                                            )
+                                        )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1199,20 +1887,24 @@ private fun VarietyDistributionCard(
 @Composable
 private fun RecordLogItemCard(
     record: CropRecord,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
-    val currencyFormat = remember { java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN")) }
+    val currencyFormat = java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "IN"))
+    val serviceAccent = getSectionAccentColor(record.serviceType, defaultColor = MaterialTheme.colorScheme.primary)
     val isCleared = record.isPaymentCleared()
     val remaining = record.calculateRemainingBalance()
-    val serviceAccent = getSectionAccentColor(record.serviceType, defaultColor = MaterialTheme.colorScheme.primary)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = serviceAccent,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp),
+                elevation = 2.dp,
+                borderWidth = 1.dp
             )
             .padding(12.dp)
     ) {
@@ -1222,58 +1914,93 @@ private fun RecordLogItemCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
                         text = record.serialNumber.ifBlank { "SN-${record.id}" },
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = serviceAccent
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isAccent = true,
+                            accentColor = serviceAccent
+                        )
                     )
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = serviceAccent.copy(alpha = 0.15f)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(serviceAccent.copy(alpha = 0.16f))
+                            .border(0.8.dp, serviceAccent.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = record.serviceType,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = serviceAccent,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                color = serviceAccent,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = record.farmerName,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        isProminent = true
+                    )
                 )
                 Text(
                     text = "${record.plantVariety} • Qty: ${record.quantity}",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        isSecondary = true
+                    )
                 )
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "₹${currencyFormat.format(record.calculateTotalAmount().toLong())}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isProminent = true
+                    )
                 )
                 Spacer(modifier = Modifier.height(2.dp))
-                Surface(
-                    shape = CircleShape,
-                    color = if (isCleared) Color(0xFF2E7D32).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            if (isCleared) Color(0xFF10B981).copy(alpha = 0.16f)
+                            else Color(0xFFEF4444).copy(alpha = 0.16f)
+                        )
+                        .border(
+                            0.8.dp,
+                            if (isCleared) Color(0xFF10B981).copy(alpha = 0.40f)
+                            else Color(0xFFEF4444).copy(alpha = 0.40f),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = if (isCleared) "PAID" else "DUE ₹${currencyFormat.format(remaining.toLong())}",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCleared) Color(0xFF2E7D32) else Color(0xFFD32F2F),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            color = if (isCleared) Color(0xFF10B981) else Color(0xFFEF4444),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     )
                 }
             }
@@ -1284,7 +2011,8 @@ private fun RecordLogItemCard(
 @Composable
 private fun GardenLogItemCard(
     entry: GardenPlanningEntry,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val currencyFormat = java.text.NumberFormat.getCurrencyInstance(java.util.Locale("en", "IN"))
     val gardenAccent = Color(0xFF00897B)
@@ -1292,10 +2020,13 @@ private fun GardenLogItemCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = gardenAccent,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp),
+                elevation = 2.dp,
+                borderWidth = 1.dp
             )
             .padding(12.dp)
     ) {
@@ -1305,32 +2036,47 @@ private fun GardenLogItemCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
                         text = "Garden Planning",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = gardenAccent
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isAccent = true,
+                            accentColor = gardenAccent
+                        )
                     )
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = gardenAccent.copy(alpha = 0.15f)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(gardenAccent.copy(alpha = 0.16f))
+                            .border(0.8.dp, gardenAccent.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "#${entry.serialNumber}",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = gardenAccent,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                color = gardenAccent,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = entry.farmerName.ifBlank { "Garden Entry" },
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        isProminent = true
+                    )
                 )
                 val infoText = buildString {
                     if (entry.plantVariety.isNotBlank()) append(entry.plantVariety).append(" • ")
@@ -1338,109 +2084,46 @@ private fun GardenLogItemCard(
                 }
                 Text(
                     text = infoText,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        isSecondary = true
+                    )
                 )
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = currencyFormat.format(entry.totalCost),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isProminent = true
+                    )
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 val isCleared = entry.paymentStatus == "Fully Paid"
                 val isAdvance = entry.paymentStatus == "Advance Paid"
-                Surface(
-                    shape = CircleShape,
-                    color = if (isCleared) Color(0xFF2E7D32).copy(alpha = 0.15f) else if (isAdvance) Color(0xFFED6C02).copy(alpha = 0.15f) else Color(0xFFD32F2F).copy(alpha = 0.15f)
+                val badgeColor = if (isCleared) Color(0xFF10B981) else if (isAdvance) Color(0xFFF59E0B) else Color(0xFFEF4444)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(badgeColor.copy(alpha = 0.16f))
+                        .border(0.8.dp, badgeColor.copy(alpha = 0.40f), RoundedCornerShape(percent = 50))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = if (isCleared) "PAID" else if (isAdvance) "ADVANCE" else "DUE ${currencyFormat.format(entry.remainingBalance.toLong())}",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCleared) Color(0xFF2E7D32) else if (isAdvance) Color(0xFFED6C02) else Color(0xFFD32F2F),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            color = badgeColor,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BookingLogItemCard(
-    booking: UserBooking,
-    isDark: Boolean
-) {
-    val bookingAccent = getSectionAccentColor(booking.type, defaultColor = Color(0xFF00897B))
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = bookingAccent,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .padding(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = booking.type,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = bookingAccent
-                    )
-                    if (booking.season.isNotEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = bookingAccent.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = booking.season,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = bookingAccent,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = booking.farmerName.ifBlank { "Farmer Booking" },
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "${booking.itemName} ${booking.variety}".trim(),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Qty: ${booking.quantity ?: 1}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = booking.bookingDate.ifBlank { "Registered" },
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
@@ -1449,23 +2132,31 @@ private fun BookingLogItemCard(
 @Composable
 private fun EmptyStateCard(
     message: String,
-    isDark: Boolean = false
+    isDark: Boolean = false,
+    isAmoled: Boolean = false
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .etchedGlassSurface(
                 isDark = isDark,
+                isAmoled = isAmoled,
                 accentColor = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(14.dp),
+                elevation = 2.dp,
+                borderWidth = 1.dp
             )
             .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = message,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = glassEtchedTextStyle(
+                isDark = isDark,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                isSecondary = true
+            )
         )
     }
 }

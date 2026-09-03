@@ -188,19 +188,18 @@ fun FarmerRecordsScreen(
         },
         modifier = modifier.fillMaxSize()
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding = PaddingValues(top = 72.dp, bottom = 100.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-        // 1 & 2. Sticky Top Section (Recording Book Header Banner + Search Bar & Filter)
-        stickyHeader {
+            // Fixed top spacing for floating AgriSegmentedControl
+            Spacer(modifier = Modifier.height(72.dp))
+
+            // Sticky Fixed Top Section: Recording Book Header Banner + Search Bar & Filter
             Surface(
                 color = MaterialTheme.colorScheme.background,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -218,24 +217,33 @@ fun FarmerRecordsScreen(
                         placeholderText = "Search by farmer name, phone, serial no...",
                         isDark = isDark,
                         testTagPrefix = "crop_search",
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
             }
-        }
 
-        // 3. Summary Cards
-        item {
-            RecordSummaryCards(
-                totalPayment = totalPayment,
-                receivedPayment = receivedPayment,
-                pendingPayment = pendingPayment,
-                totalQuantity = totalQuantity,
-                isPruning = isPruning,
-                isSiteVisit = isSiteVisit,
-                isDark = isDark
-            )
-        }
+            // Scrollable content (Total Payment, summaries, records) scrolling underneath
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
+            ) {
+                // 3. Summary Cards (Total Payment, Received, Pending, Quantity)
+                item {
+                    RecordSummaryCards(
+                        totalPayment = totalPayment,
+                        receivedPayment = receivedPayment,
+                        pendingPayment = pendingPayment,
+                        totalQuantity = totalQuantity,
+                        isPruning = isPruning,
+                        isSiteVisit = isSiteVisit,
+                        isDark = isDark
+                    )
+                }
 
         // Records List, Shimmer Skeleton Loading, or Empty State
         if (records.isEmpty()) {
@@ -315,6 +323,7 @@ fun FarmerRecordsScreen(
                 }
             }
         }
+    }
     }
     }
 

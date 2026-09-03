@@ -2112,18 +2112,15 @@ fun GardenPlanningRecordsTab(
         },
         modifier = Modifier.fillMaxSize()
     ) {
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-        // 1 & 2. Sticky Top Section (Recording Book Header Banner + Search Bar & Filter)
-        stickyHeader {
+            // Sticky Fixed Top Section: Recording Book Header Banner + Search Bar & Filter
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 color = MaterialTheme.colorScheme.background
             ) {
                 Column(
@@ -2142,23 +2139,32 @@ fun GardenPlanningRecordsTab(
                         placeholderText = "Search by farmer name, phone, serial or address...",
                         isDark = isDark,
                         testTagPrefix = "garden_search",
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 2.dp)
                     )
                 }
             }
-        }
 
-        // 3. Summary Statistics Cards Grid
-        item {
-            GardenRecordSummaryCards(
-                totalPayment = totalPayment,
-                receivedPayment = receivedPayment,
-                pendingPayment = pendingPayment,
-                totalQuantity = totalQuantity,
-                isDark = isDark,
-                paletteAccent = paletteAccent
-            )
-        }
+            // Scrollable Content (Total Payment, summaries, records) scrolling underneath
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
+            ) {
+                // 3. Summary Statistics Cards Grid (Total Payment, Received Payment, etc.)
+                item {
+                    GardenRecordSummaryCards(
+                        totalPayment = totalPayment,
+                        receivedPayment = receivedPayment,
+                        pendingPayment = pendingPayment,
+                        totalQuantity = totalQuantity,
+                        isDark = isDark,
+                        paletteAccent = paletteAccent
+                    )
+                }
 
         if (entries.isEmpty()) {
             if (isInitialLoading) {
@@ -2238,6 +2244,7 @@ fun GardenPlanningRecordsTab(
         item {
             Spacer(modifier = Modifier.height(100.dp))
         }
+    }
     }
     }
 }
