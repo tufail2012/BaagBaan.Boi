@@ -955,10 +955,13 @@ fun GardenPlanningFormTab(
         )
 
         // Section Header: GARDEN PLANNING SPECIFICATION
-        FormSectionHeader(
-            title = "GARDEN PLANNING SPECIFICATION",
-            accentColor = gardenAccent,
-            isDark = isDark
+        Text(
+            text = "GARDEN PLANNING SPECIFICATION",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(top = 8.dp)
         )
 
         if (isMultiVarietyEnabled) {

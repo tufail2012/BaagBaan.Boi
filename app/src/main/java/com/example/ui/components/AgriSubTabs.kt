@@ -153,7 +153,7 @@ fun PruningSubTabs(
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
-                            Color.White
+                            if (isDark || isAmoled) Color.White else accentColor
                         } else {
                             if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
                         },
@@ -368,7 +368,11 @@ fun RootstockSubTabs(
                 // 1. M9-T337
                 val isM9Selected = selectedIndex == 0
                 val m9Color by animateColorAsState(
-                    targetValue = if (isM9Selected) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
+                    targetValue = if (isM9Selected) {
+                        if (isDark || isAmoled) Color.White else accentColor
+                    } else {
+                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                    },
                     label = "m9Color"
                 )
                 val m9Scale by animateFloatAsState(
@@ -422,7 +426,11 @@ fun RootstockSubTabs(
                 // 2. MM111
                 val isMM111Selected = selectedIndex == 1
                 val mm111Color by animateColorAsState(
-                    targetValue = if (isMM111Selected) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
+                    targetValue = if (isMM111Selected) {
+                        if (isDark || isAmoled) Color.White else accentColor
+                    } else {
+                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                    },
                     label = "mm111Color"
                 )
                 val mm111Scale by animateFloatAsState(
@@ -476,7 +484,11 @@ fun RootstockSubTabs(
                 // 3. Geneva Dropdown
                 val isGenevaActive = selectedIndex == 2
                 val genevaColor by animateColorAsState(
-                    targetValue = if (isGenevaActive) Color.White else if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B),
+                    targetValue = if (isGenevaActive) {
+                        if (isDark || isAmoled) Color.White else accentColor
+                    } else {
+                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                    },
                     label = "genevaColor"
                 )
                 val genevaScale by animateFloatAsState(
