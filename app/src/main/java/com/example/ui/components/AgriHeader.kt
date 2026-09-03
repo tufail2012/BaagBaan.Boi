@@ -336,11 +336,10 @@ fun AgriHeader(
                         modifier = Modifier
                             .widthIn(min = 250.dp, max = 310.dp)
                             .padding(vertical = 4.dp)
-                            .frostedLiquidGlassMenuBackground(
+                            .profileMenuBackdropBlur(
                                 hazeState = hazeState,
                                 isDark = isDark,
                                 themeMode = themeMode,
-                                accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
                                 shape = RoundedCornerShape(22.dp)
                             ),
                         shape = RoundedCornerShape(22.dp),
@@ -523,11 +522,10 @@ fun AgriHeader(
                                 modifier = Modifier
                                     .widthIn(min = 250.dp, max = 310.dp)
                                     .padding(vertical = 4.dp)
-                                    .frostedLiquidGlassMenuBackground(
+                                    .profileMenuBackdropBlur(
                                         hazeState = hazeState,
                                         isDark = isDark,
                                         themeMode = themeMode,
-                                        accentColor = getSectionAccentColor("Profile", customPaletteColor = parsedPaletteColor),
                                         shape = RoundedCornerShape(22.dp)
                                     ),
                                 shape = RoundedCornerShape(22.dp),
@@ -817,14 +815,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = dashboardAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("dashboard_menu_item$tagSuffix")
     )
 
@@ -847,14 +839,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = inventoryAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("inventory_menu_item$tagSuffix")
     )
 
@@ -877,14 +863,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = attendanceAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("attendance_menu_item$tagSuffix")
     )
 
@@ -907,14 +887,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = contactsAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("contact_directory_menu_item$tagSuffix")
     )
 
@@ -937,14 +911,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = paymentAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("payment_reminders_menu_item$tagSuffix")
     )
 
@@ -967,14 +935,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = seasonalAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("seasonal_reminders_menu_item$tagSuffix")
     )
 
@@ -997,21 +959,15 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = scanQrAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("scan_qr_menu_item$tagSuffix")
     )
 
-    // Divider before Settings with subtle glowing accent tint
+    // Divider before Settings with subtle neutral line (no gradient, no border)
     HorizontalDivider(
         modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-        color = (parsedPaletteColor ?: getSectionAccentColor("Profile")).copy(alpha = if (isDark) 0.22f else 0.16f)
+        color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
     )
 
     // 8. Settings
@@ -1033,14 +989,8 @@ private fun OverflowMenuContent(
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-            .frostedLiquidGlassMenuItem(
-                hazeState = hazeState,
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = settingsAccent,
-                shape = RoundedCornerShape(14.dp)
-            )
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .profileMenuItem(isDark = isDark)
             .testTag("settings_menu_item$tagSuffix")
     )
 }
@@ -1358,6 +1308,80 @@ fun Modifier.frostedLiquidGlassMenuItem(
 }
 
 /**
+ * Clean Backdrop Blur Modifier strictly for the Profile Menu.
+ * - Proper optical backdrop blur via Haze with generous blur radius (40.dp).
+ * - Flat translucent neutral surface without gradient colors.
+ * - Borderless: completely removes borders and gradient rims.
+ * - Soft neutral elevation shadow for floating depth.
+ */
+@Composable
+fun Modifier.profileMenuBackdropBlur(
+    hazeState: HazeState,
+    isDark: Boolean = isAppInDarkMode(),
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    shape: Shape = RoundedCornerShape(22.dp)
+): Modifier {
+    val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
+
+    val hazeStyle = HazeStyle(
+        backgroundColor = if (isAmoled) {
+            Color.Black.copy(alpha = 0.70f)
+        } else if (isDark) {
+            Color(0xFF14131A).copy(alpha = 0.65f)
+        } else {
+            Color.White.copy(alpha = 0.65f)
+        },
+        blurRadius = 40.dp,
+        tints = listOf(
+            HazeTint(
+                color = if (isDark || isAmoled) {
+                    Color(0xFF14131A).copy(alpha = 0.45f)
+                } else {
+                    Color.White.copy(alpha = 0.50f)
+                }
+            )
+        ),
+        noiseFactor = 0.08f
+    )
+
+    return this
+        .shadow(
+            elevation = 16.dp,
+            shape = shape,
+            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x22000000),
+            ambientColor = Color.Transparent
+        )
+        .clip(shape)
+        .hazeEffect(state = hazeState, style = hazeStyle)
+        .background(
+            color = if (isAmoled) {
+                Color.Black.copy(alpha = 0.72f)
+            } else if (isDark) {
+                Color(0xFF16151E).copy(alpha = 0.68f)
+            } else {
+                Color.White.copy(alpha = 0.68f)
+            },
+            shape = shape
+        )
+}
+
+/**
+ * Clean Profile Menu Item Modifier without gradient colours or borders.
+ */
+@Composable
+fun Modifier.profileMenuItem(
+    isDark: Boolean,
+    shape: Shape = RoundedCornerShape(12.dp)
+): Modifier {
+    return this
+        .clip(shape)
+        .background(
+            color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
+            shape = shape
+        )
+}
+
+/**
  * Reusable frosted liquid glass item content with a circular glass droplet icon container,
  * crisp typography, and a subtle navigation chevron.
  */
@@ -1373,37 +1397,13 @@ private fun FrostedMenuItemContent(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Frosted liquid droplet circular container for the icon
+        // Clean circular container for the icon without gradients or borders
         Box(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = if (isDark) {
-                            listOf(
-                                Color.White.copy(alpha = 0.20f),
-                                accentColor.copy(alpha = 0.22f),
-                                accentColor.copy(alpha = 0.10f)
-                            )
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = 0.90f),
-                                accentColor.copy(alpha = 0.18f),
-                                accentColor.copy(alpha = 0.08f)
-                            )
-                        }
-                    ),
-                    shape = CircleShape
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.40f else 0.80f),
-                            accentColor.copy(alpha = 0.30f)
-                        )
-                    ),
+                    color = accentColor.copy(alpha = if (isDark) 0.18f else 0.12f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center

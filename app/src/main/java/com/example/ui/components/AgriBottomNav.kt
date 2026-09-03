@@ -155,7 +155,7 @@ fun AgriBottomNav(
                 val slotWidth = totalWidth / itemCount
                 val isLight = !isDark && !isAmoled
                 val pillHeight = 48.dp
-                val basePillWidth = if (isLight) minOf(48.dp, slotWidth - 4.dp) else minOf(54.dp, slotWidth - 2.dp)
+                val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
 
                 val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - basePillWidth) / 2
 
@@ -208,9 +208,9 @@ fun AgriBottomNav(
                 val blobGradient = if (!isDark) {
                     Brush.verticalGradient(
                         colors = listOf(
-                            animatedAccentColor.copy(alpha = 0.45f),
-                            animatedAccentColor.copy(alpha = 0.30f),
-                            Color.White.copy(alpha = 0.55f)
+                            animatedAccentColor.copy(alpha = 0.38f),
+                            animatedAccentColor.copy(alpha = 0.25f),
+                            animatedAccentColor.copy(alpha = 0.12f)
                         )
                     )
                 } else {
@@ -281,9 +281,9 @@ fun AgriBottomNav(
                             brush = Brush.verticalGradient(
                                 colors = if (!isDark) {
                                     listOf(
-                                        Color.White.copy(alpha = 0.8f),
+                                        Color.White.copy(alpha = 0.75f),
                                         animatedAccentColor.copy(alpha = 0.35f),
-                                        Color.White.copy(alpha = 0.4f)
+                                        Color.Transparent
                                     )
                                 } else {
                                     listOf(
