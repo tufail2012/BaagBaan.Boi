@@ -398,7 +398,7 @@ fun Modifier.deepBlurNavBarBackground(
         backgroundColor = if (isAmoled) {
             Color.Black.copy(alpha = 0.35f)
         } else if (isDark) {
-            Color(0xFF0C0B10).copy(alpha = 0.28f)
+            Color(0xFF16141D).copy(alpha = 0.28f)
         } else {
             Color.White.copy(alpha = 0.25f)
         },
@@ -441,7 +441,7 @@ fun Modifier.deepBlurNavBarBackground(
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x22000000),
+            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.55f) else if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x22000000),
             ambientColor = if (isDark || isAmoled) accentColor.copy(alpha = 0.14f) else accentColor.copy(alpha = 0.10f)
         )
         .clip(shape)
@@ -455,24 +455,37 @@ fun Modifier.deepBlurNavBarBackground(
         )
         // 3. Uniform reflective glass body wash incorporating subtle reflective sheen consistently across any background
         .background(
-            brush = if (isDark || isAmoled) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.12f),          // Specular top glass reflection
-                        Color(0xFF14121A).copy(alpha = 0.28f),    // Translucent dark glass
-                        accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                        Color(0xFF0A090E).copy(alpha = 0.32f)     // Base foundation
+            brush = when {
+                isAmoled -> {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.10f),          // Specular top glass reflection
+                            Color(0xFF100E14).copy(alpha = 0.25f),    // Translucent dark glass
+                            accentColor.copy(alpha = 0.08f),          // Uniform reflective color sheen
+                            Color(0xFF000000).copy(alpha = 0.35f)     // Pure black AMOLED foundation
+                        )
                     )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
-                        Color.White.copy(alpha = 0.25f),          // Translucent light glass
-                        accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                        Color.White.copy(alpha = 0.35f)           // Base foundation
+                }
+                isDark -> {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.14f),          // Specular top glass reflection
+                            Color(0xFF221F2B).copy(alpha = 0.32f),    // Translucent dark charcoal glass
+                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                            Color(0xFF14121A).copy(alpha = 0.35f)     // Dark charcoal gray foundation (non-pure-black)
+                        )
                     )
-                )
+                }
+                else -> {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
+                            Color.White.copy(alpha = 0.25f),          // Translucent light glass
+                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                            Color.White.copy(alpha = 0.35f)           // Base foundation
+                        )
+                    )
+                }
             },
             shape = shape
         )

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun Modifier.frostedGlassChrome(
     isDark: Boolean = isAppInDarkMode(),
+    isAmoled: Boolean = isAppInAmoledMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(percent = 50),
     elevation: Dp = 3.dp,
@@ -37,19 +38,31 @@ fun Modifier.frostedGlassChrome(
     highlightStrength: Float = 0f,
     innerDepthStrength: Float = 0f
 ): Modifier {
-    if (isDark) {
-        val darkBgBrush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF242127),
-                Color(0xFF151318),
-                Color(0xFF0C0B0F)
+    if (isDark || isAmoled) {
+        val darkBgBrush = if (isAmoled) {
+            // AMOLED Mode: pure true pitch black foundation
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF161418),
+                    Color(0xFF0C0B0E),
+                    Color(0xFF000000)
+                )
             )
-        )
+        } else {
+            // Dark Mode: dark charcoal / slate gray tones with subtle depth (no pure black)
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF2C2833),
+                    Color(0xFF221F28),
+                    Color(0xFF19171E)
+                )
+            )
+        }
         val borderBrush = Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.12f),
-                Color.White.copy(alpha = 0.04f)
+                Color.White.copy(alpha = if (isAmoled) 0.35f else 0.38f),
+                Color.White.copy(alpha = if (isAmoled) 0.12f else 0.15f),
+                Color.White.copy(alpha = if (isAmoled) 0.04f else 0.08f)
             )
         )
 
@@ -60,8 +73,8 @@ fun Modifier.frostedGlassChrome(
                         elevation = elevation,
                         shape = shape,
                         clip = false,
-                        spotColor = Color.Black.copy(alpha = 0.50f),
-                        ambientColor = Color.Black.copy(alpha = 0.30f)
+                        spotColor = Color.Black.copy(alpha = if (isAmoled) 0.60f else 0.40f),
+                        ambientColor = Color.Black.copy(alpha = if (isAmoled) 0.40f else 0.25f)
                     )
                 } else {
                     Modifier
@@ -78,7 +91,7 @@ fun Modifier.frostedGlassChrome(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = 0.28f),
+                            Color.White.copy(alpha = if (isAmoled) 0.28f else 0.32f),
                             Color.Transparent
                         ),
                         startX = margin,

@@ -611,9 +611,9 @@ fun Modifier.glassCardBackground(
                 )
             } else {
                 listOf(
-                    Color(0xFF242127),
-                    Color(0xFF151318),
-                    Color(0xFF0C0B0F)
+                    Color(0xFF2C2834),
+                    Color(0xFF221F2A),
+                    Color(0xFF191720)
                 )
             }
         )
@@ -855,7 +855,7 @@ fun Modifier.bubbleDropletPillIndicator(
 
     val solidPillBase = when {
         isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF0C0B0F)
+        isDark -> Color(0xFF1C1A22)
         else -> Color(0xFFFFFFFF)
     }
 
@@ -922,7 +922,7 @@ fun Modifier.bubbleDropletPillIndicator(
         // 5. Solid base layer in light mode (completely removing transparency) / translucent gel base in dark mode
         .background(
             color = if (isDark || isAmoled) {
-                if (isAmoled) Color.Black.copy(alpha = 0.55f) else Color(0xFF0C0B0F).copy(alpha = 0.60f)
+                if (isAmoled) Color.Black.copy(alpha = 0.55f) else Color(0xFF1C1A22).copy(alpha = 0.60f)
             } else {
                 Color.White
             },

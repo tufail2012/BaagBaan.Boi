@@ -70,9 +70,14 @@ fun getAppDimBackgroundColor(
     val hue = hsv[0]
 
     return when {
-        isAmoled || isDark -> {
-            // Pitch black background matching reference screenshot
+        isAmoled -> {
+            // Pure pitch black background for AMOLED Mode
             Color(0xFF000000)
+        }
+        isDark -> {
+            // Refined dark charcoal gray background for standard Dark Mode with a subtle tint
+            val darkTone = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.08f, 0.09f))
+            Color(darkTone)
         }
         else -> {
             val toneRgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.055f, 0.950f))
@@ -98,10 +103,19 @@ fun getAppDimBackgroundBrush(
     val hue = hsv[0]
 
     return when {
-        isAmoled || isDark -> {
-            // Pitch black background matching reference screenshot
+        isAmoled -> {
+            // Pure pitch black background for AMOLED Mode
             Brush.verticalGradient(
                 colors = listOf(Color(0xFF000000), Color(0xFF000000))
+            )
+        }
+        isDark -> {
+            // Elegant dark slate/charcoal gray gradient for standard Dark Mode (non-pure-black)
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.09f, 0.12f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.07f, 0.095f)))
+            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.05f, 0.08f)))
+            Brush.verticalGradient(
+                colors = listOf(topColor, midColor, bottomColor)
             )
         }
         else -> {

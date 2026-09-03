@@ -1104,14 +1104,18 @@ fun Modifier.frostedLiquidGlassMenuBackground(
     )
 
     val hazeStyle = HazeStyle(
-        backgroundColor = if (isDark || isAmoled) Color(0xFF0C0B0F).copy(alpha = 0.72f) else Color(0xFFFAF4F1).copy(alpha = 0.80f),
+        backgroundColor = when {
+            isAmoled -> Color.Black.copy(alpha = 0.75f)
+            isDark -> Color(0xFF1E1C25).copy(alpha = 0.72f)
+            else -> Color(0xFFFAF4F1).copy(alpha = 0.80f)
+        },
         blurRadius = 24.dp,
         tints = listOf(
             HazeTint(
-                color = if (isDark || isAmoled) {
-                    Color(0xFF14121A).copy(alpha = 0.65f)
-                } else {
-                    Color.White.copy(alpha = 0.70f)
+                color = when {
+                    isAmoled -> Color(0xFF0F0E13).copy(alpha = 0.65f)
+                    isDark -> Color(0xFF26232F).copy(alpha = 0.60f)
+                    else -> Color.White.copy(alpha = 0.70f)
                 }
             )
         ),
@@ -1123,33 +1127,46 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0x28000000),
-            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.30f) else accentColor.copy(alpha = 0.10f)
+            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.60f) else if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x28000000),
+            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.10f)
         )
         .clip(shape)
         // 2. Real frosted backdrop blur via Haze
         .hazeEffect(state = hazeState, style = hazeStyle)
         // 3. Soft translucent liquid glass gradient letting background hints come through gently
         .background(
-            brush = if (isDark || isAmoled) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.18f),
-                        Color(0xFF242127).copy(alpha = 0.45f),
-                        accentColor.copy(alpha = 0.12f),
-                        Color(0xFF0C0B0F).copy(alpha = 0.65f)
+            brush = when {
+                isAmoled -> {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.16f),
+                            Color(0xFF141218).copy(alpha = 0.45f),
+                            accentColor.copy(alpha = 0.10f),
+                            Color(0xFF000000).copy(alpha = 0.75f)
+                        )
                     )
-                )
-            } else {
-                // Light mode warm frosted glass gradient matching uploaded pic
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.92f),
-                        Color(0xFFFAF4F1).copy(alpha = 0.85f),
-                        accentColor.copy(alpha = 0.12f),
-                        Color(0xFFF6ECE7).copy(alpha = 0.88f)
+                }
+                isDark -> {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.20f),
+                            Color(0xFF2C2834).copy(alpha = 0.45f),
+                            accentColor.copy(alpha = 0.12f),
+                            Color(0xFF1A1821).copy(alpha = 0.65f)
+                        )
                     )
-                )
+                }
+                else -> {
+                    // Light mode warm frosted glass gradient matching uploaded pic
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.92f),
+                            Color(0xFFFAF4F1).copy(alpha = 0.85f),
+                            accentColor.copy(alpha = 0.12f),
+                            Color(0xFFF6ECE7).copy(alpha = 0.88f)
+                        )
+                    )
+                }
             },
             shape = shape
         )
@@ -1325,17 +1342,19 @@ fun Modifier.profileMenuBackdropBlur(
 
     val hazeStyle = HazeStyle(
         backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.70f)
+            Color.Black.copy(alpha = 0.75f)
         } else if (isDark) {
-            Color(0xFF14131A).copy(alpha = 0.65f)
+            Color(0xFF22202A).copy(alpha = 0.65f)
         } else {
             Color.White.copy(alpha = 0.65f)
         },
         blurRadius = 40.dp,
         tints = listOf(
             HazeTint(
-                color = if (isDark || isAmoled) {
-                    Color(0xFF14131A).copy(alpha = 0.45f)
+                color = if (isAmoled) {
+                    Color(0xFF0C0B10).copy(alpha = 0.50f)
+                } else if (isDark) {
+                    Color(0xFF262430).copy(alpha = 0.45f)
                 } else {
                     Color.White.copy(alpha = 0.50f)
                 }
@@ -1348,16 +1367,16 @@ fun Modifier.profileMenuBackdropBlur(
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x22000000),
+            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.60f) else if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x22000000),
             ambientColor = Color.Transparent
         )
         .clip(shape)
         .hazeEffect(state = hazeState, style = hazeStyle)
         .background(
             color = if (isAmoled) {
-                Color.Black.copy(alpha = 0.72f)
+                Color.Black.copy(alpha = 0.78f)
             } else if (isDark) {
-                Color(0xFF16151E).copy(alpha = 0.68f)
+                Color(0xFF201E28).copy(alpha = 0.68f)
             } else {
                 Color.White.copy(alpha = 0.68f)
             },

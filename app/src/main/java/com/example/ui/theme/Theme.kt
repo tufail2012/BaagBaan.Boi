@@ -52,11 +52,11 @@ fun MyApplicationTheme(
             )
         }
         isDark -> {
-            val darkBg = Color(0xFF000000) // Pitch black background matching reference screenshot
-            val darkSurface = Color(0xFF141217)
-            val darkSurfaceVariant = Color(0xFF1E1C23)
-            val darkSurfaceContainer = Color(0xFF18161D)
-            val darkSurfaceContainerHigh = Color(0xFF242127)
+            val darkBg = getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = false) // Refined dark gray (non-pure black)
+            val darkSurface = Color(0xFF1E1C24)
+            val darkSurfaceVariant = Color(0xFF282531)
+            val darkSurfaceContainer = Color(0xFF22202A)
+            val darkSurfaceContainerHigh = Color(0xFF2D2A37)
             darkColorScheme(
                 primary = accentColor,
                 onPrimary = Color.White,
@@ -71,8 +71,8 @@ fun MyApplicationTheme(
                 onBackground = Color(0xFFFFFFFF),
                 onSurface = Color(0xFFFFFFFF),
                 onSurfaceVariant = Color(0xFFCBD5E1),
-                outline = Color(0xFF38343E),
-                outlineVariant = Color(0xFF28252E)
+                outline = Color(0xFF454150),
+                outlineVariant = Color(0xFF33303D)
             )
         }
         else -> {
