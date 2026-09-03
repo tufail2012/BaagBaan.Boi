@@ -44,6 +44,10 @@ class CropViewModel(
     private val _accentColorHex = MutableStateFlow("#D32F2F")
     val accentColorHex: StateFlow<String> = _accentColorHex.asStateFlow()
 
+    // Predefined 4-color / 2-color palette selection (independent from solid colors)
+    private val _selectedPaletteId = MutableStateFlow<String?>(null)
+    val selectedPaletteId: StateFlow<String?> = _selectedPaletteId.asStateFlow()
+
     fun loadThemeSettings(context: android.content.Context) {
         val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
         val savedModeName = prefs.getString("agri_theme_mode", AppThemeMode.SYSTEM.name) ?: AppThemeMode.SYSTEM.name
@@ -56,6 +60,9 @@ class CropViewModel(
 
         val savedHex = prefs.getString("agri_accent_color_hex", "#D32F2F") ?: "#D32F2F"
         _accentColorHex.value = savedHex
+
+        val savedPaletteId = prefs.getString("agri_selected_palette_id", null)
+        _selectedPaletteId.value = savedPaletteId
     }
 
     fun setThemeMode(mode: AppThemeMode) {
@@ -70,8 +77,29 @@ class CropViewModel(
 
     fun setAccentColorHex(context: android.content.Context, hex: String) {
         _accentColorHex.value = hex
+        // Selecting a solid color clears the predefined palette selection
+        _selectedPaletteId.value = null
         val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
-        prefs.edit().putString("agri_accent_color_hex", hex).apply()
+        prefs.edit()
+            .putString("agri_accent_color_hex", hex)
+            .putString("agri_selected_palette_id", null)
+            .apply()
+    }
+
+    fun setSelectedPaletteId(context: android.content.Context, paletteId: String?) {
+        _selectedPaletteId.value = paletteId
+        val prefs = context.getSharedPreferences("AgriCropThemePrefs", android.content.Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        editor.putString("agri_selected_palette_id", paletteId)
+
+        if (paletteId != null) {
+            val palette = com.example.ui.theme.getPredefinedPaletteById(paletteId)
+            if (palette != null) {
+                _accentColorHex.value = palette.primaryHex
+                editor.putString("agri_accent_color_hex", palette.primaryHex)
+            }
+        }
+        editor.apply()
     }
 
     fun cycleThemeMode() {

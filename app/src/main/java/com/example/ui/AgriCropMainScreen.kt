@@ -142,6 +142,7 @@ fun AgriCropMainScreen(
         com.example.ui.AppThemeMode.DARK, com.example.ui.AppThemeMode.AMOLED -> true
     }
     val accentColorHex by viewModel.accentColorHex.collectAsState()
+    val selectedPaletteId by viewModel.selectedPaletteId.collectAsState()
     val parsedPaletteColor = remember(accentColorHex) {
         try {
             Color(android.graphics.Color.parseColor(accentColorHex))
@@ -477,8 +478,10 @@ fun AgriCropMainScreen(
                 com.example.ui.components.ThemeColoursDialog(
                     themeMode = themeMode,
                     selectedColorHex = accentColorHex,
+                    selectedPaletteId = selectedPaletteId,
                     onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
                     onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                    onSelectPaletteId = { id -> viewModel.setSelectedPaletteId(context, id) },
                     onDismissRequest = { showThemePreferencesDialog = false },
                     modifier = modifier
                 )

@@ -141,18 +141,20 @@ class MainActivity : FragmentActivity() {
             } else {
                 val themeMode by cropViewModel.themeMode.collectAsState()
                 val accentHex by cropViewModel.accentColorHex.collectAsState()
+                val selectedPaletteId by cropViewModel.selectedPaletteId.collectAsState()
 
-                val accentColor = androidx.compose.runtime.remember(accentHex) {
-                    try {
-                        androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(accentHex))
-                    } catch (e: Exception) {
-                        com.example.ui.theme.AgriRedPrimary
-                    }
+                val resolvedPalette = androidx.compose.runtime.remember(selectedPaletteId, accentHex) {
+                    com.example.ui.theme.resolveAppPalette(selectedPaletteId, accentHex)
+                }
+
+                val accentColor = androidx.compose.runtime.remember(accentHex, resolvedPalette) {
+                    resolvedPalette.primary
                 }
 
                 MyApplicationTheme(
                     themeMode = themeMode,
-                    accentColor = accentColor
+                    accentColor = accentColor,
+                    palette = resolvedPalette
                 ) {
                     AgriCropMainScreen(
                         viewModel = cropViewModel,
