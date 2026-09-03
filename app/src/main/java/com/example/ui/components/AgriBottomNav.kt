@@ -400,46 +400,49 @@ fun Modifier.deepBlurNavBarBackground(
         } else if (isDark) {
             Color(0xFF0C0B10).copy(alpha = 0.28f)
         } else {
-            Color.White.copy(alpha = 0.22f)
+            Color.White.copy(alpha = 0.25f)
         },
         blurRadius = 64.dp, // Rich, deeper optical backdrop blur
         tints = listOf(
             HazeTint(
                 color = if (isDark || isAmoled) {
-                    accentColor.copy(alpha = 0.02f)
+                    accentColor.copy(alpha = 0.05f)
                 } else {
-                    accentColor.copy(alpha = 0.02f)
+                    accentColor.copy(alpha = 0.05f)
                 }
             )
         ),
         noiseFactor = 0.08f
     )
 
+    // Reflective glass rim brush applying specular white and accent refraction across edges
     val glassRimBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.08f),
-                Color.White.copy(alpha = 0.04f),
-                Color.White.copy(alpha = 0.12f)
+                Color.White.copy(alpha = 0.40f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.24f), // Reflective edge sheen
+                Color.White.copy(alpha = 0.12f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.16f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.08f)  // Soft specular bottom return
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.40f),
-                Color.White.copy(alpha = 0.20f),
-                Color.White.copy(alpha = 0.50f)
+                Color.White.copy(alpha = 0.95f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.28f), // Reflective edge sheen in light mode
+                Color.White.copy(alpha = 0.50f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.18f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.40f)  // Soft specular bottom return
             )
         }
     )
 
     return this
-        // 1. Soft floating drop shadow with clean neutral dispersion
+        // 1. Soft floating drop shadow with subtle ambient halo in the reflective accent tone
         .shadow(
             elevation = 16.dp,
             shape = shape,
             spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x22000000),
-            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.20f) else Color(0x10000000)
+            ambientColor = if (isDark || isAmoled) accentColor.copy(alpha = 0.14f) else accentColor.copy(alpha = 0.10f)
         )
         .clip(shape)
         // 2. Real optical backdrop blur via Haze with maximum clarity
@@ -450,28 +453,30 @@ fun Modifier.deepBlurNavBarBackground(
                 Modifier
             }
         )
-        // 3. Ultra-translucent neutral frosted glass wash allowing backdrop content to blur through vividly
+        // 3. Uniform reflective glass body wash incorporating subtle reflective sheen consistently across any background
         .background(
             brush = if (isDark || isAmoled) {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.06f),
-                        Color(0xFF0F0E14).copy(alpha = 0.18f),
-                        Color(0xFF0A090E).copy(alpha = 0.22f)
+                        Color.White.copy(alpha = 0.12f),          // Specular top glass reflection
+                        Color(0xFF14121A).copy(alpha = 0.28f),    // Translucent dark glass
+                        accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                        Color(0xFF0A090E).copy(alpha = 0.32f)     // Base foundation
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.28f),
-                        Color.White.copy(alpha = 0.12f),
-                        Color.White.copy(alpha = 0.18f)
+                        Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
+                        Color.White.copy(alpha = 0.25f),          // Translucent light glass
+                        accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                        Color.White.copy(alpha = 0.35f)           // Base foundation
                     )
                 )
             },
             shape = shape
         )
-        // 4. Soft noise grain overlay and specular top highlight
+        // 4. Soft noise grain overlay and dual-tone reflective specular top highlight
         .drawWithContent {
             drawContent()
             val w = size.width
@@ -484,12 +489,17 @@ fun Modifier.deepBlurNavBarBackground(
                 alpha = if (isDark || isAmoled) 0.08f else 0.10f
             )
 
-            // Top specular shine with soft gradient refraction
+            // Top specular shine with blended reflective color sheen
+            val highlightWhiteAlpha = if (isDark || isAmoled) 0.38f else 0.70f
+            val sheenAccentAlpha = if (isDark || isAmoled) 0.18f else 0.22f
+
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.65f),
+                        accentColor.copy(alpha = sheenAccentAlpha),
+                        Color.White.copy(alpha = highlightWhiteAlpha),
+                        accentColor.copy(alpha = sheenAccentAlpha),
                         Color.Transparent
                     ),
                     startX = margin,
@@ -499,7 +509,7 @@ fun Modifier.deepBlurNavBarBackground(
                 size = Size(w - (margin * 2), highlightHeight)
             )
         }
-        // 5. Crisp refractive glass border
+        // 5. Crisp refractive glass border with reflective sheen
         .border(
             width = 1.dp,
             brush = glassRimBrush,
