@@ -336,10 +336,11 @@ fun AgriHeader(
                         modifier = Modifier
                             .widthIn(min = 250.dp, max = 310.dp)
                             .padding(vertical = 4.dp)
-                            .profileMenuBackdropBlur(
+                            .frostedLiquidGlassMenuBackground(
                                 hazeState = hazeState,
                                 isDark = isDark,
                                 themeMode = themeMode,
+                                accentColor = animatedAccentColor,
                                 shape = RoundedCornerShape(22.dp)
                             ),
                         shape = RoundedCornerShape(22.dp),
@@ -522,10 +523,11 @@ fun AgriHeader(
                                 modifier = Modifier
                                     .widthIn(min = 250.dp, max = 310.dp)
                                     .padding(vertical = 4.dp)
-                                    .profileMenuBackdropBlur(
+                                    .frostedLiquidGlassMenuBackground(
                                         hazeState = hazeState,
                                         isDark = isDark,
                                         themeMode = themeMode,
+                                        accentColor = animatedAccentColor,
                                         shape = RoundedCornerShape(22.dp)
                                     ),
                                 shape = RoundedCornerShape(22.dp),
@@ -812,11 +814,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToDashboard()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("dashboard_menu_item$tagSuffix")
     )
 
@@ -836,11 +836,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToInventory()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("inventory_menu_item$tagSuffix")
     )
 
@@ -860,11 +858,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToAttendance()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("attendance_menu_item$tagSuffix")
     )
 
@@ -884,11 +880,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToContactDirectory()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("contact_directory_menu_item$tagSuffix")
     )
 
@@ -908,11 +902,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToPaymentReminders()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("payment_reminders_menu_item$tagSuffix")
     )
 
@@ -932,11 +924,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToSeasonalReminders()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("seasonal_reminders_menu_item$tagSuffix")
     )
 
@@ -956,17 +946,15 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToQrScanner()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("scan_qr_menu_item$tagSuffix")
     )
 
     // Divider before Settings with subtle neutral line (no gradient, no border)
     HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         color = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.08f)
     )
 
@@ -986,11 +974,9 @@ private fun OverflowMenuContent(
             onDismiss()
             onNavigateToSettings?.invoke()
         },
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 9.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-            .profileMenuItem(isDark = isDark)
             .testTag("settings_menu_item$tagSuffix")
     )
 }
@@ -1083,111 +1069,116 @@ fun Modifier.frostedLiquidGlassMenuBackground(
 ): Modifier {
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
 
-    // Thin bright 1dp glass rim with specular top highlight and accent refraction
-    val glassRimBrush = Brush.verticalGradient(
+    // 1:1 match with Bottom Navigation reflective glass rim brush
+    val glassRimBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.40f), // Crisp specular top rim
-                Color.White.copy(alpha = 0.15f), // Clear glass sides
-                accentColor.copy(alpha = 0.25f), // Accent color refraction
-                Color.White.copy(alpha = 0.05f)  // Soft bottom rim
+                Color.White.copy(alpha = 0.40f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.24f), // Reflective edge sheen
+                Color.White.copy(alpha = 0.12f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.16f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.08f)  // Soft specular bottom return
             )
         } else {
-            // Light mode matching uploaded reference pic
             listOf(
-                Color.White,
-                Color.White.copy(alpha = 0.75f),
-                accentColor.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.50f)
+                Color.White.copy(alpha = 0.95f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.28f), // Reflective edge sheen in light mode
+                Color.White.copy(alpha = 0.50f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.18f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.40f)  // Soft specular bottom return
             )
         }
     )
 
+    // 1:1 match with Bottom Navigation HazeStyle: blurRadius 64.dp, tints 0.05f, noiseFactor 0.08f
     val hazeStyle = HazeStyle(
-        backgroundColor = when {
-            isAmoled -> Color.Black.copy(alpha = 0.75f)
-            isDark -> Color(0xFF1E1C25).copy(alpha = 0.72f)
-            else -> Color(0xFFFAF4F1).copy(alpha = 0.80f)
+        backgroundColor = if (isAmoled) {
+            Color.Black.copy(alpha = 0.35f)
+        } else if (isDark) {
+            Color(0xFF16141D).copy(alpha = 0.28f)
+        } else {
+            Color.White.copy(alpha = 0.25f)
         },
-        blurRadius = 24.dp,
+        blurRadius = 64.dp,
         tints = listOf(
             HazeTint(
-                color = when {
-                    isAmoled -> Color(0xFF0F0E13).copy(alpha = 0.65f)
-                    isDark -> Color(0xFF26232F).copy(alpha = 0.60f)
-                    else -> Color.White.copy(alpha = 0.70f)
-                }
+                color = accentColor.copy(alpha = 0.05f)
             )
         ),
-        noiseFactor = 0.22f
+        noiseFactor = 0.08f
     )
 
     return this
-        // 1. Soft floating 3D elevation shadow
+        // 1. Soft floating drop shadow with subtle ambient halo matching Bottom Navigation
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.60f) else if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x28000000),
-            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.10f)
+            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.55f) else if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x22000000),
+            ambientColor = if (isDark || isAmoled) accentColor.copy(alpha = 0.14f) else accentColor.copy(alpha = 0.10f)
         )
         .clip(shape)
-        // 2. Real frosted backdrop blur via Haze
+        // 2. Real optical backdrop blur via Haze
         .hazeEffect(state = hazeState, style = hazeStyle)
-        // 3. Soft translucent liquid glass gradient letting background hints come through gently
+        // 3. Uniform reflective glass body wash matching Bottom Navigation
         .background(
             brush = when {
                 isAmoled -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.16f),
-                            Color(0xFF141218).copy(alpha = 0.45f),
-                            accentColor.copy(alpha = 0.10f),
-                            Color(0xFF000000).copy(alpha = 0.75f)
+                            Color.White.copy(alpha = 0.10f),          // Specular top glass reflection
+                            Color(0xFF100E14).copy(alpha = 0.25f),    // Translucent dark glass
+                            accentColor.copy(alpha = 0.08f),          // Uniform reflective color sheen
+                            Color(0xFF000000).copy(alpha = 0.35f)     // Pure black AMOLED foundation
                         )
                     )
                 }
                 isDark -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.20f),
-                            Color(0xFF2C2834).copy(alpha = 0.45f),
-                            accentColor.copy(alpha = 0.12f),
-                            Color(0xFF1A1821).copy(alpha = 0.65f)
+                            Color.White.copy(alpha = 0.14f),          // Specular top glass reflection
+                            Color(0xFF221F2B).copy(alpha = 0.32f),    // Translucent dark charcoal glass
+                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                            Color(0xFF14121A).copy(alpha = 0.35f)     // Dark charcoal gray foundation (non-pure-black)
                         )
                     )
                 }
                 else -> {
-                    // Light mode warm frosted glass gradient matching uploaded pic
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.92f),
-                            Color(0xFFFAF4F1).copy(alpha = 0.85f),
-                            accentColor.copy(alpha = 0.12f),
-                            Color(0xFFF6ECE7).copy(alpha = 0.88f)
+                            Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
+                            Color.White.copy(alpha = 0.25f),          // Translucent light glass
+                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
+                            Color.White.copy(alpha = 0.35f)           // Base foundation
                         )
                     )
                 }
             },
             shape = shape
         )
-        // 4. Subtle top inner specular reflection / edge sheen & Soft Noisy Grain Overlay
+        // 4. Soft noise grain overlay and dual-tone reflective specular top highlight matching Bottom Navigation
         .drawWithContent {
             drawContent()
             val w = size.width
             val highlightHeight = 1.5.dp.toPx()
-            val margin = 10.dp.toPx()
+            val margin = 12.dp.toPx()
 
             // Soft procedural micro-grain overlay for tactile frosted noisy blur
             drawRect(
                 brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.14f else 0.16f
+                alpha = if (isDark || isAmoled) 0.08f else 0.10f
             )
+
+            // Top specular shine with blended reflective color sheen
+            val highlightWhiteAlpha = if (isDark || isAmoled) 0.38f else 0.70f
+            val sheenAccentAlpha = if (isDark || isAmoled) 0.18f else 0.22f
 
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.85f),
+                        accentColor.copy(alpha = sheenAccentAlpha),
+                        Color.White.copy(alpha = highlightWhiteAlpha),
+                        accentColor.copy(alpha = sheenAccentAlpha),
                         Color.Transparent
                     ),
                     startX = margin,
@@ -1336,73 +1327,31 @@ fun Modifier.profileMenuBackdropBlur(
     hazeState: HazeState,
     isDark: Boolean = isAppInDarkMode(),
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(22.dp)
-): Modifier {
-    val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
-
-    val hazeStyle = HazeStyle(
-        backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.75f)
-        } else if (isDark) {
-            Color(0xFF22202A).copy(alpha = 0.65f)
-        } else {
-            Color.White.copy(alpha = 0.65f)
-        },
-        blurRadius = 40.dp,
-        tints = listOf(
-            HazeTint(
-                color = if (isAmoled) {
-                    Color(0xFF0C0B10).copy(alpha = 0.50f)
-                } else if (isDark) {
-                    Color(0xFF262430).copy(alpha = 0.45f)
-                } else {
-                    Color.White.copy(alpha = 0.50f)
-                }
-            )
-        ),
-        noiseFactor = 0.08f
-    )
-
-    return this
-        .shadow(
-            elevation = 16.dp,
-            shape = shape,
-            spotColor = if (isAmoled) Color.Black.copy(alpha = 0.60f) else if (isDark) Color.Black.copy(alpha = 0.40f) else Color(0x22000000),
-            ambientColor = Color.Transparent
-        )
-        .clip(shape)
-        .hazeEffect(state = hazeState, style = hazeStyle)
-        .background(
-            color = if (isAmoled) {
-                Color.Black.copy(alpha = 0.78f)
-            } else if (isDark) {
-                Color(0xFF201E28).copy(alpha = 0.68f)
-            } else {
-                Color.White.copy(alpha = 0.68f)
-            },
-            shape = shape
-        )
-}
+): Modifier = this.frostedLiquidGlassMenuBackground(
+    hazeState = hazeState,
+    isDark = isDark,
+    themeMode = themeMode,
+    accentColor = accentColor,
+    shape = shape
+)
 
 /**
- * Clean Profile Menu Item Modifier without gradient colours or borders.
+ * Clean Profile Menu Item Modifier without individual card/container backgrounds or borders.
  */
 @Composable
 fun Modifier.profileMenuItem(
     isDark: Boolean,
     shape: Shape = RoundedCornerShape(12.dp)
-): Modifier {
-    return this
-        .clip(shape)
-        .background(
-            color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.03f),
-            shape = shape
-        )
-}
+): Modifier = this
 
 /**
- * Reusable frosted liquid glass item content with a circular glass droplet icon container,
- * crisp typography, and a subtle navigation chevron.
+ * Profile Menu item row:
+ * [ ICON in circular translucent accent backdrop ]   Caption
+ * No individual cards, no borders, no trailing arrow/chevron.
+ * For Dark Mode: subtle colored circular palette-style background behind it, icon itself is WHITE.
+ * For Light Mode: subtle colored circular background, icon uses accent color.
  */
 @Composable
 private fun FrostedMenuItemContent(
@@ -1416,13 +1365,13 @@ private fun FrostedMenuItemContent(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Clean circular container for the icon without gradients or borders
+        // Subtle colored circular palette-style background behind the icon
         Box(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
                 .background(
-                    color = accentColor.copy(alpha = if (isDark) 0.18f else 0.12f),
+                    color = accentColor.copy(alpha = if (isDark) 0.22f else 0.14f),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
@@ -1430,23 +1379,16 @@ private fun FrostedMenuItemContent(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = accentColor,
+                tint = if (isDark) Color.White else accentColor,
                 modifier = Modifier.size(18.dp)
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         Text(
             text = title,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
-            color = textColor,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = if (isDark) Color.White.copy(alpha = 0.32f) else Color.Black.copy(alpha = 0.22f),
-            modifier = Modifier.size(16.dp)
+            color = textColor
         )
     }
 }
