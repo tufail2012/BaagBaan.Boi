@@ -396,53 +396,53 @@ fun Modifier.deepBlurNavBarBackground(
 ): Modifier {
     val hazeStyle = HazeStyle(
         backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.55f)
+            Color.Black.copy(alpha = 0.35f)
         } else if (isDark) {
-            Color(0xFF0F0E13).copy(alpha = 0.50f)
+            Color(0xFF0C0B10).copy(alpha = 0.28f)
         } else {
-            Color(0xFFFAF5F2).copy(alpha = 0.45f)
+            Color.White.copy(alpha = 0.22f)
         },
-        blurRadius = 48.dp, // Deeper, more prominent optical backdrop blur
+        blurRadius = 64.dp, // Rich, deeper optical backdrop blur
         tints = listOf(
             HazeTint(
                 color = if (isDark || isAmoled) {
-                    accentColor.copy(alpha = 0.08f)
+                    accentColor.copy(alpha = 0.02f)
                 } else {
-                    accentColor.copy(alpha = 0.06f)
+                    accentColor.copy(alpha = 0.02f)
                 }
             )
         ),
-        noiseFactor = 0.15f
+        noiseFactor = 0.08f
     )
 
     val glassRimBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.12f),
-                accentColor.copy(alpha = 0.15f),
-                Color.White.copy(alpha = 0.06f)
+                Color.White.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.08f),
+                Color.White.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.12f)
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.90f),
-                Color.White.copy(alpha = 0.50f),
-                accentColor.copy(alpha = 0.15f),
-                Color.White.copy(alpha = 0.60f)
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.20f),
+                Color.White.copy(alpha = 0.50f)
             )
         }
     )
 
     return this
-        // 1. Soft 3D floating drop shadow with subtle ambient glow
+        // 1. Soft floating drop shadow with clean neutral dispersion
         .shadow(
             elevation = 16.dp,
             shape = shape,
-            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x28000000),
-            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.25f) else accentColor.copy(alpha = 0.08f)
+            spotColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.45f) else Color(0x22000000),
+            ambientColor = if (isDark || isAmoled) Color.Black.copy(alpha = 0.20f) else Color(0x10000000)
         )
         .clip(shape)
-        // 2. Real optical backdrop blur via Haze
+        // 2. Real optical backdrop blur via Haze with maximum clarity
         .then(
             if (hazeState != null) {
                 Modifier.hazeEffect(state = hazeState, style = hazeStyle)
@@ -450,24 +450,22 @@ fun Modifier.deepBlurNavBarBackground(
                 Modifier
             }
         )
-        // 3. Subtle, reduced gradient color wash overlay that preserves high blur clarity
+        // 3. Ultra-translucent neutral frosted glass wash allowing backdrop content to blur through vividly
         .background(
             brush = if (isDark || isAmoled) {
-                Brush.linearGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        Color(0xFF17141E).copy(alpha = 0.50f),
-                        accentColor.copy(alpha = 0.06f),
-                        Color(0xFF0F0E14).copy(alpha = 0.55f)
+                        Color.White.copy(alpha = 0.06f),
+                        Color(0xFF0F0E14).copy(alpha = 0.18f),
+                        Color(0xFF0A090E).copy(alpha = 0.22f)
                     )
                 )
             } else {
-                Brush.linearGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.55f),
-                        accentColor.copy(alpha = 0.05f),
-                        Color(0xFFFAF6F2).copy(alpha = 0.40f),
-                        Color.White.copy(alpha = 0.50f)
+                        Color.White.copy(alpha = 0.28f),
+                        Color.White.copy(alpha = 0.12f),
+                        Color.White.copy(alpha = 0.18f)
                     )
                 )
             },
@@ -483,7 +481,7 @@ fun Modifier.deepBlurNavBarBackground(
             // Soft procedural micro-grain overlay for tactile frosted noisy blur
             drawRect(
                 brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.12f else 0.14f
+                alpha = if (isDark || isAmoled) 0.08f else 0.10f
             )
 
             // Top specular shine with soft gradient refraction
@@ -491,7 +489,7 @@ fun Modifier.deepBlurNavBarBackground(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.45f else 0.75f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.65f),
                         Color.Transparent
                     ),
                     startX = margin,
@@ -501,7 +499,7 @@ fun Modifier.deepBlurNavBarBackground(
                 size = Size(w - (margin * 2), highlightHeight)
             )
         }
-        // 5. Crisp refractive gradient glass border
+        // 5. Crisp refractive glass border
         .border(
             width = 1.dp,
             brush = glassRimBrush,
