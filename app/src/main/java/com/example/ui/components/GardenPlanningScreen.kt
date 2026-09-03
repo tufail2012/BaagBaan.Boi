@@ -481,32 +481,14 @@ private fun FormSectionHeader(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = accentColor.copy(alpha = if (isDark) 0.16f else 0.08f),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = if (isDark) 0.35f else 0.22f)),
-        modifier = modifier.padding(top = 10.dp, bottom = 2.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(accentColor)
-            )
-            Text(
-                text = title,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = accentColor,
-                letterSpacing = 1.sp
-            )
-        }
-    }
+    Text(
+        text = title,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        letterSpacing = 1.sp,
+        modifier = modifier.padding(top = 8.dp)
+    )
 }
 
 @Composable
