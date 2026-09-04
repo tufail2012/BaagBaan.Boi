@@ -431,9 +431,9 @@ private fun DashboardAmbientBackdrop(
         }
     }
 
-    // Alpha scales tuned for natural diffusion through thin frosted blur without blowing out contrast
-    val primaryAlpha = if (isAmoled) 0.26f else if (isDark) 0.34f else 0.44f
-    val pastelAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.40f
+    // Dimmed and softened alpha scales for a calmer, softer, and less visually dominant multi-color diffusion
+    val primaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.22f else 0.28f
+    val pastelAlpha = if (isAmoled) 0.14f else if (isDark) 0.18f else 0.24f
 
     // Harmonic pastel colors specifically paired with each Frosted Liquid Glass module
     val leafGreenPastel = Color(0xFFA7F3D0)
@@ -470,10 +470,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.70f
         )
 
-        // 3. Vibrant Pastel Emerald / Mint Bloom (diffusing behind Inventory Management module)
+        // 3. Soft Pastel Emerald / Mint Bloom (diffusing behind Inventory Management module)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(leafGreenPastel.copy(alpha = pastelAlpha * 1.15f), Color.Transparent),
+                colors = listOf(leafGreenPastel.copy(alpha = pastelAlpha * 0.95f), Color.Transparent),
                 center = Offset(w * 0.90f, h * 0.38f + yShift),
                 radius = w * 0.72f
             ),
@@ -481,10 +481,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.72f
         )
 
-        // 4. Vibrant Pastel Azure / Sky Blue Bloom (diffusing behind Contract Director module)
+        // 4. Soft Pastel Azure / Sky Blue Bloom (diffusing behind Contract Director module)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha * 1.15f), Color.Transparent),
+                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha * 0.95f), Color.Transparent),
                 center = Offset(w * 0.08f, h * 0.50f + yShift),
                 radius = w * 0.72f
             ),
@@ -492,10 +492,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.72f
         )
 
-        // 5. Vibrant Pastel Mint Bloom (diffusing behind Attendance module)
+        // 5. Soft Pastel Mint Bloom (diffusing behind Attendance module)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(mintPastel.copy(alpha = pastelAlpha * 1.10f), Color.Transparent),
+                colors = listOf(mintPastel.copy(alpha = pastelAlpha * 0.90f), Color.Transparent),
                 center = Offset(w * 0.92f, h * 0.64f + yShift),
                 radius = w * 0.70f
             ),
@@ -503,10 +503,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.70f
         )
 
-        // 6. Vibrant Pastel Warning Amber Bloom (diffusing behind Payment Reminder module)
+        // 6. Soft Pastel Warning Amber Bloom (diffusing behind Payment Reminder module)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(amberPastel.copy(alpha = pastelAlpha * 1.25f), Color.Transparent),
+                colors = listOf(amberPastel.copy(alpha = pastelAlpha * 1.00f), Color.Transparent),
                 center = Offset(w * 0.10f, h * 0.76f + yShift),
                 radius = w * 0.75f
             ),
@@ -514,42 +514,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.75f
         )
 
-        // 7. Soft organic botanical curves that diffuse through the glass surfaces
-        val stemColor = effectivePrimary.copy(alpha = if (isDark || isAmoled) 0.18f else 0.26f)
-        val leafColor = mintPastel.copy(alpha = if (isDark || isAmoled) 0.20f else 0.30f)
-
-        val leftStem = androidx.compose.ui.graphics.Path().apply {
-            moveTo(w * 0.02f, h * 0.18f + yShift)
-            cubicTo(w * 0.08f, h * 0.26f + yShift, w * 0.01f, h * 0.38f + yShift, w * 0.06f, h * 0.48f + yShift)
-            cubicTo(w * 0.11f, h * 0.58f + yShift, w * 0.03f, h * 0.68f + yShift, w * 0.07f, h * 0.78f + yShift)
-        }
-        drawPath(
-            path = leftStem,
-            color = stemColor,
-            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                width = 3.dp.toPx(),
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
-        )
-
-        val rightStem = androidx.compose.ui.graphics.Path().apply {
-            moveTo(w * 0.98f, h * 0.22f + yShift)
-            cubicTo(w * 0.92f, h * 0.32f + yShift, w * 0.97f, h * 0.44f + yShift, w * 0.91f, h * 0.58f + yShift)
-            cubicTo(w * 0.88f, h * 0.68f + yShift, w * 0.96f, h * 0.80f + yShift, w * 0.92f, h * 0.90f + yShift)
-        }
-        drawPath(
-            path = rightStem,
-            color = leafColor,
-            style = androidx.compose.ui.graphics.drawscope.Stroke(
-                width = 3.dp.toPx(),
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
-        )
-
-        // 8. Lower Lavender & Coral pool (behind lower logs)
+        // 7. Lower Lavender & Coral pool (behind lower logs)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(lavenderPastel.copy(alpha = pastelAlpha * 0.80f), Color.Transparent),
+                colors = listOf(lavenderPastel.copy(alpha = pastelAlpha * 0.70f), Color.Transparent),
                 center = Offset(w * 0.85f, h * 0.88f + yShift),
                 radius = w * 0.68f
             ),
@@ -559,7 +527,7 @@ private fun DashboardAmbientBackdrop(
 
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(coralPastel.copy(alpha = pastelAlpha * 0.80f), Color.Transparent),
+                colors = listOf(coralPastel.copy(alpha = pastelAlpha * 0.70f), Color.Transparent),
                 center = Offset(w * 0.20f, h * 0.98f + yShift),
                 radius = w * 0.65f
             ),
@@ -1789,37 +1757,6 @@ private fun FinancialMetricBox(
             .border(1.dp, podBorderBrush, podShape)
             .padding(10.dp)
     ) {
-        // Decorative trendline sparkline pinned to bottom of the glass pod
-        androidx.compose.foundation.Canvas(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(podShape)
-        ) {
-            val pw = size.width
-            val ph = size.height
-            val path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(0f, ph * 0.88f)
-                cubicTo(
-                    pw * 0.25f, ph * 0.94f,
-                    pw * 0.45f, ph * 0.76f,
-                    pw * 0.70f, ph * 0.82f
-                )
-                cubicTo(
-                    pw * 0.85f, ph * 0.88f,
-                    pw * 0.95f, ph * 0.70f,
-                    pw, ph * 0.74f
-                )
-            }
-            drawPath(
-                path = path,
-                color = accentColor.copy(alpha = if (isDark || isAmoled) 0.30f else 0.40f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 1.5.dp.toPx(),
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            )
-        }
-
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {

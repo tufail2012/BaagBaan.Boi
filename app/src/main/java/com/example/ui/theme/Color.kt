@@ -110,18 +110,19 @@ fun getAppDimBackgroundBrush(
             )
         }
         isDark -> {
-            // Elegant dark slate/charcoal gray gradient for standard Dark Mode (non-pure-black)
-            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.09f, 0.12f)))
-            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.07f, 0.095f)))
-            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.05f, 0.08f)))
+            // Elegant dark slate/charcoal gray gradient for standard Dark Mode (non-pure-black, softly muted)
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.070f, 0.110f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.050f, 0.090f)))
+            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.035f, 0.078f)))
             Brush.verticalGradient(
                 colors = listOf(topColor, midColor, bottomColor)
             )
         }
         else -> {
-            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.065f, 0.945f)))
-            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.045f, 0.960f)))
-            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.025f, 0.975f)))
+            // Softer, more muted multi-color vertical gradient for light mode
+            val topColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.040f, 0.955f)))
+            val midColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.025f, 0.968f)))
+            val bottomColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.015f, 0.980f)))
             Brush.verticalGradient(
                 colors = listOf(topColor, midColor, bottomColor)
             )
