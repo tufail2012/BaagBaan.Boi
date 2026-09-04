@@ -79,6 +79,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -219,93 +220,95 @@ fun Modifier.etchedGlassSurface(
     isAmoled: Boolean = false,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     shape: Shape = RoundedCornerShape(18.dp),
-    elevation: Dp = 4.dp,
-    borderWidth: Dp = 1.2.dp,
+    elevation: Dp = 3.dp,
+    borderWidth: Dp = 1.dp,
     showTopGlint: Boolean = true,
     hazeState: HazeState? = LocalDashboardHazeState.current
 ): Modifier {
     val spotShadowColor = if (isAmoled) {
-        Color.Black.copy(alpha = 0.55f)
+        Color.Black.copy(alpha = 0.40f)
     } else if (isDark) {
-        Color.Black.copy(alpha = 0.35f)
+        Color.Black.copy(alpha = 0.22f)
     } else {
-        Color(0x22000000)
+        Color.Black.copy(alpha = 0.05f)
     }
     val ambientShadowColor = if (isDark || isAmoled) {
-        accentColor.copy(alpha = 0.14f)
+        accentColor.copy(alpha = 0.08f)
     } else {
-        accentColor.copy(alpha = 0.10f)
+        accentColor.copy(alpha = 0.04f)
     }
 
-    // 1:1 match with Profile Menu & Bottom Navigation HazeStyle architecture
+    // Refined frosted-glass HazeStyle: 24.dp blur for true translucent Gaussian dispersion
     val hazeStyle = HazeStyle(
         backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.35f)
+            Color.Black.copy(alpha = 0.22f)
         } else if (isDark) {
-            Color(0xFF16141D).copy(alpha = 0.28f)
+            Color(0xFF14121B).copy(alpha = 0.18f)
         } else {
-            Color.White.copy(alpha = 0.25f)
+            Color.White.copy(alpha = 0.15f)
         },
-        blurRadius = 64.dp,
+        blurRadius = 24.dp,
         tints = listOf(
             HazeTint(
-                color = accentColor.copy(alpha = 0.05f)
+                color = if (isDark || isAmoled) {
+                    accentColor.copy(alpha = 0.04f)
+                } else {
+                    Color.White.copy(alpha = 0.06f)
+                }
             )
         ),
-        noiseFactor = 0.08f
+        noiseFactor = 0.02f
     )
 
-    // Translucent reflective glass body wash matching Profile Menu (allowing backdrop colors to bleed naturally)
+    // Translucent glass body wash: highly transparent, crisp specular upper edge, letting background diffuse through
     val glassBaseBrush = when {
         isAmoled -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.10f),          // Specular top glass reflection
-                    Color(0xFF100E14).copy(alpha = 0.25f),    // Translucent dark glass
-                    accentColor.copy(alpha = 0.08f),          // Uniform reflective color sheen
-                    Color(0xFF000000).copy(alpha = 0.35f)     // Pure black AMOLED foundation
+                    Color.White.copy(alpha = 0.08f),
+                    Color(0xFF100E14).copy(alpha = 0.16f),
+                    accentColor.copy(alpha = 0.03f),
+                    Color(0xFF000000).copy(alpha = 0.30f)
                 )
             )
         }
         isDark -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.14f),          // Specular top glass reflection
-                    Color(0xFF221F2B).copy(alpha = 0.32f),    // Translucent dark charcoal glass
-                    accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                    Color(0xFF14121A).copy(alpha = 0.35f)     // Dark charcoal gray foundation
+                    Color.White.copy(alpha = 0.14f),
+                    Color(0xFF221F2B).copy(alpha = 0.20f),
+                    accentColor.copy(alpha = 0.04f),
+                    Color(0xFF14121A).copy(alpha = 0.26f)
                 )
             )
         }
         else -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
-                    Color.White.copy(alpha = 0.25f),          // Translucent light glass
-                    accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                    Color.White.copy(alpha = 0.35f)           // Base foundation
+                    Color.White.copy(alpha = 0.36f), // Subtle specular rim along top edge
+                    Color.White.copy(alpha = 0.12f), // Crystal-clear translucent glass body
+                    accentColor.copy(alpha = 0.03f), // Very subtle luminous accent sheen
+                    Color.White.copy(alpha = 0.18f)  // Soft ambient bottom reflection
                 )
             )
         }
     }
 
-    // Specular reflective glass rim border
+    // Specular reflective glass rim border: subtle and refined
     val borderBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.45f), // Crisp specular reflection along top edge
-                accentColor.copy(alpha = 0.30f), // Reflective edge sheen
-                Color.White.copy(alpha = 0.15f), // Clear lateral glass sides
-                accentColor.copy(alpha = 0.20f), // Ambient edge reflection
-                Color.White.copy(alpha = 0.10f)  // Soft specular bottom return
+                Color.White.copy(alpha = 0.38f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.22f), // Reflective edge sheen
+                Color.White.copy(alpha = 0.10f), // Clear lateral glass sides
+                Color.White.copy(alpha = 0.05f)  // Soft specular bottom return
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.95f), // Crisp specular reflection along top edge
-                accentColor.copy(alpha = 0.36f), // Reflective edge sheen in light mode
-                Color.White.copy(alpha = 0.55f), // Clear lateral glass sides
-                accentColor.copy(alpha = 0.22f), // Ambient edge reflection
-                Color.White.copy(alpha = 0.45f)  // Soft specular bottom return
+                Color.White.copy(alpha = 0.75f), // Crisp specular reflection along top edge
+                Color.White.copy(alpha = 0.35f), // Clear lateral glass sides
+                accentColor.copy(alpha = 0.12f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.25f)  // Soft specular bottom return
             )
         },
         start = Offset.Zero,
@@ -338,24 +341,24 @@ fun Modifier.etchedGlassSurface(
         .drawWithContent {
             drawContent()
             val w = size.width
-            val margin = 14.dp.toPx()
-            val highlightH = 1.5.dp.toPx()
+            val margin = 12.dp.toPx()
+            val highlightH = 1.dp.toPx()
 
-            // Procedural analog micro-grain texture for tactile frosted glass feel
+            // Ultra-subtle analog micro-grain texture for tactile frosted glass feel
             drawRect(
                 brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.07f else 0.09f
+                alpha = if (isDark || isAmoled) 0.02f else 0.025f
             )
 
             if (showTopGlint) {
-                // Top specular glint beam with subtle accent sheen
+                // Crisp top specular glint beam along upper rim
                 drawRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            accentColor.copy(alpha = if (isDark || isAmoled) 0.22f else 0.30f),
-                            Color.White.copy(alpha = if (isDark || isAmoled) 0.50f else 0.85f),
-                            accentColor.copy(alpha = if (isDark || isAmoled) 0.22f else 0.30f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.65f else 0.85f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
                             Color.Transparent
                         ),
                         startX = margin,
@@ -364,15 +367,15 @@ fun Modifier.etchedGlassSurface(
                     topLeft = Offset(margin, 1.dp.toPx()),
                     size = Size(w - (margin * 2), highlightH)
                 )
-                // Diagonal optical glass reflection sheen
+                // Subtle top-left specular corner sheen
                 drawRect(
-                    brush = Brush.linearGradient(
+                    brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.08f else 0.16f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.08f else 0.12f),
                             Color.Transparent
                         ),
-                        start = Offset.Zero,
-                        end = Offset(size.width * 0.48f, size.height * 0.65f)
+                        center = Offset(0f, 0f),
+                        radius = size.width * 0.35f
                     )
                 )
             }
@@ -415,10 +418,10 @@ private fun DashboardAmbientBackdrop(
         }
     }
 
-    // Alpha scales tuned for natural diffusion through 64.dp blur without blowing out contrast
-    val primaryAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.30f
-    val secondaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.24f else 0.26f
-    val tertiaryAlpha = if (isAmoled) 0.16f else if (isDark) 0.20f else 0.22f
+    // Alpha scales tuned for natural diffusion through 24.dp blur without blowing out contrast
+    val primaryAlpha = if (isAmoled) 0.26f else if (isDark) 0.34f else 0.42f
+    val secondaryAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.36f
+    val tertiaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.24f else 0.30f
 
     androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
@@ -429,10 +432,10 @@ private fun DashboardAmbientBackdrop(
             brush = Brush.radialGradient(
                 colors = listOf(effectivePrimary.copy(alpha = primaryAlpha), Color.Transparent),
                 center = Offset(w * 0.85f, h * 0.12f),
-                radius = w * 0.75f
+                radius = w * 0.80f
             ),
             center = Offset(w * 0.85f, h * 0.12f),
-            radius = w * 0.75f
+            radius = w * 0.80f
         )
 
         // 2. Upper-left harmonic bloom (illuminating Financial Breakdown card)
@@ -440,27 +443,38 @@ private fun DashboardAmbientBackdrop(
             brush = Brush.radialGradient(
                 colors = listOf(secondaryColor.copy(alpha = secondaryAlpha), Color.Transparent),
                 center = Offset(w * 0.10f, h * 0.28f),
-                radius = w * 0.65f
+                radius = w * 0.70f
             ),
             center = Offset(w * 0.10f, h * 0.28f),
-            radius = w * 0.65f
+            radius = w * 0.70f
+        )
+
+        // 2b. Organic botanical petal bloom on left edge
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha * 0.65f), Color.Transparent),
+                center = Offset(w * 0.05f, h * 0.42f),
+                radius = w * 0.55f
+            ),
+            center = Offset(w * 0.05f, h * 0.42f),
+            radius = w * 0.55f
         )
 
         // 3. Mid-right organic diffusion bloom (behind Operational Summaries)
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(tertiaryColor.copy(alpha = tertiaryAlpha), Color.Transparent),
-                center = Offset(w * 0.92f, h * 0.52f),
-                radius = w * 0.70f
+                center = Offset(w * 0.92f, h * 0.54f),
+                radius = w * 0.72f
             ),
-            center = Offset(w * 0.92f, h * 0.52f),
-            radius = w * 0.70f
+            center = Offset(w * 0.92f, h * 0.54f),
+            radius = w * 0.72f
         )
 
         // 4. Lower-left radiant bloom (behind lower module cards & recent logs)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(accentColor.copy(alpha = primaryAlpha * 0.85f), Color.Transparent),
+                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha * 0.85f), Color.Transparent),
                 center = Offset(w * 0.12f, h * 0.76f),
                 radius = w * 0.75f
             ),
@@ -473,10 +487,10 @@ private fun DashboardAmbientBackdrop(
             brush = Brush.radialGradient(
                 colors = listOf(secondaryColor.copy(alpha = secondaryAlpha * 0.80f), Color.Transparent),
                 center = Offset(w * 0.82f, h * 0.95f),
-                radius = w * 0.60f
+                radius = w * 0.65f
             ),
             center = Offset(w * 0.82f, h * 0.95f),
-            radius = w * 0.60f
+            radius = w * 0.65f
         )
     }
 }
@@ -658,7 +672,7 @@ fun AgriDashboardScreen(
                         isAmoled = isAmoled,
                         accentColor = dashboardAccent,
                         shape = RoundedCornerShape(percent = 50),
-                        elevation = 4.dp
+                        elevation = 3.dp
                     )
             ) {
                 Row(
@@ -678,8 +692,8 @@ fun AgriDashboardScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
-                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
+                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
+                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
                                 .clickable { onBack() },
                             contentAlignment = Alignment.Center
                         ) {
@@ -696,8 +710,8 @@ fun AgriDashboardScreen(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(dashboardAccent.copy(alpha = 0.18f))
-                                .border(1.2.dp, dashboardAccent.copy(alpha = 0.40f), CircleShape),
+                                .background(dashboardAccent.copy(alpha = 0.16f))
+                                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.70f), dashboardAccent.copy(alpha = 0.40f))), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -743,8 +757,8 @@ fun AgriDashboardScreen(
                                 modifier = Modifier
                                     .size(34.dp)
                                     .clip(CircleShape)
-                                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
-                                    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
+                                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
+                                    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
                                     .clickable { onNavigateToSettings() },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -761,9 +775,9 @@ fun AgriDashboardScreen(
                             modifier = Modifier
                                 .size(34.dp)
                                 .clip(CircleShape)
-                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
-                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.Black.copy(alpha = 0.10f), CircleShape)
-                                .clickable { userDashboardViewModel.refreshUser() },
+                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
+                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
+                            .clickable { userDashboardViewModel.refreshUser() },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -877,8 +891,13 @@ fun AgriDashboardScreen(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(percent = 50))
-                                        .background(if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.75f))
-                                        .border(1.dp, dashboardAccent.copy(alpha = 0.40f), RoundedCornerShape(percent = 50))
+                                        .background(if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.40f))
+                                        .border(
+                                            1.dp,
+                                            if (isDark) SolidColor(dashboardAccent.copy(alpha = 0.40f))
+                                            else Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.80f), dashboardAccent.copy(alpha = 0.40f))),
+                                            RoundedCornerShape(percent = 50)
+                                        )
                                         .padding(horizontal = 10.dp, vertical = 4.dp)
                                 ) {
                                     Text(
@@ -1058,11 +1077,11 @@ fun AgriDashboardScreen(
                                                 } else {
                                                     Modifier
                                                         .background(
-                                                            if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.70f)
+                                                            if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.38f)
                                                         )
                                                         .border(
                                                             1.dp,
-                                                            if (isDark) Color.White.copy(alpha = 0.22f) else Color(0xFFCBD5E1).copy(alpha = 0.85f),
+                                                            if (isDark) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.65f),
                                                             RoundedCornerShape(percent = 50)
                                                         )
                                                 }
@@ -1165,7 +1184,7 @@ private fun AccountBannerCard(
                 isAmoled = isAmoled,
                 accentColor = accentColor,
                 shape = RoundedCornerShape(20.dp),
-                elevation = 5.dp
+                elevation = 3.dp
             )
     ) {
         Row(
@@ -1334,7 +1353,7 @@ private fun FinancialBreakdownCard(
                 isAmoled = isAmoled,
                 accentColor = accentColor,
                 shape = RoundedCornerShape(20.dp),
-                elevation = 5.dp
+                elevation = 3.dp
             )
     ) {
         Column(
@@ -1584,16 +1603,39 @@ private fun FinancialMetricBox(
     isAmoled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
+    val podShape = RoundedCornerShape(14.dp)
+    val podBgBrush = Brush.verticalGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.08f),
+                Color.Black.copy(alpha = 0.22f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.16f)
+            )
+        }
+    )
+    val podBorderBrush = Brush.verticalGradient(
+        colors = if (isDark || isAmoled) {
+            listOf(
+                Color.White.copy(alpha = 0.28f),
+                Color.White.copy(alpha = 0.08f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.80f),
+                Color.White.copy(alpha = 0.35f)
+            )
+        }
+    )
+
     Box(
         modifier = modifier
-            .etchedGlassSurface(
-                isDark = isDark,
-                isAmoled = isAmoled,
-                accentColor = accentColor,
-                shape = RoundedCornerShape(14.dp),
-                elevation = 2.dp,
-                borderWidth = 1.dp
-            )
+            .clip(podShape)
+            .background(podBgBrush)
+            .border(1.dp, podBorderBrush, podShape)
             .padding(10.dp)
     ) {
         Column(
@@ -1673,20 +1715,53 @@ private fun StatusBadgeCount(
     icon: ImageVector,
     isDark: Boolean
 ) {
+    val chipShape = RoundedCornerShape(10.dp)
+    val chipBgBrush = if (isDark) {
+        Brush.verticalGradient(
+            listOf(
+                color.copy(alpha = 0.18f),
+                color.copy(alpha = 0.08f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.45f),
+                color.copy(alpha = 0.10f)
+            )
+        )
+    }
+    val chipBorderBrush = if (isDark) {
+        Brush.verticalGradient(
+            listOf(
+                color.copy(alpha = 0.45f),
+                color.copy(alpha = 0.20f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.75f),
+                color.copy(alpha = 0.30f)
+            )
+        )
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(color.copy(alpha = 0.10f))
-            .border(1.dp, color.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+            .clip(chipShape)
+            .background(chipBgBrush)
+            .border(1.dp, chipBorderBrush, chipShape)
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Box(
             modifier = Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.20f)),
+                .background(color.copy(alpha = 0.18f))
+                .border(0.8.dp, color.copy(alpha = 0.40f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
@@ -1741,8 +1816,8 @@ private fun CategorySummaryCard(
                 isAmoled = isAmoled,
                 accentColor = badgeColor,
                 shape = RoundedCornerShape(16.dp),
-                elevation = 3.dp,
-                borderWidth = 1.2.dp
+                elevation = 2.5.dp,
+                borderWidth = 1.dp
             )
             .clickable { onClick() }
             .padding(14.dp)
@@ -1936,7 +2011,7 @@ private fun VarietyDistributionCard(
                 isAmoled = isAmoled,
                 accentColor = accentColor,
                 shape = RoundedCornerShape(18.dp),
-                elevation = 4.dp
+                elevation = 3.dp
             )
             .padding(16.dp)
     ) {
