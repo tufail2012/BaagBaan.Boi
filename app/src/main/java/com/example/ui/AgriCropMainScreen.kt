@@ -387,6 +387,10 @@ fun AgriCropMainScreen(
                         isDashboardActive = false
                     },
                     onNavigateToSettings = { isSettingsActive = true },
+                    onNavigateToInventory = { showInventoryDialog = true },
+                    onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                    onNavigateToAttendance = { isAttendanceActive = true },
+                    onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
                     hazeState = hazeState,
                     modifier = modifier
                 )

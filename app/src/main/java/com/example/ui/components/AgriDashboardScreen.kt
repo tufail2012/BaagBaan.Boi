@@ -52,8 +52,23 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.HowToReg
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
+import dev.chrisbanes.haze.materials.HazeMaterials
+import com.example.data.InventoryItem
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -392,6 +407,7 @@ private fun DashboardAmbientBackdrop(
     accentColor: Color,
     isDark: Boolean,
     isAmoled: Boolean = false,
+    scrollOffset: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     val palette = com.example.ui.theme.LocalAppPalette.current
@@ -415,56 +431,97 @@ private fun DashboardAmbientBackdrop(
         }
     }
 
-    // Alpha scales tuned for natural diffusion through 20.dp blur without blowing out contrast
-    val primaryAlpha = if (isAmoled) 0.28f else if (isDark) 0.36f else 0.44f
-    val secondaryAlpha = if (isAmoled) 0.24f else if (isDark) 0.30f else 0.38f
-    val tertiaryAlpha = if (isAmoled) 0.20f else if (isDark) 0.26f else 0.32f
+    // Alpha scales tuned for natural diffusion through thin frosted blur without blowing out contrast
+    val primaryAlpha = if (isAmoled) 0.26f else if (isDark) 0.34f else 0.44f
+    val pastelAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.40f
+
+    // Harmonic pastel colors specifically paired with each Frosted Liquid Glass module
+    val leafGreenPastel = Color(0xFFA7F3D0)
+    val skyBluePastel = Color(0xFFBAE6FD)
+    val amberPastel = Color(0xFFFDE68A)
+    val mintPastel = Color(0xFF6EE7B7)
+    val lavenderPastel = Color(0xFFDDD6FE)
+    val coralPastel = Color(0xFFFECDD3)
 
     androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
+        val yShift = -scrollOffset * 0.30f
 
         // 1. Top-right luminous accent orb (illuminating Header & Account banner)
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(effectivePrimary.copy(alpha = primaryAlpha), Color.Transparent),
-                center = Offset(w * 0.85f, h * 0.12f),
+                center = Offset(w * 0.85f, h * 0.12f + yShift),
                 radius = w * 0.80f
             ),
-            center = Offset(w * 0.85f, h * 0.12f),
+            center = Offset(w * 0.85f, h * 0.12f + yShift),
             radius = w * 0.80f
         )
 
         // 2. Upper-left harmonic bloom (illuminating Financial Breakdown card)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(secondaryColor.copy(alpha = secondaryAlpha), Color.Transparent),
-                center = Offset(w * 0.10f, h * 0.28f),
+                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha), Color.Transparent),
+                center = Offset(w * 0.10f, h * 0.24f + yShift),
                 radius = w * 0.70f
             ),
-            center = Offset(w * 0.10f, h * 0.28f),
+            center = Offset(w * 0.10f, h * 0.24f + yShift),
             radius = w * 0.70f
         )
 
-        // 2b. Organic botanical petal bloom on left edge
+        // 3. Vibrant Pastel Emerald / Mint Bloom (diffusing behind Inventory Management module)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha * 0.65f), Color.Transparent),
-                center = Offset(w * 0.05f, h * 0.42f),
-                radius = w * 0.55f
+                colors = listOf(leafGreenPastel.copy(alpha = pastelAlpha * 1.15f), Color.Transparent),
+                center = Offset(w * 0.90f, h * 0.38f + yShift),
+                radius = w * 0.72f
             ),
-            center = Offset(w * 0.05f, h * 0.42f),
-            radius = w * 0.55f
+            center = Offset(w * 0.90f, h * 0.38f + yShift),
+            radius = w * 0.72f
         )
 
-        // 2c. Soft organic botanical curves that diffuse through the glass surfaces
+        // 4. Vibrant Pastel Azure / Sky Blue Bloom (diffusing behind Contract Director module)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha * 1.15f), Color.Transparent),
+                center = Offset(w * 0.08f, h * 0.50f + yShift),
+                radius = w * 0.72f
+            ),
+            center = Offset(w * 0.08f, h * 0.50f + yShift),
+            radius = w * 0.72f
+        )
+
+        // 5. Vibrant Pastel Mint Bloom (diffusing behind Attendance module)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(mintPastel.copy(alpha = pastelAlpha * 1.10f), Color.Transparent),
+                center = Offset(w * 0.92f, h * 0.64f + yShift),
+                radius = w * 0.70f
+            ),
+            center = Offset(w * 0.92f, h * 0.64f + yShift),
+            radius = w * 0.70f
+        )
+
+        // 6. Vibrant Pastel Warning Amber Bloom (diffusing behind Payment Reminder module)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(amberPastel.copy(alpha = pastelAlpha * 1.25f), Color.Transparent),
+                center = Offset(w * 0.10f, h * 0.76f + yShift),
+                radius = w * 0.75f
+            ),
+            center = Offset(w * 0.10f, h * 0.76f + yShift),
+            radius = w * 0.75f
+        )
+
+        // 7. Soft organic botanical curves that diffuse through the glass surfaces
         val stemColor = effectivePrimary.copy(alpha = if (isDark || isAmoled) 0.18f else 0.26f)
-        val leafColor = secondaryColor.copy(alpha = if (isDark || isAmoled) 0.16f else 0.22f)
+        val leafColor = mintPastel.copy(alpha = if (isDark || isAmoled) 0.20f else 0.30f)
 
         val leftStem = androidx.compose.ui.graphics.Path().apply {
-            moveTo(w * 0.02f, h * 0.18f)
-            cubicTo(w * 0.08f, h * 0.26f, w * 0.01f, h * 0.38f, w * 0.06f, h * 0.48f)
-            cubicTo(w * 0.11f, h * 0.58f, w * 0.03f, h * 0.68f, w * 0.07f, h * 0.78f)
+            moveTo(w * 0.02f, h * 0.18f + yShift)
+            cubicTo(w * 0.08f, h * 0.26f + yShift, w * 0.01f, h * 0.38f + yShift, w * 0.06f, h * 0.48f + yShift)
+            cubicTo(w * 0.11f, h * 0.58f + yShift, w * 0.03f, h * 0.68f + yShift, w * 0.07f, h * 0.78f + yShift)
         }
         drawPath(
             path = leftStem,
@@ -476,9 +533,9 @@ private fun DashboardAmbientBackdrop(
         )
 
         val rightStem = androidx.compose.ui.graphics.Path().apply {
-            moveTo(w * 0.98f, h * 0.22f)
-            cubicTo(w * 0.92f, h * 0.32f, w * 0.97f, h * 0.44f, w * 0.91f, h * 0.58f)
-            cubicTo(w * 0.88f, h * 0.68f, w * 0.96f, h * 0.80f, w * 0.92f, h * 0.90f)
+            moveTo(w * 0.98f, h * 0.22f + yShift)
+            cubicTo(w * 0.92f, h * 0.32f + yShift, w * 0.97f, h * 0.44f + yShift, w * 0.91f, h * 0.58f + yShift)
+            cubicTo(w * 0.88f, h * 0.68f + yShift, w * 0.96f, h * 0.80f + yShift, w * 0.92f, h * 0.90f + yShift)
         }
         drawPath(
             path = rightStem,
@@ -489,36 +546,24 @@ private fun DashboardAmbientBackdrop(
             )
         )
 
-        // 3. Mid-right organic diffusion bloom (behind Operational Summaries)
+        // 8. Lower Lavender & Coral pool (behind lower logs)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(tertiaryColor.copy(alpha = tertiaryAlpha), Color.Transparent),
-                center = Offset(w * 0.92f, h * 0.54f),
-                radius = w * 0.72f
+                colors = listOf(lavenderPastel.copy(alpha = pastelAlpha * 0.80f), Color.Transparent),
+                center = Offset(w * 0.85f, h * 0.88f + yShift),
+                radius = w * 0.68f
             ),
-            center = Offset(w * 0.92f, h * 0.54f),
-            radius = w * 0.72f
+            center = Offset(w * 0.85f, h * 0.88f + yShift),
+            radius = w * 0.68f
         )
 
-        // 4. Lower-left radiant bloom (behind lower module cards & recent logs)
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha * 0.85f), Color.Transparent),
-                center = Offset(w * 0.12f, h * 0.76f),
-                radius = w * 0.75f
-            ),
-            center = Offset(w * 0.12f, h * 0.76f),
-            radius = w * 0.75f
-        )
-
-        // 5. Bottom-right subtle return pool
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(secondaryColor.copy(alpha = secondaryAlpha * 0.80f), Color.Transparent),
-                center = Offset(w * 0.82f, h * 0.95f),
+                colors = listOf(coralPastel.copy(alpha = pastelAlpha * 0.80f), Color.Transparent),
+                center = Offset(w * 0.20f, h * 0.98f + yShift),
                 radius = w * 0.65f
             ),
-            center = Offset(w * 0.82f, h * 0.95f),
+            center = Offset(w * 0.20f, h * 0.98f + yShift),
             radius = w * 0.65f
         )
     }
@@ -538,6 +583,10 @@ fun AgriDashboardScreen(
     onBack: () -> Unit,
     onNavigateToCategory: ((String) -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
+    onNavigateToInventory: (() -> Unit)? = null,
+    onNavigateToContactDirectory: (() -> Unit)? = null,
+    onNavigateToAttendance: (() -> Unit)? = null,
+    onNavigateToPaymentReminders: (() -> Unit)? = null,
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
@@ -558,6 +607,7 @@ fun AgriDashboardScreen(
     val allRecords by viewModel.allRecords.collectAsState()
     val gardenEntries by gardenPlanningViewModel.allEntries.collectAsState()
     val rawBookings by userDashboardViewModel.rawBookings.collectAsState()
+    val inventoryItems by viewModel.inventoryItems.collectAsState()
 
     var currentUser by remember {
         mutableStateOf(
@@ -663,6 +713,13 @@ fun AgriDashboardScreen(
         getAppDimBackgroundBrush(dashboardAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
+    val dashboardListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val scrollOffset by remember {
+        androidx.compose.runtime.derivedStateOf {
+            dashboardListState.firstVisibleItemIndex * 260f + dashboardListState.firstVisibleItemScrollOffset
+        }
+    }
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -681,7 +738,8 @@ fun AgriDashboardScreen(
             DashboardAmbientBackdrop(
                 accentColor = dashboardAccent,
                 isDark = isDark,
-                isAmoled = isAmoled
+                isAmoled = isAmoled,
+                scrollOffset = scrollOffset
             )
         }
 
@@ -838,6 +896,7 @@ fun AgriDashboardScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
+                    state = dashboardListState,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
@@ -874,7 +933,64 @@ fun AgriDashboardScreen(
                         )
                     }
 
-                    // 3. Operational Category Summaries Header
+                    // 3. Frosted Liquid Glass Core Modules Hub
+                    item {
+                        FrostedLiquidModulesSectionHeader(
+                            accentColor = dashboardAccent,
+                            isDark = isDark
+                        )
+                    }
+
+                    // Module 1: Inventory Management
+                    item {
+                        FrostedLiquidInventoryCard(
+                            inventoryItems = inventoryItems,
+                            hazeState = effectiveHazeState,
+                            onOpenInventory = { onNavigateToInventory?.invoke() },
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                    }
+
+                    // Module 2: Contract Director
+                    item {
+                        FrostedLiquidContractDirectorCard(
+                            cropRecords = allRecords,
+                            gardenEntries = gardenEntries,
+                            hazeState = effectiveHazeState,
+                            onOpenContractDirector = { onNavigateToContactDirectory?.invoke() },
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                    }
+
+                    // Module 3: Attendance
+                    item {
+                        FrostedLiquidAttendanceCard(
+                            userDashboardViewModel = userDashboardViewModel,
+                            hazeState = effectiveHazeState,
+                            onOpenAttendance = { onNavigateToAttendance?.invoke() },
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                    }
+
+                    // Module 4: Payment Reminder
+                    item {
+                        FrostedLiquidPaymentReminderCard(
+                            cropRecords = allRecords,
+                            gardenEntries = gardenEntries,
+                            totalRemaining = totalRemaining,
+                            pendingCount = pendingCount,
+                            paidRatio = paidRatio,
+                            hazeState = effectiveHazeState,
+                            onOpenPaymentReminders = { onNavigateToPaymentReminders?.invoke() },
+                            isDark = isDark,
+                            isAmoled = isAmoled
+                        )
+                    }
+
+                    // 4. Operational Category Summaries Header
                     item {
                         Box(
                             modifier = Modifier
@@ -2490,5 +2606,1053 @@ private fun EmptyStateCard(
                 isSecondary = true
             )
         )
+    }
+}
+
+/**
+ * Reusable Frosted Liquid Glass surface modifier.
+ * Implements real-time background blur via HazeMaterials.thin(), fluid gradient background
+ * for liquid refraction, and two-tone specular rim border highlight.
+ */
+@Composable
+fun Modifier.frostedLiquidGlassSurface(
+    hazeState: HazeState?,
+    shape: Shape = RoundedCornerShape(24.dp),
+    isDark: Boolean = false,
+    isAmoled: Boolean = false
+): Modifier {
+    val hazeStyle = HazeMaterials.thin()
+    val bgBrush = remember(isDark, isAmoled) {
+        val topAlpha = if (isAmoled) 0.12f else if (isDark) 0.20f else 0.40f
+        val bottomAlpha = if (isAmoled) 0.03f else if (isDark) 0.06f else 0.12f
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = topAlpha),
+                Color.White.copy(alpha = bottomAlpha)
+            )
+        )
+    }
+    val rimBrush = remember(isDark, isAmoled) {
+        val rimTop = if (isAmoled) 0.45f else if (isDark) 0.55f else 0.65f
+        val rimBottom = if (isAmoled) 0.10f else if (isDark) 0.12f else 0.15f
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = rimTop),
+                Color.White.copy(alpha = rimBottom)
+            )
+        )
+    }
+
+    return this
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
+        .clip(shape)
+        .background(bgBrush, shape = shape)
+        .border(BorderStroke(1.dp, rimBrush), shape = shape)
+}
+
+/**
+ * Section header introducing the 4 core Frosted Liquid Glass modules.
+ */
+@Composable
+fun FrostedLiquidModulesSectionHeader(
+    accentColor: Color,
+    isDark: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp, bottom = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = if (isDark) 0.24f else 0.16f))
+                        .border(1.dp, accentColor.copy(alpha = if (isDark) 0.50f else 0.35f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Hub,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = "Core Executive Modules",
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isProminent = true
+                    )
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.40f))
+                    .border(
+                        1.dp,
+                        if (isDark) SolidColor(accentColor.copy(alpha = 0.40f))
+                        else Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.80f), accentColor.copy(alpha = 0.40f))),
+                        RoundedCornerShape(percent = 50)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "Frosted Liquid Glass",
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        isAccent = true,
+                        accentColor = accentColor
+                    )
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 1. Inventory Management Frosted Liquid Glass Card
+ */
+@Composable
+fun FrostedLiquidInventoryCard(
+    inventoryItems: List<InventoryItem>,
+    hazeState: HazeState?,
+    onOpenInventory: () -> Unit,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val leafGreen = Color(0xFF10B981)
+    val totalStockUnits = remember(inventoryItems) { inventoryItems.sumOf { it.currentQuantity } }
+    val lowStockItems = remember(inventoryItems) {
+        inventoryItems.filter { it.isLowStock() }
+    }
+    val lowStockCount = lowStockItems.size
+    val totalSkus = inventoryItems.size
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .frostedLiquidGlassSurface(
+                hazeState = hazeState,
+                shape = RoundedCornerShape(24.dp),
+                isDark = isDark,
+                isAmoled = isAmoled
+            )
+            .clickable(onClick = onOpenInventory)
+            .padding(18.dp)
+            .testTag("dashboard_module_inventory")
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row: Icon + Title + Status Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    // Glowing soft vibrant leaf green pill
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(leafGreen.copy(alpha = if (isDark) 0.24f else 0.16f))
+                            .border(1.dp, leafGreen.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Inventory2,
+                            contentDescription = "Inventory Management",
+                            tint = leafGreen,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Inventory Management",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                isProminent = true
+                            )
+                        )
+                        Text(
+                            text = "Live Stock, Nurseries & Supplies",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                isSecondary = true
+                            )
+                        )
+                    }
+                }
+
+                // Alert / Status Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            if (lowStockCount > 0) Color(0xFFEF4444).copy(alpha = if (isDark) 0.25f else 0.14f)
+                            else leafGreen.copy(alpha = if (isDark) 0.25f else 0.14f)
+                        )
+                        .border(
+                            1.dp,
+                            if (lowStockCount > 0) Color(0xFFEF4444).copy(alpha = 0.50f)
+                            else leafGreen.copy(alpha = 0.50f),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (lowStockCount > 0) Color(0xFFEF4444) else leafGreen)
+                        )
+                        Text(
+                            text = if (lowStockCount > 0) "$lowStockCount Low Stock" else "Optimal Stock",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                isAccent = true,
+                                accentColor = if (lowStockCount > 0) Color(0xFFEF4444) else leafGreen
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Key Metrics Glass Pods Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FrostedLiquidMetricPod(
+                    value = "$totalSkus",
+                    unit = "SKUs",
+                    label = "Catalog Items",
+                    accentColor = leafGreen,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$totalStockUnits",
+                    unit = "Units",
+                    label = "In Stock",
+                    accentColor = leafGreen,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$lowStockCount",
+                    unit = "Alerts",
+                    label = "Reorder Needed",
+                    accentColor = if (lowStockCount > 0) Color(0xFFEF4444) else leafGreen,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Action Footer Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(leafGreen.copy(alpha = if (isDark) 0.20f else 0.12f))
+                    .border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                leafGreen.copy(alpha = if (isDark) 0.65f else 0.45f),
+                                leafGreen.copy(alpha = if (isDark) 0.25f else 0.15f)
+                            )
+                        ),
+                        RoundedCornerShape(percent = 50)
+                    )
+                    .clickable(onClick = onOpenInventory)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Manage Inventory",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = leafGreen
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = leafGreen,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 2. Contract Director Frosted Liquid Glass Card
+ */
+@Composable
+fun FrostedLiquidContractDirectorCard(
+    cropRecords: List<CropRecord>,
+    gardenEntries: List<GardenPlanningEntry>,
+    hazeState: HazeState?,
+    onOpenContractDirector: () -> Unit,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val skyBlue = Color(0xFF0EA5E9)
+    val uniqueFarmers = remember(cropRecords, gardenEntries) {
+        val names = mutableSetOf<String>()
+        cropRecords.forEach { if (it.farmerName.isNotBlank()) names.add(it.farmerName.trim().lowercase()) }
+        gardenEntries.forEach { if (it.farmerName.isNotBlank()) names.add(it.farmerName.trim().lowercase()) }
+        names.size
+    }
+    val contactsWithPhone = remember(cropRecords, gardenEntries) {
+        val phones = mutableSetOf<String>()
+        cropRecords.forEach { if (it.contactNumber.isNotBlank()) phones.add(it.contactNumber.trim()) }
+        gardenEntries.forEach { if (it.contactNumber.isNotBlank()) phones.add(it.contactNumber.trim()) }
+        phones.size
+    }
+    val totalContracts = cropRecords.size + gardenEntries.size
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .frostedLiquidGlassSurface(
+                hazeState = hazeState,
+                shape = RoundedCornerShape(24.dp),
+                isDark = isDark,
+                isAmoled = isAmoled
+            )
+            .clickable(onClick = onOpenContractDirector)
+            .padding(18.dp)
+            .testTag("dashboard_module_contract_director")
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row: Icon + Title + Status Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    // Glowing soft vibrant sky blue pill
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(skyBlue.copy(alpha = if (isDark) 0.24f else 0.16f))
+                            .border(1.dp, skyBlue.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Contacts,
+                            contentDescription = "Contract Director",
+                            tint = skyBlue,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Contract Director",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                isProminent = true
+                            )
+                        )
+                        Text(
+                            text = "Farmer Contracts, Profiles & Directory",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                isSecondary = true
+                            )
+                        )
+                    }
+                }
+
+                // Verified Directory status badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(skyBlue.copy(alpha = if (isDark) 0.25f else 0.14f))
+                        .border(1.dp, skyBlue.copy(alpha = 0.50f), RoundedCornerShape(percent = 50))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(skyBlue)
+                        )
+                        Text(
+                            text = "$uniqueFarmers Contacts",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                isAccent = true,
+                                accentColor = skyBlue
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Key Metrics Glass Pods Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FrostedLiquidMetricPod(
+                    value = "$uniqueFarmers",
+                    unit = "Farmers",
+                    label = "Active Contracts",
+                    accentColor = skyBlue,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$contactsWithPhone",
+                    unit = "Verified",
+                    label = "Direct Dial",
+                    accentColor = skyBlue,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$totalContracts",
+                    unit = "Orders",
+                    label = "Total Records",
+                    accentColor = skyBlue,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Action Footer Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(skyBlue.copy(alpha = if (isDark) 0.20f else 0.12f))
+                    .border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                skyBlue.copy(alpha = if (isDark) 0.65f else 0.45f),
+                                skyBlue.copy(alpha = if (isDark) 0.25f else 0.15f)
+                            )
+                        ),
+                        RoundedCornerShape(percent = 50)
+                    )
+                    .clickable(onClick = onOpenContractDirector)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Open Contract Directory",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = skyBlue
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = skyBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 3. Attendance Frosted Liquid Glass Card
+ */
+@Composable
+fun FrostedLiquidAttendanceCard(
+    userDashboardViewModel: UserDashboardViewModel,
+    hazeState: HazeState?,
+    onOpenAttendance: () -> Unit,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val emeraldLeaf = Color(0xFF10B981)
+    val rawAttendance by userDashboardViewModel.rawAttendance.collectAsState()
+    val todayFormatted = remember {
+        try {
+            SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(Date())
+        } catch (e: Throwable) {
+            "Today"
+        }
+    }
+    val todayIso = remember {
+        try {
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        } catch (e: Throwable) {
+            ""
+        }
+    }
+    val todayAttendance = remember(rawAttendance, todayIso) {
+        rawAttendance.filter { it.date == todayIso || it.date.contains(todayIso) }
+    }
+    val presentCount = remember(todayAttendance) {
+        todayAttendance.count { it.status.equals("Present", ignoreCase = true) || it.status.equals("P", ignoreCase = true) }
+    }
+    val totalWorkers = remember(rawAttendance) {
+        val uniqueWorkers = rawAttendance.map { it.workerName }.filter { it.isNotBlank() }.distinct()
+        if (uniqueWorkers.isNotEmpty()) uniqueWorkers.size else if (todayAttendance.isNotEmpty()) todayAttendance.size else 6
+    }
+    val coveragePct = if (totalWorkers > 0 && todayAttendance.isNotEmpty()) (presentCount * 100 / totalWorkers).coerceIn(0, 100) else if (rawAttendance.isNotEmpty()) 100 else 0
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .frostedLiquidGlassSurface(
+                hazeState = hazeState,
+                shape = RoundedCornerShape(24.dp),
+                isDark = isDark,
+                isAmoled = isAmoled
+            )
+            .clickable(onClick = onOpenAttendance)
+            .padding(18.dp)
+            .testTag("dashboard_module_attendance")
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row: Icon + Title + Status Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    // Glowing soft vibrant emerald leaf pill
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(emeraldLeaf.copy(alpha = if (isDark) 0.24f else 0.16f))
+                            .border(1.dp, emeraldLeaf.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.HowToReg,
+                            contentDescription = "Attendance",
+                            tint = emeraldLeaf,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Attendance",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                isProminent = true
+                            )
+                        )
+                        Text(
+                            text = "Daily Workforce, Shift Logs & Roster",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                isSecondary = true
+                            )
+                        )
+                    }
+                }
+
+                // Date badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(emeraldLeaf.copy(alpha = if (isDark) 0.25f else 0.14f))
+                        .border(1.dp, emeraldLeaf.copy(alpha = 0.50f), RoundedCornerShape(percent = 50))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(emeraldLeaf)
+                        )
+                        Text(
+                            text = todayFormatted,
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                isAccent = true,
+                                accentColor = emeraldLeaf
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Key Metrics Glass Pods Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FrostedLiquidMetricPod(
+                    value = if (todayAttendance.isNotEmpty()) "$presentCount" else "${rawAttendance.size}",
+                    unit = if (todayAttendance.isNotEmpty()) "On Duty" else "Logs",
+                    label = if (todayAttendance.isNotEmpty()) "Present Today" else "Total Shifts",
+                    accentColor = emeraldLeaf,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$totalWorkers",
+                    unit = "Workers",
+                    label = "Active Team",
+                    accentColor = emeraldLeaf,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = if (todayAttendance.isNotEmpty()) "$coveragePct%" else "Active",
+                    unit = if (todayAttendance.isNotEmpty()) "Coverage" else "Roster",
+                    label = "Shift Health",
+                    accentColor = emeraldLeaf,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Action Footer Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(emeraldLeaf.copy(alpha = if (isDark) 0.20f else 0.12f))
+                    .border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                emeraldLeaf.copy(alpha = if (isDark) 0.65f else 0.45f),
+                                emeraldLeaf.copy(alpha = if (isDark) 0.25f else 0.15f)
+                            )
+                        ),
+                        RoundedCornerShape(percent = 50)
+                    )
+                    .clickable(onClick = onOpenAttendance)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Mark & View Attendance",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = emeraldLeaf
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = emeraldLeaf,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 4. Payment Reminder Frosted Liquid Glass Card
+ */
+@Composable
+fun FrostedLiquidPaymentReminderCard(
+    cropRecords: List<CropRecord>,
+    gardenEntries: List<GardenPlanningEntry>,
+    totalRemaining: Double,
+    pendingCount: Int,
+    paidRatio: Float,
+    hazeState: HazeState?,
+    onOpenPaymentReminders: () -> Unit,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val warningAmber = Color(0xFFF59E0B)
+    val numberFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
+    val formattedDue = remember(totalRemaining) {
+        try {
+            numberFormat.format(totalRemaining)
+        } catch (e: Throwable) {
+            "₹${totalRemaining.toLong()}"
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .frostedLiquidGlassSurface(
+                hazeState = hazeState,
+                shape = RoundedCornerShape(24.dp),
+                isDark = isDark,
+                isAmoled = isAmoled
+            )
+            .clickable(onClick = onOpenPaymentReminders)
+            .padding(18.dp)
+            .testTag("dashboard_module_payment_reminder")
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row: Icon + Title + Status Pill
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    // Glowing soft vibrant warning amber pill
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(warningAmber.copy(alpha = if (isDark) 0.24f else 0.16f))
+                            .border(1.dp, warningAmber.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = "Payment Reminder",
+                            tint = warningAmber,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Payment Reminder",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                isProminent = true
+                            )
+                        )
+                        Text(
+                            text = "Receivables, Overdue & Notices",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                isSecondary = true
+                            )
+                        )
+                    }
+                }
+
+                // Alert Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            if (pendingCount > 0) warningAmber.copy(alpha = if (isDark) 0.25f else 0.14f)
+                            else Color(0xFF10B981).copy(alpha = if (isDark) 0.25f else 0.14f)
+                        )
+                        .border(
+                            1.dp,
+                            if (pendingCount > 0) warningAmber.copy(alpha = 0.50f)
+                            else Color(0xFF10B981).copy(alpha = 0.50f),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (pendingCount > 0) warningAmber else Color(0xFF10B981))
+                        )
+                        Text(
+                            text = if (pendingCount > 0) "$pendingCount Due" else "All Cleared",
+                            style = glassEtchedTextStyle(
+                                isDark = isDark,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                isAccent = true,
+                                accentColor = if (pendingCount > 0) warningAmber else Color(0xFF10B981)
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Key Metrics Glass Pods Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FrostedLiquidMetricPod(
+                    value = formattedDue,
+                    unit = "",
+                    label = "Outstanding",
+                    accentColor = if (totalRemaining > 0) warningAmber else Color(0xFF10B981),
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1.3f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "$pendingCount",
+                    unit = "Accounts",
+                    label = "Pending Dues",
+                    accentColor = warningAmber,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+
+                FrostedLiquidMetricPod(
+                    value = "${(paidRatio * 100).toInt()}%",
+                    unit = "Cleared",
+                    label = "Cleared Ratio",
+                    accentColor = Color(0xFF10B981),
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Action Footer Button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(warningAmber.copy(alpha = if (isDark) 0.20f else 0.12f))
+                    .border(
+                        1.dp,
+                        Brush.horizontalGradient(
+                            listOf(
+                                warningAmber.copy(alpha = if (isDark) 0.65f else 0.45f),
+                                warningAmber.copy(alpha = if (isDark) 0.25f else 0.15f)
+                            )
+                        ),
+                        RoundedCornerShape(percent = 50)
+                    )
+                    .clickable(onClick = onOpenPaymentReminders)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "Send Payment Reminders",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = warningAmber
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = null,
+                        tint = warningAmber,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Frosted mini capsule pod displaying key numeric indicators inside each module.
+ */
+@Composable
+private fun FrostedLiquidMetricPod(
+    value: String,
+    unit: String,
+    label: String,
+    accentColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.35f))
+            .border(
+                1.dp,
+                Brush.verticalGradient(
+                    listOf(
+                        if (isDark) Color.White.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.65f),
+                        if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.20f)
+                    )
+                ),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = value,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        isProminent = true
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (unit.isNotBlank()) {
+                    Text(
+                        text = unit,
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            isAccent = true,
+                            accentColor = accentColor
+                        ),
+                        modifier = Modifier.padding(bottom = 1.dp)
+                    )
+                }
+            }
+            Text(
+                text = label,
+                style = glassEtchedTextStyle(
+                    isDark = isDark,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    isSecondary = true
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
