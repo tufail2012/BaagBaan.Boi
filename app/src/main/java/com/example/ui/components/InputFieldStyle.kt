@@ -653,80 +653,101 @@ fun Modifier.glassCardBackground(
         Modifier
     }
 
-    if (effectiveIsDark) {
-        val cardBgBrush = Brush.verticalGradient(
-            colors = if (effectiveIsAmoled) {
+    val hazeState = LocalAppGlassHazeState.current
+
+    val hazeStyle = remember(effectiveIsDark, effectiveIsAmoled) {
+        HazeStyle(
+            backgroundColor = Color.Transparent,
+            blurRadius = 24.dp,
+            tints = listOf(
+                HazeTint(
+                    color = if (effectiveIsAmoled) Color.Black.copy(alpha = 0.10f)
+                    else if (effectiveIsDark) Color(0xFF14121B).copy(alpha = 0.12f)
+                    else Color.White.copy(alpha = 0.06f)
+                )
+            ),
+            noiseFactor = 0f
+        )
+    }
+
+    val cardBgBrush = Brush.verticalGradient(
+        colors = if (effectiveIsDark) {
+            if (effectiveIsAmoled) {
                 listOf(
-                    Color(0xFF161418),
-                    Color(0xFF0C0B0E),
-                    Color(0xFF000000)
+                    Color(0xFF161418).copy(alpha = 0.88f),
+                    Color(0xFF0C0B0E).copy(alpha = 0.82f),
+                    Color(0xFF000000).copy(alpha = 0.88f)
                 )
             } else {
                 listOf(
-                    Color(0xFF2C2834),
-                    Color(0xFF221F2A),
-                    Color(0xFF191720)
+                    Color(0xFF2C2834).copy(alpha = 0.82f),
+                    Color(0xFF221F2A).copy(alpha = 0.76f),
+                    Color(0xFF191720).copy(alpha = 0.82f)
                 )
             }
-        )
-
-        val borderStroke = if (isFocused || glowAlpha > 0.05f) {
-            BorderStroke(1.5.dp, accentColor)
         } else {
-            val borderBrush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.32f),
-                    Color.White.copy(alpha = 0.10f),
-                    Color.White.copy(alpha = 0.04f)
-                )
+            listOf(
+                Color.White.copy(alpha = 0.78f),
+                Color.White.copy(alpha = 0.62f),
+                Color.White.copy(alpha = 0.72f)
             )
-            BorderStroke(borderWidth, borderBrush)
         }
+    )
 
-        return this
-            .then(glowShadowModifier)
-            .then(glowAuraModifier)
-            .clip(effectiveShape)
-            .background(brush = cardBgBrush, shape = effectiveShape)
-            .drawWithContent {
-                drawContent()
-                if (!isFocused) {
-                    val w = size.width
-                    val highlightH = 1.5.dp.toPx()
-                    val margin = 14.dp.toPx()
-                    drawRect(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.White.copy(alpha = 0.25f),
-                                Color.Transparent
-                            ),
-                            startX = margin,
-                            endX = w - margin
-                        ),
-                        topLeft = Offset(margin, 1.dp.toPx()),
-                        size = Size(w - (margin * 2), highlightH)
-                    )
-                }
-            }
-            .border(
-                border = borderStroke,
-                shape = effectiveShape
-            )
-    }
-
-    val glassTint = Color(0xFFFFFFFF).copy(alpha = 0.94f)
     val borderStroke = if (isFocused || glowAlpha > 0.05f) {
         BorderStroke(1.5.dp, accentColor)
     } else {
-        BorderStroke(1.dp, Color(0xFFCBD5E1).copy(alpha = 0.85f))
+        val borderBrush = Brush.verticalGradient(
+            colors = if (effectiveIsDark) {
+                listOf(
+                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.35f else 0.40f),
+                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.12f else 0.15f),
+                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.04f else 0.08f)
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.65f),
+                    Color.White.copy(alpha = 0.25f),
+                    Color.White.copy(alpha = 0.15f)
+                )
+            }
+        )
+        BorderStroke(borderWidth, borderBrush)
     }
 
     return this
         .then(glowShadowModifier)
         .then(glowAuraModifier)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
         .clip(effectiveShape)
-        .background(color = glassTint, shape = effectiveShape)
+        .background(brush = cardBgBrush, shape = effectiveShape)
+        .drawWithContent {
+            drawContent()
+            if (!isFocused) {
+                val w = size.width
+                val highlightH = 1.2.dp.toPx()
+                val margin = 14.dp.toPx()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.White.copy(alpha = if (effectiveIsDark) 0.25f else 0.35f),
+                            Color.Transparent
+                        ),
+                        startX = margin,
+                        endX = w - margin
+                    ),
+                    topLeft = Offset(margin, 0.5.dp.toPx()),
+                    size = Size(w - (margin * 2), highlightH)
+                )
+            }
+        }
         .border(
             border = borderStroke,
             shape = effectiveShape

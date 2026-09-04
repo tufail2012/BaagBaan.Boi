@@ -130,6 +130,71 @@ fun getAppDimBackgroundBrush(
     }
 }
 
+/**
+ * Computes a subtle, dim multi-color gradient background brush dynamically
+ * generated from the currently selected AppPalette.
+ *
+ * It uses the selected palette's primary, secondary, and tertiary colors converted into
+ * soft, low-saturation, dim tones to maintain optimal readability without overpowering the UI.
+ * When the user changes palettes, this gradient automatically transforms across the Dashboard.
+ */
+fun getDynamicPaletteBackgroundBrush(
+    palette: AppPalette,
+    isDark: Boolean,
+    isAmoled: Boolean = false
+): Brush {
+    if (isAmoled) {
+        return Brush.verticalGradient(
+            colors = listOf(Color.Black, Color.Black)
+        )
+    }
+
+    if (palette.isTwoColor) {
+        return if (isDark) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF131316),
+                    Color(0xFF101013),
+                    Color(0xFF0D0D0F)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFF8FAFC),
+                    Color(0xFFF1F5F9),
+                    Color(0xFFE2E8F0)
+                )
+            )
+        }
+    }
+
+    fun toDimSoftTone(color: Color, saturationFactor: Float, valueLight: Float, valueDark: Float): Color {
+        val r = (color.red * 255f).toInt().coerceIn(0, 255)
+        val g = (color.green * 255f).toInt().coerceIn(0, 255)
+        val b = (color.blue * 255f).toInt().coerceIn(0, 255)
+        val hsv = FloatArray(3)
+        android.graphics.Color.RGBToHSV(r, g, b, hsv)
+        val hue = hsv[0]
+
+        return if (isDark) {
+            val sat = (hsv[1] * saturationFactor * 0.70f).coerceIn(0.04f, 0.12f)
+            Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, valueDark)))
+        } else {
+            val sat = (hsv[1] * saturationFactor).coerceIn(0.025f, 0.065f)
+            Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, valueLight)))
+        }
+    }
+
+    val topTone = toDimSoftTone(palette.primary, saturationFactor = 0.18f, valueLight = 0.962f, valueDark = 0.110f)
+    val midTone = toDimSoftTone(palette.secondary, saturationFactor = 0.16f, valueLight = 0.968f, valueDark = 0.092f)
+    val bottomTone = toDimSoftTone(palette.tertiary, saturationFactor = 0.14f, valueLight = 0.976f, valueDark = 0.080f)
+
+    return Brush.verticalGradient(
+        colors = listOf(topTone, midTone, bottomTone)
+    )
+}
+
 val AgriBackground = Color(0xFFF8F9FA)
 val AgriSurface = Color(0xFFFFFFFF)
 val AgriOutline = Color(0xFFE0E0E0)

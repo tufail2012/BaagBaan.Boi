@@ -391,6 +391,13 @@ fun AgriCropMainScreen(
                     onNavigateToContactDirectory = { showContactDirectoryDialog = true },
                     onNavigateToAttendance = { isAttendanceActive = true },
                     onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                    onNavigateToCalendar = {
+                        viewModel.selectServiceCategory("Garden Planning")
+                        gardenPlanningViewModel.resetToNewEntry()
+                        isDashboardActive = false
+                    },
+                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
+                    onNavigateToQrCode = { showQrScannerDialog = true },
                     hazeState = hazeState,
                     modifier = modifier
                 )

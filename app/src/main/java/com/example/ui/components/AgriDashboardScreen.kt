@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -33,17 +34,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PlaylistAddCheck
@@ -123,6 +131,7 @@ import com.example.ui.CropViewModel
 import com.example.ui.GardenPlanningViewModel
 import com.example.ui.UserDashboardViewModel
 import com.example.ui.theme.getAppDimBackgroundBrush
+import com.example.ui.theme.getDynamicPaletteBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 import androidx.compose.runtime.compositionLocalOf
 import dev.chrisbanes.haze.HazeState
@@ -411,47 +420,76 @@ private fun DashboardAmbientBackdrop(
     modifier: Modifier = Modifier
 ) {
     val palette = com.example.ui.theme.LocalAppPalette.current
-    val (effectivePrimary, secondaryColor, tertiaryColor) = remember(palette, accentColor, isDark, isAmoled) {
-        if (!palette.isTwoColor && palette.id != "solid_active") {
-            Triple(
-                palette.getPrimary(isDark, isAmoled),
-                palette.getSecondary(isDark, isAmoled),
-                palette.getTertiary(isDark, isAmoled)
-            )
+
+    // Dynamically derive soft, dim ambient diffusion bloom colors from the active palette
+    val bloomColors = remember(palette, accentColor, isDark, isAmoled) {
+        if (palette.isTwoColor) {
+            // Refined neutral monochromatic/slate blooms for two-color & monochrome palettes
+            val p = if (isDark || isAmoled) Color(0xFF3F3F46) else Color(0xFFCBD5E1)
+            val s = if (isDark || isAmoled) Color(0xFF27272A) else Color(0xFFE2E8F0)
+            val t = if (isDark || isAmoled) Color(0xFF52525B) else Color(0xFF94A3B8)
+            val b1 = if (isDark || isAmoled) Color(0xFF333338) else Color(0xFFD8E0EA)
+            val b2 = if (isDark || isAmoled) Color(0xFF202024) else Color(0xFFCBD5E1)
+            listOf(p, s, t, b1, b2)
         } else {
-            val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
-            val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
-            val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
-            val hsv = FloatArray(3)
-            android.graphics.Color.RGBToHSV(r, g, b, hsv)
-            val hue = hsv[0]
-            val sec = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, if (isDark) 0.65f else 0.55f, 0.92f)))
-            val tert = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, if (isDark) 0.60f else 0.50f, 0.88f)))
-            Triple(accentColor, sec, tert)
+            val (baseP, baseS, baseT) = if (palette.id != "solid_active") {
+                Triple(
+                    palette.getPrimary(isDark, isAmoled),
+                    palette.getSecondary(isDark, isAmoled),
+                    palette.getTertiary(isDark, isAmoled)
+                )
+            } else {
+                val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+                val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+                val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+                val hsv = FloatArray(3)
+                android.graphics.Color.RGBToHSV(r, g, b, hsv)
+                val hue = hsv[0]
+                val sec = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, 0.55f, 0.90f)))
+                val tert = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, 0.50f, 0.85f)))
+                Triple(accentColor, sec, tert)
+            }
+
+            fun toSoftBloomColor(c: Color, satScale: Float = 1f): Color {
+                val r = (c.red * 255f).toInt().coerceIn(0, 255)
+                val g = (c.green * 255f).toInt().coerceIn(0, 255)
+                val b = (c.blue * 255f).toInt().coerceIn(0, 255)
+                val hsv = FloatArray(3)
+                android.graphics.Color.RGBToHSV(r, g, b, hsv)
+                val hue = hsv[0]
+                val sat = if (isAmoled) 0.55f * satScale else if (isDark) 0.48f * satScale else 0.32f * satScale
+                val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
+                return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat.coerceIn(0.08f, 0.60f), value)))
+            }
+
+            val pBloom = toSoftBloomColor(baseP)
+            val sBloom = toSoftBloomColor(baseS)
+            val tBloom = toSoftBloomColor(baseT)
+            val b1 = toSoftBloomColor(baseP, satScale = 0.85f)
+            val b2 = toSoftBloomColor(baseS, satScale = 0.85f)
+            listOf(pBloom, sBloom, tBloom, b1, b2)
         }
     }
 
-    // Dimmed and softened alpha scales for a calmer, softer, and less visually dominant multi-color diffusion
-    val primaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.22f else 0.28f
-    val pastelAlpha = if (isAmoled) 0.14f else if (isDark) 0.18f else 0.24f
+    val primaryBloom = bloomColors[0]
+    val secondaryBloom = bloomColors[1]
+    val tertiaryBloom = bloomColors[2]
+    val blendBloom1 = bloomColors[3]
+    val blendBloom2 = bloomColors[4]
 
-    // Harmonic pastel colors specifically paired with each Frosted Liquid Glass module
-    val leafGreenPastel = Color(0xFFA7F3D0)
-    val skyBluePastel = Color(0xFFBAE6FD)
-    val amberPastel = Color(0xFFFDE68A)
-    val mintPastel = Color(0xFF6EE7B7)
-    val lavenderPastel = Color(0xFFDDD6FE)
-    val coralPastel = Color(0xFFFECDD3)
+    // Soft, low-saturation, dim alpha scales so blooms remain calm, subtle, and readable
+    val primaryAlpha = if (isAmoled) 0.12f else if (isDark) 0.16f else 0.20f
+    val bloomAlpha = if (isAmoled) 0.10f else if (isDark) 0.14f else 0.17f
 
     androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
         val yShift = -scrollOffset * 0.30f
 
-        // 1. Top-right luminous accent orb (illuminating Header & Account banner)
+        // 1. Top-right pool (illuminating Header & Account banner) - Derived from Palette Primary
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(effectivePrimary.copy(alpha = primaryAlpha), Color.Transparent),
+                colors = listOf(primaryBloom.copy(alpha = primaryAlpha), Color.Transparent),
                 center = Offset(w * 0.85f, h * 0.12f + yShift),
                 radius = w * 0.80f
             ),
@@ -459,10 +497,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.80f
         )
 
-        // 2. Upper-left harmonic bloom (illuminating Financial Breakdown card)
+        // 2. Upper-left pool (illuminating Financial Breakdown card) - Derived from Palette Secondary
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha), Color.Transparent),
+                colors = listOf(secondaryBloom.copy(alpha = bloomAlpha), Color.Transparent),
                 center = Offset(w * 0.10f, h * 0.24f + yShift),
                 radius = w * 0.70f
             ),
@@ -470,10 +508,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.70f
         )
 
-        // 3. Soft Pastel Emerald / Mint Bloom (diffusing behind Inventory Management module)
+        // 3. Mid-right pool (diffusing behind Inventory Management module) - Derived from Palette Tertiary
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(leafGreenPastel.copy(alpha = pastelAlpha * 0.95f), Color.Transparent),
+                colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.95f), Color.Transparent),
                 center = Offset(w * 0.90f, h * 0.38f + yShift),
                 radius = w * 0.72f
             ),
@@ -481,10 +519,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.72f
         )
 
-        // 4. Soft Pastel Azure / Sky Blue Bloom (diffusing behind Contract Director module)
+        // 4. Mid-left pool (diffusing behind Contract Director module) - Derived from Palette Primary Harmonic
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(skyBluePastel.copy(alpha = pastelAlpha * 0.95f), Color.Transparent),
+                colors = listOf(blendBloom1.copy(alpha = bloomAlpha * 0.95f), Color.Transparent),
                 center = Offset(w * 0.08f, h * 0.50f + yShift),
                 radius = w * 0.72f
             ),
@@ -492,10 +530,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.72f
         )
 
-        // 5. Soft Pastel Mint Bloom (diffusing behind Attendance module)
+        // 5. Lower-right pool (diffusing behind Attendance module) - Derived from Palette Secondary Harmonic
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(mintPastel.copy(alpha = pastelAlpha * 0.90f), Color.Transparent),
+                colors = listOf(blendBloom2.copy(alpha = bloomAlpha * 0.90f), Color.Transparent),
                 center = Offset(w * 0.92f, h * 0.64f + yShift),
                 radius = w * 0.70f
             ),
@@ -503,10 +541,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.70f
         )
 
-        // 6. Soft Pastel Warning Amber Bloom (diffusing behind Payment Reminder module)
+        // 6. Lower-left pool (diffusing behind Payment Reminder module) - Derived from Palette Primary
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(amberPastel.copy(alpha = pastelAlpha * 1.00f), Color.Transparent),
+                colors = listOf(primaryBloom.copy(alpha = bloomAlpha * 0.90f), Color.Transparent),
                 center = Offset(w * 0.10f, h * 0.76f + yShift),
                 radius = w * 0.75f
             ),
@@ -514,10 +552,10 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.75f
         )
 
-        // 7. Lower Lavender & Coral pool (behind lower logs)
+        // 7. Bottom pool (diffusing behind lower summaries) - Derived from Palette Tertiary
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(lavenderPastel.copy(alpha = pastelAlpha * 0.70f), Color.Transparent),
+                colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.75f), Color.Transparent),
                 center = Offset(w * 0.85f, h * 0.88f + yShift),
                 radius = w * 0.68f
             ),
@@ -525,15 +563,58 @@ private fun DashboardAmbientBackdrop(
             radius = w * 0.68f
         )
 
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(coralPastel.copy(alpha = pastelAlpha * 0.70f), Color.Transparent),
-                center = Offset(w * 0.20f, h * 0.98f + yShift),
-                radius = w * 0.65f
-            ),
-            center = Offset(w * 0.20f, h * 0.98f + yShift),
-            radius = w * 0.65f
+        // 8. Flowing subtle organic wave ribbons (derived from Palette colors)
+        val waveAlpha = if (isAmoled) 0.04f else if (isDark) 0.06f else 0.07f
+        val waveStroke = androidx.compose.ui.graphics.drawscope.Stroke(
+            width = 1.5.dp.toPx(),
+            cap = androidx.compose.ui.graphics.StrokeCap.Round
         )
+
+        val path1 = androidx.compose.ui.graphics.Path().apply {
+            moveTo(-w * 0.2f, h * 0.22f + yShift)
+            cubicTo(
+                w * 0.3f, h * 0.18f + yShift,
+                w * 0.6f, h * 0.30f + yShift,
+                w * 1.2f, h * 0.24f + yShift
+            )
+        }
+        drawPath(path1, color = primaryBloom.copy(alpha = waveAlpha), style = waveStroke)
+
+        val path2 = androidx.compose.ui.graphics.Path().apply {
+            moveTo(-w * 0.1f, h * 0.48f + yShift)
+            cubicTo(
+                w * 0.35f, h * 0.56f + yShift,
+                w * 0.70f, h * 0.42f + yShift,
+                w * 1.2f, h * 0.52f + yShift
+            )
+        }
+        drawPath(path2, color = secondaryBloom.copy(alpha = waveAlpha * 0.9f), style = waveStroke)
+
+        val path3 = androidx.compose.ui.graphics.Path().apply {
+            moveTo(-w * 0.2f, h * 0.78f + yShift)
+            cubicTo(
+                w * 0.4f, h * 0.72f + yShift,
+                w * 0.65f, h * 0.84f + yShift,
+                w * 1.15f, h * 0.76f + yShift
+            )
+        }
+        drawPath(path3, color = tertiaryBloom.copy(alpha = waveAlpha * 0.85f), style = waveStroke)
+
+        // 9. Stippled delicate micro-dot matrix pattern in lower section (matching reference footer)
+        val dotSpacing = 16.dp.toPx()
+        val dotRadius = 1.2.dp.toPx()
+        val dotColor = primaryBloom.copy(alpha = if (isAmoled) 0.05f else if (isDark) 0.07f else 0.08f)
+        val startX = w * 0.55f
+        val startY = h * 0.82f + yShift
+        var curX = startX
+        while (curX < w) {
+            var curY = startY
+            while (curY < h) {
+                drawCircle(color = dotColor, radius = dotRadius, center = Offset(curX, curY))
+                curY += dotSpacing
+            }
+            curX += dotSpacing
+        }
     }
 }
 
@@ -555,6 +636,9 @@ fun AgriDashboardScreen(
     onNavigateToContactDirectory: (() -> Unit)? = null,
     onNavigateToAttendance: (() -> Unit)? = null,
     onNavigateToPaymentReminders: (() -> Unit)? = null,
+    onNavigateToCalendar: (() -> Unit)? = null,
+    onNavigateToSeasonalReminders: (() -> Unit)? = null,
+    onNavigateToQrCode: (() -> Unit)? = null,
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
@@ -677,8 +761,9 @@ fun AgriDashboardScreen(
 
     val paidRatio = if (totalRevenue > 0) (totalPaid / totalRevenue).toFloat().coerceIn(0f, 1f) else 0f
 
-    val dashboardBgBrush = remember(isDark, isAmoled, dashboardAccent) {
-        getAppDimBackgroundBrush(dashboardAccent, isDark = isDark, isAmoled = isAmoled)
+    val appPalette = com.example.ui.theme.LocalAppPalette.current
+    val dashboardBgBrush = remember(appPalette, isDark, isAmoled) {
+        getDynamicPaletteBackgroundBrush(appPalette, isDark = isDark, isAmoled = isAmoled)
     }
 
     val dashboardListState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -901,7 +986,7 @@ fun AgriDashboardScreen(
                         )
                     }
 
-                    // 3. Frosted Liquid Glass Core Modules Hub
+                    // 3. Frosted Liquid Glass Core Modules Hub Header
                     item {
                         FrostedLiquidModulesSectionHeader(
                             accentColor = dashboardAccent,
@@ -909,53 +994,55 @@ fun AgriDashboardScreen(
                         )
                     }
 
-                    // Module 1: Inventory Management
+                    // 2-Column Grid of 8 Core Executive Modules (Matching reference screenshot)
                     item {
-                        FrostedLiquidInventoryCard(
-                            inventoryItems = inventoryItems,
+                        FrostedLiquidModulesGrid(
                             hazeState = effectiveHazeState,
                             onOpenInventory = { onNavigateToInventory?.invoke() },
-                            isDark = isDark,
-                            isAmoled = isAmoled
-                        )
-                    }
-
-                    // Module 2: Contract Director
-                    item {
-                        FrostedLiquidContractDirectorCard(
-                            cropRecords = allRecords,
-                            gardenEntries = gardenEntries,
-                            hazeState = effectiveHazeState,
-                            onOpenContractDirector = { onNavigateToContactDirectory?.invoke() },
-                            isDark = isDark,
-                            isAmoled = isAmoled
-                        )
-                    }
-
-                    // Module 3: Attendance
-                    item {
-                        FrostedLiquidAttendanceCard(
-                            userDashboardViewModel = userDashboardViewModel,
-                            hazeState = effectiveHazeState,
                             onOpenAttendance = { onNavigateToAttendance?.invoke() },
+                            onOpenCalendar = { onNavigateToCalendar?.invoke() ?: onNavigateToCategory?.invoke("Garden Planning") },
+                            onOpenContactDirectory = { onNavigateToContactDirectory?.invoke() },
+                            onOpenPaymentReminder = { onNavigateToPaymentReminders?.invoke() },
+                            onOpenSeasonalReminders = { onNavigateToSeasonalReminders?.invoke() },
+                            onOpenQrCode = { onNavigateToQrCode?.invoke() },
+                            onOpenSettings = { onNavigateToSettings?.invoke() },
                             isDark = isDark,
                             isAmoled = isAmoled
                         )
                     }
 
-                    // Module 4: Payment Reminder
+                    // Modern Agriculture Smarter Operations Footer (Matching reference screenshot)
                     item {
-                        FrostedLiquidPaymentReminderCard(
-                            cropRecords = allRecords,
-                            gardenEntries = gardenEntries,
-                            totalRemaining = totalRemaining,
-                            pendingCount = pendingCount,
-                            paidRatio = paidRatio,
-                            hazeState = effectiveHazeState,
-                            onOpenPaymentReminders = { onNavigateToPaymentReminders?.invoke() },
-                            isDark = isDark,
-                            isAmoled = isAmoled
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp, bottom = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Modern Agriculture Smarter Operations",
+                                    style = glassEtchedTextStyle(
+                                        isDark = isDark,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        isSecondary = true
+                                    ).copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                )
+                                Text(
+                                    text = "Glass UI. Real Impact.",
+                                    style = glassEtchedTextStyle(
+                                        isDark = isDark,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = dashboardAccent.copy(alpha = 0.80f)
+                                    )
+                                )
+                            }
+                        }
                     }
 
                     // 4. Operational Category Summaries Header
@@ -2558,10 +2645,23 @@ fun Modifier.frostedLiquidGlassSurface(
     isDark: Boolean = false,
     isAmoled: Boolean = false
 ): Modifier {
-    val hazeStyle = HazeMaterials.thin()
+    val hazeStyle = remember(isDark, isAmoled) {
+        HazeStyle(
+            backgroundColor = Color.Transparent,
+            blurRadius = 24.dp,
+            tints = listOf(
+                HazeTint(
+                    color = if (isAmoled) Color.Black.copy(alpha = 0.10f)
+                    else if (isDark) Color(0xFF14121B).copy(alpha = 0.12f)
+                    else Color.White.copy(alpha = 0.06f)
+                )
+            ),
+            noiseFactor = 0f
+        )
+    }
     val bgBrush = remember(isDark, isAmoled) {
-        val topAlpha = if (isAmoled) 0.12f else if (isDark) 0.20f else 0.40f
-        val bottomAlpha = if (isAmoled) 0.03f else if (isDark) 0.06f else 0.12f
+        val topAlpha = if (isAmoled) 0.08f else if (isDark) 0.12f else 0.14f
+        val bottomAlpha = if (isAmoled) 0.02f else if (isDark) 0.04f else 0.05f
         Brush.verticalGradient(
             listOf(
                 Color.White.copy(alpha = topAlpha),
@@ -2570,8 +2670,8 @@ fun Modifier.frostedLiquidGlassSurface(
         )
     }
     val rimBrush = remember(isDark, isAmoled) {
-        val rimTop = if (isAmoled) 0.45f else if (isDark) 0.55f else 0.65f
-        val rimBottom = if (isAmoled) 0.10f else if (isDark) 0.12f else 0.15f
+        val rimTop = if (isAmoled) 0.35f else if (isDark) 0.45f else 0.55f
+        val rimBottom = if (isAmoled) 0.08f else if (isDark) 0.10f else 0.14f
         Brush.verticalGradient(
             listOf(
                 Color.White.copy(alpha = rimTop),
@@ -2594,7 +2694,7 @@ fun Modifier.frostedLiquidGlassSurface(
 }
 
 /**
- * Section header introducing the 4 core Frosted Liquid Glass modules.
+ * Section header introducing the Core Executive Modules with an indicator pill.
  */
 @Composable
 fun FrostedLiquidModulesSectionHeader(
@@ -2644,24 +2744,237 @@ fun FrostedLiquidModulesSectionHeader(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(percent = 50))
-                    .background(if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.40f))
-                    .border(
-                        1.dp,
-                        if (isDark) SolidColor(accentColor.copy(alpha = 0.40f))
-                        else Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.80f), accentColor.copy(alpha = 0.40f))),
-                        RoundedCornerShape(percent = 50)
-                    )
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.06f))
+                    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.12f), RoundedCornerShape(percent = 50))
+                    .padding(horizontal = 10.dp, vertical = 3.dp)
             ) {
                 Text(
-                    text = "Frosted Liquid Glass",
+                    text = "8 Modules",
                     style = glassEtchedTextStyle(
                         isDark = isDark,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        isAccent = true,
-                        accentColor = accentColor
+                        fontWeight = FontWeight.Bold
                     )
+                )
+            }
+        }
+    }
+}
+
+data class ExecutiveModuleItemData(
+    val title: String,
+    val subtitle: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val iconTint: Color,
+    val iconBg: Color,
+    val tag: String,
+    val onClick: () -> Unit
+)
+
+/**
+ * 2-Column Frosted Liquid Glass Executive Modules Grid (Exactly as shown in design mockup)
+ */
+@Composable
+fun FrostedLiquidModulesGrid(
+    hazeState: HazeState?,
+    onOpenInventory: () -> Unit,
+    onOpenAttendance: () -> Unit,
+    onOpenCalendar: () -> Unit,
+    onOpenContactDirectory: () -> Unit,
+    onOpenPaymentReminder: () -> Unit,
+    onOpenSeasonalReminders: () -> Unit,
+    onOpenQrCode: () -> Unit,
+    onOpenSettings: () -> Unit,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val modules = listOf(
+        ExecutiveModuleItemData(
+            title = "Inventory Management",
+            subtitle = "Live Stock, Nurseries & Supplies",
+            icon = Icons.Default.Inventory2,
+            iconTint = Color(0xFF10B981),
+            iconBg = Color(0xFF10B981).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_inventory",
+            onClick = onOpenInventory
+        ) to ExecutiveModuleItemData(
+            title = "Attendance",
+            subtitle = "Daily Workforce, Shift Logs & Roster",
+            icon = Icons.Default.Groups,
+            iconTint = Color(0xFF3B82F6),
+            iconBg = Color(0xFF3B82F6).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_attendance",
+            onClick = onOpenAttendance
+        ),
+        ExecutiveModuleItemData(
+            title = "Calendar",
+            subtitle = "Events, Schedule & Field Activities",
+            icon = Icons.Default.CalendarMonth,
+            iconTint = Color(0xFFF97316),
+            iconBg = Color(0xFFF97316).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_calendar",
+            onClick = onOpenCalendar
+        ) to ExecutiveModuleItemData(
+            title = "Contact Directory",
+            subtitle = "Farmer Contracts, Profiles & Directory",
+            icon = Icons.Default.ContactPhone,
+            iconTint = Color(0xFF8B5CF6),
+            iconBg = Color(0xFF8B5CF6).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_contacts",
+            onClick = onOpenContactDirectory
+        ),
+        ExecutiveModuleItemData(
+            title = "Payment Reminder",
+            subtitle = "Dues, Follow-ups & Notifications",
+            icon = Icons.Default.CreditCard,
+            iconTint = Color(0xFFEF4444),
+            iconBg = Color(0xFFEF4444).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_payment_reminder",
+            onClick = onOpenPaymentReminder
+        ) to ExecutiveModuleItemData(
+            title = "Seasonal Reminders",
+            subtitle = "Crop Cycles, Tasks & Alerts",
+            icon = Icons.Default.Eco,
+            iconTint = Color(0xFF14B8A6),
+            iconBg = Color(0xFF14B8A6).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_seasonal_reminders",
+            onClick = onOpenSeasonalReminders
+        ),
+        ExecutiveModuleItemData(
+            title = "QR Code",
+            subtitle = "Scan, Generate & Manage",
+            icon = Icons.Default.QrCodeScanner,
+            iconTint = Color(0xFF06B6D4),
+            iconBg = Color(0xFF06B6D4).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_qr_code",
+            onClick = onOpenQrCode
+        ) to ExecutiveModuleItemData(
+            title = "Settings",
+            subtitle = "Preferences, Theme & App Config",
+            icon = Icons.Default.Settings,
+            iconTint = Color(0xFF64748B),
+            iconBg = Color(0xFF64748B).copy(alpha = if (isDark) 0.22f else 0.14f),
+            tag = "dashboard_module_settings",
+            onClick = onOpenSettings
+        )
+    )
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        modules.forEach { (itemLeft, itemRight) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    FrostedLiquidModuleTile(
+                        data = itemLeft,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        isAmoled = isAmoled
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    FrostedLiquidModuleTile(
+                        data = itemRight,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        isAmoled = isAmoled
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Individual Frosted Liquid Glass Module Tile with squircle badge, chevron, and etched typography.
+ */
+@Composable
+fun FrostedLiquidModuleTile(
+    data: ExecutiveModuleItemData,
+    hazeState: HazeState?,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 96.dp)
+            .frostedLiquidGlassSurface(
+                hazeState = hazeState,
+                shape = RoundedCornerShape(18.dp),
+                isDark = isDark,
+                isAmoled = isAmoled,
+                elevation = 1.dp
+            )
+            .clickable(onClick = data.onClick)
+            .padding(12.dp)
+            .testTag(data.tag)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(data.iconBg)
+                        .border(1.dp, data.iconTint.copy(alpha = if (isDark) 0.45f else 0.30f), RoundedCornerShape(11.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = data.icon,
+                        contentDescription = data.title,
+                        tint = data.iconTint,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = if (isDark) Color.White.copy(alpha = 0.45f) else Color.Black.copy(alpha = 0.35f),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = data.title,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        isProminent = true
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = data.subtitle,
+                    style = glassEtchedTextStyle(
+                        isDark = isDark,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        isSecondary = true
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 13.sp
                 )
             }
         }
@@ -3534,13 +3847,13 @@ private fun FrostedLiquidMetricPod(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.35f))
+            .background(if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.12f))
             .border(
                 1.dp,
                 Brush.verticalGradient(
                     listOf(
-                        if (isDark) Color.White.copy(alpha = 0.28f) else Color.White.copy(alpha = 0.65f),
-                        if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.20f)
+                        if (isDark) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.45f),
+                        if (isDark) Color.White.copy(alpha = 0.04f) else Color.White.copy(alpha = 0.12f)
                     )
                 ),
                 RoundedCornerShape(16.dp)
