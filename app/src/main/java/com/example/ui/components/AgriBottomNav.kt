@@ -203,22 +203,22 @@ fun AgriBottomNav(
 
                 val dropletPillShape = RoundedCornerShape(percent = 50)
 
-                // Fluid Water-like Sliding Liquid Pill Indicator
+                // Fluid Water-like Sliding Liquid Pill Indicator with Frosted Glass (backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.25);)
                 val animatedAccentColor = activeSectionAccent
                 val blobGradient = if (!isDark) {
                     Brush.verticalGradient(
                         colors = listOf(
-                            animatedAccentColor.copy(alpha = 0.38f),
-                            animatedAccentColor.copy(alpha = 0.25f),
-                            animatedAccentColor.copy(alpha = 0.12f)
+                            animatedAccentColor.copy(alpha = 0.15f),
+                            Color.White.copy(alpha = 0.25f),
+                            Color.White.copy(alpha = 0.20f)
                         )
                     )
                 } else {
                     Brush.verticalGradient(
                         colors = listOf(
-                            animatedAccentColor.copy(alpha = 0.38f),
                             animatedAccentColor.copy(alpha = 0.25f),
-                            Color(0xFF0F172A).copy(alpha = 0.70f)
+                            Color.White.copy(alpha = 0.12f),
+                            Color(0xFF0F172A).copy(alpha = 0.60f)
                         )
                     )
                 }
@@ -269,29 +269,33 @@ fun AgriBottomNav(
                             scaleY = dynamicScaleY
                         }
                         .shadow(
-                            elevation = 8.dp,
+                            elevation = 4.dp,
                             shape = dropletPillShape,
-                            spotColor = animatedAccentColor.copy(alpha = if (isDark) 0.5f else 0.35f),
-                            ambientColor = animatedAccentColor.copy(alpha = 0.2f)
+                            spotColor = Color.Black.copy(alpha = 0.05f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
+                        )
+                        .then(
+                            Modifier.hazeEffect(
+                                state = hazeState,
+                                style = HazeStyle(
+                                    blurRadius = 10.dp,
+                                    tints = listOf(
+                                        HazeTint(color = animatedAccentColor.copy(alpha = if (isDark) 0.15f else 0.08f))
+                                    ),
+                                    backgroundColor = Color.Transparent
+                                )
+                            )
                         )
                         .clip(dropletPillShape)
                         .background(brush = blobGradient, shape = dropletPillShape)
                         .border(
                             width = 1.dp,
                             brush = Brush.verticalGradient(
-                                colors = if (!isDark) {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.75f),
-                                        animatedAccentColor.copy(alpha = 0.35f),
-                                        Color.Transparent
-                                    )
-                                } else {
-                                    listOf(
-                                        Color.White.copy(alpha = 0.3f),
-                                        animatedAccentColor.copy(alpha = 0.4f),
-                                        Color.Transparent
-                                    )
-                                }
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (!isDark) 0.50f else 0.35f),
+                                    animatedAccentColor.copy(alpha = 0.25f),
+                                    Color.White.copy(alpha = 0.15f)
+                                )
                             ),
                             shape = dropletPillShape
                         )
@@ -306,7 +310,8 @@ fun AgriBottomNav(
                     navItems.forEachIndexed { index, item ->
                         val isSelected = index == selectedIndex
                         val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF7E8B9B)
-                        val selectedColor = if (isDark || isAmoled) Color.White else Color.Black
+                        // Active navigation icon dynamically pulls fill/stroke color from active theme's primary color palette
+                        val selectedColor = animatedAccentColor
 
                         val iconColor by animateColorAsState(
                             targetValue = if (isSelected) selectedColor else unselectedColor,

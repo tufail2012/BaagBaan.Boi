@@ -343,35 +343,36 @@ fun Modifier.frostedGlassChrome(
         if (isAmoled) {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF161418).copy(alpha = 0.85f),
-                    Color(0xFF0C0B0E).copy(alpha = 0.80f),
-                    Color(0xFF000000).copy(alpha = 0.85f)
+                    accentColor.copy(alpha = 0.20f),
+                    Color(0xFF0C0B0E).copy(alpha = 0.65f),
+                    Color(0xFF000000).copy(alpha = 0.75f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF2C2833).copy(alpha = 0.85f),
-                    Color(0xFF221F28).copy(alpha = 0.80f),
-                    Color(0xFF19171E).copy(alpha = 0.85f)
+                    accentColor.copy(alpha = 0.18f),
+                    Color(0xFF221F28).copy(alpha = 0.60f),
+                    Color(0xFF19171E).copy(alpha = 0.70f)
                 )
             )
         }
     } else {
+        // Light Mode: background: rgba(255, 255, 255, 0.25); tinted to the active palette shade
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.70f),
-                Color.White.copy(alpha = 0.55f),
-                Color.White.copy(alpha = 0.65f)
+                accentColor.copy(alpha = 0.15f),
+                Color.White.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.20f)
             )
         )
     }
 
     val borderBrush = Brush.verticalGradient(
         colors = listOf(
-            Color.White.copy(alpha = if (isAmoled) 0.35f else if (isDark) 0.38f else 0.55f),
-            Color.White.copy(alpha = if (isAmoled) 0.12f else if (isDark) 0.15f else 0.25f),
-            Color.White.copy(alpha = if (isAmoled) 0.04f else if (isDark) 0.08f else 0.12f)
+            Color.White.copy(alpha = if (isAmoled) 0.35f else if (isDark) 0.35f else 0.45f),
+            accentColor.copy(alpha = 0.20f),
+            Color.White.copy(alpha = if (isAmoled) 0.10f else if (isDark) 0.15f else 0.25f)
         )
     )
 
@@ -382,8 +383,8 @@ fun Modifier.frostedGlassChrome(
                     elevation = elevation,
                     shape = shape,
                     clip = false,
-                    spotColor = Color.Black.copy(alpha = if (isAmoled) 0.50f else if (isDark) 0.35f else 0.12f),
-                    ambientColor = Color.Black.copy(alpha = if (isAmoled) 0.30f else if (isDark) 0.20f else 0.06f)
+                    spotColor = Color.Black.copy(alpha = if (isAmoled) 0.20f else if (isDark) 0.15f else 0.05f),
+                    ambientColor = Color.Black.copy(alpha = if (isAmoled) 0.10f else if (isDark) 0.08f else 0.02f)
                 )
             } else {
                 Modifier
@@ -393,12 +394,10 @@ fun Modifier.frostedGlassChrome(
             if (hazeState != null) {
                 val hazeStyle = HazeStyle(
                     backgroundColor = Color.Transparent,
-                    blurRadius = 20.dp,
+                    blurRadius = 12.dp,
                     tints = listOf(
                         HazeTint(
-                            color = if (isAmoled) Color.Black.copy(alpha = 0.10f)
-                            else if (isDark) Color(0xFF14121B).copy(alpha = 0.12f)
-                            else Color.White.copy(alpha = 0.08f)
+                            color = accentColor.copy(alpha = if (isAmoled) 0.10f else if (isDark) 0.12f else 0.08f)
                         )
                     ),
                     noiseFactor = 0f

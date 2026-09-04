@@ -111,25 +111,32 @@ fun LiquidGlassSegmentedSwitcher(
 
     // Outer glassmorphism container integrated directly into layout (no floating cutout)
     /* CSS glassmorphism specification:
-     * background: rgba(<selected-palette-shade>, 0.12);
-     * -webkit-backdrop-filter: blur(10px);
-     * backdrop-filter: blur(10px);
-     * border: 1px solid rgba(255, 255, 255, 0.25);
+     * background: rgba(255, 255, 255, 0.25); tinted to active palette shade
+     * -webkit-backdrop-filter: blur(12px);
+     * backdrop-filter: blur(12px);
+     * border: 1px solid rgba(255, 255, 255, 0.3);
+     * box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
      */
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .height(48.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = containerShape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.15f else 0.05f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.02f)
+            )
             .then(
                 Modifier.hazeEffect(
                     state = hazeState,
                     style = HazeStyle(
-                        blurRadius = 10.dp,
+                        blurRadius = 12.dp,
                         tints = listOf(
                             HazeTint(color = accentColor.copy(alpha = if (isDark) 0.12f else 0.08f))
                         ),
-                        backgroundColor = (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.45f else 0.65f)
+                        backgroundColor = Color.Transparent
                     )
                 )
             )
@@ -137,8 +144,8 @@ fun LiquidGlassSegmentedSwitcher(
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        accentColor.copy(alpha = if (isDark) 0.16f else 0.10f),
-                        (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.45f else 0.65f)
+                        accentColor.copy(alpha = if (isDark) 0.16f else 0.12f),
+                        (if (isDark) Color(0xFF0F172A).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.25f))
                     )
                 ),
                 shape = containerShape
@@ -148,9 +155,9 @@ fun LiquidGlassSegmentedSwitcher(
                     1.dp,
                     Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = if (isDark) 0.35f else 0.60f),
-                            accentColor.copy(alpha = 0.22f),
-                            Color.White.copy(alpha = 0.10f)
+                            Color.White.copy(alpha = if (isDark) 0.30f else 0.45f),
+                            accentColor.copy(alpha = 0.20f),
+                            Color.White.copy(alpha = 0.15f)
                         )
                     )
                 ),

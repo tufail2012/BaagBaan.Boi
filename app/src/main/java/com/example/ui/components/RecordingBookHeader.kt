@@ -47,14 +47,22 @@ fun RecordingBookHeader(
     val headerShape = RoundedCornerShape(18.dp)
 
     val fillBrush = Brush.verticalGradient(
-        if (isDark) listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
-        else listOf(Color.White.copy(alpha = 0.42f), Color.White.copy(alpha = 0.14f))
+        if (isDark) listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+            Color(0xFF0F172A).copy(alpha = 0.50f)
+        )
+        else listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.18f)
+        )
     )
 
     val borderBrush = Brush.verticalGradient(
         listOf(
-            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
-            Color.White.copy(alpha = if (isDark) 0.10f else 0.20f)
+            Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+            Color.White.copy(alpha = 0.15f)
         )
     )
 
@@ -63,14 +71,25 @@ fun RecordingBookHeader(
             .fillMaxWidth()
             .padding(bottom = 2.dp)
             .shadow(
-                elevation = 2.dp,
+                elevation = 4.dp,
                 shape = headerShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.25f else 0.06f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.15f else 0.03f)
+                spotColor = Color.Black.copy(alpha = 0.05f),
+                ambientColor = Color.Black.copy(alpha = 0.02f)
             )
             .then(
                 if (hazeState != null) {
-                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = dev.chrisbanes.haze.HazeStyle(
+                            blurRadius = 12.dp,
+                            tints = listOf(
+                                dev.chrisbanes.haze.HazeTint(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                )
+                            ),
+                            backgroundColor = Color.Transparent
+                        )
+                    )
                 } else Modifier
             )
             .clip(headerShape)

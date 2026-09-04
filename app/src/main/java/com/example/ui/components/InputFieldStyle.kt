@@ -952,63 +952,47 @@ fun Modifier.bubbleDropletPillIndicator(
             this.shape = shape
             this.clip = false
         }
-        // 2. Soft floating shadow
+        // 2. Soft floating shadow (0 4px 20px 0 rgba(0, 0, 0, 0.05))
         .shadow(
-            elevation = if (isDark || isAmoled) 6.dp else 3.dp,
+            elevation = 4.dp,
             shape = shape,
-            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.55f else 0.35f),
-            ambientColor = accentColor.copy(alpha = 0.25f)
+            spotColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.15f else 0.05f),
+            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.08f else 0.02f)
         )
         // 3. Clip to shape
         .clip(shape)
-        // 4. Frosted backdrop blur via Haze in dark mode; in light mode keep solid to remove transparency
+        // 4. Frosted backdrop blur via Haze (backdrop-filter: blur(10px))
         .then(
-            if (hazeState != null && (isDark || isAmoled)) {
+            if (hazeState != null) {
                 val pillHazeStyle = HazeStyle(
-                    backgroundColor = Color(0xFF121017).copy(alpha = 0.50f),
-                    blurRadius = 18.dp,
+                    backgroundColor = Color.Transparent,
+                    blurRadius = 10.dp,
                     tints = listOf(
-                        HazeTint(color = accentColor.copy(alpha = 0.40f))
+                        HazeTint(color = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.10f))
                     ),
-                    noiseFactor = 0.20f
+                    noiseFactor = 0f
                 )
                 Modifier.hazeEffect(state = hazeState, style = pillHazeStyle)
             } else {
                 Modifier
             }
         )
-        // 5. Solid base layer in light mode (completely removing transparency) / translucent gel base in dark mode
-        .background(
-            color = if (isDark || isAmoled) {
-                if (isAmoled) Color.Black.copy(alpha = 0.55f) else Color(0xFF1C1A22).copy(alpha = 0.60f)
-            } else {
-                Color.White
-            },
-            shape = shape
-        )
-        // 6. 3D frosted glass pill: crisp solid white glass in Light Mode (matching photo reference), vibrant gel in Dark Mode
+        // 5. Translucent frosted glass layer: background: rgba(255, 255, 255, 0.25); tinted to active palette shade
         .background(
             brush = if (isDark || isAmoled) {
-                val darkShade = Color(
-                    red = (accentColor.red * 0.55f).coerceIn(0f, 1f),
-                    green = (accentColor.green * 0.55f).coerceIn(0f, 1f),
-                    blue = (accentColor.blue * 0.55f).coerceIn(0f, 1f),
-                    alpha = 0.85f
-                )
                 Brush.verticalGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = 0.92f),
-                        accentColor.copy(alpha = 0.82f),
-                        darkShade
+                        accentColor.copy(alpha = 0.35f),
+                        accentColor.copy(alpha = 0.20f),
+                        if (isAmoled) Color.Black.copy(alpha = 0.65f) else Color(0xFF1C1A22).copy(alpha = 0.60f)
                     )
                 )
             } else {
-                // Light mode: Solid elevated frosted white glass pill without transparency
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White,
-                        Color.White,
-                        Color(0xFFFAF5F2)
+                        accentColor.copy(alpha = 0.15f),
+                        Color.White.copy(alpha = 0.25f),
+                        Color.White.copy(alpha = 0.20f)
                     )
                 )
             },

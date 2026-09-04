@@ -84,12 +84,28 @@ fun SearchBarWithStatusFilter(
     val capsuleShape = RoundedCornerShape(percent = 50)
     val filterScrollState = rememberScrollState()
 
-    // Specification 2: Search field floating capsule with Color.White.copy(alpha = 0.35f) background and subtle white rim
-    val searchBgColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
+    // Specification: Search field floating capsule with rgba(255, 255, 255, 0.25) tinted background and 0.3 rim
+    val searchBgBrush = if (isDark) {
+        Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                Color(0xFF0F172A).copy(alpha = 0.55f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                Color.White.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.20f)
+            )
+        )
+    }
     val searchRimBrush = Brush.verticalGradient(
         listOf(
-            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
-            Color.White.copy(alpha = if (isDark) 0.12f else 0.25f)
+            Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+            Color.White.copy(alpha = 0.15f)
         )
     )
 
@@ -103,23 +119,41 @@ fun SearchBarWithStatusFilter(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Target Component 1: Search Field Floating Capsule
+            /* CSS glassmorphism:
+             * background: rgba(255, 255, 255, 0.25);
+             * -webkit-backdrop-filter: blur(12px);
+             * backdrop-filter: blur(12px);
+             * border: 1px solid rgba(255, 255, 255, 0.3);
+             * box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+             */
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
                     .shadow(
-                        elevation = 2.dp,
+                        elevation = 4.dp,
                         shape = capsuleShape,
-                        spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f),
-                        ambientColor = Color.Black.copy(alpha = if (isDark) 0.10f else 0.02f)
+                        spotColor = Color.Black.copy(alpha = 0.05f),
+                        ambientColor = Color.Black.copy(alpha = 0.02f)
                     )
                     .then(
                         if (hazeState != null) {
-                            Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                            Modifier.hazeEffect(
+                                state = hazeState,
+                                style = dev.chrisbanes.haze.HazeStyle(
+                                    blurRadius = 12.dp,
+                                    tints = listOf(
+                                        dev.chrisbanes.haze.HazeTint(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                        )
+                                    ),
+                                    backgroundColor = Color.Transparent
+                                )
+                            )
                         } else Modifier
                     )
                     .clip(capsuleShape)
-                    .background(searchBgColor, shape = capsuleShape)
+                    .background(searchBgBrush, shape = capsuleShape)
                     .border(BorderStroke(1.dp, searchRimBrush), shape = capsuleShape)
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart
@@ -194,46 +228,53 @@ fun SearchBarWithStatusFilter(
             // Filter Dropdown Anchor Button - Exclusive access to payment status filters
             Box {
                 val filterButtonShape = RoundedCornerShape(percent = 50)
-                val filterButtonBg = if (isFilterActive) {
-                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                val filterButtonBgBrush = if (isFilterActive) {
+                    Brush.verticalGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.35f else 0.25f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.15f)
+                        )
+                    )
                 } else {
-                    if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
+                    searchBgBrush
                 }
 
                 /* CSS equivalent:
-                 * -webkit-backdrop-filter: blur(10px);
-                 * backdrop-filter: blur(10px);
-                 * border: 1px solid rgba(255, 255, 255, 0.25);
+                 * -webkit-backdrop-filter: blur(12px);
+                 * backdrop-filter: blur(12px);
+                 * border: 1px solid rgba(255, 255, 255, 0.3);
+                 * box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
                  */
                 Box(
                     modifier = Modifier
                         .height(48.dp)
                         .shadow(
-                            elevation = 2.dp,
+                            elevation = 4.dp,
                             shape = filterButtonShape,
-                            spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f)
+                            spotColor = Color.Black.copy(alpha = 0.05f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
                         )
                         .then(
                             if (hazeState != null) {
                                 Modifier.hazeEffect(
                                     state = hazeState,
                                     style = dev.chrisbanes.haze.HazeStyle(
-                                        blurRadius = 10.dp,
+                                        blurRadius = 12.dp,
                                         tints = listOf(
                                             dev.chrisbanes.haze.HazeTint(
                                                 MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
                                             )
-                                        )
+                                        ),
+                                        backgroundColor = Color.Transparent
                                     )
                                 )
                             } else Modifier
                         )
                         .clip(filterButtonShape)
-                        .background(filterButtonBg, shape = filterButtonShape)
+                        .background(filterButtonBgBrush, shape = filterButtonShape)
                         .border(
                             if (isFilterActive) {
-                                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                             } else {
                                 BorderStroke(1.dp, searchRimBrush)
                             },

@@ -799,25 +799,6 @@ fun FarmerFormScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        /* CSS glassmorphism reference:
-         * background: rgba(<selected-palette-shade>, 0.08);
-         * -webkit-backdrop-filter: blur(10px);
-         * backdrop-filter: blur(10px);
-         */
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            (parsedPaletteColor ?: formAccent).copy(alpha = if (isDark) 0.08f else 0.04f),
-                            Color.Transparent,
-                            (parsedPaletteColor ?: formAccent).copy(alpha = if (isDark) 0.06f else 0.03f)
-                        )
-                    )
-                )
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
