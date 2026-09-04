@@ -2485,20 +2485,18 @@ fun FarmerFormScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
                     IconButton(
-                        onClick = { showDatePicker(bookingDate) { viewModel.bookingDate.value = it } },
+                        onClick = {
+                            showDatePicker(bookingDate) {
+                                viewModel.bookingDate.value = it
+                                bookingDateTFV = TextFieldValue(text = it, selection = TextRange(it.length))
+                            }
+                        },
                         modifier = Modifier.size(36.dp).testTag("booking_date_picker_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Date",
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Select Booking Date",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
@@ -2535,20 +2533,18 @@ fun FarmerFormScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
                     IconButton(
-                        onClick = { showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) { viewModel.expectedDelivery.value = it } },
+                        onClick = {
+                            showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) {
+                                viewModel.expectedDelivery.value = it
+                                expectedDeliveryTFV = TextFieldValue(text = it, selection = TextRange(it.length))
+                            }
+                        },
                         modifier = Modifier.size(36.dp).testTag("expected_delivery_picker_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Date",
+                            imageVector = Icons.Default.LocalShipping,
+                            contentDescription = "Select Expected Delivery Date",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )

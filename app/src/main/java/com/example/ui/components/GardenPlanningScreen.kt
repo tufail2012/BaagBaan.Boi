@@ -1656,20 +1656,13 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
                     IconButton(
                         onClick = { openDatePicker(true) },
                         modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Date",
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Select Booking Date",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
@@ -1705,20 +1698,13 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
                     IconButton(
                         onClick = { openDatePicker(false) },
                         modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Select Date",
+                            imageVector = Icons.Default.LocalShipping,
+                            contentDescription = "Select Expected Delivery Date",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )

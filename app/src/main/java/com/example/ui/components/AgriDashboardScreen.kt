@@ -238,77 +238,78 @@ fun Modifier.etchedGlassSurface(
         accentColor.copy(alpha = 0.04f)
     }
 
-    // Refined frosted-glass HazeStyle: 24.dp blur for true translucent Gaussian dispersion
+    // Refined frosted-glass HazeStyle: 20.dp blur for true translucent Gaussian dispersion
+    // Transparent background tint allows background shapes & colors to diffuse through vividly
     val hazeStyle = HazeStyle(
         backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.22f)
+            Color.Black.copy(alpha = 0.12f)
         } else if (isDark) {
-            Color(0xFF14121B).copy(alpha = 0.18f)
+            Color(0xFF14121B).copy(alpha = 0.10f)
         } else {
-            Color.White.copy(alpha = 0.15f)
+            Color.White.copy(alpha = 0.05f)
         },
-        blurRadius = 24.dp,
+        blurRadius = 20.dp,
         tints = listOf(
             HazeTint(
                 color = if (isDark || isAmoled) {
-                    accentColor.copy(alpha = 0.04f)
+                    accentColor.copy(alpha = 0.02f)
                 } else {
-                    Color.White.copy(alpha = 0.06f)
+                    Color.White.copy(alpha = 0.02f)
                 }
             )
         ),
-        noiseFactor = 0.02f
+        noiseFactor = 0f
     )
 
-    // Translucent glass body wash: highly transparent, crisp specular upper edge, letting background diffuse through
+    // Translucent glass body wash: thin crystal-clear glass allowing backdrop colors & shapes to softly show through
     val glassBaseBrush = when {
         isAmoled -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.08f),
-                    Color(0xFF100E14).copy(alpha = 0.16f),
-                    accentColor.copy(alpha = 0.03f),
-                    Color(0xFF000000).copy(alpha = 0.30f)
+                    Color.White.copy(alpha = 0.06f),
+                    Color(0xFF100E14).copy(alpha = 0.08f),
+                    accentColor.copy(alpha = 0.02f),
+                    Color(0xFF000000).copy(alpha = 0.18f)
                 )
             )
         }
         isDark -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.14f),
-                    Color(0xFF221F2B).copy(alpha = 0.20f),
-                    accentColor.copy(alpha = 0.04f),
-                    Color(0xFF14121A).copy(alpha = 0.26f)
+                    Color.White.copy(alpha = 0.08f),
+                    Color(0xFF221F2B).copy(alpha = 0.10f),
+                    accentColor.copy(alpha = 0.02f),
+                    Color(0xFF14121A).copy(alpha = 0.14f)
                 )
             )
         }
         else -> {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.36f), // Subtle specular rim along top edge
-                    Color.White.copy(alpha = 0.12f), // Crystal-clear translucent glass body
-                    accentColor.copy(alpha = 0.03f), // Very subtle luminous accent sheen
-                    Color.White.copy(alpha = 0.18f)  // Soft ambient bottom reflection
+                    Color.White.copy(alpha = 0.18f), // Crisp specular reflection along top edge
+                    Color.White.copy(alpha = 0.04f), // Crystal-clear translucent glass body
+                    Color.White.copy(alpha = 0.02f), // Transparent center letting background shine through
+                    Color.White.copy(alpha = 0.08f)  // Soft ambient bottom return
                 )
             )
         }
     }
 
-    // Specular reflective glass rim border: subtle and refined
+    // Specular reflective glass rim border: subtle, refined 1dp etched glass rim
     val borderBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.38f), // Crisp specular reflection along top edge
-                accentColor.copy(alpha = 0.22f), // Reflective edge sheen
-                Color.White.copy(alpha = 0.10f), // Clear lateral glass sides
-                Color.White.copy(alpha = 0.05f)  // Soft specular bottom return
+                Color.White.copy(alpha = 0.32f), // Crisp specular reflection along top edge
+                accentColor.copy(alpha = 0.18f), // Reflective edge sheen
+                Color.White.copy(alpha = 0.08f), // Clear lateral glass sides
+                Color.White.copy(alpha = 0.04f)  // Soft specular bottom return
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.75f), // Crisp specular reflection along top edge
-                Color.White.copy(alpha = 0.35f), // Clear lateral glass sides
-                accentColor.copy(alpha = 0.12f), // Ambient edge reflection
-                Color.White.copy(alpha = 0.25f)  // Soft specular bottom return
+                Color.White.copy(alpha = 0.65f), // Crisp specular reflection along top edge
+                Color.White.copy(alpha = 0.25f), // Clear lateral glass sides
+                Color.White.copy(alpha = 0.10f), // Bottom subtle edge
+                Color.White.copy(alpha = 0.20f)  // Soft specular bottom return
             )
         },
         start = Offset.Zero,
@@ -339,46 +340,42 @@ fun Modifier.etchedGlassSurface(
         )
         .background(brush = glassBaseBrush, shape = shape)
         .drawWithContent {
-            drawContent()
             val w = size.width
-            val margin = 12.dp.toPx()
+            val margin = 10.dp.toPx()
             val highlightH = 1.dp.toPx()
 
-            // Ultra-subtle analog micro-grain texture for tactile frosted glass feel
-            drawRect(
-                brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.02f else 0.025f
-            )
-
             if (showTopGlint) {
-                // Crisp top specular glint beam along upper rim
+                // Crisp top specular glint beam along upper rim (drawn on glass surface beneath content)
                 drawRect(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
-                            Color.White.copy(alpha = if (isDark || isAmoled) 0.65f else 0.85f),
-                            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.25f else 0.40f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.50f else 0.75f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.25f else 0.40f),
                             Color.Transparent
                         ),
                         startX = margin,
                         endX = w - margin
                     ),
-                    topLeft = Offset(margin, 1.dp.toPx()),
+                    topLeft = Offset(margin, 0.5.dp.toPx()),
                     size = Size(w - (margin * 2), highlightH)
                 )
-                // Subtle top-left specular corner sheen
+                // Subtle top-left specular corner reflection
                 drawRect(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = if (isDark || isAmoled) 0.08f else 0.12f),
+                            Color.White.copy(alpha = if (isDark || isAmoled) 0.05f else 0.08f),
                             Color.Transparent
                         ),
                         center = Offset(0f, 0f),
-                        radius = size.width * 0.35f
+                        radius = size.width * 0.30f
                     )
                 )
             }
+
+            // Draw content ON TOP of the glass reflections so all text, icons & numbers remain 100% sharp
+            drawContent()
         }
         .border(width = borderWidth, brush = borderBrush, shape = shape)
 }
@@ -418,10 +415,10 @@ private fun DashboardAmbientBackdrop(
         }
     }
 
-    // Alpha scales tuned for natural diffusion through 24.dp blur without blowing out contrast
-    val primaryAlpha = if (isAmoled) 0.26f else if (isDark) 0.34f else 0.42f
-    val secondaryAlpha = if (isAmoled) 0.22f else if (isDark) 0.28f else 0.36f
-    val tertiaryAlpha = if (isAmoled) 0.18f else if (isDark) 0.24f else 0.30f
+    // Alpha scales tuned for natural diffusion through 20.dp blur without blowing out contrast
+    val primaryAlpha = if (isAmoled) 0.28f else if (isDark) 0.36f else 0.44f
+    val secondaryAlpha = if (isAmoled) 0.24f else if (isDark) 0.30f else 0.38f
+    val tertiaryAlpha = if (isAmoled) 0.20f else if (isDark) 0.26f else 0.32f
 
     androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
@@ -458,6 +455,38 @@ private fun DashboardAmbientBackdrop(
             ),
             center = Offset(w * 0.05f, h * 0.42f),
             radius = w * 0.55f
+        )
+
+        // 2c. Soft organic botanical curves that diffuse through the glass surfaces
+        val stemColor = effectivePrimary.copy(alpha = if (isDark || isAmoled) 0.18f else 0.26f)
+        val leafColor = secondaryColor.copy(alpha = if (isDark || isAmoled) 0.16f else 0.22f)
+
+        val leftStem = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.02f, h * 0.18f)
+            cubicTo(w * 0.08f, h * 0.26f, w * 0.01f, h * 0.38f, w * 0.06f, h * 0.48f)
+            cubicTo(w * 0.11f, h * 0.58f, w * 0.03f, h * 0.68f, w * 0.07f, h * 0.78f)
+        }
+        drawPath(
+            path = leftStem,
+            color = stemColor,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 3.dp.toPx(),
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
+        )
+
+        val rightStem = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.98f, h * 0.22f)
+            cubicTo(w * 0.92f, h * 0.32f, w * 0.97f, h * 0.44f, w * 0.91f, h * 0.58f)
+            cubicTo(w * 0.88f, h * 0.68f, w * 0.96f, h * 0.80f, w * 0.92f, h * 0.90f)
+        }
+        drawPath(
+            path = rightStem,
+            color = leafColor,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 3.dp.toPx(),
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
         )
 
         // 3. Mid-right organic diffusion bloom (behind Operational Summaries)
@@ -1077,7 +1106,7 @@ fun AgriDashboardScreen(
                                                 } else {
                                                     Modifier
                                                         .background(
-                                                            if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.38f)
+                                                            if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.18f)
                                                         )
                                                         .border(
                                                             1.dp,
@@ -1566,7 +1595,8 @@ private fun FinancialBreakdownCard(
                     total = totalRecordsCount,
                     color = Color(0xFF10B981),
                     icon = Icons.Default.CheckCircle,
-                    isDark = isDark
+                    isDark = isDark,
+                    isAmoled = isAmoled
                 )
 
                 StatusBadgeCount(
@@ -1575,7 +1605,8 @@ private fun FinancialBreakdownCard(
                     total = totalRecordsCount,
                     color = Color(0xFFF59E0B),
                     icon = Icons.Default.HourglassEmpty,
-                    isDark = isDark
+                    isDark = isDark,
+                    isAmoled = isAmoled
                 )
 
                 StatusBadgeCount(
@@ -1584,7 +1615,8 @@ private fun FinancialBreakdownCard(
                     total = totalRecordsCount,
                     color = Color(0xFFEF4444),
                     icon = Icons.Default.ReceiptLong,
-                    isDark = isDark
+                    isDark = isDark,
+                    isAmoled = isAmoled
                 )
             }
         }
@@ -1608,12 +1640,15 @@ private fun FinancialMetricBox(
         colors = if (isDark || isAmoled) {
             listOf(
                 Color.White.copy(alpha = 0.08f),
-                Color.Black.copy(alpha = 0.22f)
+                accentColor.copy(alpha = 0.03f),
+                Color(0xFF14121A).copy(alpha = 0.14f)
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.40f),
-                Color.White.copy(alpha = 0.16f)
+                Color.White.copy(alpha = 0.20f), // Crisp top specular reflection
+                Color.White.copy(alpha = 0.05f), // Highly translucent glass body
+                accentColor.copy(alpha = 0.03f), // Very gentle color breath
+                Color.White.copy(alpha = 0.10f)  // Soft bottom return
             )
         }
     )
@@ -1625,8 +1660,8 @@ private fun FinancialMetricBox(
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.80f),
-                Color.White.copy(alpha = 0.35f)
+                Color.White.copy(alpha = 0.70f), // Crisp specular upper rim
+                Color.White.copy(alpha = 0.22f)  // Subtle lower rim
             )
         }
     )
@@ -1638,6 +1673,37 @@ private fun FinancialMetricBox(
             .border(1.dp, podBorderBrush, podShape)
             .padding(10.dp)
     ) {
+        // Decorative trendline sparkline pinned to bottom of the glass pod
+        androidx.compose.foundation.Canvas(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(podShape)
+        ) {
+            val pw = size.width
+            val ph = size.height
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(0f, ph * 0.88f)
+                cubicTo(
+                    pw * 0.25f, ph * 0.94f,
+                    pw * 0.45f, ph * 0.76f,
+                    pw * 0.70f, ph * 0.82f
+                )
+                cubicTo(
+                    pw * 0.85f, ph * 0.88f,
+                    pw * 0.95f, ph * 0.70f,
+                    pw, ph * 0.74f
+                )
+            }
+            drawPath(
+                path = path,
+                color = accentColor.copy(alpha = if (isDark || isAmoled) 0.30f else 0.40f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 1.5.dp.toPx(),
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            )
+        }
+
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -1650,7 +1716,13 @@ private fun FinancialMetricBox(
                         .size(20.dp)
                         .clip(CircleShape)
                         .background(accentColor.copy(alpha = 0.16f))
-                        .border(0.8.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                        .border(
+                            0.8.dp,
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.70f), accentColor.copy(alpha = 0.35f))
+                            ),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1713,36 +1785,40 @@ private fun StatusBadgeCount(
     total: Int,
     color: Color,
     icon: ImageVector,
-    isDark: Boolean
+    isDark: Boolean,
+    isAmoled: Boolean = false
 ) {
     val chipShape = RoundedCornerShape(10.dp)
-    val chipBgBrush = if (isDark) {
+    val chipBgBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             listOf(
-                color.copy(alpha = 0.18f),
-                color.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.06f),
+                color.copy(alpha = 0.08f),
+                Color(0xFF14121A).copy(alpha = 0.14f)
             )
         )
     } else {
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.45f),
-                color.copy(alpha = 0.10f)
+                Color.White.copy(alpha = 0.22f), // Specular rim
+                Color.White.copy(alpha = 0.05f), // Translucent glass body
+                color.copy(alpha = 0.04f),       // Status color reflection
+                Color.White.copy(alpha = 0.10f)
             )
         )
     }
-    val chipBorderBrush = if (isDark) {
+    val chipBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             listOf(
-                color.copy(alpha = 0.45f),
-                color.copy(alpha = 0.20f)
+                color.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.10f)
             )
         )
     } else {
         Brush.verticalGradient(
             listOf(
-                Color.White.copy(alpha = 0.75f),
-                color.copy(alpha = 0.30f)
+                Color.White.copy(alpha = 0.70f),
+                color.copy(alpha = 0.25f)
             )
         )
     }
@@ -1760,8 +1836,14 @@ private fun StatusBadgeCount(
             modifier = Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(color.copy(alpha = 0.18f))
-                .border(0.8.dp, color.copy(alpha = 0.40f), CircleShape),
+                .background(color.copy(alpha = 0.16f))
+                .border(
+                    0.8.dp,
+                    Brush.verticalGradient(
+                        listOf(Color.White.copy(alpha = 0.70f), color.copy(alpha = 0.35f))
+                    ),
+                    CircleShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
