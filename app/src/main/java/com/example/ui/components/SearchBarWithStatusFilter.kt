@@ -2,7 +2,9 @@ package com.example.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
@@ -28,7 +32,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,14 +43,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.isAppInDarkMode
-import com.example.ui.components.elevatedInputFieldColors
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 val PAYMENT_STATUS_FILTER_OPTIONS = listOf(
     "All Records",
@@ -57,8 +64,8 @@ val PAYMENT_STATUS_FILTER_OPTIONS = listOf(
 )
 
 /**
- * Shared SearchBar with attached Payment Status Filter Dropdown.
- * Used across all record-list tabs (Local Plants, Pruning, Garden Planning, etc.)
+ * Shared SearchBar with Frosted Liquid Glass floating capsule search field
+ * and active/inactive frosted glass filter chips.
  */
 @Composable
 fun SearchBarWithStatusFilter(
@@ -69,112 +76,177 @@ fun SearchBarWithStatusFilter(
     modifier: Modifier = Modifier,
     placeholderText: String = "Search by farmer name, phone, serial...",
     isDark: Boolean = isAppInDarkMode(),
-    testTagPrefix: String = "record_search"
+    testTagPrefix: String = "record_search",
+    hazeState: HazeState? = LocalAppGlassHazeState.current
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
-    val searchShape = RoundedCornerShape(24.dp)
     val isFilterActive = selectedFilter != "All Records"
+    val capsuleShape = RoundedCornerShape(percent = 50)
+    val filterScrollState = rememberScrollState()
+
+    // Specification 2: Search field floating capsule with Color.White.copy(alpha = 0.35f) background and subtle white rim
+    val searchBgColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
+    val searchRimBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
+            Color.White.copy(alpha = if (isDark) 0.12f else 0.25f)
+        )
+    )
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Search Text Field
-            AppOutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = {
-                    Text(
-                        text = placeholderText,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+            // Target Component 1: Search Field Floating Capsule
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp)
+                    .shadow(
+                        elevation = 2.dp,
+                        shape = capsuleShape,
+                        spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f),
+                        ambientColor = Color.Black.copy(alpha = if (isDark) 0.10f else 0.02f)
                     )
-                },
-                leadingIcon = {
+                    .then(
+                        if (hazeState != null) {
+                            Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                        } else Modifier
+                    )
+                    .clip(capsuleShape)
+                    .background(searchBgColor, shape = capsuleShape)
+                    .border(BorderStroke(1.dp, searchRimBrush), shape = capsuleShape)
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
-                },
-                trailingIcon = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(
-                                onClick = { onSearchQueryChange("") },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear Search",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = placeholderText,
+                                fontSize = 13.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
-                        VoiceSearchIconButton(
-                            onQueryChange = onSearchQueryChange,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            isDark = isDark,
-                            buttonSize = 34.dp,
-                            iconSize = 18.dp,
-                            testTag = "${testTagPrefix}_voice_search_btn"
+
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("${testTagPrefix}_input")
                         )
                     }
-                },
-                shape = searchShape,
-                singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("${testTagPrefix}_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
+
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(
+                            onClick = { onSearchQueryChange("") },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Clear Search",
+                                tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    VoiceSearchIconButton(
+                        onQueryChange = onSearchQueryChange,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        isDark = isDark,
+                        buttonSize = 30.dp,
+                        iconSize = 16.dp,
+                        testTag = "${testTagPrefix}_voice_search_btn"
+                    )
+                }
+            }
 
             // Filter Dropdown Anchor Button
             Box {
+                val filterButtonShape = RoundedCornerShape(percent = 50)
+                val filterButtonBg = if (isFilterActive) {
+                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                } else {
+                    if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
+                }
+
                 Box(
                     modifier = Modifier
-                        .height(52.dp)
-                        .glassCardBackground(
-                            isDark = isDark,
-                            accentColor = if (isFilterActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(20.dp)
+                        .height(48.dp)
+                        .shadow(
+                            elevation = 2.dp,
+                            shape = filterButtonShape,
+                            spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f)
                         )
-                        .clip(RoundedCornerShape(20.dp))
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                            } else Modifier
+                        )
+                        .clip(filterButtonShape)
+                        .background(filterButtonBg, shape = filterButtonShape)
+                        .border(
+                            if (isFilterActive) {
+                                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            } else {
+                                BorderStroke(1.dp, searchRimBrush)
+                            },
+                            shape = filterButtonShape
+                        )
                         .clickable { dropdownExpanded = true }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                        .testTag("${testTagPrefix}_filter_dropdown_btn"),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
                             contentDescription = "Filter Records",
                             tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
                             tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
 
-                // Filter Dropdown Menu
                 DropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = { dropdownExpanded = false },
@@ -232,37 +304,73 @@ fun SearchBarWithStatusFilter(
             }
         }
 
-        // Active Filter Indicator Pill (When a filter other than "All Records" is selected)
-        if (isFilterActive) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                AssistChip(
-                    onClick = { onFilterSelected("All Records") },
-                    label = {
+        // Specification 2: Filter Chips with Active / Inactive frosted glass states
+        // Active: Color.White.copy(alpha = 0.75f) with crisp border
+        // Inactive: Color.White.copy(alpha = 0.25f) with translucent border
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(filterScrollState),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val chipShape = RoundedCornerShape(percent = 50)
+
+            PAYMENT_STATUS_FILTER_OPTIONS.forEach { option ->
+                val isSelected = selectedFilter == option
+
+                val chipBg = if (isSelected) {
+                    Color.White.copy(alpha = if (isDark) 0.32f else 0.75f)
+                } else {
+                    Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
+                }
+
+                val chipBorder = if (isSelected) {
+                    BorderStroke(1.dp, Color.White.copy(alpha = if (isDark) 0.65f else 0.85f))
+                } else {
+                    BorderStroke(1.dp, Color.White.copy(alpha = if (isDark) 0.20f else 0.40f))
+                }
+
+                Box(
+                    modifier = Modifier
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                            } else Modifier
+                        )
+                        .clip(chipShape)
+                        .background(chipBg, shape = chipShape)
+                        .border(chipBorder, shape = chipShape)
+                        .clickable { onFilterSelected(option) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .testTag("${testTagPrefix}_chip_${option.lowercase().replace(" ", "_")}"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
+
                         Text(
-                            text = "Filter: $selectedFilter",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
+                            text = option,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) {
+                                if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                            } else {
+                                if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                            }
                         )
-                    },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear Filter",
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clickable { onFilterSelected("All Records") }
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        trailingIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    }
+                }
             }
         }
     }

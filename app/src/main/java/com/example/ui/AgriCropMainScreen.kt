@@ -777,7 +777,10 @@ fun AgriCropMainScreen(
                                                 0 -> FarmerFormScreen(
                                                     viewModel = viewModel
                                                 )
-                                                else -> FarmerRecordsScreen(viewModel = viewModel)
+                                                else -> FarmerRecordsScreen(
+                                                    viewModel = viewModel,
+                                                    hazeState = hazeState
+                                                )
                                             }
                                         }
                                     }

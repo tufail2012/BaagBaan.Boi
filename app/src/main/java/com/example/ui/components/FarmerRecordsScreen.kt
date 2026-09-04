@@ -57,6 +57,7 @@ import com.example.util.MapHelper
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.Spa
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
@@ -87,6 +88,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -95,9 +97,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.HazeMaterials
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
@@ -111,8 +118,10 @@ import java.util.Locale
 @Composable
 fun FarmerRecordsScreen(
     viewModel: CropViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalAppGlassHazeState.current
 ) {
+    val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -188,49 +197,24 @@ fun FarmerRecordsScreen(
         },
         modifier = modifier.fillMaxSize()
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        // Container with hazeSource so list items dynamically blur under sticky top bar and bottom nav
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (effectiveHazeState != null) {
+                        Modifier.hazeSource(state = effectiveHazeState)
+                    } else Modifier
+                )
         ) {
-            // Fixed top spacing for floating AgriSegmentedControl
-            Spacer(modifier = Modifier.height(72.dp))
-
-            // Sticky Fixed Top Section: Recording Book Header Banner + Search Bar & Filter
-            Surface(
-                color = MaterialTheme.colorScheme.background,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    RecordingBookHeader(
-                        title = bookTitle,
-                        count = records.size
-                    )
-                    SearchBarWithStatusFilter(
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
-                        selectedFilter = selectedPaymentFilter,
-                        onFilterSelected = { viewModel.setPaymentFilter(it) },
-                        placeholderText = "Search by farmer name, phone, serial no...",
-                        isDark = isDark,
-                        testTagPrefix = "crop_search",
-                        modifier = Modifier.padding(bottom = 2.dp)
-                    )
-                }
-            }
-
-            // Scrollable content (Total Payment, summaries, records) scrolling underneath
+            // Scrollable content (Summary Cards, Records List) scrolling underneath the pinned header
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = 210.dp, bottom = 110.dp)
             ) {
                 // 3. Summary Cards (Total Payment, Received, Pending, Quantity)
                 item {
@@ -241,90 +225,275 @@ fun FarmerRecordsScreen(
                         totalQuantity = totalQuantity,
                         isPruning = isPruning,
                         isSiteVisit = isSiteVisit,
-                        isDark = isDark
+                        isDark = isDark,
+                        hazeState = effectiveHazeState
                     )
                 }
 
-        // Records List, Shimmer Skeleton Loading, or Empty State
-        if (records.isEmpty()) {
-            if (isInitialLoading) {
-                items(4) {
-                    SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
-                }
-            } else {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Records List, Shimmer Skeleton Loading, or Empty State
+                if (records.isEmpty()) {
+                    if (isInitialLoading) {
+                        items(4) {
+                            SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
+                        }
+                    } else {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = Color.Gray
+                                    )
+                                    Text(
+                                        text = "No Records Found",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
+                                            "No records in $bookTitleName match your search/filter criteria."
+                                        else
+                                            "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here.",
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    OutlinedButton(
+                                        onClick = { viewModel.setViewMode(0) },
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    ) {
+                                        Text("Add New Entry to $bookTitleName")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    itemsIndexed(records, key = { _, record -> record.id }) { index, record ->
+                        StaggeredEntranceWrapper(
+                            itemId = record.id,
+                            index = index,
+                            animatedItemIds = animatedItemIds
                         ) {
-                        Icon(
-                            imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.Gray
-                        )
-                        Text(
-                            text = "No Records Found",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
-                                "No records in $bookTitleName match your search/filter criteria."
-                            else
-                                "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here.",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        OutlinedButton(
-                            onClick = { viewModel.setViewMode(0) },
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Text("Add New Entry to $bookTitleName")
+                            SwipeableRecordItem(
+                                record = record,
+                                onDelete = { recordToDelete = record }
+                            ) {
+                                FarmerRecordCard(
+                                    record = record,
+                                    searchQuery = searchQuery,
+                                    onCallFarmer = {
+                                        if (record.contactNumber.isNotBlank()) {
+                                            val intent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:${record.contactNumber}")
+                                            }
+                                            context.startActivity(intent)
+                                        }
+                                    },
+                                    onEdit = { viewModel.loadRecordForEditing(record) },
+                                    onDelete = { recordToDelete = record },
+                                    onOpenDetail = { selectedDetailRecord = record },
+                                    hazeState = effectiveHazeState
+                                )
+                            }
                         }
                     }
                 }
-                }
             }
-        } else {
-            itemsIndexed(records, key = { _, record -> record.id }) { index, record ->
-                StaggeredEntranceWrapper(
-                    itemId = record.id,
-                    index = index,
-                    animatedItemIds = animatedItemIds
+
+            // Target Component 1 & 2: Top Sticky Frosted Liquid Glass Header Section
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .zIndex(5f)
+            ) {
+                // Fixed top spacing for floating AgriSegmentedControl (72.dp)
+                Spacer(modifier = Modifier.height(72.dp))
+
+                // Sticky Fixed Frosted Header: Recording Book Header Banner + Search Bar & Filter Chips
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (effectiveHazeState != null) {
+                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                            } else Modifier
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.65f else 0.75f),
+                                    (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.35f else 0.45f)
+                                )
+                            )
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.60f),
+                                        Color.White.copy(alpha = 0.05f)
+                                    )
+                                )
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    SwipeableRecordItem(
-                        record = record,
-                        onDelete = { recordToDelete = record }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        FarmerRecordCard(
-                            record = record,
+                        RecordingBookHeader(
+                            title = bookTitle,
+                            count = records.size,
+                            hazeState = effectiveHazeState
+                        )
+                        SearchBarWithStatusFilter(
                             searchQuery = searchQuery,
-                            onCallFarmer = {
-                                if (record.contactNumber.isNotBlank()) {
-                                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = Uri.parse("tel:${record.contactNumber}")
-                                    }
-                                    context.startActivity(intent)
-                                }
-                            },
-                            onEdit = { viewModel.loadRecordForEditing(record) },
-                            onDelete = { recordToDelete = record },
-                            onOpenDetail = { selectedDetailRecord = record }
+                            onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
+                            selectedFilter = selectedPaymentFilter,
+                            onFilterSelected = { viewModel.setPaymentFilter(it) },
+                            placeholderText = "Search by farmer name, phone, serial no...",
+                            isDark = isDark,
+                            testTagPrefix = "crop_search",
+                            hazeState = effectiveHazeState,
+                            modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
                 }
             }
+
+            // Target Component 4: Floating Action Button (FAB)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 96.dp, end = 16.dp)
+                    .zIndex(8f)
+            ) {
+                Surface(
+                    onClick = { viewModel.setViewMode(0) },
+                    shape = RoundedCornerShape(percent = 50),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = RoundedCornerShape(percent = 50),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
+                        .then(
+                            if (effectiveHazeState != null) {
+                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                            } else Modifier
+                        )
+                        .background(
+                            brush = Brush.verticalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.88f else 0.92f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.68f else 0.76f)
+                                )
+                            ),
+                            shape = RoundedCornerShape(percent = 50)
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = 0.80f),
+                                        Color.White.copy(alpha = 0.25f)
+                                    )
+                                )
+                            ),
+                            shape = RoundedCornerShape(percent = 50)
+                        )
+                        .testTag("fab_add_crop_record")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "New Entry",
+                            tint = Color.White,
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Text(
+                            text = "New Entry",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+
+            // Scroll to Top quick action button
+            AnimatedVisibility(
+                visible = listState.firstVisibleItemIndex > 2,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 152.dp, end = 20.dp)
+                    .zIndex(8f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .then(
+                            if (effectiveHazeState != null) {
+                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                            } else Modifier
+                        )
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.22f else 0.50f),
+                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
+                                )
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f))
+                                )
+                            ),
+                            CircleShape
+                        )
+                        .clip(CircleShape)
+                        .clickable {
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(0)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to top",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         }
-    }
-    }
     }
 
     recordToDelete?.let { rec ->
@@ -368,7 +537,8 @@ private fun RecordSummaryCards(
     totalQuantity: Int,
     isPruning: Boolean,
     isSiteVisit: Boolean = false,
-    isDark: Boolean
+    isDark: Boolean,
+    hazeState: HazeState? = null
 ) {
     val numberFmt = NumberFormat.getNumberInstance(Locale("en", "IN"))
 
@@ -388,6 +558,7 @@ private fun RecordSummaryCards(
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = MaterialTheme.colorScheme.primary,
                 isDark = isDark,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
 
@@ -399,6 +570,7 @@ private fun RecordSummaryCards(
                 icon = Icons.Default.CheckCircle,
                 accentColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.90f) else MaterialTheme.colorScheme.primary,
                 isDark = isDark,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -415,6 +587,7 @@ private fun RecordSummaryCards(
                 icon = Icons.Default.HourglassTop,
                 accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
                 isDark = isDark,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
 
@@ -427,6 +600,7 @@ private fun RecordSummaryCards(
                     icon = Icons.Default.Inventory2,
                     accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                     isDark = isDark,
+                    hazeState = hazeState,
                     modifier = Modifier.weight(1f)
                 )
             } else {
@@ -444,15 +618,36 @@ private fun SummaryCardItem(
     icon: ImageVector,
     accentColor: Color,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null
 ) {
+    val cardShape = RoundedCornerShape(16.dp)
+    val fillBrush = Brush.verticalGradient(
+        if (isDark) listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
+        else listOf(Color.White.copy(alpha = 0.42f), Color.White.copy(alpha = 0.14f))
+    )
+    val borderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
+            Color.White.copy(alpha = if (isDark) 0.10f else 0.20f)
+        )
+    )
+
     Box(
         modifier = modifier
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = accentColor,
-                shape = RoundedCornerShape(14.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = cardShape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f)
             )
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                } else Modifier
+            )
+            .clip(cardShape)
+            .background(fillBrush, shape = cardShape)
+            .border(BorderStroke(1.dp, borderBrush), shape = cardShape)
     ) {
         Row(
             modifier = Modifier
@@ -524,7 +719,8 @@ private fun FarmerRecordCard(
     onCallFarmer: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onOpenDetail: () -> Unit
+    onOpenDetail: () -> Unit,
+    hazeState: HazeState? = null
 ) {
     val context = LocalContext.current
     val isDark = isAppInDarkMode()
@@ -534,8 +730,23 @@ private fun FarmerRecordCard(
     val remBalance = record.calculateRemainingBalance()
 
     val initial = record.farmerName.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "F"
-
     val avatarBgColor = MaterialTheme.colorScheme.primary
+    val cardShape = RoundedCornerShape(22.dp)
+
+    // Specification 1: Liquid Frosted Glass Cards (List Items)
+    // Refraction Fill: Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.42f), Color.White.copy(alpha = 0.14f)))
+    val cardFillBrush = Brush.verticalGradient(
+        if (isDark) listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
+        else listOf(Color.White.copy(alpha = 0.42f), Color.White.copy(alpha = 0.14f))
+    )
+
+    // Specular Edge Highlight: border(BorderStroke(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f)))), RoundedCornerShape(22.dp))
+    val cardBorderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
+            Color.White.copy(alpha = if (isDark) 0.10f else 0.20f)
+        )
+    )
 
     val statusLabel = when {
         record.isCancelled -> "Cancelled"
@@ -545,23 +756,52 @@ private fun FarmerRecordCard(
         else -> "Pending"
     }
 
-    val (statusBadgeBg, statusBadgeText) = when {
-        record.isCancelled -> Pair(if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2), if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626))
-        record.isReceived -> Pair(if (isDark) Color(0xFF134E4A) else Color(0xFFCCFBF1), if (isDark) Color(0xFF5EEAD4) else Color(0xFF0F766E))
-        record.isPaymentCleared() -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.30f else 0.15f), if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.95f) else MaterialTheme.colorScheme.primary)
-        record.amountPaid > 0 -> Pair(if (isDark) Color(0xFF7C2D12) else Color(0xFFFFEDD5), if (isDark) Color(0xFFFDBA74) else Color(0xFFC2410C))
-        else -> Pair(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), MaterialTheme.colorScheme.primary)
+    // Status badges: Semi-transparent frosted pills with vibrant accent text
+    val (statusBadgeBg, statusBadgeBorder, statusBadgeText) = when {
+        record.isCancelled -> Triple(
+            if (isDark) Color(0xFF64748B).copy(alpha = 0.22f) else Color(0xFF64748B).copy(alpha = 0.16f),
+            if (isDark) Color(0xFF64748B).copy(alpha = 0.45f) else Color(0xFF64748B).copy(alpha = 0.35f),
+            if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+        )
+        record.isReceived -> Triple(
+            if (isDark) Color(0xFF06B6D4).copy(alpha = 0.22f) else Color(0xFF06B6D4).copy(alpha = 0.16f),
+            if (isDark) Color(0xFF06B6D4).copy(alpha = 0.45f) else Color(0xFF06B6D4).copy(alpha = 0.35f),
+            if (isDark) Color(0xFF22D3EE) else Color(0xFF0891B2)
+        )
+        record.isPaymentCleared() -> Triple(
+            if (isDark) Color(0xFF10B981).copy(alpha = 0.22f) else Color(0xFF10B981).copy(alpha = 0.16f),
+            if (isDark) Color(0xFF10B981).copy(alpha = 0.45f) else Color(0xFF10B981).copy(alpha = 0.35f),
+            if (isDark) Color(0xFF34D399) else Color(0xFF059669)
+        )
+        record.amountPaid > 0 -> Triple(
+            if (isDark) Color(0xFFF59E0B).copy(alpha = 0.22f) else Color(0xFFF59E0B).copy(alpha = 0.16f),
+            if (isDark) Color(0xFFF59E0B).copy(alpha = 0.45f) else Color(0xFFF59E0B).copy(alpha = 0.35f),
+            if (isDark) Color(0xFFFBBF24) else Color(0xFFD97706)
+        )
+        else -> Triple(
+            if (isDark) Color(0xFFEF4444).copy(alpha = 0.22f) else Color(0xFFEF4444).copy(alpha = 0.16f),
+            if (isDark) Color(0xFFEF4444).copy(alpha = 0.45f) else Color(0xFFEF4444).copy(alpha = 0.35f),
+            if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
+        )
     }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(16.dp)
+            .shadow(
+                elevation = 3.dp,
+                shape = cardShape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.25f else 0.08f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.15f else 0.04f)
             )
-            .clip(RoundedCornerShape(16.dp))
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                } else Modifier
+            )
+            .clip(cardShape)
+            .background(cardFillBrush, shape = cardShape)
+            .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag("farmer_record_card_${record.id}")
     ) {
         Column(
@@ -610,16 +850,21 @@ private fun FarmerRecordCard(
                     ) {
                         if (record.serialNumber.isNotBlank()) {
                             Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9),
-                                border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1))
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isDark) Color(0xFF334155).copy(alpha = 0.60f) else Color(0xFFE2E8F0).copy(alpha = 0.75f),
+                                border = BorderStroke(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        listOf(Color.White.copy(alpha = 0.50f), Color.White.copy(alpha = 0.15f))
+                                    )
+                                )
                             ) {
                                 Text(
                                     text = "#${record.serialNumber}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A),
+                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                 )
                             }
                         }
@@ -634,24 +879,26 @@ private fun FarmerRecordCard(
                     }
                 }
 
-                // Payment Status Badge
-                Surface(
-                    color = statusBadgeBg,
-                    shape = RoundedCornerShape(12.dp)
+                // Payment Status Badge: Semi-transparent frosted pill with vibrant accent text
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(statusBadgeBg, shape = RoundedCornerShape(12.dp))
+                        .border(BorderStroke(1.dp, statusBadgeBorder), shape = RoundedCornerShape(12.dp))
+                        .padding(horizontal = 9.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = statusLabel,
                         color = statusBadgeText,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 2.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.45f)
             )
 
             // Address & Contact Info
@@ -781,20 +1028,42 @@ private fun FarmerRecordCard(
                     modifier = Modifier.weight(1f, fill = false)
                 )
 
-                Text(
-                    text = "₹${NumberFormat.getNumberInstance(Locale("en", "IN")).format(totalAmount.toLong())}",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (remBalance > 0 && !record.isCancelled) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isDark) Color(0xFFEF4444).copy(alpha = 0.20f) else Color(0xFFEF4444).copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.30f))
+                        ) {
+                            Text(
+                                text = "Due: ₹${NumberFormat.getNumberInstance(Locale("en", "IN")).format(remBalance.toLong())}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "₹${NumberFormat.getNumberInstance(Locale("en", "IN")).format(totalAmount.toLong())}",
+                        fontSize = 15.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.45f),
                 thickness = 1.dp
             )
 
-            // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
+            // Target Component 4: Uniform Bottom Action Row with Frosted Liquid Glass Buttons
+            // 1. WhatsApp, 2. "View Details", 3. Edit, 4. Delete
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -802,13 +1071,27 @@ private fun FarmerRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. WhatsApp Icon
+                // 1. WhatsApp Action
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                        .border(1.dp, if (isDark) Color(0xFF166534) else Color(0xFF86EFAC).copy(alpha = 0.5f), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color(0xFF14532D).copy(alpha = 0.6f), Color(0xFF14532D).copy(alpha = 0.3f))
+                                else listOf(Color(0xFFDCFCE7).copy(alpha = 0.85f), Color(0xFFDCFCE7).copy(alpha = 0.5f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF86EFAC).copy(alpha = 0.8f), Color(0xFF86EFAC).copy(alpha = 0.25f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable {
                             if (record.contactNumber.isNotBlank()) {
                                 showCardWhatsAppConfirm = true
@@ -822,20 +1105,37 @@ private fun FarmerRecordCard(
                         imageVector = Icons.Default.Chat,
                         contentDescription = "WhatsApp",
                         tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
 
-                // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
+                // 2. "View Details" Frosted Pill with Right Arrow
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF1F5F9).copy(alpha = 0.9f))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.06f))
+                                else listOf(Color.White.copy(alpha = 0.60f), Color.White.copy(alpha = 0.30f))
+                            ),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (isDark) 0.55f else 0.80f),
+                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.30f)
+                                    )
+                                )
+                            ),
+                            RoundedCornerShape(percent = 50)
+                        )
                         .clickable { onOpenDetail() }
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "View Details",
@@ -847,17 +1147,31 @@ private fun FarmerRecordCard(
                         imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                         contentDescription = "View Details",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
-                // 4. Edit Icon
+                // 3. Edit Action
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.06f))
+                                else listOf(Color.White.copy(alpha = 0.60f), Color.White.copy(alpha = 0.30f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -865,17 +1179,31 @@ private fun FarmerRecordCard(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Record",
                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
 
-                // 5. Delete Icon
+                // 4. Delete Action
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                        .border(1.dp, if (isDark) Color(0xFF7F1D1D) else Color(0xFFFECDD3), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color(0xFF451A1A).copy(alpha = 0.6f), Color(0xFF451A1A).copy(alpha = 0.3f))
+                                else listOf(Color(0xFFFFE4E6).copy(alpha = 0.85f), Color(0xFFFFE4E6).copy(alpha = 0.5f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFFFECDD3).copy(alpha = 0.8f), Color(0xFFFECDD3).copy(alpha = 0.25f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -883,7 +1211,7 @@ private fun FarmerRecordCard(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Delete Record",
                         tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
