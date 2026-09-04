@@ -102,6 +102,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -161,6 +163,12 @@ fun FarmerRecordsScreen(
     val isPruning = selectedService.equals("Pruning", ignoreCase = true)
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
 
+    val accentColorHex by viewModel.accentColorHex.collectAsState()
+    val paletteColor = remember(accentColorHex) {
+        runCatching { Color(android.graphics.Color.parseColor(accentColorHex)) }.getOrNull()
+            ?: Color(0xFF10B981)
+    }
+
     val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
 
     var isInitialLoading by remember { mutableStateOf(true) }
@@ -174,12 +182,6 @@ fun FarmerRecordsScreen(
             isInitialLoading = false
         }
     }
-
-    // Financial & Quantity Summary Metrics for current records
-    val totalPayment = records.sumOf { it.calculateTotalAmount() }
-    val receivedPayment = records.sumOf { it.amountPaid }
-    val pendingPayment = records.sumOf { it.calculateRemainingBalance() }
-    val totalQuantity = records.sumOf { it.quantity }
 
     BrandedPullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -198,38 +200,38 @@ fun FarmerRecordsScreen(
         modifier = modifier.fillMaxSize()
     ) {
         // Container with hazeSource so list items dynamically blur under sticky top bar and bottom nav
+        /* CSS glassmorphism reference:
+         * background: rgba(<selected-palette-shade>, 0.08);
+         * -webkit-backdrop-filter: blur(10px);
+         * backdrop-filter: blur(10px);
+         */
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            paletteColor.copy(alpha = if (isDark) 0.08f else 0.04f),
+                            Color.Transparent,
+                            paletteColor.copy(alpha = if (isDark) 0.06f else 0.03f)
+                        )
+                    )
+                )
                 .then(
                     if (effectiveHazeState != null) {
                         Modifier.hazeSource(state = effectiveHazeState)
                     } else Modifier
                 )
         ) {
-            // Scrollable content (Summary Cards, Records List) scrolling underneath the pinned header
+            // Scrollable content (Records List) scrolling underneath the pinned header
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 210.dp, bottom = 110.dp)
+                contentPadding = PaddingValues(top = 96.dp, bottom = 110.dp)
             ) {
-                // 3. Summary Cards (Total Payment, Received, Pending, Quantity)
-                item {
-                    RecordSummaryCards(
-                        totalPayment = totalPayment,
-                        receivedPayment = receivedPayment,
-                        pendingPayment = pendingPayment,
-                        totalQuantity = totalQuantity,
-                        isPruning = isPruning,
-                        isSiteVisit = isSiteVisit,
-                        isDark = isDark,
-                        hazeState = effectiveHazeState
-                    )
-                }
-
                 // Records List, Shimmer Skeleton Loading, or Empty State
                 if (records.isEmpty()) {
                     if (isInitialLoading) {
@@ -238,41 +240,47 @@ fun FarmerRecordsScreen(
                         }
                     } else {
                         item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
+                            StaggeredEntranceWrapper(
+                                itemId = "empty_records_${bookTitle}",
+                                index = 0,
+                                animatedItemIds = animatedItemIds
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(64.dp),
-                                        tint = Color.Gray
-                                    )
-                                    Text(
-                                        text = "No Records Found",
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
-                                            "No records in $bookTitleName match your search/filter criteria."
-                                        else
-                                            "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here.",
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    OutlinedButton(
-                                        onClick = { viewModel.setViewMode(0) },
-                                        modifier = Modifier.padding(top = 8.dp)
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        Text("Add New Entry to $bookTitleName")
+                                        Icon(
+                                            imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(64.dp),
+                                            tint = Color.Gray
+                                        )
+                                        Text(
+                                            text = "No Records Found",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
+                                                "No records in $bookTitleName match your search/filter criteria."
+                                            else
+                                                "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here.",
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        OutlinedButton(
+                                            onClick = { viewModel.setViewMode(0) },
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        ) {
+                                            Text("Add New Entry to $bookTitleName")
+                                        }
                                     }
                                 }
                             }
@@ -318,23 +326,35 @@ fun FarmerRecordsScreen(
                     .fillMaxWidth()
                     .zIndex(5f)
             ) {
-                // Fixed top spacing for floating AgriSegmentedControl (72.dp)
-                Spacer(modifier = Modifier.height(72.dp))
-
-                // Sticky Fixed Frosted Header: Recording Book Header Banner + Search Bar & Filter Chips
+                // Sticky Fixed Frosted Header: Recording Book Header Banner + Search Bar with Dropdown Filter
+                /* CSS glassmorphism specification:
+                 * background: rgba(<selected-palette-shade>, 0.12);
+                 * -webkit-backdrop-filter: blur(10px);
+                 * backdrop-filter: blur(10px);
+                 * border: 1px solid rgba(255, 255, 255, 0.25);
+                 */
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
                             if (effectiveHazeState != null) {
-                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                Modifier.hazeEffect(
+                                    state = effectiveHazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 10.dp,
+                                        tints = listOf(
+                                            HazeTint(color = paletteColor.copy(alpha = if (isDark) 0.12f else 0.08f))
+                                        ),
+                                        backgroundColor = (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.65f else 0.75f)
+                                    )
+                                )
                             } else Modifier
                         )
                         .background(
                             Brush.verticalGradient(
                                 listOf(
-                                    (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.65f else 0.75f),
-                                    (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.35f else 0.45f)
+                                    paletteColor.copy(alpha = if (isDark) 0.16f else 0.10f),
+                                    (if (isDark) Color(0xFF0F172A) else Color.White).copy(alpha = if (isDark) 0.65f else 0.75f)
                                 )
                             )
                         )
@@ -344,7 +364,8 @@ fun FarmerRecordsScreen(
                                 Brush.verticalGradient(
                                     listOf(
                                         Color.White.copy(alpha = if (isDark) 0.35f else 0.60f),
-                                        Color.White.copy(alpha = 0.05f)
+                                        paletteColor.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.08f)
                                     )
                                 )
                             )
@@ -526,171 +547,6 @@ fun FarmerRecordsScreen(
                 viewModel.updateRecordSync(updatedRec)
             }
         )
-    }
-}
-
-@Composable
-private fun RecordSummaryCards(
-    totalPayment: Double,
-    receivedPayment: Double,
-    pendingPayment: Double,
-    totalQuantity: Int,
-    isPruning: Boolean,
-    isSiteVisit: Boolean = false,
-    isDark: Boolean,
-    hazeState: HazeState? = null
-) {
-    val numberFmt = NumberFormat.getNumberInstance(Locale("en", "IN"))
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Card 1: Total Payment
-            SummaryCardItem(
-                title = "Total Payment",
-                targetValue = totalPayment,
-                formatter = { "₹${numberFmt.format(it.toLong())}" },
-                icon = Icons.Default.AccountBalanceWallet,
-                accentColor = MaterialTheme.colorScheme.primary,
-                isDark = isDark,
-                hazeState = hazeState,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Card 2: Received Payment
-            SummaryCardItem(
-                title = "Received Payment",
-                targetValue = receivedPayment,
-                formatter = { "₹${numberFmt.format(it.toLong())}" },
-                icon = Icons.Default.CheckCircle,
-                accentColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.90f) else MaterialTheme.colorScheme.primary,
-                isDark = isDark,
-                hazeState = hazeState,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Card 3: Pending Payment
-            SummaryCardItem(
-                title = "Pending Payment",
-                targetValue = pendingPayment,
-                formatter = { "₹${numberFmt.format(it.toLong())}" },
-                icon = Icons.Default.HourglassTop,
-                accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
-                isDark = isDark,
-                hazeState = hazeState,
-                modifier = Modifier.weight(1f)
-            )
-
-            // Card 4: Total Quantity (Hidden on Pruning and Site Visit screens)
-            if (!isPruning && !isSiteVisit) {
-                SummaryCardItem(
-                    title = "Total Quantity",
-                    targetValue = totalQuantity.toDouble(),
-                    formatter = { "${numberFmt.format(it.toInt())} Units" },
-                    icon = Icons.Default.Inventory2,
-                    accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
-                    isDark = isDark,
-                    hazeState = hazeState,
-                    modifier = Modifier.weight(1f)
-                )
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SummaryCardItem(
-    title: String,
-    targetValue: Double,
-    formatter: (Double) -> String,
-    icon: ImageVector,
-    accentColor: Color,
-    isDark: Boolean,
-    modifier: Modifier = Modifier,
-    hazeState: HazeState? = null
-) {
-    val cardShape = RoundedCornerShape(16.dp)
-    val fillBrush = Brush.verticalGradient(
-        if (isDark) listOf(Color.White.copy(alpha = 0.12f), Color.White.copy(alpha = 0.04f))
-        else listOf(Color.White.copy(alpha = 0.42f), Color.White.copy(alpha = 0.14f))
-    )
-    val borderBrush = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
-            Color.White.copy(alpha = if (isDark) 0.10f else 0.20f)
-        )
-    )
-
-    Box(
-        modifier = modifier
-            .shadow(
-                elevation = 2.dp,
-                shape = cardShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.05f)
-            )
-            .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
-                } else Modifier
-            )
-            .clip(cardShape)
-            .background(fillBrush, shape = cardShape)
-            .border(BorderStroke(1.dp, borderBrush), shape = cardShape)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = if (isDark) 0.22f else 0.14f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                CountUpText(
-                    targetValue = targetValue,
-                    formatter = formatter,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
-                )
-            }
-        }
     }
 }
 

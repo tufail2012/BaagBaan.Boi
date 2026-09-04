@@ -799,24 +799,33 @@ fun FarmerFormScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
+        /* CSS glassmorphism reference:
+         * background: rgba(<selected-palette-shade>, 0.08);
+         * -webkit-backdrop-filter: blur(10px);
+         * backdrop-filter: blur(10px);
+         */
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(backgroundBrush)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            (parsedPaletteColor ?: formAccent).copy(alpha = if (isDark) 0.08f else 0.04f),
+                            Color.Transparent,
+                            (parsedPaletteColor ?: formAccent).copy(alpha = if (isDark) 0.06f else 0.03f)
+                        )
+                    )
+                )
         )
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .imePadding()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-        // Clearance for top floating sticky toggle header (toggle height 50dp + 12dp vertical padding + margin = 72dp)
-        Spacer(modifier = Modifier.height(72.dp))
-
         // Serial Number Manual Field with inner Save Icon & Full Width
         val isSerialLocked by viewModel.isSerialLocked.collectAsState()
 

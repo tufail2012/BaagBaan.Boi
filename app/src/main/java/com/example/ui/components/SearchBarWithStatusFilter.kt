@@ -191,7 +191,7 @@ fun SearchBarWithStatusFilter(
                 }
             }
 
-            // Filter Dropdown Anchor Button
+            // Filter Dropdown Anchor Button - Exclusive access to payment status filters
             Box {
                 val filterButtonShape = RoundedCornerShape(percent = 50)
                 val filterButtonBg = if (isFilterActive) {
@@ -201,6 +201,11 @@ fun SearchBarWithStatusFilter(
                     if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.35f)
                 }
 
+                /* CSS equivalent:
+                 * -webkit-backdrop-filter: blur(10px);
+                 * backdrop-filter: blur(10px);
+                 * border: 1px solid rgba(255, 255, 255, 0.25);
+                 */
                 Box(
                     modifier = Modifier
                         .height(48.dp)
@@ -211,7 +216,17 @@ fun SearchBarWithStatusFilter(
                         )
                         .then(
                             if (hazeState != null) {
-                                Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = dev.chrisbanes.haze.HazeStyle(
+                                        blurRadius = 10.dp,
+                                        tints = listOf(
+                                            dev.chrisbanes.haze.HazeTint(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                            )
+                                        )
+                                    )
+                                )
                             } else Modifier
                         )
                         .clip(filterButtonShape)
@@ -225,12 +240,13 @@ fun SearchBarWithStatusFilter(
                             shape = filterButtonShape
                         )
                         .clickable { dropdownExpanded = true }
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 12.dp)
+                        .testTag("${testTagPrefix}_filter_dropdown_btn"),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.FilterList,
@@ -238,6 +254,20 @@ fun SearchBarWithStatusFilter(
                             tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)),
                             modifier = Modifier.size(18.dp)
                         )
+                        if (isFilterActive) {
+                            Text(
+                                text = when (selectedFilter) {
+                                    "Payments Cleared" -> "Cleared"
+                                    "Payments Pending" -> "Pending"
+                                    "Advance Paid" -> "Advance"
+                                    else -> selectedFilter
+                                },
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
@@ -254,10 +284,17 @@ fun SearchBarWithStatusFilter(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
                         .background(if (isDark) Color(0xFF1E293B) else Color.White)
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
+                            ),
+                            RoundedCornerShape(16.dp)
+                        )
                         .testTag("${testTagPrefix}_filter_menu")
                 ) {
                     Text(
-                        text = "Payment Status Filter",
+                        text = "Filter Records",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -298,76 +335,6 @@ fun SearchBarWithStatusFilter(
                                 dropdownExpanded = false
                             },
                             modifier = Modifier.testTag("${testTagPrefix}_filter_option_${option.lowercase().replace(" ", "_")}")
-                        )
-                    }
-                }
-            }
-        }
-
-        // Specification 2: Filter Chips with Active / Inactive frosted glass states
-        // Active: Color.White.copy(alpha = 0.75f) with crisp border
-        // Inactive: Color.White.copy(alpha = 0.25f) with translucent border
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(filterScrollState),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val chipShape = RoundedCornerShape(percent = 50)
-
-            PAYMENT_STATUS_FILTER_OPTIONS.forEach { option ->
-                val isSelected = selectedFilter == option
-
-                val chipBg = if (isSelected) {
-                    Color.White.copy(alpha = if (isDark) 0.32f else 0.75f)
-                } else {
-                    Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
-                }
-
-                val chipBorder = if (isSelected) {
-                    BorderStroke(1.dp, Color.White.copy(alpha = if (isDark) 0.65f else 0.85f))
-                } else {
-                    BorderStroke(1.dp, Color.White.copy(alpha = if (isDark) 0.20f else 0.40f))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .then(
-                            if (hazeState != null) {
-                                Modifier.hazeEffect(state = hazeState, style = HazeMaterials.thin())
-                            } else Modifier
-                        )
-                        .clip(chipShape)
-                        .background(chipBg, shape = chipShape)
-                        .border(chipBorder, shape = chipShape)
-                        .clickable { onFilterSelected(option) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("${testTagPrefix}_chip_${option.lowercase().replace(" ", "_")}"),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        if (isSelected) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
-                        }
-
-                        Text(
-                            text = option,
-                            fontSize = 11.5.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) {
-                                if (isDark) Color.White else MaterialTheme.colorScheme.primary
-                            } else {
-                                if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-                            }
                         )
                     }
                 }

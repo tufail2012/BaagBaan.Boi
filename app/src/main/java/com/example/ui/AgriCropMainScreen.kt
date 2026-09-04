@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -704,6 +705,23 @@ fun AgriCropMainScreen(
                                         accentColor = sectionAccentColor
                                     )
                                 }
+
+                                // Integrated 'New Entry' and 'Records' view switcher directly into main layout
+                                val isCropService = !selectedService.equals("Bookings", ignoreCase = true) &&
+                                                    !selectedService.equals("Attendance", ignoreCase = true) &&
+                                                    !selectedService.equals("Garden Planning", ignoreCase = true) &&
+                                                    !selectedService.equals("Garden", ignoreCase = true)
+
+                                if (isCropService) {
+                                    AgriSegmentedControl(
+                                        selectedMode = viewMode,
+                                        onModeSelected = { viewModel.setViewMode(it) },
+                                        hazeState = hazeState,
+                                        recordsLabel = "Records ($cropRecordsCount)",
+                                        accentColor = sectionAccentColor,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -712,7 +730,6 @@ fun AgriCropMainScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(top = innerPadding.calculateTopPadding())
-                                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                         ) {
                             Box(
                                 modifier = Modifier
@@ -787,25 +804,6 @@ fun AgriCropMainScreen(
                                 }
                             }
                         }
-
-                            // Floating Sticky Header with Backdrop Blur for New Entry / Records toggle
-                            val isCropService = !selectedService.equals("Bookings", ignoreCase = true) &&
-                                                !selectedService.equals("Attendance", ignoreCase = true) &&
-                                                !selectedService.equals("Garden Planning", ignoreCase = true) &&
-                                                !selectedService.equals("Garden", ignoreCase = true)
-
-                            if (isCropService) {
-                                AgriSegmentedControl(
-                                    selectedMode = viewMode,
-                                    onModeSelected = { viewModel.setViewMode(it) },
-                                    hazeState = hazeState,
-                                    recordsLabel = "Records ($cropRecordsCount)",
-                                    accentColor = sectionAccentColor,
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .zIndex(10f)
-                                )
-                            }
 
                             // Floating Bottom Navigation Bar with Backdrop Blur overlaid inside hazeSource
                             AgriBottomNav(
