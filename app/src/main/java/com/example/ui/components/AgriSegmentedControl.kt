@@ -37,10 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -61,11 +64,9 @@ data class SegmentedTabEntry(
 /**
  * Floating Pill Segmented Control (New Entry / Records toggle).
  * Features:
- * - Floating pill-shaped outer container with soft elevation shadow and crisp outline.
- * - Real backdrop blur of the content behind via Haze.
- * - Sliding 3D Bubble / Droplet active indicator with horizontal spring and wobble physics.
- * - Clean, semi-transparent active palette tint with raised 3D specular highlight and drop shadow.
- * - High-contrast theme-aware typography with smooth color transitions.
+ * - Pill Container (Track): 24dp rounded pill with subtle translucent tint matching active palette and 1px solid rgba(255,255,255,0.4) border.
+ * - Active Pill ("Water Glass" Look): Clean, liquid aesthetic with 135deg translucent sheen, 12dp blur, inset highlight reflection, and drop shadow.
+ * - Pill Typography & Theming: Active tab dynamically adapts to active screen's primary color palette with fontWeight 700, and inactive tab uses subdued high-contrast neutral with fontWeight 500.
  */
 @Composable
 fun AgriSegmentedControl(
@@ -104,29 +105,49 @@ fun LiquidGlassSegmentedSwitcher(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
-    val containerShape = RoundedCornerShape(percent = 50)
-    val itemShape = RoundedCornerShape(percent = 50)
+    // Fully rounded pill (Border Radius: 24px)
+    val containerShape = RoundedCornerShape(24.dp)
+    val itemShape = RoundedCornerShape(20.dp)
 
-    // Outer glassmorphism container integrated directly into layout (no floating cutout)
-    /* CSS glassmorphism specification:
-     * background: rgba(255, 255, 255, 0.25); tinted to active palette shade
-     * -webkit-backdrop-filter: blur(12px);
-     * backdrop-filter: blur(12px);
-     * border: 1px solid rgba(255, 255, 255, 0.3);
-     * box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-     */
+    // Pill Container (Track):
+    // Background: Subtle translucent tint matching the active screen palette (rgba(255, 255, 255, 0.35) or a 5–8% primary palette tint).
+    val trackBgBrush = if (isDark || isAmoled) {
+        Brush.verticalGradient(
+            listOf(
+                accentColor.copy(alpha = 0.08f),
+                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.35f),
+                accentColor.copy(alpha = 0.06f),
+                Color.White.copy(alpha = 0.35f)
+            )
+        )
+    }
+
+    // Border: 1px solid rgba(255, 255, 255, 0.4)
+    val trackBorderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.30f else 0.45f),
+            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
+            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+        )
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .height(48.dp)
             .shadow(
-                elevation = 4.dp,
+                elevation = 3.dp,
                 shape = containerShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.15f else 0.05f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.02f)
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
             )
             .then(
                 Modifier.hazeEffect(
@@ -134,35 +155,15 @@ fun LiquidGlassSegmentedSwitcher(
                     style = HazeStyle(
                         blurRadius = 12.dp,
                         tints = listOf(
-                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.12f else 0.08f))
+                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.05f))
                         ),
                         backgroundColor = Color.Transparent
                     )
                 )
             )
             .clip(containerShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        accentColor.copy(alpha = if (isDark) 0.16f else 0.12f),
-                        (if (isDark) Color(0xFF0F172A).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.25f))
-                    )
-                ),
-                shape = containerShape
-            )
-            .border(
-                BorderStroke(
-                    1.dp,
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = if (isDark) 0.30f else 0.45f),
-                            accentColor.copy(alpha = 0.20f),
-                            Color.White.copy(alpha = 0.15f)
-                        )
-                    )
-                ),
-                shape = containerShape
-            )
+            .background(trackBgBrush, shape = containerShape)
+            .border(BorderStroke(1.dp, trackBorderBrush), shape = containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(
@@ -236,21 +237,25 @@ fun LiquidGlassSegmentedSwitcher(
                             width = 1.dp,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    accentColor.copy(alpha = rippleAlpha),
-                                    Color.White.copy(alpha = rippleAlpha * 0.6f),
+                                    Color.White.copy(alpha = rippleAlpha * 0.7f),
+                                    accentColor.copy(alpha = rippleAlpha * 0.3f),
                                     Color.Transparent
                                 )
                             ),
                             shape = itemShape
                         )
                         .background(
-                            color = accentColor.copy(alpha = rippleAlpha * 0.15f),
+                            color = Color.White.copy(alpha = rippleAlpha * 0.18f),
                             shape = itemShape
                         )
                 )
             }
 
-            // Fluid Water-like Sliding Liquid Pill Indicator
+            // Active Pill ("Water Glass" Look):
+            // background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.35) 100%);
+            // backdrop-filter: blur(12px);
+            // box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.05);
+            // border: 1px solid rgba(255, 255, 255, 0.6);
             Box(
                 modifier = Modifier
                     .offset(x = animatedOffsetX)
@@ -261,7 +266,7 @@ fun LiquidGlassSegmentedSwitcher(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubbleDropletPillIndicator(
+                    .waterGlassPillIndicator(
                         hazeState = hazeState,
                         shape = itemShape,
                         accentColor = accentColor,
@@ -279,12 +284,18 @@ fun LiquidGlassSegmentedSwitcher(
                 items.forEachIndexed { index, item ->
                     val isSelected = index == selectedIndex
 
+                    // Pill Typography & Theming:
+                    // Active Tab Text: Must dynamically adapt to the active screen's primary color palette (e.g., #D32F2F in Garden Planning, #2E7D32 in Local Plants, etc.), with font-weight: 700.
+                    // Inactive Tab Text: Subdued theme color or high-contrast neutral (rgba(0, 0, 0, 0.55) or 60% opacity of theme text color), font-weight: 500.
+                    val activeTextColor = accentColor
+                    val inactiveTextColor = if (isDark || isAmoled) {
+                        Color.White.copy(alpha = 0.60f)
+                    } else {
+                        Color.Black.copy(alpha = 0.55f)
+                    }
+
                     val textColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            if (isDark || isAmoled) Color.White else Color.Black
-                        } else {
-                            if (isDark) Color(0xFFB0A8B8) else Color(0xFF475569)
-                        },
+                        targetValue = if (isSelected) activeTextColor else inactiveTextColor,
                         animationSpec = tween(durationMillis = 200),
                         label = "tabTextColor"
                     )
@@ -354,4 +365,122 @@ fun LiquidGlassSegmentedSwitcher(
             }
         }
     }
+}
+
+/**
+ * Clean "Water Glass / Liquid" aesthetic modifier for the active indicator pill.
+ * Specifications:
+ * - background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.35) 100%);
+ * - backdrop-filter: blur(12px);
+ * - box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 4px 12px rgba(0, 0, 0, 0.05);
+ * - border: 1px solid rgba(255, 255, 255, 0.6);
+ */
+@Composable
+fun Modifier.waterGlassPillIndicator(
+    hazeState: HazeState? = null,
+    shape: Shape = RoundedCornerShape(20.dp),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    isDark: Boolean = isAppInDarkMode(),
+    isAmoled: Boolean = isAppInAmoledMode()
+): Modifier {
+    val activePillGradient = if (isDark || isAmoled) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.25f),
+                accentColor.copy(alpha = 0.15f),
+                Color.White.copy(alpha = 0.10f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    } else {
+        // background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.35) 100%);
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.70f),
+                Color.White.copy(alpha = 0.35f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
+
+    val pillBorderBrush = if (isDark || isAmoled) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.50f),
+                Color.White.copy(alpha = 0.25f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    } else {
+        // border: 1px solid rgba(255, 255, 255, 0.6);
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.65f),
+                Color.White.copy(alpha = 0.55f)
+            ),
+            start = Offset.Zero,
+            end = Offset.Infinite
+        )
+    }
+
+    return this
+        // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        .shadow(
+            elevation = 3.dp,
+            shape = shape,
+            spotColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.12f else 0.05f),
+            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.06f else 0.02f)
+        )
+        .clip(shape)
+        // backdrop-filter: blur(12px);
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        blurRadius = 12.dp,
+                        tints = listOf(
+                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.06f else 0.03f))
+                        ),
+                        backgroundColor = Color.Transparent
+                    )
+                )
+            } else Modifier
+        )
+        // background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.35) 100%);
+        .background(
+            brush = activePillGradient,
+            shape = shape
+        )
+        // box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8)
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+            // Inset top specular highlight reflection (water meniscus reflection)
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.55f else 0.80f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.15f else 0.25f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = h * 0.5f
+                ),
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = CornerRadius(20.dp.toPx(), 20.dp.toPx()),
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
+        // border: 1px solid rgba(255, 255, 255, 0.6);
+        .border(
+            width = 1.dp,
+            brush = pillBorderBrush,
+            shape = shape
+        )
 }
