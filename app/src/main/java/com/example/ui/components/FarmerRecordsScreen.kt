@@ -114,7 +114,9 @@ import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
+import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
+import com.example.data.parseVarietyLines
 import com.example.ui.CropViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -180,7 +182,35 @@ fun FarmerRecordsScreen(
         if (headerHeightPx > 0) {
             with(density) { headerHeightPx.toDp() } + 12.dp
         } else {
-            136.dp
+            260.dp
+        }
+    }
+
+    // Dynamic Computation of 4 Summary Metrics across records (respecting active filters/search)
+    val totalPayment = remember(records) {
+        records.sumOf { it.calculateTotalAmountMultiVariety() }
+    }
+    val receivedPayment = remember(records) {
+        records.sumOf { it.amountPaid }
+    }
+    val pendingPayment = remember(records) {
+        records.sumOf { if (it.isCancelled || it.paymentStatus.equals("Cancelled", ignoreCase = true)) 0.0 else it.calculateRemainingBalance() }
+    }
+    val totalQuantity = remember(records) {
+        records.sumOf { record ->
+            val lines = parseVarietyLines(record.varietyLinesJson)
+            if (lines.isNotEmpty()) {
+                lines.sumOf { it.effectiveQuantity }
+            } else {
+                record.quantity
+            }
+        }
+    }
+    val quantityUnitLabel = remember(selectedService) {
+        when {
+            selectedService.equals("Site Visit", ignoreCase = true) -> "Visits"
+            selectedService.equals("Rootstocks", ignoreCase = true) || selectedService.contains("Rootstock", ignoreCase = true) -> "Roots"
+            else -> "Plants"
         }
     }
 
@@ -400,6 +430,18 @@ fun FarmerRecordsScreen(
                             testTagPrefix = "crop_search",
                             hazeState = effectiveHazeState,
                             modifier = Modifier.padding(bottom = 2.dp)
+                        )
+                        // 2x2 Metric Grid Component placed directly below Search Bar with 10dp top & 12dp bottom spacing
+                        RecordsSummaryMetricCards(
+                            totalPayment = totalPayment,
+                            receivedPayment = receivedPayment,
+                            pendingPayment = pendingPayment,
+                            totalQuantity = totalQuantity,
+                            quantityLabel = quantityUnitLabel,
+                            isDark = isDark,
+                            paletteAccent = paletteColor,
+                            hazeState = effectiveHazeState,
+                            modifier = Modifier.padding(top = 10.dp, bottom = 12.dp)
                         )
                     }
                 }

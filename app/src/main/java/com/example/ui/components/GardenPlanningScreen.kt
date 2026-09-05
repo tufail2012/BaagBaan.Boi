@@ -2042,7 +2042,26 @@ fun GardenPlanningRecordsTab(
         if (headerHeightPx > 0) {
             with(density) { headerHeightPx.toDp() } + 12.dp
         } else {
-            136.dp
+            260.dp
+        }
+    }
+
+    // Dynamic Computation of 4 Summary Metrics across garden planning records
+    val totalPayment = remember(entries) { entries.sumOf { it.totalCost } }
+    val receivedPayment = remember(entries) { entries.sumOf { it.amountPaid } }
+    val pendingPayment = remember(entries) {
+        entries.sumOf { if (it.paymentStatus.equals("Cancelled", ignoreCase = true)) 0.0 else maxOf(0.0, it.totalCost - it.amountPaid) }
+    }
+    val totalQuantity = remember(entries) {
+        entries.sumOf { entry ->
+            val vLines = parseVarietyLines(entry.varietyLinesJson)
+            if (vLines.isNotEmpty()) {
+                vLines.sumOf { it.quantity }
+            } else if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) {
+                (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+            } else {
+                0
+            }
         }
     }
 
@@ -2270,6 +2289,18 @@ fun GardenPlanningRecordsTab(
                         isDark = isDark,
                         testTagPrefix = "garden_search",
                         hazeState = effectiveHazeState
+                    )
+                    // 2x2 Metric Grid Component placed directly below Search Bar with 10dp top & 12dp bottom spacing
+                    RecordsSummaryMetricCards(
+                        totalPayment = totalPayment,
+                        receivedPayment = receivedPayment,
+                        pendingPayment = pendingPayment,
+                        totalQuantity = totalQuantity,
+                        quantityLabel = "Plants",
+                        isDark = isDark,
+                        paletteAccent = paletteAccent,
+                        hazeState = effectiveHazeState,
+                        modifier = Modifier.padding(top = 10.dp, bottom = 12.dp)
                     )
                 }
             }
