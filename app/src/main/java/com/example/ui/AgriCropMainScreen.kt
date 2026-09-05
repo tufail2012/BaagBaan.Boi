@@ -693,7 +693,8 @@ fun AgriCropMainScreen(
                                     PruningSubTabs(
                                         selectedSubTab = selectedPruningSubTab,
                                         onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                                        accentColor = sectionAccentColor
+                                        accentColor = sectionAccentColor,
+                                        hazeState = hazeState
                                     )
                                 } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
                                     RootstockSubTabs(
@@ -702,7 +703,8 @@ fun AgriCropMainScreen(
                                         onSelectSubTab = { subTab, genevaOpt ->
                                             viewModel.selectRootstockSubTab(subTab, genevaOpt)
                                         },
-                                        accentColor = sectionAccentColor
+                                        accentColor = sectionAccentColor,
+                                        hazeState = hazeState
                                     )
                                 }
 

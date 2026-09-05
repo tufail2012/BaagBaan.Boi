@@ -58,20 +58,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.getSectionAccentColor
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 /**
  * Pruning Sub-Tabs (Summer Pruning / Winter Pruning)
  * Features:
  * - Floating pill container with smooth backdrop elevation.
- * - Sliding 3D Bubble / Droplet Indicator with spring and wobble physics.
- * - High-contrast theme-aware iconography and labels.
+ * - Sliding 3D Bubbly Glass Capsule Indicator with spring and wobble physics.
+ * - High-contrast theme-aware iconography and labels dynamically matching palette.
  */
 @Composable
 fun PruningSubTabs(
     selectedSubTab: String,
     onSelectSubTab: (String) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = getSectionAccentColor("Pruning")
+    accentColor: Color = getSectionAccentColor("Pruning"),
+    hazeState: HazeState? = null
 ) {
     val subTabs = listOf("Summer Pruning", "Winter Pruning")
     val selectedIndex = if (selectedSubTab.contains("Winter", ignoreCase = true)) 1 else 0
@@ -82,33 +87,62 @@ fun PruningSubTabs(
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
-    val containerBgColor = when {
-        isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF202532)
-        else -> Color(0xFFFFFFFF)
+    val containerBgBrush = if (isDark || isAmoled) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.08f),
+                accentColor.copy(alpha = 0.06f),
+                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
+            )
+        )
+    } else {
+        // rgba(255, 255, 255, 0.5) with backdrop-filter: blur(10px) and subtle theme tint
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.50f)
+            )
+        )
     }
 
-    val containerBorderColor = when {
-        isAmoled -> Color(0xFF262626)
-        isDark -> Color(0xFF384050)
-        else -> Color(0xFFE2E8F0)
-    }
+    val containerBorderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
+            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
+            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+        )
+    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .height(46.dp)
+            .height(48.dp)
             .shadow(
                 elevation = 3.dp,
                 shape = containerShape,
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x20000000),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.15f) else Color(0x10000000)
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
+            )
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            blurRadius = 10.dp,
+                            tints = listOf(
+                                HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
+                            ),
+                            backgroundColor = Color.Transparent
+                        )
+                    )
+                } else Modifier
             )
             .clip(containerShape)
-            .background(containerBgColor)
-            .border(BorderStroke(1.dp, containerBorderColor), containerShape)
-            .padding(3.dp)
+            .background(containerBgBrush, shape = containerShape)
+            .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
+            .padding(4.dp)
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
@@ -205,7 +239,8 @@ fun PruningSubTabs(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubbleDropletPillIndicator(
+                    .bubblyGlassCapsuleIndicator(
+                        hazeState = hazeState,
                         shape = itemShape,
                         accentColor = accentColor,
                         isDark = isDark,
@@ -226,9 +261,9 @@ fun PruningSubTabs(
 
                     val contentColor by animateColorAsState(
                         targetValue = if (isSelected) {
-                            if (isDark || isAmoled) Color.White else Color.Black
+                            accentColor
                         } else {
-                            if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                            if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
                         },
                         animationSpec = tween(durationMillis = 200),
                         label = "pruningTabColor"
@@ -315,8 +350,9 @@ fun PruningSubTabs(
 /**
  * Rootstock Sub-Tabs (M9-T337, MM111, Geneva dropdown)
  * Features:
- * - Floating pill container with smooth backdrop elevation.
- * - Sliding 3D Bubble / Droplet Indicator with spring and wobble physics.
+ * - Floating translucent pill container strip with light background tint and blur.
+ * - Sliding 3D Bubbly Glass Capsule Indicator with spring and wobble physics.
+ * - Dynamic theme color harmonization (#D32F2F in coral/red, etc.).
  * - Dropdown picker for Geneva variants with selection indicator.
  */
 @Composable
@@ -325,7 +361,8 @@ fun RootstockSubTabs(
     selectedGenevaOption: String?,
     onSelectSubTab: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
-    accentColor: Color = getSectionAccentColor("Rootstocks")
+    accentColor: Color = getSectionAccentColor("Rootstocks"),
+    hazeState: HazeState? = null
 ) {
     var genevaMenuExpanded by remember { mutableStateOf(false) }
     val genevaOptions = listOf("G41", "G214", "G11", "G35", "G969", "G890")
@@ -336,17 +373,32 @@ fun RootstockSubTabs(
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
-    val containerBgColor = when {
-        isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF202532)
-        else -> Color(0xFFFFFFFF)
+    val containerBgBrush = if (isDark || isAmoled) {
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.08f),
+                accentColor.copy(alpha = 0.06f),
+                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
+            )
+        )
+    } else {
+        // rgba(255, 255, 255, 0.5) with backdrop-filter: blur(10px) and subtle theme tint
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.50f)
+            )
+        )
     }
 
-    val containerBorderColor = when {
-        isAmoled -> Color(0xFF262626)
-        isDark -> Color(0xFF384050)
-        else -> Color(0xFFE2E8F0)
-    }
+    val containerBorderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
+            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
+            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+        )
+    )
 
     val isGenevaSelected = selectedSubTab.startsWith("Geneva") || genevaOptions.contains(selectedSubTab)
     val selectedIndex = when {
@@ -365,17 +417,31 @@ fun RootstockSubTabs(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .height(46.dp)
+            .height(48.dp)
             .shadow(
                 elevation = 3.dp,
                 shape = containerShape,
-                spotColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x20000000),
-                ambientColor = if (isDark) Color.Black.copy(alpha = 0.15f) else Color(0x10000000)
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
+            )
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            blurRadius = 10.dp,
+                            tints = listOf(
+                                HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
+                            ),
+                            backgroundColor = Color.Transparent
+                        )
+                    )
+                } else Modifier
             )
             .clip(containerShape)
-            .background(containerBgColor)
-            .border(BorderStroke(1.dp, containerBorderColor), containerShape)
-            .padding(3.dp)
+            .background(containerBgBrush, shape = containerShape)
+            .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
+            .padding(4.dp)
     ) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
@@ -484,7 +550,7 @@ fun RootstockSubTabs(
                 )
             }
 
-            // Fluid Water-like Sliding Liquid Pill Indicator
+            // 3D Bubbly Glass Capsule Indicator
             Box(
                 modifier = Modifier
                     .offset(x = animatedOffsetX)
@@ -495,7 +561,8 @@ fun RootstockSubTabs(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubbleDropletPillIndicator(
+                    .bubblyGlassCapsuleIndicator(
+                        hazeState = hazeState,
                         shape = itemShape,
                         accentColor = accentColor,
                         isDark = isDark,
@@ -513,9 +580,9 @@ fun RootstockSubTabs(
                 val isM9Selected = selectedIndex == 0
                 val m9Color by animateColorAsState(
                     targetValue = if (isM9Selected) {
-                        if (isDark || isAmoled) Color.White else Color.Black
+                        accentColor
                     } else {
-                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
                     },
                     label = "m9Color"
                 )
@@ -571,9 +638,9 @@ fun RootstockSubTabs(
                 val isMM111Selected = selectedIndex == 1
                 val mm111Color by animateColorAsState(
                     targetValue = if (isMM111Selected) {
-                        if (isDark || isAmoled) Color.White else Color.Black
+                        accentColor
                     } else {
-                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
                     },
                     label = "mm111Color"
                 )
@@ -629,9 +696,9 @@ fun RootstockSubTabs(
                 val isGenevaActive = selectedIndex == 2
                 val genevaColor by animateColorAsState(
                     targetValue = if (isGenevaActive) {
-                        if (isDark || isAmoled) Color.White else Color.Black
+                        accentColor
                     } else {
-                        if (isDark) Color(0xFFB0A8B8) else Color(0xFF64748B)
+                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
                     },
                     label = "genevaColor"
                 )

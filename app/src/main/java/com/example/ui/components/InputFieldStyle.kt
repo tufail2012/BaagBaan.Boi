@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -901,6 +902,19 @@ fun PaymentStatusSelector(
  * - Soft liquid/glass glow layer with clear color diffusion for high contrast in both Dark and Light modes.
  * - Static while active with zero continuous looping animations.
  */
+/**
+ * 3D Dimensional "Bubbly Glass" Capsule (Liquid Capsule) Modifier.
+ * Specifications:
+ * - Full pill shape.
+ * - Surface Gradient:
+ *   linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 60%, rgba(var(--theme-primary-rgb), 0.15) 100%)
+ * - Top Specular Highlight & Depth (Inner Glow):
+ *   inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), /* Top light reflection */
+ *   inset 0 -2px 3px 0 rgba(0, 0, 0, 0.04),         /* Bottom curvature shading */
+ *   0 4px 12px 0 rgba(var(--theme-primary-rgb), 0.12) /* Ambient colored drop shadow */
+ * - Border: 1px solid rgba(255, 255, 255, 0.7)
+ * - Blur: backdrop-filter: blur(14px)
+ */
 @Composable
 fun Modifier.bubbleDropletPillIndicator(
     hazeState: HazeState? = null,
@@ -909,129 +923,119 @@ fun Modifier.bubbleDropletPillIndicator(
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode()
 ): Modifier {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-
-    val solidPillBase = when {
-        isAmoled -> Color(0xFF000000)
-        isDark -> Color(0xFF1C1A22)
-        else -> Color(0xFFFFFFFF)
+    val surfaceGradient = if (isDark || isAmoled) {
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.0f to Color.White.copy(alpha = 0.35f),
+                0.60f to Color.White.copy(alpha = 0.18f),
+                1.0f to accentColor.copy(alpha = 0.22f)
+            )
+        )
+    } else {
+        // Light mode: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 60%, rgba(var(--theme-primary-rgb), 0.15) 100%)
+        Brush.verticalGradient(
+            colorStops = arrayOf(
+                0.0f to Color.White.copy(alpha = 0.85f),
+                0.60f to Color.White.copy(alpha = 0.40f),
+                1.0f to accentColor.copy(alpha = 0.15f)
+            )
+        )
     }
 
-    // 1dp rim with top specular highlight and accent refraction
-    val liquidBorderBrush = if (isDark || isAmoled) {
+    // Border: 1px solid rgba(255, 255, 255, 0.7)
+    val bubblyBorderBrush = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.65f),
-                Color.White.copy(alpha = 0.25f),
-                accentColor.copy(alpha = 0.50f),
-                Color.White.copy(alpha = 0.10f)
+                Color.White.copy(alpha = 0.70f),
+                accentColor.copy(alpha = 0.35f),
+                Color.White.copy(alpha = 0.25f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White,
+                Color.White.copy(alpha = 0.85f),
                 Color.White.copy(alpha = 0.70f),
-                accentColor.copy(alpha = 0.45f),
-                Color.White.copy(alpha = 0.60f)
+                accentColor.copy(alpha = 0.25f)
             )
         )
     }
 
     return this
-        // 1. Persistent 3D transformation & elevation via graphicsLayer
-        .graphicsLayer {
-            rotationX = 2.5f
-            rotationY = 0f
-            scaleX = 1.015f
-            scaleY = 1.015f
-            cameraDistance = 16f * density
-            shadowElevation =
-                if (isDark || isAmoled) 4.dp.toPx()
-                else 3.dp.toPx()
-            this.shape = shape
-            this.clip = false
-        }
-        // 2. Soft floating shadow (0 4px 20px 0 rgba(0, 0, 0, 0.05))
+        // 0 4px 12px 0 rgba(var(--theme-primary-rgb), 0.12)
         .shadow(
             elevation = 4.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.15f else 0.05f),
-            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.08f else 0.02f)
+            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.24f else 0.16f),
+            ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.14f else 0.10f)
         )
-        // 3. Clip to shape
         .clip(shape)
-        // 4. Frosted backdrop blur via Haze (backdrop-filter: blur(10px))
+        // backdrop-filter: blur(14px)
         .then(
             if (hazeState != null) {
-                val pillHazeStyle = HazeStyle(
-                    backgroundColor = Color.Transparent,
-                    blurRadius = 10.dp,
-                    tints = listOf(
-                        HazeTint(color = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.10f))
-                    ),
-                    noiseFactor = 0f
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        blurRadius = 14.dp,
+                        tints = listOf(
+                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.05f))
+                        ),
+                        backgroundColor = Color.Transparent
+                    )
                 )
-                Modifier.hazeEffect(state = hazeState, style = pillHazeStyle)
-            } else {
-                Modifier
-            }
+            } else Modifier
         )
-        // 5. Translucent frosted glass layer: background: rgba(255, 255, 255, 0.25); tinted to active palette shade
+        // Surface Gradient
         .background(
-            brush = if (isDark || isAmoled) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.35f),
-                        accentColor.copy(alpha = 0.20f),
-                        if (isAmoled) Color.Black.copy(alpha = 0.65f) else Color(0xFF1C1A22).copy(alpha = 0.60f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = 0.15f),
-                        Color.White.copy(alpha = 0.25f),
-                        Color.White.copy(alpha = 0.20f)
-                    )
-                )
-            },
+            brush = surfaceGradient,
             shape = shape
         )
-        // 7. 3D Embossed lighting & Soft Noisy Grain Overlay
+        // Top Specular Highlight & Bottom Depth (Inner Glow):
+        // inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95)
+        // inset 0 -2px 3px 0 rgba(0, 0, 0, 0.04)
         .drawWithContent {
             drawContent()
             val w = size.width
             val h = size.height
+            val cornerRadius = CornerRadius(h / 2f, h / 2f)
 
-            // Soft tactile micro-grain overlay for noisy frosted glass
-            drawRect(
-                brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.12f else 0.15f
-            )
-
-            // Top specular capsule reflection (glossy gel/glass shine)
-            val gelHighlightHeight = h * 0.45f
-            val margin = 4.dp.toPx()
-
-            drawRect(
+            // Top specular light reflection
+            drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.48f else 0.85f),
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.15f else 0.25f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.85f else 0.95f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
                         Color.Transparent
-                    )
+                    ),
+                    startY = 0f,
+                    endY = h * 0.55f
                 ),
-                topLeft = Offset(margin, 2.dp.toPx()),
-                size = Size(w - (margin * 2), gelHighlightHeight)
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = cornerRadius,
+                style = Stroke(width = 1.5.dp.toPx())
+            )
+
+            // Bottom curvature shading
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Black.copy(alpha = if (isDark || isAmoled) 0.10f else 0.04f)
+                    ),
+                    startY = h * 0.50f,
+                    endY = h
+                ),
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = cornerRadius,
+                style = Stroke(width = 2.dp.toPx())
             )
         }
-        // 8. Refractive 1dp glass border
+        // Border: 1px solid rgba(255, 255, 255, 0.7)
         .border(
-            BorderStroke(
-                width = 1.dp,
-                brush = liquidBorderBrush
-            ),
+            width = 1.dp,
+            brush = bubblyBorderBrush,
             shape = shape
         )
 }
