@@ -2036,16 +2036,6 @@ fun GardenPlanningRecordsTab(
     val fallbackHazeState = remember { HazeState() }
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHazeState
 
-    var headerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val calculatedTopPadding = remember(headerHeightPx, density) {
-        if (headerHeightPx > 0) {
-            with(density) { headerHeightPx.toDp() } + 12.dp
-        } else {
-            260.dp
-        }
-    }
-
     // Dynamic Computation of 4 Summary Metrics across garden planning records
     val totalPayment = remember(entries) { entries.sumOf { it.totalCost } }
     val receivedPayment = remember(entries) { entries.sumOf { it.amountPaid } }
@@ -2130,15 +2120,51 @@ fun GardenPlanningRecordsTab(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Scrollable Content scrolling cleanly underneath pinned header
+            // Scrollable Content (Unified scroll flow on single seamless canvas)
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = calculatedTopPadding, bottom = 110.dp)
+                contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
             ) {
+                // Unified Controls Header: Header Pill, Search Bar, and 4 Summary Metric Cards
+                // Sits directly on the single continuous background canvas and scrolls together with records
+                item(key = "garden_records_header_controls") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        RecordingBookHeader(
+                            title = "Garden Planning Recording Book",
+                            count = entries.size,
+                            hazeState = effectiveHazeState
+                        )
+                        SearchBarWithStatusFilter(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            selectedFilter = selectedPaymentFilter,
+                            onFilterSelected = { viewModel.setPaymentFilter(it) },
+                            placeholderText = "Search by farmer name, phone, serial or address...",
+                            isDark = isDark,
+                            testTagPrefix = "garden_search",
+                            hazeState = effectiveHazeState
+                        )
+                        // 2x2 Metric Grid Component placed directly below Search Bar
+                        RecordsSummaryMetricCards(
+                            totalPayment = totalPayment,
+                            receivedPayment = receivedPayment,
+                            pendingPayment = pendingPayment,
+                            totalQuantity = totalQuantity,
+                            quantityLabel = "Plants",
+                            isDark = isDark,
+                            paletteAccent = paletteAccent,
+                            hazeState = effectiveHazeState
+                        )
+                    }
+                }
+
                 if (entries.isEmpty()) {
                     if (isInitialLoading) {
                         items(4) {
@@ -2213,95 +2239,6 @@ fun GardenPlanningRecordsTab(
                             }
                         }
                     }
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(100.dp))
-                }
-            }
-
-            // Pinned Sticky Top Header with Frosted Glass styling
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .zIndex(10f)
-                    .onSizeChanged { size ->
-                        headerHeightPx = size.height
-                    }
-                    .shadow(
-                        elevation = 4.dp,
-                        spotColor = Color.Black.copy(alpha = 0.05f),
-                        ambientColor = Color.Black.copy(alpha = 0.02f)
-                    )
-                    .then(
-                        if (effectiveHazeState != null) {
-                            Modifier.hazeEffect(
-                                state = effectiveHazeState,
-                                style = HazeStyle(
-                                    blurRadius = 12.dp,
-                                    tints = listOf(
-                                        HazeTint(color = paletteAccent.copy(alpha = if (isDark) 0.12f else 0.08f))
-                                    ),
-                                    backgroundColor = Color.Transparent
-                                )
-                            )
-                        } else Modifier
-                    )
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                paletteAccent.copy(alpha = if (isDark) 0.16f else 0.12f),
-                                (if (isDark) Color(0xFF0F172A).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.25f)),
-                                (if (isDark) Color(0xFF0F172A).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.20f))
-                            )
-                        )
-                    )
-                    .border(
-                        BorderStroke(
-                            1.dp,
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
-                                    paletteAccent.copy(alpha = 0.20f),
-                                    Color.White.copy(alpha = 0.15f)
-                                )
-                            )
-                        )
-                    )
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    RecordingBookHeader(
-                        title = "Garden Planning Recording Book",
-                        count = entries.size,
-                        hazeState = effectiveHazeState
-                    )
-                    SearchBarWithStatusFilter(
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                        selectedFilter = selectedPaymentFilter,
-                        onFilterSelected = { viewModel.setPaymentFilter(it) },
-                        placeholderText = "Search by farmer name, phone, serial or address...",
-                        isDark = isDark,
-                        testTagPrefix = "garden_search",
-                        hazeState = effectiveHazeState
-                    )
-                    // 2x2 Metric Grid Component placed directly below Search Bar with 10dp top & 12dp bottom spacing
-                    RecordsSummaryMetricCards(
-                        totalPayment = totalPayment,
-                        receivedPayment = receivedPayment,
-                        pendingPayment = pendingPayment,
-                        totalQuantity = totalQuantity,
-                        quantityLabel = "Plants",
-                        isDark = isDark,
-                        paletteAccent = paletteAccent,
-                        hazeState = effectiveHazeState,
-                        modifier = Modifier.padding(top = 10.dp, bottom = 12.dp)
-                    )
                 }
             }
         }

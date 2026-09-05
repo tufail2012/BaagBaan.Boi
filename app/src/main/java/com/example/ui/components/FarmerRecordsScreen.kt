@@ -176,16 +176,6 @@ fun FarmerRecordsScreen(
 
     val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
 
-    var headerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
-    val calculatedTopPadding = remember(headerHeightPx, density) {
-        if (headerHeightPx > 0) {
-            with(density) { headerHeightPx.toDp() } + 12.dp
-        } else {
-            260.dp
-        }
-    }
-
     // Dynamic Computation of 4 Summary Metrics across records (respecting active filters/search)
     val totalPayment = remember(records) {
         records.sumOf { it.calculateTotalAmountMultiVariety() }
@@ -252,15 +242,51 @@ fun FarmerRecordsScreen(
                     } else Modifier
                 )
         ) {
-            // Scrollable content (Records List) scrolling underneath the pinned header with calculated top padding
+            // Scrollable content (Entire screen in unified scroll flow)
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = calculatedTopPadding, bottom = 110.dp)
+                contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
             ) {
+                // Unified Controls Header: Header pill, Search Bar, and 4 Summary Metric Cards
+                // Sits directly on the single continuous background canvas and scrolls together with records
+                item(key = "records_header_controls") {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        RecordingBookHeader(
+                            title = bookTitle,
+                            count = records.size,
+                            hazeState = effectiveHazeState
+                        )
+                        SearchBarWithStatusFilter(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
+                            selectedFilter = selectedPaymentFilter,
+                            onFilterSelected = { viewModel.setPaymentFilter(it) },
+                            placeholderText = "Search by farmer name, phone, serial no...",
+                            isDark = isDark,
+                            testTagPrefix = "crop_search",
+                            hazeState = effectiveHazeState
+                        )
+                        // 2x2 Metric Grid Component placed directly below Search Bar
+                        RecordsSummaryMetricCards(
+                            totalPayment = totalPayment,
+                            receivedPayment = receivedPayment,
+                            pendingPayment = pendingPayment,
+                            totalQuantity = totalQuantity,
+                            quantityLabel = quantityUnitLabel,
+                            isDark = isDark,
+                            paletteAccent = paletteColor,
+                            hazeState = effectiveHazeState
+                        )
+                    }
+                }
+
                 // Records List, Shimmer Skeleton Loading, or Empty State
                 if (records.isEmpty()) {
                     if (isInitialLoading) {
@@ -344,105 +370,6 @@ fun FarmerRecordsScreen(
                                 )
                             }
                         }
-                    }
-                }
-            }
-
-            // Target Component 1 & 2: Top Sticky Frosted Liquid Glass Header Section
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .zIndex(5f)
-            ) {
-                // Sticky Fixed Frosted Header: Recording Book Header Banner + Search Bar with Dropdown Filter
-                /* CSS glassmorphism specification:
-                 * background: rgba(255, 255, 255, 0.25);
-                 * -webkit-backdrop-filter: blur(12px);
-                 * backdrop-filter: blur(12px);
-                 * border: 1px solid rgba(255, 255, 255, 0.3);
-                 * box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
-                 */
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onSizeChanged { size ->
-                            headerHeightPx = size.height
-                        }
-                        .shadow(
-                            elevation = 4.dp,
-                            spotColor = Color.Black.copy(alpha = 0.05f),
-                            ambientColor = Color.Black.copy(alpha = 0.02f)
-                        )
-                        .then(
-                            if (effectiveHazeState != null) {
-                                Modifier.hazeEffect(
-                                    state = effectiveHazeState,
-                                    style = HazeStyle(
-                                        blurRadius = 12.dp,
-                                        tints = listOf(
-                                            HazeTint(color = paletteColor.copy(alpha = if (isDark) 0.12f else 0.08f))
-                                        ),
-                                        backgroundColor = Color.Transparent
-                                    )
-                                )
-                            } else Modifier
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    paletteColor.copy(alpha = if (isDark) 0.16f else 0.12f),
-                                    (if (isDark) Color(0xFF0F172A).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.25f)),
-                                    (if (isDark) Color(0xFF0F172A).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.20f))
-                                )
-                            )
-                        )
-                        .border(
-                            BorderStroke(
-                                1.dp,
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
-                                        paletteColor.copy(alpha = 0.20f),
-                                        Color.White.copy(alpha = 0.15f)
-                                    )
-                                )
-                            )
-                        )
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        RecordingBookHeader(
-                            title = bookTitle,
-                            count = records.size,
-                            hazeState = effectiveHazeState
-                        )
-                        SearchBarWithStatusFilter(
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
-                            selectedFilter = selectedPaymentFilter,
-                            onFilterSelected = { viewModel.setPaymentFilter(it) },
-                            placeholderText = "Search by farmer name, phone, serial no...",
-                            isDark = isDark,
-                            testTagPrefix = "crop_search",
-                            hazeState = effectiveHazeState,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        // 2x2 Metric Grid Component placed directly below Search Bar with 10dp top & 12dp bottom spacing
-                        RecordsSummaryMetricCards(
-                            totalPayment = totalPayment,
-                            receivedPayment = receivedPayment,
-                            pendingPayment = pendingPayment,
-                            totalQuantity = totalQuantity,
-                            quantityLabel = quantityUnitLabel,
-                            isDark = isDark,
-                            paletteAccent = paletteColor,
-                            hazeState = effectiveHazeState,
-                            modifier = Modifier.padding(top = 10.dp, bottom = 12.dp)
-                        )
                     }
                 }
             }
