@@ -602,8 +602,7 @@ fun AgriCropMainScreen(
                         modifier = Modifier.fillMaxSize(),
                         containerColor = Color.Transparent,
                         topBar = {
-                            Column {
-                                AgriHeader(
+                            AgriHeader(
                                     title = displayHeaderTitle,
                                     themeMode = themeMode,
                                     accentColor = sectionAccentColor,
@@ -685,46 +684,6 @@ fun AgriCropMainScreen(
                                     onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
                                     hazeState = hazeState
                                 )
-
-
-
-                                // Dedicated Sub-Tabs for Pruning & Rootstocks
-                                if (selectedService.equals("Pruning", ignoreCase = true)) {
-                                    PruningSubTabs(
-                                        selectedSubTab = selectedPruningSubTab,
-                                        onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                                        accentColor = sectionAccentColor,
-                                        hazeState = hazeState
-                                    )
-                                } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                                    RootstockSubTabs(
-                                        selectedSubTab = selectedRootstockSubTab,
-                                        selectedGenevaOption = selectedGenevaOption,
-                                        onSelectSubTab = { subTab, genevaOpt ->
-                                            viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                                        },
-                                        accentColor = sectionAccentColor,
-                                        hazeState = hazeState
-                                    )
-                                }
-
-                                // Integrated 'New Entry' and 'Records' view switcher directly into main layout
-                                val isCropService = !selectedService.equals("Bookings", ignoreCase = true) &&
-                                                    !selectedService.equals("Attendance", ignoreCase = true) &&
-                                                    !selectedService.equals("Garden Planning", ignoreCase = true) &&
-                                                    !selectedService.equals("Garden", ignoreCase = true)
-
-                                if (isCropService) {
-                                    AgriSegmentedControl(
-                                        selectedMode = viewMode,
-                                        onModeSelected = { viewModel.setViewMode(it) },
-                                        hazeState = hazeState,
-                                        recordsLabel = "Records ($cropRecordsCount)",
-                                        accentColor = sectionAccentColor,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
                     ) { innerPadding ->
@@ -795,7 +754,8 @@ fun AgriCropMainScreen(
                                         } else {
                                             when (viewMode) {
                                                 0 -> FarmerFormScreen(
-                                                    viewModel = viewModel
+                                                    viewModel = viewModel,
+                                                    hazeState = hazeState
                                                 )
                                                 else -> FarmerRecordsScreen(
                                                     viewModel = viewModel,

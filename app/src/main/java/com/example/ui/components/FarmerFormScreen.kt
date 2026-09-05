@@ -175,6 +175,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -185,7 +186,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 @Composable
 fun FarmerFormScreen(
     viewModel: CropViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = LocalAppGlassHazeState.current
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -807,7 +809,63 @@ fun FarmerFormScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-        // Serial Number Manual Field with inner Save Icon & Full Width
+            // Dedicated Sub-Tabs for Pruning & Rootstocks
+            if (selectedService.equals("Pruning", ignoreCase = true)) {
+                PruningSubTabs(
+                    selectedSubTab = selectedPruningSubTab,
+                    onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                    accentColor = formAccent,
+                    hazeState = hazeState,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                RootstockSubTabs(
+                    selectedSubTab = selectedRootstockSubTab,
+                    selectedGenevaOption = selectedGenevaOption,
+                    onSelectSubTab = { subTab, genevaOpt ->
+                        viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                    },
+                    accentColor = formAccent,
+                    hazeState = hazeState,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Liquid Glass Switcher (New Entry / Records)
+            val viewMode by viewModel.viewMode.collectAsState()
+            val isEditing = editingId != null
+            val allCropRecords by viewModel.allRecords.collectAsState(initial = emptyList())
+            val cropRecordsCount = remember(allCropRecords, selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption) {
+                allCropRecords.count { record ->
+                    if (!record.serviceType.equals(selectedService, ignoreCase = true)) return@count false
+                    when {
+                        selectedService.equals("Pruning", ignoreCase = true) ->
+                            record.plantVariety.equals(selectedPruningSubTab, ignoreCase = true)
+                        selectedService.equals("Rootstocks", ignoreCase = true) -> {
+                            if (selectedRootstockSubTab.startsWith("Geneva") && selectedGenevaOption != null) {
+                                record.rootstock.contains(selectedGenevaOption!!, ignoreCase = true)
+                            } else {
+                                record.rootstock.contains(selectedRootstockSubTab, ignoreCase = true)
+                            }
+                        }
+                        else -> true
+                    }
+                }
+            }
+
+            if (hazeState != null) {
+                AgriSegmentedControl(
+                    selectedMode = viewMode,
+                    onModeSelected = { viewModel.setViewMode(it) },
+                    hazeState = hazeState,
+                    newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                    recordsLabel = "Records ($cropRecordsCount)",
+                    accentColor = formAccent,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // Serial Number Manual Field with inner Save Icon & Full Width
         val isSerialLocked by viewModel.isSerialLocked.collectAsState()
 
         OutlinedTextField(

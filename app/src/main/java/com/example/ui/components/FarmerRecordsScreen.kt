@@ -251,13 +251,51 @@ fun FarmerRecordsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
             ) {
-                // Unified Controls Header: Header pill, Search Bar, and 4 Summary Metric Cards
+                // Unified Controls Header: Sub-Tabs, Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                 // Sits directly on the single continuous background canvas and scrolls together with records
                 item(key = "records_header_controls") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        // 1. Dedicated Sub-Tabs for Pruning & Rootstocks
+                        if (selectedService.equals("Pruning", ignoreCase = true)) {
+                            PruningSubTabs(
+                                selectedSubTab = selectedPruningSubTab,
+                                onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                                accentColor = paletteColor,
+                                hazeState = effectiveHazeState,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                            RootstockSubTabs(
+                                selectedSubTab = selectedRootstockSubTab,
+                                selectedGenevaOption = selectedGenevaOption,
+                                onSelectSubTab = { subTab, genevaOpt ->
+                                    viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                                },
+                                accentColor = paletteColor,
+                                hazeState = effectiveHazeState,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // 2. Liquid Glass Switcher (New Entry / Records)
+                        val viewMode by viewModel.viewMode.collectAsState()
+                        val isEditing = viewModel.editingRecordId.collectAsState().value != null
+                        if (effectiveHazeState != null) {
+                            AgriSegmentedControl(
+                                selectedMode = viewMode,
+                                onModeSelected = { viewModel.setViewMode(it) },
+                                hazeState = effectiveHazeState,
+                                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                                recordsLabel = "Records (${records.size})",
+                                accentColor = paletteColor,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // 3. Sub-Header Recording Book Pill
                         RecordingBookHeader(
                             title = bookTitle,
                             count = records.size,

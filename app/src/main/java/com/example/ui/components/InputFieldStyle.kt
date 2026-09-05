@@ -15,6 +15,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -1039,5 +1040,193 @@ fun Modifier.bubbleDropletPillIndicator(
             shape = shape
         )
 }
+
+/**
+ * Frosted Liquid Glass Detail Card Modifier
+ * Directly follows specifications:
+ * - background: linear-gradient(180deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.35) 100%)
+ * - backdrop-filter: blur(16px)
+ * - border: 1px solid rgba(255, 255, 255, 0.65)
+ * - border-radius: 22px
+ * - box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.9), 0 6px 20px rgba(0, 0, 0, 0.04)
+ */
+@Composable
+fun Modifier.frostedLiquidGlassDetailCard(
+    isDark: Boolean = isAppInDarkMode(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    shape: Shape = RoundedCornerShape(22.dp),
+    hazeState: HazeState? = null,
+    cornerRadius: Dp = 22.dp
+): Modifier {
+    val effectiveShape = shape
+
+    val cardBackgroundBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1E293B).copy(alpha = 0.70f),
+                accentColor.copy(alpha = 0.08f),
+                Color(0xFF0F172A).copy(alpha = 0.65f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.65f),
+                accentColor.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.35f)
+            )
+        )
+    }
+
+    val borderBrush = Brush.verticalGradient(
+        colors = if (isDark) {
+            listOf(
+                Color.White.copy(alpha = 0.45f),
+                accentColor.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.15f)
+            )
+        } else {
+            listOf(
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.50f),
+                accentColor.copy(alpha = 0.20f)
+            )
+        }
+    )
+
+    return this
+        // 0 6px 20px rgba(0, 0, 0, 0.04)
+        .shadow(
+            elevation = 4.dp,
+            shape = effectiveShape,
+            spotColor = Color.Black.copy(alpha = if (isDark) 0.16f else 0.04f),
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.02f)
+        )
+        .clip(effectiveShape)
+        // backdrop-filter: blur(16px)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = HazeStyle(
+                        blurRadius = 16.dp,
+                        tints = listOf(
+                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.06f else 0.03f))
+                        ),
+                        backgroundColor = Color.Transparent
+                    )
+                )
+            } else Modifier
+        )
+        .background(
+            brush = cardBackgroundBrush,
+            shape = effectiveShape
+        )
+        // inset 0 1px 1.5px rgba(255, 255, 255, 0.9) - Upper specular reflection
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+            val crPx = cornerRadius.toPx()
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.50f else 0.90f),
+                        Color.White.copy(alpha = if (isDark) 0.15f else 0.30f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = 16.dp.toPx()
+                ),
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = CornerRadius(crPx, crPx),
+                style = Stroke(width = 1.5.dp.toPx())
+            )
+        }
+        // border: 1px solid rgba(255, 255, 255, 0.65)
+        .border(
+            width = 1.dp,
+            brush = borderBrush,
+            shape = effectiveShape
+        )
+}
+
+/**
+ * Frosted Circle Action Button
+ * width: 38px; height: 38px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px);
+ */
+@Composable
+fun FrostedCircleActionButton(
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    isDark: Boolean = isAppInDarkMode(),
+    hazeState: HazeState? = null,
+    testTag: String? = null
+) {
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = CircleShape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.18f else 0.05f),
+                ambientColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.02f)
+            )
+            .clip(CircleShape)
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            blurRadius = 10.dp,
+                            tints = listOf(HazeTint(color = tint.copy(alpha = 0.04f))),
+                            backgroundColor = Color.Transparent
+                        )
+                    )
+                } else Modifier
+            )
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (isDark) {
+                        listOf(
+                            Color.White.copy(alpha = 0.20f),
+                            Color.White.copy(alpha = 0.10f)
+                        )
+                    } else {
+                        listOf(
+                            Color.White.copy(alpha = 0.65f),
+                            Color.White.copy(alpha = 0.45f)
+                        )
+                    }
+                ),
+                shape = CircleShape
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.60f else 0.85f),
+                        Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+                    )
+                ),
+                shape = CircleShape
+            )
+            .clickable(onClick = onClick)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
 
 

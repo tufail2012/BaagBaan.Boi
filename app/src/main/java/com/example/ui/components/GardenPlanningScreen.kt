@@ -424,8 +424,6 @@ fun GardenPlanningScreen(
             )
             }
 
-            // Unified Segmented Control matching the app design system with Liquid Glass material
-            val isEditing = viewModel.editingEntryId.collectAsState().value != null
             val parsedPaletteColor = remember(selectedColorHex) {
                 try {
                     Color(android.graphics.Color.parseColor(selectedColorHex))
@@ -434,14 +432,6 @@ fun GardenPlanningScreen(
                 }
             }
             val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
-            AgriSegmentedControl(
-                selectedMode = selectedTabIndex,
-                onModeSelected = { viewModel.selectedTabIndex.value = it },
-                hazeState = effectiveHazeState,
-                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                recordsLabel = "Records (${allEntries.size})",
-                accentColor = gardenAccent
-            )
 
             // Integrated container without cutout borders
             Box(
@@ -752,6 +742,22 @@ fun GardenPlanningFormTab(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // Liquid Glass Switcher (New Entry / Records)
+        val isEditing = editingEntryId != null
+        val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
+        val effectiveHaze = LocalAppGlassHazeState.current
+        if (effectiveHaze != null) {
+            AgriSegmentedControl(
+                selectedMode = 0,
+                onModeSelected = { viewModel.selectedTabIndex.value = it },
+                hazeState = effectiveHaze,
+                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                recordsLabel = "Records (${allEntriesList.size})",
+                accentColor = gardenAccent,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
         // Serial Number field with Lock / Save / Refresh icons matching FarmerFormScreen
         OutlinedTextField(
             value = serialNumber,
@@ -2129,13 +2135,28 @@ fun GardenPlanningRecordsTab(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
             ) {
-                // Unified Controls Header: Header Pill, Search Bar, and 4 Summary Metric Cards
+                // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                 // Sits directly on the single continuous background canvas and scrolls together with records
                 item(key = "garden_records_header_controls") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        // 1. Liquid Glass Switcher (New Entry / Records)
+                        val isEditing = viewModel.editingEntryId.collectAsState().value != null
+                        if (effectiveHazeState != null) {
+                            AgriSegmentedControl(
+                                selectedMode = 1,
+                                onModeSelected = { viewModel.selectedTabIndex.value = it },
+                                hazeState = effectiveHazeState,
+                                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                                recordsLabel = "Records (${entries.size})",
+                                accentColor = paletteAccent,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        // 2. Sub-Header Recording Book Pill
                         RecordingBookHeader(
                             title = "Garden Planning Recording Book",
                             count = entries.size,

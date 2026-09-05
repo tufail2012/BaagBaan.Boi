@@ -5,13 +5,23 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -22,8 +32,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -72,11 +84,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import kotlin.math.roundToInt
+import com.example.ui.theme.getSectionAccentColor
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -85,10 +119,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
 import com.example.data.calculateTotalAmount
@@ -216,16 +246,133 @@ fun BookingRecordDetailDialog(
     val totalRecordValue = record.calculateTotalAmount()
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
+    val sectionAccentColor = getSectionAccentColor(record.serviceType, defaultColor = MaterialTheme.colorScheme.primary)
+
+    val sheetHazeState = remember { HazeState() }
+    val scrollState = rememberScrollState()
+    val offsetY = remember { Animatable(1000f) }
+    var isDismissing by remember { mutableStateOf(false) }
+
+    val dismissWithAnimation: () -> Unit = {
+        if (!isDismissing) {
+            isDismissing = true
+            coroutineScope.launch {
+                offsetY.animateTo(
+                    targetValue = 2000f,
+                    animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing)
+                )
+                onDismiss()
+            }
+        }
+    }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (delta < 0 && offsetY.value > 0f) {
+                    val newOffset = (offsetY.value + delta).coerceAtLeast(0f)
+                    coroutineScope.launch { offsetY.snapTo(newOffset) }
+                    return Offset(0f, delta)
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (delta > 0 && scrollState.value == 0) {
+                    val newOffset = (offsetY.value + delta).coerceAtLeast(0f)
+                    coroutineScope.launch { offsetY.snapTo(newOffset) }
+                    return Offset(0f, delta)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (offsetY.value > 0f) {
+                    if (offsetY.value > 120f || available.y > 600f) {
+                        dismissWithAnimation()
+                    } else {
+                        offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
+                    }
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
 
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)
+        onDismissRequest = { dismissWithAnimation() },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            decorFitsSystemWindows = false
+        )
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121826) else Color(0xFFF8FAFC)
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+        BackHandler(enabled = !isDismissing) {
+            dismissWithAnimation()
+        }
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val screenHeightPx = constraints.maxHeight.toFloat()
+            val dragThresholdPx = with(LocalDensity.current) { 100.dp.toPx() }
+
+            LaunchedEffect(screenHeightPx) {
+                if (screenHeightPx > 0f) {
+                    offsetY.snapTo(screenHeightPx)
+                    offsetY.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = 0.82f,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            }
+
+            val dragProgress = if (screenHeightPx > 0f) (offsetY.value / screenHeightPx).coerceIn(0f, 1f) else 0f
+            val backdropAlpha = (0.35f * (1f - dragProgress)).coerceIn(0f, 0.35f)
+
+            // Dimmed backdrop overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = backdropAlpha))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { dismissWithAnimation() }
+                    )
+            )
+
+            // Sliding Full-Screen Sheet
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                    .nestedScroll(nestedScrollConnection)
+                    .hazeSource(state = sheetHazeState)
+                    .background(
+                        brush = if (isDark) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFF0F172A).copy(alpha = 0.97f),
+                                    sectionAccentColor.copy(alpha = 0.06f),
+                                    Color(0xFF1E293B).copy(alpha = 0.98f)
+                                )
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFFF8FAFC).copy(alpha = 0.96f),
+                                    sectionAccentColor.copy(alpha = 0.05f),
+                                    Color(0xFFF1F5F9).copy(alpha = 0.98f)
+                                )
+                            )
+                        }
+                    )
+            ) {
                 if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
                 } else if (record.isReceived) {
@@ -235,119 +382,231 @@ fun BookingRecordDetailDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .imePadding()
-                        .verticalScroll(rememberScrollState())
                         .navigationBarsPadding()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                // 1. Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Pinned Top Drag Area (Drag handle + Header Bar)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures(
+                                    onDragEnd = {
+                                        if (offsetY.value > dragThresholdPx) {
+                                            dismissWithAnimation()
+                                        } else {
+                                            coroutineScope.launch {
+                                                offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = {
+                                        coroutineScope.launch {
+                                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
+                                        }
+                                    },
+                                    onVerticalDrag = { change, dragAmount ->
+                                        change.consume()
+                                        val nextOffset = (offsetY.value + dragAmount).coerceAtLeast(0f)
+                                        coroutineScope.launch {
+                                            offsetY.snapTo(nextOffset)
+                                        }
+                                    }
+                                )
+                            }
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = MaterialTheme.colorScheme.primary
+                        // Top Center Drag Indicator Handle
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp, bottom = 6.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 44.dp, height = 5.dp)
+                                    .background(
+                                        color = if (isDark) Color.White.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.20f),
+                                        shape = RoundedCornerShape(percent = 50)
+                                    )
                             )
                         }
 
-                        if (record.isCancelled) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2),
-                                border = BorderStroke(1.dp, if (isDark) Color(0xFF991B1B) else Color(0xFFFCA5A5))
+                        // Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    text = "CANCELLED",
-                                    color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                )
+                                // Bubbly Glass Capsule Serial No Badge
+                                Box(
+                                    modifier = Modifier
+                                        .shadow(
+                                            elevation = 3.dp,
+                                            shape = RoundedCornerShape(percent = 50),
+                                            spotColor = sectionAccentColor.copy(alpha = if (isDark) 0.24f else 0.12f),
+                                            ambientColor = sectionAccentColor.copy(alpha = if (isDark) 0.12f else 0.06f)
+                                        )
+                                        .clip(RoundedCornerShape(percent = 50))
+                                        .background(
+                                            brush = if (isDark) {
+                                                Brush.verticalGradient(
+                                                    colorStops = arrayOf(
+                                                        0.0f to Color.White.copy(alpha = 0.25f),
+                                                        0.60f to Color.White.copy(alpha = 0.10f),
+                                                        1.0f to sectionAccentColor.copy(alpha = 0.20f)
+                                                    )
+                                                )
+                                            } else {
+                                                Brush.verticalGradient(
+                                                    colorStops = arrayOf(
+                                                        0.0f to Color.White.copy(alpha = 0.85f),
+                                                        0.60f to Color.White.copy(alpha = 0.40f),
+                                                        1.0f to sectionAccentColor.copy(alpha = 0.15f)
+                                                    )
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(percent = 50)
+                                        )
+                                        .drawWithContent {
+                                            drawContent()
+                                            val w = size.width
+                                            val h = size.height
+                                            val cornerRadius = CornerRadius(h / 2f, h / 2f)
+                                            drawRoundRect(
+                                                brush = Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        Color.White.copy(alpha = if (isDark) 0.80f else 0.95f),
+                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.45f),
+                                                        Color.Transparent
+                                                    ),
+                                                    startY = 0f,
+                                                    endY = h * 0.55f
+                                                ),
+                                                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                                                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                                                cornerRadius = cornerRadius,
+                                                style = Stroke(width = 1.5.dp.toPx())
+                                            )
+                                        }
+                                        .border(
+                                            width = 1.dp,
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(
+                                                    Color.White.copy(alpha = if (isDark) 0.70f else 0.85f),
+                                                    sectionAccentColor.copy(alpha = 0.40f),
+                                                    Color.White.copy(alpha = if (isDark) 0.25f else 0.50f)
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(percent = 50)
+                                        )
+                                        .padding(horizontal = 14.dp, vertical = 7.dp)
+                                ) {
+                                    Text(
+                                        text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
+                                        color = sectionAccentColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.5.sp
+                                    )
+                                }
+
+                                if (record.isCancelled) {
+                                    Surface(
+                                        shape = RoundedCornerShape(percent = 50),
+                                        color = if (isDark) Color(0xFF450A0A) else Color(0xFFFEE2E2),
+                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF991B1B) else Color(0xFFFCA5A5))
+                                    ) {
+                                        Text(
+                                            text = "CANCELLED",
+                                            color = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                        )
+                                    }
+                                } else if (record.isReceived) {
+                                    Surface(
+                                        shape = RoundedCornerShape(percent = 50),
+                                        color = if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5),
+                                        border = BorderStroke(1.dp, if (isDark) Color(0xFF059669) else Color(0xFF6EE7B7))
+                                    ) {
+                                        Text(
+                                            text = "RECEIVED",
+                                            color = if (isDark) Color(0xFF6EE7B7) else Color(0xFF059669),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                        )
+                                    }
+                                }
                             }
-                        } else if (record.isReceived) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isDark) Color(0xFF064E3B) else Color(0xFFD1FAE5),
-                                border = BorderStroke(1.dp, if (isDark) Color(0xFF059669) else Color(0xFF6EE7B7))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "RECEIVED",
-                                    color = if (isDark) Color(0xFF6EE7B7) else Color(0xFF059669),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                FrostedCircleActionButton(
+                                    onClick = {
+                                        dismissWithAnimation()
+                                        onEdit(record)
+                                    },
+                                    icon = Icons.Default.Edit,
+                                    contentDescription = "Edit Record",
+                                    tint = sectionAccentColor,
+                                    isDark = isDark,
+                                    hazeState = sheetHazeState,
+                                    testTag = "edit_record_button"
+                                )
+
+                                FrostedCircleActionButton(
+                                    onClick = { showDeleteConfirm = true },
+                                    icon = Icons.Default.Delete,
+                                    contentDescription = "Delete Record",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    isDark = isDark,
+                                    hazeState = sheetHazeState,
+                                    testTag = "delete_record_button"
+                                )
+
+                                FrostedCircleActionButton(
+                                    onClick = { dismissWithAnimation() },
+                                    icon = Icons.Default.Close,
+                                    contentDescription = "Close View",
+                                    tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
+                                    isDark = isDark,
+                                    hazeState = sheetHazeState,
+                                    testTag = "close_detail_dialog"
                                 )
                             }
                         }
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Scrollable content with consistent 12.dp vertical gap
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .imePadding()
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        IconButton(
-                            onClick = {
-                                onDismiss()
-                                onEdit(record)
-                            },
-                            modifier = Modifier.testTag("edit_record_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Record",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { showDeleteConfirm = true },
-                            modifier = Modifier.testTag("delete_record_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Record",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.testTag("close_detail_dialog")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close View",
-                                tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
-                }
 
                 // 2. Farmer Header Card (Profile Avatar in Theme Color + Category + Name + Phone + Address)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .frostedLiquidGlassDetailCard(
                             isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(20.dp)
+                            accentColor = sectionAccentColor,
+                            shape = RoundedCornerShape(22.dp),
+                            hazeState = sheetHazeState
                         )
                 ) {
                     Row(
@@ -362,7 +621,7 @@ fun BookingRecordDetailDialog(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
+                                .background(sectionAccentColor),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -377,12 +636,18 @@ fun BookingRecordDetailDialog(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = record.serviceType.ifBlank { "Local Plants" },
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = sectionAccentColor.copy(alpha = if (isDark) 0.25f else 0.12f)
+                            ) {
+                                Text(
+                                    text = record.serviceType.ifBlank { "Local Plants" },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = sectionAccentColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                             Text(
                                 text = record.farmerName.ifBlank { "Farmer Name" },
                                 fontSize = 20.sp,
@@ -401,7 +666,7 @@ fun BookingRecordDetailDialog(
                                     Icon(
                                         imageVector = Icons.Default.Call,
                                         contentDescription = "Call Phone",
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = sectionAccentColor,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
@@ -458,10 +723,11 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .frostedLiquidGlassDetailCard(
                             isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(20.dp)
+                            accentColor = sectionAccentColor,
+                            shape = RoundedCornerShape(22.dp),
+                            hazeState = sheetHazeState
                         )
                 ) {
                     Column(
@@ -523,10 +789,12 @@ fun BookingRecordDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .glassCardBackground(
+                                    .frostedLiquidGlassDetailCard(
                                         isDark = isDark,
-                                        accentColor = MaterialTheme.colorScheme.primary,
-                                        shape = RoundedCornerShape(12.dp)
+                                        accentColor = sectionAccentColor,
+                                        shape = RoundedCornerShape(14.dp),
+                                        hazeState = sheetHazeState,
+                                        cornerRadius = 14.dp
                                     )
                                     .padding(vertical = 2.dp)
                             ) {
@@ -538,7 +806,7 @@ fun BookingRecordDetailDialog(
                                         text = "Itemized Varieties (${parsedVarietyLines.size})",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = sectionAccentColor
                                     )
                                     parsedVarietyLines.forEachIndexed { idx, line ->
                                         Row(
@@ -572,7 +840,7 @@ fun BookingRecordDetailDialog(
                                                 text = "${line.quantity} × ₹${line.unitPrice.toInt()} = ₹${(line.quantity * line.unitPrice).toInt()}",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = sectionAccentColor
                                             )
                                         }
                                         if (idx < parsedVarietyLines.size - 1) {
@@ -609,21 +877,21 @@ fun BookingRecordDetailDialog(
                         DetailRowItem(
                             label = "Total Amount",
                             value = "₹${totalRecordValue.toInt()}",
-                            valueColor = MaterialTheme.colorScheme.primary,
+                            valueColor = sectionAccentColor,
                             isBold = true,
                             isDark = isDark
                         )
                         DetailRowItem(
                             label = "Amount Paid",
                             value = "₹${totalPaidSoFar.toInt()}",
-                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else sectionAccentColor,
                             isBold = true,
                             isDark = isDark
                         )
                         DetailRowItem(
                             label = "Remaining Balance",
                             value = "₹${remainingBalance.toInt()}",
-                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                            valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else (if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)),
                             isBold = true,
                             isDark = isDark
                         )
@@ -636,10 +904,11 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .frostedLiquidGlassDetailCard(
                             isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(22.dp)
+                            accentColor = sectionAccentColor,
+                            shape = RoundedCornerShape(22.dp),
+                            hazeState = sheetHazeState
                         )
                 ) {
                     Column(
@@ -659,14 +928,14 @@ fun BookingRecordDetailDialog(
                                 Icon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = sectionAccentColor,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "Installment Payment Tracking",
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = sectionAccentColor
                                 )
                             }
 
@@ -674,7 +943,7 @@ fun BookingRecordDetailDialog(
                                 record.isCancelled -> "Cancelled" to Color(0xFFDC2626)
                                 remainingBalance <= 0.01 -> "Fully Paid" to (if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
                                 totalPaidSoFar > 0 -> "Advance Paid" to Color(0xFFE65100)
-                                else -> "Pending" to MaterialTheme.colorScheme.primary
+                                else -> "Pending" to sectionAccentColor
                             }
 
                             Box(
@@ -699,10 +968,12 @@ fun BookingRecordDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .glassCardBackground(
+                                .frostedLiquidGlassDetailCard(
                                     isDark = isDark,
-                                    accentColor = MaterialTheme.colorScheme.primary,
-                                    shape = RoundedCornerShape(14.dp)
+                                    accentColor = sectionAccentColor,
+                                    shape = RoundedCornerShape(14.dp),
+                                    hazeState = sheetHazeState,
+                                    cornerRadius = 14.dp
                                 )
                         ) {
                             Column(
@@ -725,7 +996,7 @@ fun BookingRecordDetailDialog(
                                 SummaryLine(
                                     label = "Remaining Balance Due:",
                                     value = "₹${remainingBalance.toInt()}",
-                                    valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else MaterialTheme.colorScheme.primary,
+                                    valueColor = if (remainingBalance <= 0) (if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)) else (if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)),
                                     isBold = true,
                                     isDark = isDark
                                 )
@@ -741,7 +1012,7 @@ fun BookingRecordDetailDialog(
                                 text = "RECORD NEW INSTALLMENT PAYMENT",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = sectionAccentColor
                             )
 
                             OutlinedTextField(
@@ -758,11 +1029,11 @@ fun BookingRecordDetailDialog(
                                     unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                     focusedTextColor = if (isDark) Color.White else Color.Black,
                                     unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    focusedLabelColor = sectionAccentColor,
                                     unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    focusedBorderColor = sectionAccentColor,
                                     unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                    cursorColor = MaterialTheme.colorScheme.primary
+                                    cursorColor = sectionAccentColor
                                 )
                             )
 
@@ -792,11 +1063,11 @@ fun BookingRecordDetailDialog(
                                         unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                         focusedTextColor = if (isDark) Color.White else Color.Black,
                                         unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = sectionAccentColor,
                                         unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        focusedBorderColor = sectionAccentColor,
                                         unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = MaterialTheme.colorScheme.primary
+                                        cursorColor = sectionAccentColor
                                     )
                                 )
 
@@ -813,11 +1084,11 @@ fun BookingRecordDetailDialog(
                                         unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
                                         focusedTextColor = if (isDark) Color.White else Color.Black,
                                         unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = sectionAccentColor,
                                         unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        focusedBorderColor = sectionAccentColor,
                                         unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = MaterialTheme.colorScheme.primary
+                                        cursorColor = sectionAccentColor
                                     )
                                 )
                             }
@@ -880,7 +1151,7 @@ fun BookingRecordDetailDialog(
                                     .height(48.dp),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (canSave && !isSavingInstallment) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
+                                    containerColor = if (canSave && !isSavingInstallment) sectionAccentColor else (if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
                                     disabledContainerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0)
                                 )
                             ) {
@@ -920,7 +1191,7 @@ fun BookingRecordDetailDialog(
                                     text = "Total: ₹${totalPaidSoFar.toInt()}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = sectionAccentColor
                                 )
                             }
 
@@ -931,10 +1202,12 @@ fun BookingRecordDetailDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .glassCardBackground(
+                                            .frostedLiquidGlassDetailCard(
                                                 isDark = isDark,
-                                                accentColor = MaterialTheme.colorScheme.primary,
-                                                shape = RoundedCornerShape(12.dp)
+                                                accentColor = sectionAccentColor,
+                                                shape = RoundedCornerShape(14.dp),
+                                                hazeState = sheetHazeState,
+                                                cornerRadius = 14.dp
                                             )
                                     ) {
                                         Row(
@@ -1225,7 +1498,8 @@ fun BookingRecordDetailDialog(
 
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
                 Spacer(modifier = Modifier.height(32.dp))
-            }
+                    }
+                }
             }
         }
     }
@@ -1238,7 +1512,7 @@ fun BookingRecordDetailDialog(
             identifier = if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType,
             onConfirm = {
                 showDeleteConfirm = false
-                onDismiss()
+                dismissWithAnimation()
                 onDelete(record)
             },
             onDismiss = { showDeleteConfirm = false }

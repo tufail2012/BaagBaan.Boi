@@ -117,7 +117,7 @@ fun PruningSubTabs(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(vertical = 4.dp)
             .height(48.dp)
             .shadow(
                 elevation = 3.dp,
@@ -416,7 +416,7 @@ fun RootstockSubTabs(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(vertical = 4.dp)
             .height(48.dp)
             .shadow(
                 elevation = 3.dp,
