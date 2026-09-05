@@ -11,8 +11,8 @@ val AgriGreenPrimary = Color(0xFF2E7D32)
 val AgriGreenLight = Color(0xFFE8F5E9)
 
 // Section-specific brand accent colors
-val SectionLocalPlantsAccent = Color(0xFF2E7D32)     // Forest Green
-val SectionImportedPlantsAccent = Color(0xFF7C3AED)  // Vibrant Purple
+val SectionLocalPlantsAccent = Color(0xFF2E7D32)     // Forest Green (#2E7D32)
+val SectionImportedPlantsAccent = Color(0xFFD32F2F)  // Vibrant Red / Crimson (#D32F2F)
 val SectionRootstocksAccent = Color(0xFF059669)      // Emerald Green
 val SectionSiteVisitAccent = Color(0xFF2563EB)       // Royal Blue
 val SectionPruningAccent = Color(0xFFD32F2F)         // Crimson Red
@@ -31,24 +31,25 @@ fun getSectionAccentColor(
     customPaletteColor: Color? = null,
     defaultColor: Color = SectionLocalPlantsAccent
 ): Color {
-    if (customPaletteColor != null) return customPaletteColor
-    return when (serviceCategory.trim()) {
-        "Local Plants", "Local" -> SectionLocalPlantsAccent
-        "Imported Plants", "Imported" -> SectionImportedPlantsAccent
-        "Rootstocks" -> SectionRootstocksAccent
-        "Site Visit", "Visit" -> SectionSiteVisitAccent
-        "Pruning" -> SectionPruningAccent
-        "Garden Planning", "Planning" -> SectionGardenPlanningAccent
-        "Bookings" -> SectionBookingsAccent
-        "Attendance" -> SectionAttendanceAccent
-        "Inventory" -> SectionInventoryAccent
-        "Dashboard" -> Color(0xFF10B981)
-        "Contact Directory", "Contacts" -> Color(0xFF0EA5E9)
-        "Payment Reminder", "Payment Reminders" -> Color(0xFFF59E0B)
-        "Seasonal Reminders", "Seasonal" -> Color(0xFF10B981)
-        "Scan QR", "QR" -> Color(0xFF8B5CF6)
-        "Settings" -> Color(0xFF64748B)
-        "Profile" -> Color(0xFF10B981)
+    val trimmed = serviceCategory.trim()
+    return when {
+        trimmed.equals("Local Plants", ignoreCase = true) || trimmed.equals("Local", ignoreCase = true) -> SectionLocalPlantsAccent
+        trimmed.contains("Imported Plants", ignoreCase = true) || trimmed.equals("Imported", ignoreCase = true) -> SectionImportedPlantsAccent
+        trimmed.contains("Rootstock", ignoreCase = true) -> SectionRootstocksAccent
+        trimmed.contains("Site Visit", ignoreCase = true) || trimmed.contains("Visit", ignoreCase = true) -> SectionSiteVisitAccent
+        trimmed.contains("Pruning", ignoreCase = true) -> SectionPruningAccent
+        trimmed.contains("Garden", ignoreCase = true) || trimmed.contains("Planning", ignoreCase = true) -> SectionGardenPlanningAccent
+        trimmed.contains("Booking", ignoreCase = true) -> SectionBookingsAccent
+        trimmed.contains("Attendance", ignoreCase = true) -> SectionAttendanceAccent
+        trimmed.contains("Inventory", ignoreCase = true) -> SectionInventoryAccent
+        trimmed.contains("Dashboard", ignoreCase = true) -> Color(0xFF10B981)
+        trimmed.contains("Contact", ignoreCase = true) -> Color(0xFF0EA5E9)
+        trimmed.contains("Payment Reminder", ignoreCase = true) -> Color(0xFFF59E0B)
+        trimmed.contains("Seasonal", ignoreCase = true) -> Color(0xFF10B981)
+        trimmed.contains("QR", ignoreCase = true) -> Color(0xFF8B5CF6)
+        trimmed.contains("Setting", ignoreCase = true) -> Color(0xFF64748B)
+        trimmed.contains("Profile", ignoreCase = true) -> Color(0xFF10B981)
+        customPaletteColor != null -> customPaletteColor
         else -> defaultColor
     }
 }

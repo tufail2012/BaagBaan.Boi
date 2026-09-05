@@ -1063,17 +1063,17 @@ fun Modifier.frostedLiquidGlassDetailCard(
     val cardBackgroundBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.70f),
+                Color(0xFF1E293B).copy(alpha = 0.92f),
                 accentColor.copy(alpha = 0.08f),
-                Color(0xFF0F172A).copy(alpha = 0.65f)
+                Color(0xFF0F172A).copy(alpha = 0.90f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.65f),
-                accentColor.copy(alpha = 0.04f),
-                Color.White.copy(alpha = 0.35f)
+                Color(0xFFFFFFFF).copy(alpha = 0.94f),
+                accentColor.copy(alpha = 0.03f),
+                Color(0xFFFFFFFF).copy(alpha = 0.90f)
             )
         )
     }
@@ -1081,14 +1081,14 @@ fun Modifier.frostedLiquidGlassDetailCard(
     val borderBrush = Brush.verticalGradient(
         colors = if (isDark) {
             listOf(
-                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.40f),
                 accentColor.copy(alpha = 0.25f),
                 Color.White.copy(alpha = 0.15f)
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.75f),
-                Color.White.copy(alpha = 0.50f),
+                Color.White.copy(alpha = 0.85f),
+                Color.White.copy(alpha = 0.70f),
                 accentColor.copy(alpha = 0.20f)
             )
         }

@@ -51,7 +51,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import com.example.util.MapHelper
 import androidx.compose.material.icons.filled.Message
@@ -210,7 +212,8 @@ fun BookingRecordDetailDialog(
     onDismiss: () -> Unit,
     onEdit: (CropRecord) -> Unit,
     onDelete: (CropRecord) -> Unit,
-    onUpdateRecord: suspend (CropRecord) -> Unit
+    onUpdateRecord: suspend (CropRecord) -> Unit,
+    customPaletteColor: Color? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -246,7 +249,11 @@ fun BookingRecordDetailDialog(
     val totalRecordValue = record.calculateTotalAmount()
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
-    val sectionAccentColor = getSectionAccentColor(record.serviceType, defaultColor = MaterialTheme.colorScheme.primary)
+    val sectionAccentColor = getSectionAccentColor(
+        record.serviceType,
+        customPaletteColor = customPaletteColor,
+        defaultColor = MaterialTheme.colorScheme.primary
+    )
 
     val sheetHazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
@@ -262,42 +269,6 @@ fun BookingRecordDetailDialog(
                     animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing)
                 )
                 onDismiss()
-            }
-        }
-    }
-
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                if (delta < 0 && offsetY.value > 0f) {
-                    val newOffset = (offsetY.value + delta).coerceAtLeast(0f)
-                    coroutineScope.launch { offsetY.snapTo(newOffset) }
-                    return Offset(0f, delta)
-                }
-                return Offset.Zero
-            }
-
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                if (delta > 0 && scrollState.value == 0) {
-                    val newOffset = (offsetY.value + delta).coerceAtLeast(0f)
-                    coroutineScope.launch { offsetY.snapTo(newOffset) }
-                    return Offset(0f, delta)
-                }
-                return Offset.Zero
-            }
-
-            override suspend fun onPreFling(available: Velocity): Velocity {
-                if (offsetY.value > 0f) {
-                    if (offsetY.value > 120f || available.y > 600f) {
-                        dismissWithAnimation()
-                    } else {
-                        offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
-                    }
-                    return available
-                }
-                return Velocity.Zero
             }
         }
     }
@@ -346,32 +317,33 @@ fun BookingRecordDetailDialog(
                     )
             )
 
+            val sheetBaseColor = if (isDark) Color(0xFF121612) else Color(0xFFFAFCFA)
+            val sheetGradientBrush = if (isDark) {
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.00f to sectionAccentColor.copy(alpha = 0.20f),
+                        0.18f to Color(0xFF121612).copy(alpha = 0.94f),
+                        1.00f to sectionAccentColor.copy(alpha = 0.08f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colorStops = arrayOf(
+                        0.00f to sectionAccentColor.copy(alpha = 0.12f),
+                        0.18f to Color(0xFFFAFCFA).copy(alpha = 0.94f),
+                        1.00f to sectionAccentColor.copy(alpha = 0.06f)
+                    )
+                )
+            }
+
             // Sliding Full-Screen Sheet
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                    .nestedScroll(nestedScrollConnection)
                     .hazeSource(state = sheetHazeState)
-                    .background(
-                        brush = if (isDark) {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFF0F172A).copy(alpha = 0.97f),
-                                    sectionAccentColor.copy(alpha = 0.06f),
-                                    Color(0xFF1E293B).copy(alpha = 0.98f)
-                                )
-                            )
-                        } else {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFFF8FAFC).copy(alpha = 0.96f),
-                                    sectionAccentColor.copy(alpha = 0.05f),
-                                    Color(0xFFF1F5F9).copy(alpha = 0.98f)
-                                )
-                            )
-                        }
-                    )
+                    .background(sheetBaseColor)
+                    .background(sheetGradientBrush)
             ) {
                 if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
@@ -605,17 +577,39 @@ fun BookingRecordDetailDialog(
                         .frostedLiquidGlassDetailCard(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(20.dp),
                             hazeState = sheetHazeState
                         )
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = sectionAccentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Farmer Details",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = sectionAccentColor
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
                         // Profile Avatar in Theme Palette
                         Box(
                             modifier = Modifier
@@ -709,6 +703,7 @@ fun BookingRecordDetailDialog(
                             }
                         }
                     }
+                    }
                 }
 
                 // 3. Specifications List
@@ -726,7 +721,7 @@ fun BookingRecordDetailDialog(
                         .frostedLiquidGlassDetailCard(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(20.dp),
                             hazeState = sheetHazeState
                         )
                 ) {
@@ -736,6 +731,24 @@ fun BookingRecordDetailDialog(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = sectionAccentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "Specifications",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = sectionAccentColor
+                            )
+                        }
+
                         DetailRowItem(label = "Category", value = record.serviceType, isDark = isDark)
 
                         if (record.location.isNotBlank()) {
@@ -907,7 +920,7 @@ fun BookingRecordDetailDialog(
                         .frostedLiquidGlassDetailCard(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(22.dp),
+                            shape = RoundedCornerShape(20.dp),
                             hazeState = sheetHazeState
                         )
                 ) {
