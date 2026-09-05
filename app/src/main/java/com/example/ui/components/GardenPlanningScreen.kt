@@ -2,6 +2,13 @@ package com.example.ui.components
 
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.example.ui.components.BrandedPullToRefreshBox
@@ -305,6 +312,7 @@ fun GardenPlanningScreen(
     onLogout: () -> Unit = {},
     onManualSync: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -372,13 +380,14 @@ fun GardenPlanningScreen(
         )
     }
 
-    val hazeState = remember { HazeState() }
+    val fallbackHazeState = remember { HazeState() }
+    val effectiveHazeState = hazeState ?: fallbackHazeState
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = if (showHeader) MaterialTheme.colorScheme.background else Color.Transparent
     ) {
-        Column(modifier = Modifier.fillMaxSize().hazeSource(state = hazeState)) {
+        Column(modifier = Modifier.fillMaxSize().hazeSource(state = effectiveHazeState)) {
             // Consistent Main App Header
             if (showHeader) {
                 AgriHeader(
@@ -411,7 +420,7 @@ fun GardenPlanningScreen(
                 onManualSync = onManualSync,
                 onNavigateToSettings = onNavigateToSettings,
                 onBack = null,
-                hazeState = hazeState
+                hazeState = effectiveHazeState
             )
             }
 
@@ -428,18 +437,17 @@ fun GardenPlanningScreen(
             AgriSegmentedControl(
                 selectedMode = selectedTabIndex,
                 onModeSelected = { viewModel.selectedTabIndex.value = it },
-                hazeState = hazeState,
+                hazeState = effectiveHazeState,
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntries.size})",
                 accentColor = gardenAccent
             )
 
-            // Smooth rounded container between header/segmented control and sections
+            // Integrated container without cutout borders
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             ) {
                 when (selectedTabIndex) {
                     0 -> {
@@ -463,7 +471,8 @@ fun GardenPlanningScreen(
                                 viewModel.clearForm()
                                 viewModel.selectedTabIndex.value = 0
                             },
-                            customPaletteColor = gardenAccent
+                            customPaletteColor = gardenAccent,
+                            hazeState = effectiveHazeState
                         )
                     }
                 }
@@ -738,7 +747,6 @@ fun GardenPlanningFormTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -2016,13 +2024,27 @@ fun GardenPlanningRecordsTab(
     isDark: Boolean,
     onEdit: (GardenPlanningEntry) -> Unit,
     onAddNewEntry: () -> Unit = {},
-    customPaletteColor: Color? = null
+    customPaletteColor: Color? = null,
+    hazeState: HazeState? = null
 ) {
     val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
+
+    val fallbackHazeState = remember { HazeState() }
+    val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHazeState
+
+    var headerHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val calculatedTopPadding = remember(headerHeightPx, density) {
+        if (headerHeightPx > 0) {
+            with(density) { headerHeightPx.toDp() } + 12.dp
+        } else {
+            136.dp
+        }
+    }
 
     val lazyListState = rememberLazyListState()
     lazyListState.rememberScrollHapticFeedback()
@@ -2068,19 +2090,7 @@ fun GardenPlanningRecordsTab(
         )
     }
 
-    // Financial & Quantity Summary Metrics
-    val totalPayment = entries.sumOf { it.totalCost }
     val animatedItemIds = remember(selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
-    val receivedPayment = entries.sumOf { entry ->
-        if (entry.amountPaid > 0) entry.amountPaid
-        else when (entry.paymentStatus) {
-            "Fully Paid" -> entry.totalCost
-            "Advance Paid" -> entry.totalCost * 0.5
-            else -> 0.0
-        }
-    }
-    val pendingPayment = (totalPayment - receivedPayment).coerceAtLeast(0.0)
-    val totalQuantity = entries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() }
 
     BrandedPullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -2098,16 +2108,149 @@ fun GardenPlanningRecordsTab(
         },
         modifier = Modifier.fillMaxSize()
     ) {
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Sticky Fixed Top Section: Recording Book Header Banner + Search Bar & Filter
-            Surface(
+            // Scrollable Content scrolling cleanly underneath pinned header
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = calculatedTopPadding, bottom = 110.dp)
+            ) {
+                if (entries.isEmpty()) {
+                    if (isInitialLoading) {
+                        items(4) {
+                            SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
+                        }
+                    } else {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Park,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = Color.Gray
+                                    )
+                                    Text(
+                                        text = "No Records Found",
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
+                                            "No garden planning records match your search or filter criteria."
+                                        else
+                                            "No entries saved in the Garden Planning Recording Book yet. Create a new entry under Garden Planning to add it here.",
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    OutlinedButton(
+                                        onClick = { onAddNewEntry() },
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    ) {
+                                        Text("Add New Entry to Garden Planning")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    itemsIndexed(entries, key = { _, entry -> entry.id }) { index, entry ->
+                        StaggeredEntranceWrapper(
+                            itemId = entry.id,
+                            index = index,
+                            animatedItemIds = animatedItemIds
+                        ) {
+                            SwipeableGardenPlanningItem(
+                                entry = entry,
+                                onDelete = { entryToDelete = entry },
+                                context = context
+                            ) {
+                                GardenPlanningRecordCard(
+                                    entry = entry,
+                                    currencyFormat = currencyFormat,
+                                    onViewDetails = { selectedDetailEntry = entry },
+                                    onEdit = { onEdit(entry) },
+                                    onDelete = { entryToDelete = entry },
+                                    context = context,
+                                    isDark = isDark,
+                                    paletteAccent = paletteAccent,
+                                    hazeState = effectiveHazeState
+                                )
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
+            }
+
+            // Pinned Sticky Top Header with Frosted Glass styling
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                color = MaterialTheme.colorScheme.background
+                    .align(Alignment.TopCenter)
+                    .zIndex(10f)
+                    .onSizeChanged { size ->
+                        headerHeightPx = size.height
+                    }
+                    .shadow(
+                        elevation = 4.dp,
+                        spotColor = Color.Black.copy(alpha = 0.05f),
+                        ambientColor = Color.Black.copy(alpha = 0.02f)
+                    )
+                    .then(
+                        if (effectiveHazeState != null) {
+                            Modifier.hazeEffect(
+                                state = effectiveHazeState,
+                                style = HazeStyle(
+                                    blurRadius = 12.dp,
+                                    tints = listOf(
+                                        HazeTint(color = paletteAccent.copy(alpha = if (isDark) 0.12f else 0.08f))
+                                    ),
+                                    backgroundColor = Color.Transparent
+                                )
+                            )
+                        } else Modifier
+                    )
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                paletteAccent.copy(alpha = if (isDark) 0.16f else 0.12f),
+                                (if (isDark) Color(0xFF0F172A).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.25f)),
+                                (if (isDark) Color(0xFF0F172A).copy(alpha = 0.45f) else Color.White.copy(alpha = 0.20f))
+                            )
+                        )
+                    )
+                    .border(
+                        BorderStroke(
+                            1.dp,
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
+                                    paletteAccent.copy(alpha = 0.20f),
+                                    Color.White.copy(alpha = 0.15f)
+                                )
+                            )
+                        )
+                    )
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -2115,7 +2258,8 @@ fun GardenPlanningRecordsTab(
                 ) {
                     RecordingBookHeader(
                         title = "Garden Planning Recording Book",
-                        count = entries.size
+                        count = entries.size,
+                        hazeState = effectiveHazeState
                     )
                     SearchBarWithStatusFilter(
                         searchQuery = searchQuery,
@@ -2125,113 +2269,11 @@ fun GardenPlanningRecordsTab(
                         placeholderText = "Search by farmer name, phone, serial or address...",
                         isDark = isDark,
                         testTagPrefix = "garden_search",
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        hazeState = effectiveHazeState
                     )
                 }
             }
-
-            // Scrollable Content (Total Payment, summaries, records) scrolling underneath
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
-            ) {
-                // 3. Summary Statistics Cards Grid (Total Payment, Received Payment, etc.)
-                item {
-                    GardenRecordSummaryCards(
-                        totalPayment = totalPayment,
-                        receivedPayment = receivedPayment,
-                        pendingPayment = pendingPayment,
-                        totalQuantity = totalQuantity,
-                        isDark = isDark,
-                        paletteAccent = paletteAccent
-                    )
-                }
-
-        if (entries.isEmpty()) {
-            if (isInitialLoading) {
-                items(4) {
-                    SkeletonCard(isDark = isDark, lineCount = 4, hasActionRow = true)
-                }
-            } else {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                        Icon(
-                            imageVector = Icons.Default.Park,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = Color.Gray
-                        )
-                        Text(
-                            text = "No Records Found",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
-                                "No garden planning records match your search or filter criteria."
-                            else
-                                "No entries saved in the Garden Planning Recording Book yet. Create a new entry under Garden Planning to add it here.",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                        OutlinedButton(
-                            onClick = { onAddNewEntry() },
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Text("Add New Entry to Garden Planning")
-                        }
-                    }
-                }
-                }
-            }
-        } else {
-            itemsIndexed(entries, key = { _, entry -> entry.id }) { index, entry ->
-                StaggeredEntranceWrapper(
-                    itemId = entry.id,
-                    index = index,
-                    animatedItemIds = animatedItemIds
-                ) {
-                    SwipeableGardenPlanningItem(
-                        entry = entry,
-                        onDelete = { entryToDelete = entry },
-                        context = context
-                    ) {
-                        GardenPlanningRecordCard(
-                            entry = entry,
-                            currencyFormat = currencyFormat,
-                            onViewDetails = { selectedDetailEntry = entry },
-                            onEdit = { onEdit(entry) },
-                            onDelete = { entryToDelete = entry },
-                            context = context,
-                            isDark = isDark,
-                            paletteAccent = paletteAccent
-                        )
-                    }
-                }
-            }
         }
-
-        item {
-            Spacer(modifier = Modifier.height(100.dp))
-        }
-    }
-    }
     }
 }
 
@@ -2281,16 +2323,44 @@ private fun SwipeableGardenPlanningItem(
             val direction = dismissState.dismissDirection
             if (direction != SwipeToDismissBoxValue.Settled) {
                 val isStartToEnd = direction == SwipeToDismissBoxValue.StartToEnd
-                val bgColor = if (isStartToEnd) Color(0xFF16A34A) else Color(0xFFDC2626)
+                val trayShape = RoundedCornerShape(22.dp)
                 val alignment = if (isStartToEnd) Alignment.CenterStart else Alignment.CenterEnd
                 val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
                 val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
+                val trayBrush = Brush.verticalGradient(
+                    if (isStartToEnd) {
+                        listOf(
+                            Color(0xFF16A34A).copy(alpha = 0.85f),
+                            Color(0xFF15803D).copy(alpha = 0.95f)
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFDC2626).copy(alpha = 0.85f),
+                            Color(0xFFB91C1C).copy(alpha = 0.95f)
+                        )
+                    }
+                )
+
+                val trayBorderBrush = Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        (if (isStartToEnd) Color(0xFF86EFAC) else Color(0xFFFECDD3)).copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.20f)
+                    )
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(bgColor)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = trayShape,
+                            spotColor = Color.Black.copy(alpha = 0.08f)
+                        )
+                        .clip(trayShape)
+                        .background(trayBrush, shape = trayShape)
+                        .border(BorderStroke(1.dp, trayBorderBrush), shape = trayShape)
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                     contentAlignment = alignment
                 ) {
@@ -2371,7 +2441,8 @@ private fun GardenPlanningRecordCard(
     onDelete: () -> Unit,
     context: Context,
     isDark: Boolean = isAppInDarkMode(),
-    paletteAccent: Color = MaterialTheme.colorScheme.primary
+    paletteAccent: Color = MaterialTheme.colorScheme.primary,
+    hazeState: HazeState? = null
 ) {
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
     val avatarBgColor = paletteAccent
@@ -2386,15 +2457,56 @@ private fun GardenPlanningRecordCard(
         else -> Pair(paletteAccent.copy(alpha = if (isDark) 0.25f else 0.12f), paletteAccent)
     }
 
+    val cardShape = RoundedCornerShape(22.dp)
+
+    val cardFillBrush = Brush.verticalGradient(
+        if (isDark) listOf(
+            paletteAccent.copy(alpha = 0.16f),
+            Color(0xFF0F172A).copy(alpha = 0.55f),
+            Color(0xFF0F172A).copy(alpha = 0.45f)
+        )
+        else listOf(
+            paletteAccent.copy(alpha = 0.12f),
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.18f)
+        )
+    )
+
+    val cardBorderBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
+            paletteAccent.copy(alpha = 0.20f),
+            Color.White.copy(alpha = 0.15f)
+        )
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = paletteAccent,
-                shape = RoundedCornerShape(16.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = cardShape,
+                spotColor = Color.Black.copy(alpha = 0.05f),
+                ambientColor = Color.Black.copy(alpha = 0.02f)
             )
-            .clip(RoundedCornerShape(16.dp))
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(
+                        state = hazeState,
+                        style = HazeStyle(
+                            blurRadius = 12.dp,
+                            tints = listOf(
+                                HazeTint(paletteAccent.copy(alpha = if (isDark) 0.12f else 0.08f))
+                            ),
+                            backgroundColor = Color.Transparent
+                        )
+                    )
+                } else Modifier
+            )
+            .clip(cardShape)
+            .background(cardFillBrush, shape = cardShape)
+            .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
+            .testTag("garden_record_card_${entry.id}")
     ) {
         Column(
             modifier = Modifier
@@ -2555,7 +2667,7 @@ private fun GardenPlanningRecordCard(
                 thickness = 1.dp
             )
 
-            // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Right Arrow, 4. Edit, 5. Delete
+            // Uniform Bottom Action Row: 1. WhatsApp, 2. "View Details", 3. Edit, 4. Delete
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2563,13 +2675,27 @@ private fun GardenPlanningRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. WhatsApp Icon
+                // 1. WhatsApp Icon (Frosted Glass button)
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF14532D) else Color(0xFFDCFCE7))
-                        .border(1.dp, if (isDark) Color(0xFF166534) else Color(0xFF86EFAC).copy(alpha = 0.5f), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color(0xFF14532D).copy(alpha = 0.45f), Color(0xFF14532D).copy(alpha = 0.25f))
+                                else listOf(Color(0xFF16A34A).copy(alpha = 0.25f), Color(0xFF16A34A).copy(alpha = 0.15f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFF86EFAC).copy(alpha = 0.6f), Color(0xFF16A34A).copy(alpha = 0.25f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable {
                             val cleanPhone = entry.contactNumber.replace("[^0-9]".toRegex(), "")
                             val msg = com.example.data.MessageTemplateRepository.renderTemplate(
@@ -2596,20 +2722,38 @@ private fun GardenPlanningRecordCard(
                         imageVector = Icons.Default.Chat,
                         contentDescription = "WhatsApp",
                         tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
 
-                // 2. Text 'View Details' & 3. Right-pointing Arrow Icon
+                // 2. 'View Details' pill button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.7f) else Color(0xFFF1F5F9).copy(alpha = 0.9f))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1).copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(paletteAccent.copy(alpha = 0.25f), Color(0xFF0F172A).copy(alpha = 0.50f))
+                                else listOf(paletteAccent.copy(alpha = 0.15f), Color.White.copy(alpha = 0.25f))
+                            ),
+                            RoundedCornerShape(percent = 50)
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
+                                        paletteAccent.copy(alpha = 0.20f),
+                                        Color.White.copy(alpha = 0.15f)
+                                    )
+                                )
+                            ),
+                            RoundedCornerShape(percent = 50)
+                        )
                         .clickable { onViewDetails() }
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = "View Details",
@@ -2621,17 +2765,31 @@ private fun GardenPlanningRecordCard(
                         imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                         contentDescription = "View Details",
                         tint = paletteAccent,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
 
-                // 4. Edit Icon
+                // 3. Edit Icon (Frosted Glass button)
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9))
-                        .border(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.08f))
+                                else listOf(Color.White.copy(alpha = 0.25f), Color.White.copy(alpha = 0.15f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color.White.copy(alpha = 0.45f), Color.White.copy(alpha = 0.15f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -2639,17 +2797,31 @@ private fun GardenPlanningRecordCard(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Record",
                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
 
-                // 5. Delete Icon
+                // 4. Delete Icon (Frosted Glass button)
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF451A1A) else Color(0xFFFFE4E6))
-                        .border(1.dp, if (isDark) Color(0xFF7F1D1D) else Color(0xFFFECDD3), CircleShape)
+                        .background(
+                            Brush.verticalGradient(
+                                if (isDark) listOf(Color(0xFF451A1A).copy(alpha = 0.45f), Color(0xFF451A1A).copy(alpha = 0.25f))
+                                else listOf(Color(0xFFDC2626).copy(alpha = 0.25f), Color(0xFFDC2626).copy(alpha = 0.15f))
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(
+                                1.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0xFFFECDD3).copy(alpha = 0.6f), Color(0xFFDC2626).copy(alpha = 0.25f))
+                                )
+                            ),
+                            CircleShape
+                        )
                         .clickable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -2657,7 +2829,7 @@ private fun GardenPlanningRecordCard(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Delete Record",
                         tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }

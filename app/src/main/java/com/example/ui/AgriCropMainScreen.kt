@@ -758,6 +758,7 @@ fun AgriCropMainScreen(
                                                 isDark = isDark,
                                                 themeMode = themeMode,
                                                 selectedColorHex = accentColorHex,
+                                                hazeState = hazeState,
                                                 onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
                                                 onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
                                                 searchQuery = searchQuery,
