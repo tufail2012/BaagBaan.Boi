@@ -114,7 +114,7 @@ import kotlinx.coroutines.launch
 fun getSectionAccentColor(
     section: String,
     customPaletteColor: Color? = null,
-    defaultColor: Color = Color(0xFF10B981)
+    defaultColor: Color = com.example.ui.theme.AgriRedPrimary
 ): Color = com.example.ui.theme.getSectionAccentColor(section, customPaletteColor, defaultColor)
 
 /**

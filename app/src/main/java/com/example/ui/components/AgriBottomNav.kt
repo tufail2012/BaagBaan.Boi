@@ -113,9 +113,7 @@ fun AgriBottomNav(
         if (idx >= 0) idx else 0
     }
 
-    val activeSectionAccent = remember(selectedCategory, accentColor) {
-        accentColor ?: getSectionAccentColor(selectedCategory)
-    }
+    val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
 
     val containerShape = RoundedCornerShape(percent = 50)
 

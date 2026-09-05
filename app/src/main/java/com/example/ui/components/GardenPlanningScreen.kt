@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import com.example.ui.components.BrandedPullToRefreshBox
 
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.CompositionLocalProvider
 
 import kotlin.math.roundToInt
 import android.graphics.Bitmap
@@ -383,87 +384,90 @@ fun GardenPlanningScreen(
     val fallbackHazeState = remember { HazeState() }
     val effectiveHazeState = hazeState ?: fallbackHazeState
 
-    Surface(
-        modifier = modifier.fillMaxSize(),
-        color = if (showHeader) MaterialTheme.colorScheme.background else Color.Transparent
-    ) {
-        Column(modifier = Modifier.fillMaxSize().hazeSource(state = effectiveHazeState)) {
-            // Consistent Main App Header
-            if (showHeader) {
-                AgriHeader(
-                title = "Garden Planning",
-                themeMode = themeMode,
-                onSelectThemeMode = onSelectThemeMode,
-                selectedColorHex = selectedColorHex,
-                onSelectColorHex = onSelectColorHex,
-                searchQuery = searchQuery,
-                onSearchQueryChange = onSearchQueryChange,
-                isSearchActive = isSearchActive,
-                onSearchActiveChange = onSearchActiveChange,
-                onToggleSearch = onToggleSearch,
-                onNavigateToAttendance = onNavigateToAttendance,
-                onNavigateToBookings = onNavigateToBookings,
-                onNavigateToBackupRestore = onNavigateToBackupRestore,
-                onNavigateToContactDirectory = onNavigateToContactDirectory,
-                onNavigateToPaymentReminders = onNavigateToPaymentReminders,
-                onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
-                onNavigateToDashboard = onNavigateToDashboard,
-                onNavigateToInventory = onNavigateToInventory,
-                onOpenRecycleBin = onOpenRecycleBin,
-                onNavigateToLogin = onNavigateToLogin,
-                onNavigateToGardenPlanning = onNavigateToGardenPlanning,
-                unreadNotificationCount = unreadNotificationCount,
-                onOpenNotifications = onOpenNotifications,
-                currentUserEmail = currentUserEmail,
-                currentUserPhotoUrl = currentUserPhotoUrl,
-                onLogout = onLogout,
-                onManualSync = onManualSync,
-                onNavigateToSettings = onNavigateToSettings,
-                onBack = null,
-                hazeState = effectiveHazeState
-            )
-            }
-
-            val parsedPaletteColor = remember(selectedColorHex) {
-                try {
-                    Color(android.graphics.Color.parseColor(selectedColorHex))
-                } catch (e: Exception) {
-                    null
+    CompositionLocalProvider(LocalAppGlassHazeState provides effectiveHazeState) {
+        Surface(
+            modifier = modifier.fillMaxSize(),
+            color = if (showHeader) MaterialTheme.colorScheme.background else Color.Transparent
+        ) {
+            Column(modifier = Modifier.fillMaxSize().hazeSource(state = effectiveHazeState)) {
+                // Consistent Main App Header
+                if (showHeader) {
+                    AgriHeader(
+                    title = "Garden Planning",
+                    themeMode = themeMode,
+                    onSelectThemeMode = onSelectThemeMode,
+                    selectedColorHex = selectedColorHex,
+                    onSelectColorHex = onSelectColorHex,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    isSearchActive = isSearchActive,
+                    onSearchActiveChange = onSearchActiveChange,
+                    onToggleSearch = onToggleSearch,
+                    onNavigateToAttendance = onNavigateToAttendance,
+                    onNavigateToBookings = onNavigateToBookings,
+                    onNavigateToBackupRestore = onNavigateToBackupRestore,
+                    onNavigateToContactDirectory = onNavigateToContactDirectory,
+                    onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                    onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
+                    onNavigateToDashboard = onNavigateToDashboard,
+                    onNavigateToInventory = onNavigateToInventory,
+                    onOpenRecycleBin = onOpenRecycleBin,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                    unreadNotificationCount = unreadNotificationCount,
+                    onOpenNotifications = onOpenNotifications,
+                    currentUserEmail = currentUserEmail,
+                    currentUserPhotoUrl = currentUserPhotoUrl,
+                    onLogout = onLogout,
+                    onManualSync = onManualSync,
+                    onNavigateToSettings = onNavigateToSettings,
+                    onBack = null,
+                    hazeState = effectiveHazeState
+                )
                 }
-            }
-            val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
 
-            // Integrated container without cutout borders
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                when (selectedTabIndex) {
-                    0 -> {
-                        GardenPlanningFormTab(
-                            viewModel = viewModel,
-                            isDark = isDark,
-                            onSaved = { viewModel.selectedTabIndex.value = 1 },
-                            customPaletteColor = gardenAccent
-                        )
+                val parsedPaletteColor = remember(selectedColorHex) {
+                    try {
+                        Color(android.graphics.Color.parseColor(selectedColorHex))
+                    } catch (e: Exception) {
+                        null
                     }
-                    1 -> {
-                        GardenPlanningRecordsTab(
-                            viewModel = viewModel,
-                            entries = filteredEntries,
-                            isDark = isDark,
-                            onEdit = { entry ->
-                                viewModel.loadEntryForEdit(entry)
-                                viewModel.selectedTabIndex.value = 0
-                            },
-                            onAddNewEntry = {
-                                viewModel.clearForm()
-                                viewModel.selectedTabIndex.value = 0
-                            },
-                            customPaletteColor = gardenAccent,
-                            hazeState = effectiveHazeState
-                        )
+                }
+                val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
+
+                // Integrated container without cutout borders
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    when (selectedTabIndex) {
+                        0 -> {
+                            GardenPlanningFormTab(
+                                viewModel = viewModel,
+                                isDark = isDark,
+                                onSaved = { viewModel.selectedTabIndex.value = 1 },
+                                customPaletteColor = gardenAccent,
+                                hazeState = effectiveHazeState
+                            )
+                        }
+                        1 -> {
+                            GardenPlanningRecordsTab(
+                                viewModel = viewModel,
+                                entries = filteredEntries,
+                                isDark = isDark,
+                                onEdit = { entry ->
+                                    viewModel.loadEntryForEdit(entry)
+                                    viewModel.selectedTabIndex.value = 0
+                                },
+                                onAddNewEntry = {
+                                    viewModel.clearForm()
+                                    viewModel.selectedTabIndex.value = 0
+                                },
+                                customPaletteColor = gardenAccent,
+                                hazeState = effectiveHazeState
+                            )
+                        }
                     }
                 }
             }
@@ -495,9 +499,12 @@ fun GardenPlanningFormTab(
     viewModel: GardenPlanningViewModel,
     isDark: Boolean,
     onSaved: () -> Unit,
-    customPaletteColor: Color? = null
+    customPaletteColor: Color? = null,
+    hazeState: HazeState? = null
 ) {
     val gardenAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
+    val fallbackHaze = remember { HazeState() }
+    val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -745,18 +752,15 @@ fun GardenPlanningFormTab(
         // Liquid Glass Switcher (New Entry / Records)
         val isEditing = editingEntryId != null
         val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
-        val effectiveHaze = LocalAppGlassHazeState.current
-        if (effectiveHaze != null) {
-            AgriSegmentedControl(
-                selectedMode = 0,
-                onModeSelected = { viewModel.selectedTabIndex.value = it },
-                hazeState = effectiveHaze,
-                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                recordsLabel = "Records (${allEntriesList.size})",
-                accentColor = gardenAccent,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        AgriSegmentedControl(
+            selectedMode = 0,
+            onModeSelected = { viewModel.selectedTabIndex.value = it },
+            hazeState = effectiveHaze,
+            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+            recordsLabel = "Records (${allEntriesList.size})",
+            accentColor = gardenAccent,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         // Serial Number field with Lock / Save / Refresh icons matching FarmerFormScreen
         OutlinedTextField(
@@ -2144,17 +2148,16 @@ fun GardenPlanningRecordsTab(
                     ) {
                         // 1. Liquid Glass Switcher (New Entry / Records)
                         val isEditing = viewModel.editingEntryId.collectAsState().value != null
-                        if (effectiveHazeState != null) {
-                            AgriSegmentedControl(
-                                selectedMode = 1,
-                                onModeSelected = { viewModel.selectedTabIndex.value = it },
-                                hazeState = effectiveHazeState,
-                                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                                recordsLabel = "Records (${entries.size})",
-                                accentColor = paletteAccent,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                        val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
+                        AgriSegmentedControl(
+                            selectedMode = 1,
+                            onModeSelected = { viewModel.selectedTabIndex.value = it },
+                            hazeState = effectiveHazeState,
+                            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                            recordsLabel = "Records (${allEntriesList.size})",
+                            accentColor = paletteAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
                         // 2. Sub-Header Recording Book Pill
                         RecordingBookHeader(

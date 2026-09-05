@@ -539,9 +539,7 @@ fun AgriCropMainScreen(
                     }
                 }
 
-                val sectionAccentColor = remember(selectedService, parsedPaletteColor) {
-                    getSectionAccentColor(selectedService, customPaletteColor = parsedPaletteColor)
-                }
+                val sectionAccentColor = parsedPaletteColor
 
                 val isAmoled = themeMode == AppThemeMode.AMOLED
                 val rootBgBrush = remember(isDark, isAmoled, sectionAccentColor) {

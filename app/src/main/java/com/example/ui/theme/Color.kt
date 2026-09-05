@@ -10,48 +10,32 @@ val AgriRedDark = Color(0xFF9A0007)
 val AgriGreenPrimary = Color(0xFF2E7D32)
 val AgriGreenLight = Color(0xFFE8F5E9)
 
-// Section-specific brand accent colors
-val SectionLocalPlantsAccent = Color(0xFF2E7D32)     // Forest Green (#2E7D32)
-val SectionImportedPlantsAccent = Color(0xFFD32F2F)  // Vibrant Red / Crimson (#D32F2F)
-val SectionRootstocksAccent = Color(0xFF059669)      // Emerald Green
-val SectionSiteVisitAccent = Color(0xFF2563EB)       // Royal Blue
-val SectionPruningAccent = Color(0xFFD32F2F)         // Crimson Red
-val SectionGardenPlanningAccent = Color(0xFF047857)  // Teal / Deep Forest
-val SectionBookingsAccent = Color(0xFF6366F1)        // Indigo
-val SectionAttendanceAccent = Color(0xFFEA580C)      // Deep Orange
-val SectionInventoryAccent = Color(0xFF0891B2)       // Cyan
+// Section-specific brand accent colors aliased to global primary default to eliminate per-module divergence
+val SectionLocalPlantsAccent = AgriRedPrimary
+val SectionImportedPlantsAccent = AgriRedPrimary
+val SectionRootstocksAccent = AgriRedPrimary
+val SectionSiteVisitAccent = AgriRedPrimary
+val SectionPruningAccent = AgriRedPrimary
+val SectionGardenPlanningAccent = AgriRedPrimary
+val SectionBookingsAccent = AgriRedPrimary
+val SectionAttendanceAccent = AgriRedPrimary
+val SectionInventoryAccent = AgriRedPrimary
 
 /**
- * Returns the definitive section accent color for a given service category or app section.
- * This is the SINGLE SOURCE OF TRUTH used across Segmented Controls, Sub-Tabs, Headers,
- * Bottom Navigation, Badges, Glows, and Card Highlights.
+ * Returns the definitive global theme primary accent color across all app sections.
+ * All per-module hardcoded color overrides have been eliminated to enforce a single,
+ * uniform Global Theme Palette across all tabs, headers, sub-tabs, badges, and controls.
+ *
+ * @param serviceCategory Optional category parameter kept for binary/source compatibility.
+ * @param customPaletteColor The active global theme palette color.
+ * @param defaultColor Fallback color when customPaletteColor is null.
  */
 fun getSectionAccentColor(
-    serviceCategory: String,
+    serviceCategory: String = "",
     customPaletteColor: Color? = null,
-    defaultColor: Color = SectionLocalPlantsAccent
+    defaultColor: Color = AgriRedPrimary
 ): Color {
-    val trimmed = serviceCategory.trim()
-    return when {
-        trimmed.equals("Local Plants", ignoreCase = true) || trimmed.equals("Local", ignoreCase = true) -> SectionLocalPlantsAccent
-        trimmed.contains("Imported Plants", ignoreCase = true) || trimmed.equals("Imported", ignoreCase = true) -> SectionImportedPlantsAccent
-        trimmed.contains("Rootstock", ignoreCase = true) -> SectionRootstocksAccent
-        trimmed.contains("Site Visit", ignoreCase = true) || trimmed.contains("Visit", ignoreCase = true) -> SectionSiteVisitAccent
-        trimmed.contains("Pruning", ignoreCase = true) -> SectionPruningAccent
-        trimmed.contains("Garden", ignoreCase = true) || trimmed.contains("Planning", ignoreCase = true) -> SectionGardenPlanningAccent
-        trimmed.contains("Booking", ignoreCase = true) -> SectionBookingsAccent
-        trimmed.contains("Attendance", ignoreCase = true) -> SectionAttendanceAccent
-        trimmed.contains("Inventory", ignoreCase = true) -> SectionInventoryAccent
-        trimmed.contains("Dashboard", ignoreCase = true) -> Color(0xFF10B981)
-        trimmed.contains("Contact", ignoreCase = true) -> Color(0xFF0EA5E9)
-        trimmed.contains("Payment Reminder", ignoreCase = true) -> Color(0xFFF59E0B)
-        trimmed.contains("Seasonal", ignoreCase = true) -> Color(0xFF10B981)
-        trimmed.contains("QR", ignoreCase = true) -> Color(0xFF8B5CF6)
-        trimmed.contains("Setting", ignoreCase = true) -> Color(0xFF64748B)
-        trimmed.contains("Profile", ignoreCase = true) -> Color(0xFF10B981)
-        customPaletteColor != null -> customPaletteColor
-        else -> defaultColor
-    }
+    return customPaletteColor ?: defaultColor
 }
 
 /**

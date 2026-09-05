@@ -189,7 +189,7 @@ fun AgriHeader(
             null
         }
     }
-    val sectionAccent = accentColor ?: getSectionAccentColor(title, customPaletteColor = parsedPaletteColor)
+    val sectionAccent = accentColor ?: parsedPaletteColor ?: MaterialTheme.colorScheme.primary
     val animatedAccentColor by animateColorAsState(
         targetValue = sectionAccent,
         animationSpec = tween(durationMillis = 280),
@@ -798,14 +798,15 @@ private fun OverflowMenuContent(
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
     val itemTextColor = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
 
+    val menuAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
+
     // 1. Dashboard
-    val dashboardAccent = getSectionAccentColor("Dashboard", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.Dashboard,
                 title = "Dashboard",
-                accentColor = dashboardAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -821,13 +822,12 @@ private fun OverflowMenuContent(
     )
 
     // 2. Inventory
-    val inventoryAccent = getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.Inventory2,
                 title = "Inventory",
-                accentColor = inventoryAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -843,13 +843,12 @@ private fun OverflowMenuContent(
     )
 
     // 3. Attendance
-    val attendanceAccent = getSectionAccentColor("Attendance", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.EventAvailable,
                 title = "Attendance",
-                accentColor = attendanceAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -865,13 +864,12 @@ private fun OverflowMenuContent(
     )
 
     // 4. Contact Directory
-    val contactsAccent = getSectionAccentColor("Contact Directory", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.Contacts,
                 title = "Contact Directory",
-                accentColor = contactsAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -887,13 +885,12 @@ private fun OverflowMenuContent(
     )
 
     // 5. Payment Reminder
-    val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.ReceiptLong,
                 title = "Payment Reminder",
-                accentColor = paymentAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -909,13 +906,12 @@ private fun OverflowMenuContent(
     )
 
     // 6. Seasonal Reminders
-    val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.Park,
                 title = "Seasonal Reminders",
-                accentColor = seasonalAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -931,13 +927,12 @@ private fun OverflowMenuContent(
     )
 
     // 7. Scan QR
-    val scanQrAccent = getSectionAccentColor("Scan QR", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.QrCodeScanner,
                 title = "Scan QR",
-                accentColor = scanQrAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
@@ -959,13 +954,12 @@ private fun OverflowMenuContent(
     )
 
     // 8. Settings
-    val settingsAccent = getSectionAccentColor("Settings", customPaletteColor = parsedPaletteColor)
     DropdownMenuItem(
         text = {
             FrostedMenuItemContent(
                 icon = Icons.Default.Settings,
                 title = "Settings",
-                accentColor = settingsAccent,
+                accentColor = menuAccent,
                 textColor = itemTextColor,
                 isDark = isDark
             )
