@@ -35,8 +35,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -249,7 +252,11 @@ fun BookingRecordDetailDialog(
     val totalRecordValue = record.calculateTotalAmount()
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
-    val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
+    val sectionAccentColor = getSectionAccentColor(
+        record.serviceType,
+        customPaletteColor = customPaletteColor,
+        defaultColor = MaterialTheme.colorScheme.primary
+    )
 
     val sheetHazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
@@ -356,7 +363,7 @@ fun BookingRecordDetailDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .statusBarsPadding()
+                            .windowInsetsPadding(WindowInsets.statusBars)
                             .pointerInput(Unit) {
                                 detectVerticalDragGestures(
                                     onDragEnd = {
