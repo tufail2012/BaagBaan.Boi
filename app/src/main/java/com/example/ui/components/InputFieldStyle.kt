@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -282,7 +283,7 @@ fun AppOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = RoundedCornerShape(14.dp),
+    shape: Shape = RoundedCornerShape(18.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
@@ -367,7 +368,7 @@ fun AppOutlinedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = RoundedCornerShape(14.dp),
+    shape: Shape = RoundedCornerShape(18.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     colors: TextFieldColors = elevatedInputFieldColors(accentColor = accentColor),
     autoCapitalizeWords: Boolean = true
@@ -472,7 +473,7 @@ fun Modifier.centerWaterRipple(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Modifier.boundedFormFieldRipple(
-    shape: Shape = RoundedCornerShape(14.dp),
+    shape: Shape = RoundedCornerShape(18.dp),
     accentColor: Color = MaterialTheme.colorScheme.primary,
     rippleColor: Color = MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -592,7 +593,7 @@ fun Modifier.glassCardBackground(
     flatStyle: Boolean = true,
     isFocused: Boolean = false
 ): Modifier {
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 22.dp)
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
 
     val effectiveIsAmoled = when (themeMode) {
         AppThemeMode.AMOLED -> true
@@ -605,32 +606,27 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
+    // Dynamic focus transition: 0.25s ease-in-out
     val glowAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
-        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
         label = "inputFieldGlow"
     )
 
-    val effectiveElevation = if (elevation > 0.dp) {
-        elevation + (4.dp * glowAlpha)
-    } else {
-        4.dp * glowAlpha
-    }
-
-    val glowShadowModifier = if (effectiveElevation > 0.dp) {
+    // Dynamic Glow Box-Shadow: 0 0 16px rgba(var(--theme-primary-rgb), 0.4)
+    val glowShadowModifier = if (glowAlpha > 0.01f) {
         Modifier.shadow(
-            elevation = effectiveElevation,
+            elevation = 6.dp * glowAlpha,
             shape = effectiveShape,
-            spotColor = if (isFocused || glowAlpha > 0.05f) {
-                accentColor.copy(alpha = (if (effectiveIsDark) 0.50f else 0.35f) * glowAlpha)
-            } else {
-                Color.Black.copy(alpha = if (effectiveIsDark) 0.50f else 0.10f)
-            },
-            ambientColor = if (isFocused || glowAlpha > 0.05f) {
-                accentColor.copy(alpha = 0.25f * glowAlpha)
-            } else {
-                Color.Black.copy(alpha = if (effectiveIsDark) 0.30f else 0.05f)
-            }
+            spotColor = accentColor.copy(alpha = 0.40f * glowAlpha),
+            ambientColor = accentColor.copy(alpha = 0.20f * glowAlpha)
+        )
+    } else if (elevation > 0.dp) {
+        Modifier.shadow(
+            elevation = elevation,
+            shape = effectiveShape,
+            spotColor = Color.Black.copy(alpha = if (effectiveIsDark) 0.35f else 0.08f),
+            ambientColor = Color.Black.copy(alpha = if (effectiveIsDark) 0.20f else 0.04f)
         )
     } else {
         Modifier
@@ -660,60 +656,67 @@ fun Modifier.glassCardBackground(
     val hazeStyle = remember(effectiveIsDark, effectiveIsAmoled) {
         HazeStyle(
             backgroundColor = Color.Transparent,
-            blurRadius = 24.dp,
+            blurRadius = 16.dp, // backdrop-filter: blur(16px)
             tints = listOf(
                 HazeTint(
-                    color = if (effectiveIsAmoled) Color.Black.copy(alpha = 0.10f)
-                    else if (effectiveIsDark) Color(0xFF14121B).copy(alpha = 0.12f)
-                    else Color.White.copy(alpha = 0.06f)
+                    color = if (effectiveIsAmoled) Color.Black.copy(alpha = 0.08f)
+                    else if (effectiveIsDark) Color(0xFF14121B).copy(alpha = 0.08f)
+                    else Color.White.copy(alpha = 0.05f)
                 )
             ),
             noiseFactor = 0f
         )
     }
 
-    val cardBgBrush = Brush.verticalGradient(
-        colors = if (effectiveIsDark) {
-            if (effectiveIsAmoled) {
-                listOf(
-                    Color(0xFF161418).copy(alpha = 0.88f),
-                    Color(0xFF0C0B0E).copy(alpha = 0.82f),
-                    Color(0xFF000000).copy(alpha = 0.88f)
+    // Input Cards Background Gradient:
+    // Default: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)
+    // Focused: linear-gradient(180deg, rgba(var(--theme-primary-rgb), 0.15) 0%, rgba(255, 255, 255, 0.03) 100%)
+    val cardBgBrush = if (effectiveIsDark) {
+        if (glowAlpha > 0.01f) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.15f * glowAlpha + (1f - glowAlpha) * 0.07f),
+                    Color.White.copy(alpha = 0.03f * glowAlpha + (1f - glowAlpha) * 0.02f)
                 )
-            } else {
-                listOf(
-                    Color(0xFF2C2834).copy(alpha = 0.82f),
-                    Color(0xFF221F2A).copy(alpha = 0.76f),
-                    Color(0xFF191720).copy(alpha = 0.82f)
-                )
-            }
+            )
         } else {
-            listOf(
-                Color.White.copy(alpha = 0.78f),
-                Color.White.copy(alpha = 0.62f),
-                Color.White.copy(alpha = 0.72f)
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.07f),
+                    Color.White.copy(alpha = 0.02f)
+                )
             )
         }
-    )
-
-    val borderStroke = if (isFocused || glowAlpha > 0.05f) {
-        BorderStroke(1.5.dp, accentColor)
     } else {
-        val borderBrush = Brush.verticalGradient(
-            colors = if (effectiveIsDark) {
-                listOf(
-                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.35f else 0.40f),
-                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.12f else 0.15f),
-                    Color.White.copy(alpha = if (effectiveIsAmoled) 0.04f else 0.08f)
+        if (glowAlpha > 0.01f) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    accentColor.copy(alpha = 0.12f * glowAlpha + (1f - glowAlpha) * 0.05f),
+                    Color.White.copy(alpha = 0.70f)
                 )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.65f),
-                    Color.White.copy(alpha = 0.25f),
-                    Color.White.copy(alpha = 0.15f)
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.80f),
+                    Color.White.copy(alpha = 0.60f)
                 )
-            }
-        )
+            )
+        }
+    }
+
+    // Border:
+    // Default: 1px solid rgba(255, 255, 255, 0.12)
+    // Focused: border-color: rgba(var(--theme-primary-rgb), 0.85)
+    val borderStroke = if (glowAlpha > 0.01f) {
+        val activeBorderColor = accentColor.copy(alpha = 0.85f * glowAlpha + (1f - glowAlpha) * (if (effectiveIsDark) 0.12f else 0.20f))
+        BorderStroke(1.dp, activeBorderColor)
+    } else {
+        val borderBrush = if (effectiveIsDark) {
+            SolidColor(Color.White.copy(alpha = 0.12f))
+        } else {
+            SolidColor(Color(0xFF000000).copy(alpha = 0.12f))
+        }
         BorderStroke(borderWidth, borderBrush)
     }
 
@@ -731,24 +734,34 @@ fun Modifier.glassCardBackground(
         .background(brush = cardBgBrush, shape = effectiveShape)
         .drawWithContent {
             drawContent()
-            if (!isFocused) {
-                val w = size.width
-                val highlightH = 1.2.dp.toPx()
-                val margin = 14.dp.toPx()
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = if (effectiveIsDark) 0.25f else 0.35f),
-                            Color.Transparent
-                        ),
-                        startX = margin,
-                        endX = w - margin
-                    ),
-                    topLeft = Offset(margin, 0.5.dp.toPx()),
-                    size = Size(w - (margin * 2), highlightH)
-                )
+            val w = size.width
+            val h = size.height
+            val cornerR = (cornerRadius ?: 18.dp).toPx()
+
+            // Inset box-shadow:
+            // Default: inset 0 1px 1px rgba(255, 255, 255, 0.12)
+            // Focused: inset 0 1px 2px rgba(255, 255, 255, 0.25)
+            val insetAlpha = if (effectiveIsDark) {
+                0.12f + (0.13f * glowAlpha)
+            } else {
+                0.35f + (0.25f * glowAlpha)
             }
+            val insetEndHeight = (1.dp + (1.dp * glowAlpha)).toPx()
+
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = insetAlpha),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = insetEndHeight
+                ),
+                topLeft = Offset(0.5.dp.toPx(), 0.5.dp.toPx()),
+                size = Size(w - 1.dp.toPx(), h - 1.dp.toPx()),
+                cornerRadius = CornerRadius(cornerR, cornerR),
+                style = Stroke(width = (1.dp + (0.5.dp * glowAlpha)).toPx())
+            )
         }
         .border(
             border = borderStroke,

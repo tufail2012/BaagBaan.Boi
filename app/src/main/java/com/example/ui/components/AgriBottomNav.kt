@@ -497,9 +497,9 @@ fun Modifier.deepBlurNavBarBackground(
                 isDark -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF1C1C1C).copy(alpha = 0.78f),
-                            accentColor.copy(alpha = 0.06f),
-                            Color(0xFF141414).copy(alpha = 0.75f)
+                            Color(0xFF141414).copy(alpha = 0.82f),
+                            accentColor.copy(alpha = 0.05f),
+                            Color(0xFF141414).copy(alpha = 0.82f)
                         )
                     )
                 }

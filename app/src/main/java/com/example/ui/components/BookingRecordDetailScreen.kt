@@ -252,11 +252,7 @@ fun BookingRecordDetailDialog(
     val totalRecordValue = record.calculateTotalAmount()
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
-    val sectionAccentColor = getSectionAccentColor(
-        record.serviceType,
-        customPaletteColor = customPaletteColor,
-        defaultColor = MaterialTheme.colorScheme.primary
-    )
+    val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
     val sheetHazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
@@ -320,23 +316,66 @@ fun BookingRecordDetailDialog(
                     )
             )
 
-            val sheetBaseColor = if (isDark) Color(0xFF121612) else Color(0xFFFAFCFA)
+            val sheetBaseColor = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
             val sheetGradientBrush = if (isDark) {
                 Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0.00f to sectionAccentColor.copy(alpha = 0.20f),
-                        0.18f to Color(0xFF121612).copy(alpha = 0.94f),
+                        0.00f to sectionAccentColor.copy(alpha = 0.16f),
+                        0.18f to Color(0xFF121212).copy(alpha = 0.92f),
                         1.00f to sectionAccentColor.copy(alpha = 0.08f)
                     )
                 )
             } else {
                 Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0.00f to sectionAccentColor.copy(alpha = 0.12f),
-                        0.18f to Color(0xFFFAFCFA).copy(alpha = 0.94f),
-                        1.00f to sectionAccentColor.copy(alpha = 0.06f)
+                        0.00f to sectionAccentColor.copy(alpha = 0.10f),
+                        0.18f to Color(0xFFF8FAFC).copy(alpha = 0.95f),
+                        1.00f to sectionAccentColor.copy(alpha = 0.05f)
                     )
                 )
+            }
+
+            val nestedScrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        if (offsetY.value > 0f && available.y < 0f) {
+                            val newOffset = (offsetY.value + available.y).coerceAtLeast(0f)
+                            val consumed = newOffset - offsetY.value
+                            coroutineScope.launch { offsetY.snapTo(newOffset) }
+                            return Offset(0f, consumed)
+                        }
+                        return Offset.Zero
+                    }
+
+                    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                        if (available.y > 0f && scrollState.value <= 0) {
+                            val newOffset = (offsetY.value + available.y).coerceAtLeast(0f)
+                            coroutineScope.launch { offsetY.snapTo(newOffset) }
+                            return Offset(0f, available.y)
+                        }
+                        return Offset.Zero
+                    }
+
+                    override suspend fun onPreFling(available: Velocity): Velocity {
+                        if (offsetY.value > dragThresholdPx) {
+                            dismissWithAnimation()
+                            return available
+                        } else if (offsetY.value > 0f) {
+                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
+                            return available
+                        }
+                        return Velocity.Zero
+                    }
+
+                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                        if (offsetY.value > dragThresholdPx) {
+                            dismissWithAnimation()
+                        } else if (offsetY.value > 0f) {
+                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
+                        }
+                        return Velocity.Zero
+                    }
+                }
             }
 
             // Sliding Full-Screen Sheet
@@ -567,6 +606,7 @@ fun BookingRecordDetailDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
+                            .nestedScroll(nestedScrollConnection)
                             .imePadding()
                             .verticalScroll(scrollState)
                             .padding(horizontal = 16.dp, vertical = 6.dp),

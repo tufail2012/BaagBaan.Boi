@@ -433,7 +433,7 @@ fun GardenPlanningScreen(
                         null
                     }
                 }
-                val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
+                val gardenAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
 
                 // Integrated container without cutout borders
                 Box(
@@ -502,13 +502,13 @@ fun GardenPlanningFormTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null
 ) {
-    val gardenAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
+    val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val textFieldShape = RoundedCornerShape(22.dp)
+    val textFieldShape = RoundedCornerShape(18.dp)
     val pillShape = textFieldShape
 
     var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
@@ -2945,11 +2945,15 @@ fun GardenBookingRecordDetailDialog(
 
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            decorFitsSystemWindows = false
+        )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121826) else Color(0xFFF8FAFC)
+            color = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (currentEntry.paymentStatus.equals("Cancelled", ignoreCase = true)) {
@@ -2959,11 +2963,29 @@ fun GardenBookingRecordDetailDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .statusBarsPadding()
                         .verticalScroll(rememberScrollState())
                         .navigationBarsPadding()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                // Top Drag Indicator Handle (44px width)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 44.dp, height = 5.dp)
+                            .background(
+                                color = if (isDark) Color.White.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.20f),
+                                shape = RoundedCornerShape(percent = 50)
+                            )
+                    )
+                }
+
                 // 1. Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
                 Row(
                     modifier = Modifier.fillMaxWidth(),

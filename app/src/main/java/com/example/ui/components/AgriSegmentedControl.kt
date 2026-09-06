@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -111,15 +112,9 @@ fun LiquidGlassSegmentedSwitcher(
     val itemShape = RoundedCornerShape(percent = 50)
 
     // Pill Container (Track):
-    // Background: Subtle translucent tint matching the active screen palette (rgba(255, 255, 255, 0.35) or a 5–8% primary palette tint).
+    // rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9999px;
     val trackBgBrush = if (isDark || isAmoled) {
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.08f),
-                accentColor.copy(alpha = 0.06f),
-                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
-            )
-        )
+        SolidColor(Color.White.copy(alpha = 0.08f))
     } else {
         Brush.verticalGradient(
             listOf(
@@ -130,14 +125,12 @@ fun LiquidGlassSegmentedSwitcher(
         )
     }
 
-    // Border: 1px solid rgba(255, 255, 255, 0.4)
-    val trackBorderBrush = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
-            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
-            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
-        )
-    )
+    // Border: 1px solid rgba(255, 255, 255, 0.12)
+    val trackBorderBrush = if (isDark || isAmoled) {
+        SolidColor(Color.White.copy(alpha = 0.12f))
+    } else {
+        SolidColor(Color(0xFF000000).copy(alpha = 0.08f))
+    }
 
     Box(
         modifier = modifier
@@ -393,48 +386,36 @@ fun Modifier.bubblyGlassCapsuleIndicator(
     val surfaceGradient = if (isDark || isAmoled) {
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0.0f to Color.White.copy(alpha = 0.35f),
-                0.60f to Color.White.copy(alpha = 0.18f),
-                1.0f to accentColor.copy(alpha = 0.22f)
+                0.0f to Color.White.copy(alpha = 0.22f),
+                0.50f to Color.White.copy(alpha = 0.08f),
+                1.0f to accentColor.copy(alpha = 0.20f)
             )
         )
     } else {
-        // Light Mode: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 60%, rgba(var(--theme-primary-rgb), 0.15) 100%)
+        // Light Mode
         Brush.verticalGradient(
             colorStops = arrayOf(
                 0.0f to Color.White.copy(alpha = 0.85f),
-                0.60f to Color.White.copy(alpha = 0.40f),
-                1.0f to accentColor.copy(alpha = 0.15f)
+                0.50f to Color.White.copy(alpha = 0.40f),
+                1.0f to accentColor.copy(alpha = 0.20f)
             )
         )
     }
 
-    // Border: 1px solid rgba(255, 255, 255, 0.7)
+    // Border: 1px solid rgba(255, 255, 255, 0.3)
     val bubblyBorderBrush = if (isDark || isAmoled) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.70f),
-                accentColor.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.25f)
-            )
-        )
+        SolidColor(Color.White.copy(alpha = 0.30f))
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.70f),
-                accentColor.copy(alpha = 0.25f)
-            )
-        )
+        SolidColor(Color.White.copy(alpha = 0.65f))
     }
 
     return this
-        // Ambient colored drop shadow: 0 4px 12px 0 rgba(var(--theme-primary-rgb), 0.12)
+        // Drop shadow: 0 4px 14px rgba(var(--theme-primary-rgb), 0.2)
         .shadow(
             elevation = 4.dp,
             shape = shape,
-            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.24f else 0.16f),
-            ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.14f else 0.10f)
+            spotColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.20f else 0.16f),
+            ambientColor = accentColor.copy(alpha = if (isDark || isAmoled) 0.12f else 0.08f)
         )
         .clip(shape)
         // Blur: backdrop-filter: blur(14px)
@@ -458,24 +439,24 @@ fun Modifier.bubblyGlassCapsuleIndicator(
             shape = shape
         )
         // Top Specular Highlight & Depth (Inner Glow):
-        // inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), /* Top light reflection */
-        // inset 0 -2px 3px 0 rgba(0, 0, 0, 0.04),         /* Bottom curvature shading */
+        // inset 0 1.5px 2px rgba(255, 255, 255, 0.4),
+        // inset 0 -2px 3px rgba(0, 0, 0, 0.25)
         .drawWithContent {
             drawContent()
             val w = size.width
             val h = size.height
             val cornerRadius = CornerRadius(h / 2f, h / 2f)
 
-            // Top specular light reflection (meniscus shine curve)
+            // Top specular light reflection: inset 0 1.5px 2px rgba(255, 255, 255, 0.4)
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.85f else 0.95f),
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.50f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.40f else 0.70f),
+                        Color.White.copy(alpha = if (isDark || isAmoled) 0.15f else 0.25f),
                         Color.Transparent
                     ),
                     startY = 0f,
-                    endY = h * 0.55f
+                    endY = 2.dp.toPx()
                 ),
                 topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
                 size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
@@ -483,14 +464,14 @@ fun Modifier.bubblyGlassCapsuleIndicator(
                 style = Stroke(width = 1.5.dp.toPx())
             )
 
-            // Bottom curvature shading: inset 0 -2px 3px 0 rgba(0, 0, 0, 0.04)
+            // Bottom curvature shading: inset 0 -2px 3px rgba(0, 0, 0, 0.25)
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        Color.Black.copy(alpha = if (isDark || isAmoled) 0.10f else 0.04f)
+                        Color.Black.copy(alpha = if (isDark || isAmoled) 0.25f else 0.10f)
                     ),
-                    startY = h * 0.50f,
+                    startY = (h - 3.dp.toPx()).coerceAtLeast(0f),
                     endY = h
                 ),
                 topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
@@ -499,7 +480,7 @@ fun Modifier.bubblyGlassCapsuleIndicator(
                 style = Stroke(width = 2.dp.toPx())
             )
         }
-        // Border: 1px solid rgba(255, 255, 255, 0.7)
+        // Border: 1px solid rgba(255, 255, 255, 0.3)
         .border(
             width = 1.dp,
             brush = bubblyBorderBrush,

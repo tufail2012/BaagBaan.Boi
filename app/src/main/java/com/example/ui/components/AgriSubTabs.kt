@@ -50,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -87,14 +88,9 @@ fun PruningSubTabs(
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
+    // Track Background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9999px;
     val containerBgBrush = if (isDark || isAmoled) {
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.08f),
-                accentColor.copy(alpha = 0.06f),
-                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
-            )
-        )
+        SolidColor(Color.White.copy(alpha = 0.08f))
     } else {
         // rgba(255, 255, 255, 0.5) with backdrop-filter: blur(10px) and subtle theme tint
         Brush.verticalGradient(
@@ -106,13 +102,11 @@ fun PruningSubTabs(
         )
     }
 
-    val containerBorderBrush = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
-            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
-            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
-        )
-    )
+    val containerBorderBrush = if (isDark || isAmoled) {
+        SolidColor(Color.White.copy(alpha = 0.12f))
+    } else {
+        SolidColor(Color(0xFF000000).copy(alpha = 0.08f))
+    }
 
     Box(
         modifier = modifier
@@ -373,33 +367,6 @@ fun RootstockSubTabs(
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
 
-    val containerBgBrush = if (isDark || isAmoled) {
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.08f),
-                accentColor.copy(alpha = 0.06f),
-                if (isAmoled) Color.Black.copy(alpha = 0.50f) else Color(0xFF0F172A).copy(alpha = 0.40f)
-            )
-        )
-    } else {
-        // rgba(255, 255, 255, 0.5) with backdrop-filter: blur(10px) and subtle theme tint
-        Brush.verticalGradient(
-            listOf(
-                Color.White.copy(alpha = 0.55f),
-                accentColor.copy(alpha = 0.04f),
-                Color.White.copy(alpha = 0.50f)
-            )
-        )
-    }
-
-    val containerBorderBrush = Brush.verticalGradient(
-        listOf(
-            Color.White.copy(alpha = if (isDark) 0.30f else 0.50f),
-            accentColor.copy(alpha = if (isDark) 0.15f else 0.20f),
-            Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
-        )
-    )
-
     val isGenevaSelected = selectedSubTab.startsWith("Geneva") || genevaOptions.contains(selectedSubTab)
     val selectedIndex = when {
         selectedSubTab.equals("MM111", ignoreCase = true) -> 1
@@ -411,6 +378,26 @@ fun RootstockSubTabs(
         "Geneva ($selectedGenevaOption)"
     } else {
         "Geneva"
+    }
+
+    // Track Background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9999px;
+    val containerBgBrush = if (isDark || isAmoled) {
+        SolidColor(Color.White.copy(alpha = 0.08f))
+    } else {
+        // rgba(255, 255, 255, 0.5) with backdrop-filter: blur(10px) and subtle theme tint
+        Brush.verticalGradient(
+            listOf(
+                Color.White.copy(alpha = 0.55f),
+                accentColor.copy(alpha = 0.04f),
+                Color.White.copy(alpha = 0.50f)
+            )
+        )
+    }
+
+    val containerBorderBrush = if (isDark || isAmoled) {
+        SolidColor(Color.White.copy(alpha = 0.12f))
+    } else {
+        SolidColor(Color(0xFF000000).copy(alpha = 0.08f))
     }
 
     Box(

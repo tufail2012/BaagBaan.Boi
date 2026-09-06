@@ -663,7 +663,7 @@ fun FarmerFormScreen(
     val soilOptions = listOf("Clay Loam", "Sandy Loam", "Rich Alluvial", "Peaty", "Chalky / Rocky")
     val saplingAgeOptions = listOf("1 Year", "2 Years", "3 Years", "4 Years", "5 Years")
 
-    val textFieldShape = RoundedCornerShape(22.dp)
+    val textFieldShape = RoundedCornerShape(18.dp)
     val isDark = isAppInDarkMode()
 
     val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
@@ -792,7 +792,7 @@ fun FarmerFormScreen(
             null
         }
     }
-    val formAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
+    val formAccent = getSectionAccentColor(selectedService, customPaletteColor = parsedPaletteColor)
     val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
     val backgroundBrush = remember(isDark, isAmoled, formAccent) {
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
