@@ -3,7 +3,12 @@ package com.example.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -43,6 +48,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
@@ -607,47 +613,37 @@ fun Modifier.glassCardBackground(
         AppThemeMode.SYSTEM, null -> isDark || effectiveIsAmoled
     }
 
+    // Auto-detect focus-within on the input container
+    var internalFocusState by remember { mutableStateOf(false) }
+    val effectiveIsFocused = isFocused || internalFocusState
+
     // Dynamic focus transition: 0.25s ease-in-out
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
+    val focusAlpha by animateFloatAsState(
+        targetValue = if (effectiveIsFocused) 1f else 0f,
         animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "inputFieldGlow"
+        label = "inputFieldFocusAlpha"
     )
 
-    // Dynamic Glow Box-Shadow: 0 0 16px rgba(var(--theme-primary-rgb), 0.4)
-    val glowShadowModifier = if (glowAlpha > 0.01f) {
-        Modifier.shadow(
-            elevation = 6.dp * glowAlpha,
-            shape = effectiveShape,
-            spotColor = accentColor.copy(alpha = 0.40f * glowAlpha),
-            ambientColor = accentColor.copy(alpha = 0.20f * glowAlpha)
-        )
-    } else if (elevation > 0.dp) {
+    // Animated rotating angle for running conic gradient border: 3s linear infinite
+    val infiniteTransition = rememberInfiniteTransition(label = "runningBorderTransition")
+    val rotationAngle = infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotatingBorderAngle"
+    )
+
+    // Neutral elevation shadow: Keep inner background fill neutral and remove any colored ambient/spot glow
+    val shadowModifier = if (elevation > 0.dp) {
         Modifier.shadow(
             elevation = elevation,
             shape = effectiveShape,
             spotColor = Color.Black.copy(alpha = if (effectiveIsDark) 0.35f else 0.08f),
             ambientColor = Color.Black.copy(alpha = if (effectiveIsDark) 0.20f else 0.04f)
         )
-    } else {
-        Modifier
-    }
-
-    val glowAuraModifier = if (glowAlpha > 0.01f) {
-        Modifier.drawBehind {
-            val outline = effectiveShape.createOutline(size, layoutDirection, this)
-            // Outer diffuse subtle glow rings using current accent color
-            drawOutline(
-                outline = outline,
-                color = accentColor.copy(alpha = (if (effectiveIsDark) 0.32f else 0.22f) * glowAlpha),
-                style = Stroke(width = 3.5.dp.toPx())
-            )
-            drawOutline(
-                outline = outline,
-                color = accentColor.copy(alpha = (if (effectiveIsDark) 0.14f else 0.09f) * glowAlpha),
-                style = Stroke(width = 7.dp.toPx())
-            )
-        }
     } else {
         Modifier
     }
@@ -669,61 +665,29 @@ fun Modifier.glassCardBackground(
         )
     }
 
-    // Input Cards Background Gradient:
-    // Default: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)
-    // Focused: linear-gradient(180deg, rgba(var(--theme-primary-rgb), 0.15) 0%, rgba(255, 255, 255, 0.03) 100%)
+    // Neutral Inner Background Gradient:
+    // Strictly neutral when focused - zero accent color tints or inner box glow inside the card
     val cardBgBrush = if (effectiveIsDark) {
-        if (glowAlpha > 0.01f) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    accentColor.copy(alpha = 0.15f * glowAlpha + (1f - glowAlpha) * 0.07f),
-                    Color.White.copy(alpha = 0.03f * glowAlpha + (1f - glowAlpha) * 0.02f)
-                )
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.07f),
+                Color.White.copy(alpha = 0.02f)
             )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.07f),
-                    Color.White.copy(alpha = 0.02f)
-                )
-            )
-        }
+        )
     } else {
-        if (glowAlpha > 0.01f) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    accentColor.copy(alpha = 0.12f * glowAlpha + (1f - glowAlpha) * 0.05f),
-                    Color.White.copy(alpha = 0.70f)
-                )
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.80f),
+                Color.White.copy(alpha = 0.60f)
             )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.80f),
-                    Color.White.copy(alpha = 0.60f)
-                )
-            )
-        }
-    }
-
-    // Border:
-    // Default: 1px solid rgba(255, 255, 255, 0.12)
-    // Focused: border-color: rgba(var(--theme-primary-rgb), 0.85)
-    val borderStroke = if (glowAlpha > 0.01f) {
-        val activeBorderColor = accentColor.copy(alpha = 0.85f * glowAlpha + (1f - glowAlpha) * (if (effectiveIsDark) 0.12f else 0.20f))
-        BorderStroke(1.dp, activeBorderColor)
-    } else {
-        val borderBrush = if (effectiveIsDark) {
-            SolidColor(Color.White.copy(alpha = 0.12f))
-        } else {
-            SolidColor(Color(0xFF000000).copy(alpha = 0.12f))
-        }
-        BorderStroke(borderWidth, borderBrush)
+        )
     }
 
     return this
-        .then(glowShadowModifier)
-        .then(glowAuraModifier)
+        .onFocusEvent { focusState ->
+            internalFocusState = focusState.isFocused || focusState.hasFocus
+        }
+        .then(shadowModifier)
         .then(
             if (effectiveHazeState != null) {
                 Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
@@ -743,35 +707,102 @@ fun Modifier.glassCardBackground(
                 18.dp.toPx()
             }
 
-            // Inset box-shadow:
-            // Default: inset 0 1px 1px rgba(255, 255, 255, 0.12)
-            // Focused: inset 0 1px 2px rgba(255, 255, 255, 0.25)
-            val insetAlpha = if (effectiveIsDark) {
-                0.12f + (0.13f * glowAlpha)
-            } else {
-                0.35f + (0.25f * glowAlpha)
+            // Inset highlight / box-shadow:
+            // Completely removed when focused to eliminate any inner glow.
+            if (focusAlpha < 0.99f) {
+                val baseInsetAlpha = if (effectiveIsDark) 0.12f else 0.35f
+                val insetAlpha = baseInsetAlpha * (1f - focusAlpha)
+                if (insetAlpha > 0.005f) {
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = insetAlpha),
+                                Color.Transparent
+                            ),
+                            startY = 0f,
+                            endY = 1.dp.toPx()
+                        ),
+                        topLeft = Offset(0.5.dp.toPx(), 0.5.dp.toPx()),
+                        size = Size(w - 1.dp.toPx(), h - 1.dp.toPx()),
+                        cornerRadius = CornerRadius(cornerR, cornerR),
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                }
             }
-            val insetEndHeight = (1.dp + (1.dp * glowAlpha)).toPx()
 
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = insetAlpha),
-                        Color.Transparent
+            // Default subtle 1px border when unfocused (crossfading out on focus)
+            if (focusAlpha < 0.999f) {
+                val defaultBorderAlpha = 0.12f * (1f - focusAlpha)
+                val defaultBorderBrush = SolidColor(
+                    if (effectiveIsDark) Color.White.copy(alpha = defaultBorderAlpha)
+                    else Color(0xFF000000).copy(alpha = defaultBorderAlpha)
+                )
+                val stroke1px = borderWidth.toPx()
+                val half1px = stroke1px / 2f
+
+                if (effectiveShape is RoundedCornerShape) {
+                    drawRoundRect(
+                        brush = defaultBorderBrush,
+                        topLeft = Offset(half1px, half1px),
+                        size = Size(w - stroke1px, h - stroke1px),
+                        cornerRadius = CornerRadius(maxOf(0f, cornerR - half1px), maxOf(0f, cornerR - half1px)),
+                        style = Stroke(width = stroke1px)
+                    )
+                } else {
+                    val outline = effectiveShape.createOutline(size, layoutDirection, this)
+                    drawOutline(
+                        outline = outline,
+                        brush = defaultBorderBrush,
+                        style = Stroke(width = stroke1px)
+                    )
+                }
+            }
+
+            // Animated Running Gradient Border for Focused Inputs:
+            // 2px outer border with conic-gradient(from 0deg, transparent 0%, var(--theme-primary) 50%, transparent 100%)
+            // Rotating 360deg in 3s linear infinite
+            if (focusAlpha > 0.001f) {
+                val stroke2px = 2.dp.toPx()
+                val half2px = stroke2px / 2f
+                val angle = rotationAngle.value
+                val cx = w / 2f
+                val cy = h / 2f
+
+                val sweepShader = android.graphics.SweepGradient(
+                    cx,
+                    cy,
+                    intArrayOf(
+                        android.graphics.Color.TRANSPARENT,
+                        accentColor.toArgb(),
+                        android.graphics.Color.TRANSPARENT
                     ),
-                    startY = 0f,
-                    endY = insetEndHeight
-                ),
-                topLeft = Offset(0.5.dp.toPx(), 0.5.dp.toPx()),
-                size = Size(w - 1.dp.toPx(), h - 1.dp.toPx()),
-                cornerRadius = CornerRadius(cornerR, cornerR),
-                style = Stroke(width = (1.dp + (0.5.dp * glowAlpha)).toPx())
-            )
+                    floatArrayOf(0.0f, 0.5f, 1.0f)
+                )
+                val matrix = android.graphics.Matrix()
+                matrix.postRotate(angle, cx, cy)
+                sweepShader.setLocalMatrix(matrix)
+                val runningBrush = ShaderBrush(sweepShader)
+
+                if (effectiveShape is RoundedCornerShape) {
+                    drawRoundRect(
+                        brush = runningBrush,
+                        topLeft = Offset(half2px, half2px),
+                        size = Size(w - stroke2px, h - stroke2px),
+                        cornerRadius = CornerRadius(maxOf(0f, cornerR - half2px), maxOf(0f, cornerR - half2px)),
+                        style = Stroke(width = stroke2px),
+                        alpha = focusAlpha
+                    )
+                } else {
+                    val outline = effectiveShape.createOutline(size, layoutDirection, this)
+                    drawOutline(
+                        outline = outline,
+                        brush = runningBrush,
+                        alpha = focusAlpha,
+                        style = Stroke(width = stroke2px)
+                    )
+                }
+            }
         }
-        .border(
-            border = borderStroke,
-            shape = effectiveShape
-        )
 }
 
 /**
