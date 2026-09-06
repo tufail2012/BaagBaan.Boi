@@ -134,11 +134,7 @@ fun InventoryManagementDialog(
     val textPrimary = if (isDark) Color.White else Color(0xFF0F172A)
     val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
-    val inventoryAccent = getSectionAccentColor(
-        "Inventory",
-        customPaletteColor = parsedPaletteColor,
-        defaultColor = MaterialTheme.colorScheme.primary
-    )
+    val inventoryAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
 
     val inventoryBgBrush = remember(isDark, inventoryAccent) {
         getAppDimBackgroundBrush(inventoryAccent, isDark = isDark)
@@ -802,7 +798,7 @@ fun InventoryItemCard(
             .fillMaxWidth()
             .glassCardBackground(
                 cornerRadius = 16.dp,
-                accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else getSectionAccentColor("Inventory", customPaletteColor = parsedPaletteColor),
+                accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else (parsedPaletteColor ?: MaterialTheme.colorScheme.primary),
                 isDark = isDark,
             ),
         shape = RoundedCornerShape(16.dp),

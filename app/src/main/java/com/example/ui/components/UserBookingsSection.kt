@@ -369,7 +369,7 @@ fun BookingCardItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val typeColor = com.example.ui.theme.getSectionAccentColor(booking.type)
+    val typeColor = MaterialTheme.colorScheme.primary
     val typeIcon = when (booking.type) {
         "Imported Plants", "Imported" -> Icons.Default.LocalShipping
         "Imported Rootstock", "Rootstocks" -> Icons.Default.Spa

@@ -433,7 +433,7 @@ fun GardenPlanningScreen(
                         null
                     }
                 }
-                val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
+                val gardenAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
 
                 // Integrated container without cutout borders
                 Box(
@@ -502,7 +502,7 @@ fun GardenPlanningFormTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null
 ) {
-    val gardenAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
+    val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
@@ -2037,7 +2037,7 @@ fun GardenPlanningRecordsTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null
 ) {
-    val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
+    val paletteAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -2544,14 +2544,14 @@ private fun GardenPlanningRecordCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1))
+                            color = paletteAccent.copy(alpha = if (isDark) 0.18f else 0.12f),
+                            border = BorderStroke(1.dp, paletteAccent.copy(alpha = if (isDark) 0.35f else 0.25f))
                         ) {
                             Text(
                                 text = "#${entry.serialNumber}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                                color = if (isDark) Color.White else paletteAccent,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }

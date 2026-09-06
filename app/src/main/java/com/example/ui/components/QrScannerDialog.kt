@@ -92,7 +92,7 @@ fun QrScannerDialog(
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
-    val scanQrAccent = getSectionAccentColor("Scan QR", customPaletteColor = customPaletteColor)
+    val scanQrAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 

@@ -253,7 +253,7 @@ fun PaymentRemindersDialog(
         )
     }
 
-    val paymentAccent = getSectionAccentColor("Payment Reminder", customPaletteColor = parsedPaletteColor)
+    val paymentAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
     val paymentBgBrush = remember(isDark, paymentAccent) {
         getAppDimBackgroundBrush(paymentAccent, isDark = isDark)
     }

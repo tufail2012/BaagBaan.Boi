@@ -110,7 +110,7 @@ fun SeasonalRemindersDialog(
         }
     }
 
-    val seasonalAccent = getSectionAccentColor("Seasonal Reminders", customPaletteColor = parsedPaletteColor)
+    val seasonalAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
     val seasonalBgBrush = remember(isDark, seasonalAccent) {
         getAppDimBackgroundBrush(seasonalAccent, isDark = isDark)
     }

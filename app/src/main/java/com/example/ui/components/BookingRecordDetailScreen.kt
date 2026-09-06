@@ -249,11 +249,7 @@ fun BookingRecordDetailDialog(
     val totalRecordValue = record.calculateTotalAmount()
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
-    val sectionAccentColor = getSectionAccentColor(
-        record.serviceType,
-        customPaletteColor = customPaletteColor,
-        defaultColor = MaterialTheme.colorScheme.primary
-    )
+    val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
     val sheetHazeState = remember { HazeState() }
     val scrollState = rememberScrollState()

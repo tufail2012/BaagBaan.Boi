@@ -531,7 +531,7 @@ fun WorkerSummaryCard(
             .fillMaxWidth()
             .glassCardBackground(
                 cornerRadius = 16.dp,
-                accentColor = getSectionAccentColor("Attendance"),
+                accentColor = MaterialTheme.colorScheme.primary,
                 isDark = isDark
             )
             .clickable { onClick() }

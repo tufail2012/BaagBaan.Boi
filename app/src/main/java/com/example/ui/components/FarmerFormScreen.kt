@@ -792,7 +792,7 @@ fun FarmerFormScreen(
             null
         }
     }
-    val formAccent = getSectionAccentColor(selectedService, customPaletteColor = parsedPaletteColor)
+    val formAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
     val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
     val backgroundBrush = remember(isDark, isAmoled, formAccent) {
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)

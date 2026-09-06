@@ -340,7 +340,7 @@ fun SettingsScreen(
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
     }
 
-    val settingsAccent = getSectionAccentColor("Settings", customPaletteColor = customPaletteColor)
+    val settingsAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val isAmoled = themeMode == AppThemeMode.AMOLED || (isDark && MaterialTheme.colorScheme.background == Color(0xFF000000))
     val settingsBgBrush = remember(isDark, isAmoled, settingsAccent) {
         getAppDimBackgroundBrush(settingsAccent, isDark = isDark, isAmoled = isAmoled)

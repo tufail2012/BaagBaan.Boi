@@ -169,9 +169,10 @@ fun FarmerRecordsScreen(
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
 
     val accentColorHex by viewModel.accentColorHex.collectAsState()
-    val paletteColor = remember(accentColorHex) {
+    val primaryThemeColor = MaterialTheme.colorScheme.primary
+    val paletteColor = remember(accentColorHex, primaryThemeColor) {
         runCatching { Color(android.graphics.Color.parseColor(accentColorHex)) }.getOrNull()
-            ?: Color(0xFF10B981)
+            ?: primaryThemeColor
     }
 
     val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
@@ -748,19 +749,17 @@ private fun FarmerRecordCard(
                         if (record.serialNumber.isNotBlank()) {
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (isDark) Color(0xFF334155).copy(alpha = 0.60f) else Color(0xFFE2E8F0).copy(alpha = 0.75f),
+                                color = paletteColor.copy(alpha = if (isDark) 0.18f else 0.12f),
                                 border = BorderStroke(
                                     1.dp,
-                                    Brush.verticalGradient(
-                                        listOf(Color.White.copy(alpha = 0.50f), Color.White.copy(alpha = 0.15f))
-                                    )
+                                    paletteColor.copy(alpha = if (isDark) 0.35f else 0.25f)
                                 )
                             ) {
                                 Text(
                                     text = "#${record.serialNumber}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A),
+                                    color = if (isDark) Color.White else paletteColor,
                                     modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                                 )
                             }
