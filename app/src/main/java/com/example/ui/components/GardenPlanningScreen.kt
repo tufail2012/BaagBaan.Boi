@@ -433,7 +433,7 @@ fun GardenPlanningScreen(
                         null
                     }
                 }
-                val gardenAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
+                val gardenAccent = com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = parsedPaletteColor)
 
                 // Integrated container without cutout borders
                 Box(
@@ -502,7 +502,7 @@ fun GardenPlanningFormTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null
 ) {
-    val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
+    val gardenAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
@@ -2037,7 +2037,7 @@ fun GardenPlanningRecordsTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null
 ) {
-    val paletteAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
+    val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -2401,7 +2401,11 @@ private fun SwipeableGardenPlanningItem(
         val amountPaid = entry.amountPaid
         val remBalance = if (entry.remainingBalance > 0) entry.remainingBalance else maxOf(0.0, totalCost - amountPaid)
 
-        val totalPlantsCalculated = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) (entry.totalKanalArea * entry.plantsPerKanal).toInt() else 0
+        val parsedLines = if (entry.varietyLinesJson.isNotBlank()) parseVarietyLines(entry.varietyLinesJson) else emptyList()
+        val isMultiVariety = parsedLines.isNotEmpty()
+        val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else entry.totalKanalArea
+        val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+        val totalPlantsCalculated = aggregateTotalPlants
 
         WhatsAppTemplateDialog(
             farmerName = entry.farmerName.ifBlank { "Farmer" },
@@ -2544,14 +2548,14 @@ private fun GardenPlanningRecordCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = paletteAccent.copy(alpha = if (isDark) 0.18f else 0.12f),
-                            border = BorderStroke(1.dp, paletteAccent.copy(alpha = if (isDark) 0.35f else 0.25f))
+                            color = if (isDark) Color(0xFF334155) else Color(0xFFF1F5F9),
+                            border = BorderStroke(1.dp, if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1))
                         ) {
                             Text(
                                 text = "#${entry.serialNumber}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else paletteAccent,
+                                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -2639,8 +2643,13 @@ private fun GardenPlanningRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val parsedLines = if (entry.varietyLinesJson.isNotBlank()) parseVarietyLines(entry.varietyLinesJson) else emptyList()
+                val isMultiVariety = parsedLines.isNotEmpty()
+                val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else entry.totalKanalArea
+                val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+
                 Text(
-                    text = "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
+                    text = if (isMultiVariety) "$aggregateKanalArea Kanals • $aggregateTotalPlants Plants" else "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
@@ -2925,7 +2934,11 @@ fun GardenBookingRecordDetailDialog(
     var dateTFV by remember { mutableStateOf(TextFieldValue(text = todayStr, selection = TextRange(todayStr.length))) }
     var modeNoteText by remember { mutableStateOf("Cash") }
 
-    val totalPlants = (currentEntry.totalKanalArea * currentEntry.plantsPerKanal).toInt()
+    val parsedLines = if (currentEntry.varietyLinesJson.isNotBlank()) parseVarietyLines(currentEntry.varietyLinesJson) else emptyList()
+    val isMultiVariety = parsedLines.isNotEmpty()
+    val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else currentEntry.totalKanalArea
+    val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (currentEntry.totalKanalArea * currentEntry.plantsPerKanal).toInt()
+    val totalPlants = aggregateTotalPlants
     val totalRecordValue = currentEntry.totalCost
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
@@ -3134,10 +3147,10 @@ fun GardenBookingRecordDetailDialog(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         DetailRowItem(label = "Category", value = "Garden Planning", isDark = isDark)
-                        if (currentEntry.totalKanalArea > 0) {
-                            DetailRowItem(label = "Total Area", value = "${currentEntry.totalKanalArea} Kanals", isDark = isDark)
+                        if (aggregateKanalArea > 0) {
+                            DetailRowItem(label = "Total Area", value = "$aggregateKanalArea Kanals", isDark = isDark)
                         }
-                        if (currentEntry.plantsPerKanal > 0) {
+                        if (!isMultiVariety && currentEntry.plantsPerKanal > 0) {
                             DetailRowItem(label = "Plants per Kanal", value = "${currentEntry.plantsPerKanal} Plants/Kanal", isDark = isDark)
                         }
                         DetailRowItem(label = "Total Calculated Plants", value = "$totalPlants Plants", isDark = isDark)

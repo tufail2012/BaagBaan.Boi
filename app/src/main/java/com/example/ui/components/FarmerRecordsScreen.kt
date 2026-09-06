@@ -169,10 +169,9 @@ fun FarmerRecordsScreen(
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
 
     val accentColorHex by viewModel.accentColorHex.collectAsState()
-    val primaryThemeColor = MaterialTheme.colorScheme.primary
-    val paletteColor = remember(accentColorHex, primaryThemeColor) {
+    val paletteColor = remember(accentColorHex) {
         runCatching { Color(android.graphics.Color.parseColor(accentColorHex)) }.getOrNull()
-            ?: primaryThemeColor
+            ?: Color(0xFF10B981)
     }
 
     val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
@@ -405,7 +404,8 @@ fun FarmerRecordsScreen(
                                     onEdit = { viewModel.loadRecordForEditing(record) },
                                     onDelete = { recordToDelete = record },
                                     onOpenDetail = { selectedDetailRecord = record },
-                                    hazeState = effectiveHazeState
+                                    hazeState = effectiveHazeState,
+                                    paletteColor = paletteColor
                                 )
                             }
                         }
@@ -593,7 +593,8 @@ private fun FarmerRecordCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenDetail: () -> Unit,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    paletteColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val context = LocalContext.current
     val isDark = isAppInDarkMode()
