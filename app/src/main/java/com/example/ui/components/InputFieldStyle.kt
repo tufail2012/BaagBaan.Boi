@@ -591,7 +591,8 @@ fun Modifier.glassCardBackground(
     elevation: Dp = 0.dp,
     borderWidth: Dp = 1.dp,
     flatStyle: Boolean = true,
-    isFocused: Boolean = false
+    isFocused: Boolean = false,
+    hazeState: HazeState? = null
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
 
@@ -651,7 +652,7 @@ fun Modifier.glassCardBackground(
         Modifier
     }
 
-    val hazeState = LocalAppGlassHazeState.current
+    val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
 
     val hazeStyle = remember(effectiveIsDark, effectiveIsAmoled) {
         HazeStyle(
@@ -724,8 +725,8 @@ fun Modifier.glassCardBackground(
         .then(glowShadowModifier)
         .then(glowAuraModifier)
         .then(
-            if (hazeState != null) {
-                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            if (effectiveHazeState != null) {
+                Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
             } else {
                 Modifier
             }
@@ -1067,102 +1068,17 @@ fun Modifier.bubbleDropletPillIndicator(
 fun Modifier.frostedLiquidGlassDetailCard(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    shape: Shape = RoundedCornerShape(22.dp),
+    shape: Shape = RoundedCornerShape(20.dp),
     hazeState: HazeState? = null,
-    cornerRadius: Dp = 22.dp
+    cornerRadius: Dp = 20.dp
 ): Modifier {
-    val effectiveShape = shape
-
-    val cardBackgroundBrush = if (isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF1E293B).copy(alpha = 0.92f),
-                accentColor.copy(alpha = 0.08f),
-                Color(0xFF0F172A).copy(alpha = 0.90f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFFFFFFFF).copy(alpha = 0.94f),
-                accentColor.copy(alpha = 0.03f),
-                Color(0xFFFFFFFF).copy(alpha = 0.90f)
-            )
-        )
-    }
-
-    val borderBrush = Brush.verticalGradient(
-        colors = if (isDark) {
-            listOf(
-                Color.White.copy(alpha = 0.40f),
-                accentColor.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.15f)
-            )
-        } else {
-            listOf(
-                Color.White.copy(alpha = 0.85f),
-                Color.White.copy(alpha = 0.70f),
-                accentColor.copy(alpha = 0.20f)
-            )
-        }
+    return this.glassCardBackground(
+        isDark = isDark,
+        accentColor = accentColor,
+        shape = shape,
+        cornerRadius = cornerRadius,
+        hazeState = hazeState
     )
-
-    return this
-        // 0 6px 20px rgba(0, 0, 0, 0.04)
-        .shadow(
-            elevation = 4.dp,
-            shape = effectiveShape,
-            spotColor = Color.Black.copy(alpha = if (isDark) 0.16f else 0.04f),
-            ambientColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.02f)
-        )
-        .clip(effectiveShape)
-        // backdrop-filter: blur(16px)
-        .then(
-            if (hazeState != null) {
-                Modifier.hazeEffect(
-                    state = hazeState,
-                    style = HazeStyle(
-                        blurRadius = 16.dp,
-                        tints = listOf(
-                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.06f else 0.03f))
-                        ),
-                        backgroundColor = Color.Transparent
-                    )
-                )
-            } else Modifier
-        )
-        .background(
-            brush = cardBackgroundBrush,
-            shape = effectiveShape
-        )
-        // inset 0 1px 1.5px rgba(255, 255, 255, 0.9) - Upper specular reflection
-        .drawWithContent {
-            drawContent()
-            val w = size.width
-            val h = size.height
-            val crPx = cornerRadius.toPx()
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDark) 0.50f else 0.90f),
-                        Color.White.copy(alpha = if (isDark) 0.15f else 0.30f),
-                        Color.Transparent
-                    ),
-                    startY = 0f,
-                    endY = 16.dp.toPx()
-                ),
-                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
-                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
-                cornerRadius = CornerRadius(crPx, crPx),
-                style = Stroke(width = 1.5.dp.toPx())
-            )
-        }
-        // border: 1px solid rgba(255, 255, 255, 0.65)
-        .border(
-            width = 1.dp,
-            brush = borderBrush,
-            shape = effectiveShape
-        )
 }
 
 /**

@@ -80,6 +80,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -317,23 +318,6 @@ fun BookingRecordDetailDialog(
             )
 
             val sheetBaseColor = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
-            val sheetGradientBrush = if (isDark) {
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.00f to sectionAccentColor.copy(alpha = 0.16f),
-                        0.18f to Color(0xFF121212).copy(alpha = 0.92f),
-                        1.00f to sectionAccentColor.copy(alpha = 0.08f)
-                    )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colorStops = arrayOf(
-                        0.00f to sectionAccentColor.copy(alpha = 0.10f),
-                        0.18f to Color(0xFFF8FAFC).copy(alpha = 0.95f),
-                        1.00f to sectionAccentColor.copy(alpha = 0.05f)
-                    )
-                )
-            }
 
             val nestedScrollConnection = remember {
                 object : NestedScrollConnection {
@@ -385,9 +369,9 @@ fun BookingRecordDetailDialog(
                     .offset { IntOffset(0, offsetY.value.roundToInt()) }
                     .hazeSource(state = sheetHazeState)
                     .background(sheetBaseColor)
-                    .background(sheetGradientBrush)
             ) {
-                if (record.isCancelled) {
+                CompositionLocalProvider(LocalAppGlassHazeState provides sheetHazeState) {
+                    if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
                 } else if (record.isReceived) {
                     ReceivedWatermark(isDark = isDark)
@@ -617,7 +601,7 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .frostedLiquidGlassDetailCard(
+                        .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(20.dp),
@@ -761,7 +745,7 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .frostedLiquidGlassDetailCard(
+                        .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(20.dp),
@@ -845,12 +829,11 @@ fun BookingRecordDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .frostedLiquidGlassDetailCard(
+                                    .glassCardBackground(
                                         isDark = isDark,
                                         accentColor = sectionAccentColor,
-                                        shape = RoundedCornerShape(14.dp),
-                                        hazeState = sheetHazeState,
-                                        cornerRadius = 14.dp
+                                        shape = RoundedCornerShape(12.dp),
+                                        hazeState = sheetHazeState
                                     )
                                     .padding(vertical = 2.dp)
                             ) {
@@ -960,7 +943,7 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .frostedLiquidGlassDetailCard(
+                        .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(20.dp),
@@ -1024,12 +1007,11 @@ fun BookingRecordDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .frostedLiquidGlassDetailCard(
+                                .glassCardBackground(
                                     isDark = isDark,
                                     accentColor = sectionAccentColor,
-                                    shape = RoundedCornerShape(14.dp),
-                                    hazeState = sheetHazeState,
-                                    cornerRadius = 14.dp
+                                    shape = RoundedCornerShape(12.dp),
+                                    hazeState = sheetHazeState
                                 )
                         ) {
                             Column(
@@ -1258,12 +1240,11 @@ fun BookingRecordDetailDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .frostedLiquidGlassDetailCard(
+                                            .glassCardBackground(
                                                 isDark = isDark,
                                                 accentColor = sectionAccentColor,
-                                                shape = RoundedCornerShape(14.dp),
-                                                hazeState = sheetHazeState,
-                                                cornerRadius = 14.dp
+                                                shape = RoundedCornerShape(12.dp),
+                                                hazeState = sheetHazeState
                                             )
                                     ) {
                                         Row(
@@ -1555,6 +1536,7 @@ fun BookingRecordDetailDialog(
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
                 Spacer(modifier = Modifier.height(32.dp))
                     }
+                }
                 }
             }
         }
