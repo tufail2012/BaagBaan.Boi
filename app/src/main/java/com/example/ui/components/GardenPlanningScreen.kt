@@ -3102,13 +3102,14 @@ fun GardenBookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = paletteAccent,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
@@ -3183,13 +3184,14 @@ fun GardenBookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         DetailRowItem(label = "Category", value = "Garden Planning", isDark = isDark)
@@ -3307,11 +3309,12 @@ fun GardenBookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = paletteAccent,
-                            shape = RoundedCornerShape(22.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Header Title + Fully Paid Badge

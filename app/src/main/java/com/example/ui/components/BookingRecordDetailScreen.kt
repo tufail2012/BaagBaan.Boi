@@ -482,13 +482,14 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Row(
@@ -625,13 +626,14 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
@@ -821,11 +823,12 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(24.dp),
+                            cornerRadius = 24.dp
                         )
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(18.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Header Title + Fully Paid Badge

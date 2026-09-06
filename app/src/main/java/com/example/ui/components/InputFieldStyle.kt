@@ -737,7 +737,11 @@ fun Modifier.glassCardBackground(
             drawContent()
             val w = size.width
             val h = size.height
-            val cornerR = (cornerRadius ?: 18.dp).toPx()
+            val cornerR = cornerRadius?.toPx() ?: if (effectiveShape is RoundedCornerShape) {
+                effectiveShape.topStart.toPx(size, this)
+            } else {
+                18.dp.toPx()
+            }
 
             // Inset box-shadow:
             // Default: inset 0 1px 1px rgba(255, 255, 255, 0.12)
