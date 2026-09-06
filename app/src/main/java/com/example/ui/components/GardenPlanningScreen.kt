@@ -2648,13 +2648,24 @@ private fun GardenPlanningRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val parsedLines = if (entry.varietyLinesJson.isNotBlank()) parseVarietyLines(entry.varietyLinesJson) else emptyList()
+                val parsedLines = if (entry.varietyLinesJson.isNotBlank()) com.example.data.parseVarietyLines(entry.varietyLinesJson) else emptyList()
                 val isMultiVariety = parsedLines.isNotEmpty()
                 val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else entry.totalKanalArea
                 val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+                val displayPlantsPerKanal = if (isMultiVariety && aggregateKanalArea > 0) {
+                    Math.round(aggregateTotalPlants / aggregateKanalArea).toInt()
+                } else {
+                    entry.plantsPerKanal
+                }
+
+                val areaAndPlantsText = if (isMultiVariety && aggregateKanalArea <= 0) {
+                    "$aggregateTotalPlants Plants"
+                } else {
+                    "$aggregateKanalArea Kanals • $displayPlantsPerKanal Plants/Kanal"
+                }
 
                 Text(
-                    text = if (isMultiVariety) "$aggregateKanalArea Kanals • $aggregateTotalPlants Plants" else "${entry.totalKanalArea} Kanals • ${entry.plantsPerKanal} Plants/Kanal",
+                    text = areaAndPlantsText,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isDark) Color(0xFFF1F5F9) else Color(0xFF0F172A)
