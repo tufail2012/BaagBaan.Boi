@@ -113,6 +113,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import android.graphics.drawable.ColorDrawable
+import android.view.ViewGroup
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlin.math.roundToInt
@@ -255,123 +260,30 @@ fun BookingRecordDetailDialog(
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
     val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
-    val sheetHazeState = remember { HazeState() }
     val scrollState = rememberScrollState()
-    val offsetY = remember { Animatable(1000f) }
-    var isDismissing by remember { mutableStateOf(false) }
-
-    val dismissWithAnimation: () -> Unit = {
-        if (!isDismissing) {
-            isDismissing = true
-            coroutineScope.launch {
-                offsetY.animateTo(
-                    targetValue = 2000f,
-                    animationSpec = tween(durationMillis = 220, easing = FastOutLinearInEasing)
-                )
-                onDismiss()
-            }
-        }
-    }
 
     Dialog(
-        onDismissRequest = { dismissWithAnimation() },
+        onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
             decorFitsSystemWindows = false
         )
     ) {
-        BackHandler(enabled = !isDismissing) {
-            dismissWithAnimation()
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            dialogWindow?.let { win ->
+                win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                win.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            }
         }
 
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val screenHeightPx = constraints.maxHeight.toFloat()
-            val dragThresholdPx = with(LocalDensity.current) { 100.dp.toPx() }
-
-            LaunchedEffect(screenHeightPx) {
-                if (screenHeightPx > 0f) {
-                    offsetY.snapTo(screenHeightPx)
-                    offsetY.animateTo(
-                        targetValue = 0f,
-                        animationSpec = spring(
-                            dampingRatio = 0.82f,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
-            }
-
-            val dragProgress = if (screenHeightPx > 0f) (offsetY.value / screenHeightPx).coerceIn(0f, 1f) else 0f
-            val backdropAlpha = (0.35f * (1f - dragProgress)).coerceIn(0f, 0.35f)
-
-            // Dimmed backdrop overlay
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = backdropAlpha))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { dismissWithAnimation() }
-                    )
-            )
-
-            val sheetBaseColor = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
-
-            val nestedScrollConnection = remember {
-                object : NestedScrollConnection {
-                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                        if (offsetY.value > 0f && available.y < 0f) {
-                            val newOffset = (offsetY.value + available.y).coerceAtLeast(0f)
-                            val consumed = newOffset - offsetY.value
-                            coroutineScope.launch { offsetY.snapTo(newOffset) }
-                            return Offset(0f, consumed)
-                        }
-                        return Offset.Zero
-                    }
-
-                    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                        if (available.y > 0f && scrollState.value <= 0) {
-                            val newOffset = (offsetY.value + available.y).coerceAtLeast(0f)
-                            coroutineScope.launch { offsetY.snapTo(newOffset) }
-                            return Offset(0f, available.y)
-                        }
-                        return Offset.Zero
-                    }
-
-                    override suspend fun onPreFling(available: Velocity): Velocity {
-                        if (offsetY.value > dragThresholdPx) {
-                            dismissWithAnimation()
-                            return available
-                        } else if (offsetY.value > 0f) {
-                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
-                            return available
-                        }
-                        return Velocity.Zero
-                    }
-
-                    override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                        if (offsetY.value > dragThresholdPx) {
-                            dismissWithAnimation()
-                        } else if (offsetY.value > 0f) {
-                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
-                        }
-                        return Velocity.Zero
-                    }
-                }
-            }
-
-            // Sliding Full-Screen Sheet
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                    .hazeSource(state = sheetHazeState)
-                    .background(sheetBaseColor)
-            ) {
-                CompositionLocalProvider(LocalAppGlassHazeState provides sheetHazeState) {
-                    if (record.isCancelled) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
                 } else if (record.isReceived) {
                     ReceivedWatermark(isDark = isDark)
@@ -380,55 +292,28 @@ fun BookingRecordDetailDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .statusBarsPadding()
+                        .verticalScroll(scrollState)
                         .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Pinned Top Drag Area (Drag handle + Header Bar)
-                    Column(
+                    // Top Drag Indicator Handle (44px width)
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .pointerInput(Unit) {
-                                detectVerticalDragGestures(
-                                    onDragEnd = {
-                                        if (offsetY.value > dragThresholdPx) {
-                                            dismissWithAnimation()
-                                        } else {
-                                            coroutineScope.launch {
-                                                offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
-                                            }
-                                        }
-                                    },
-                                    onDragCancel = {
-                                        coroutineScope.launch {
-                                            offsetY.animateTo(0f, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMedium))
-                                        }
-                                    },
-                                    onVerticalDrag = { change, dragAmount ->
-                                        change.consume()
-                                        val nextOffset = (offsetY.value + dragAmount).coerceAtLeast(0f)
-                                        coroutineScope.launch {
-                                            offsetY.snapTo(nextOffset)
-                                        }
-                                    }
-                                )
-                            }
+                            .padding(top = 4.dp, bottom = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Top Center Drag Indicator Handle
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp, bottom = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 44.dp, height = 5.dp)
-                                    .background(
-                                        color = if (isDark) Color.White.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.20f),
-                                        shape = RoundedCornerShape(percent = 50)
-                                    )
-                            )
-                        }
+                                .size(width = 44.dp, height = 5.dp)
+                                .background(
+                                    color = if (isDark) Color.White.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.20f),
+                                    shape = RoundedCornerShape(percent = 50)
+                                )
+                        )
+                    }
 
                         // Header Bar: Serial No. Pill on Left | Edit, Delete, Close Icons on Right
                         Row(
@@ -549,53 +434,46 @@ fun BookingRecordDetailDialog(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                FrostedCircleActionButton(
+                                IconButton(
                                     onClick = {
-                                        dismissWithAnimation()
+                                        onDismiss()
                                         onEdit(record)
                                     },
-                                    icon = Icons.Default.Edit,
-                                    contentDescription = "Edit Record",
-                                    tint = sectionAccentColor,
-                                    isDark = isDark,
-                                    hazeState = sheetHazeState,
-                                    testTag = "edit_record_button"
-                                )
+                                    modifier = Modifier.testTag("edit_record_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Record",
+                                        tint = sectionAccentColor,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
 
-                                FrostedCircleActionButton(
+                                IconButton(
                                     onClick = { showDeleteConfirm = true },
-                                    icon = Icons.Default.Delete,
-                                    contentDescription = "Delete Record",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    isDark = isDark,
-                                    hazeState = sheetHazeState,
-                                    testTag = "delete_record_button"
-                                )
+                                    modifier = Modifier.testTag("delete_record_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete Record",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
 
-                                FrostedCircleActionButton(
-                                    onClick = { dismissWithAnimation() },
-                                    icon = Icons.Default.Close,
-                                    contentDescription = "Close View",
-                                    tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
-                                    isDark = isDark,
-                                    hazeState = sheetHazeState,
-                                    testTag = "close_detail_dialog"
-                                )
+                                IconButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.testTag("close_detail_dialog")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close View",
+                                        tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
                             }
                         }
-                    }
-
-                    // Scrollable content with consistent 12.dp vertical gap
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .nestedScroll(nestedScrollConnection)
-                            .imePadding()
-                            .verticalScroll(scrollState)
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
 
                 // 2. Farmer Header Card (Profile Avatar in Theme Color + Category + Name + Phone + Address)
                 Box(
@@ -604,8 +482,7 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp),
-                            hazeState = sheetHazeState
+                            shape = RoundedCornerShape(20.dp)
                         )
                 ) {
                     Column(
@@ -748,8 +625,7 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp),
-                            hazeState = sheetHazeState
+                            shape = RoundedCornerShape(20.dp)
                         )
                 ) {
                     Column(
@@ -832,8 +708,7 @@ fun BookingRecordDetailDialog(
                                     .glassCardBackground(
                                         isDark = isDark,
                                         accentColor = sectionAccentColor,
-                                        shape = RoundedCornerShape(12.dp),
-                                        hazeState = sheetHazeState
+                                        shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(vertical = 2.dp)
                             ) {
@@ -946,8 +821,7 @@ fun BookingRecordDetailDialog(
                         .glassCardBackground(
                             isDark = isDark,
                             accentColor = sectionAccentColor,
-                            shape = RoundedCornerShape(20.dp),
-                            hazeState = sheetHazeState
+                            shape = RoundedCornerShape(20.dp)
                         )
                 ) {
                     Column(
@@ -1010,8 +884,7 @@ fun BookingRecordDetailDialog(
                                 .glassCardBackground(
                                     isDark = isDark,
                                     accentColor = sectionAccentColor,
-                                    shape = RoundedCornerShape(12.dp),
-                                    hazeState = sheetHazeState
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                         ) {
                             Column(
@@ -1243,8 +1116,7 @@ fun BookingRecordDetailDialog(
                                             .glassCardBackground(
                                                 isDark = isDark,
                                                 accentColor = sectionAccentColor,
-                                                shape = RoundedCornerShape(12.dp),
-                                                hazeState = sheetHazeState
+                                                shape = RoundedCornerShape(12.dp)
                                             )
                                     ) {
                                         Row(
@@ -1535,8 +1407,6 @@ fun BookingRecordDetailDialog(
 
                 // Generous bottom spacer so the last button can be scrolled up clearly and comfortably
                 Spacer(modifier = Modifier.height(32.dp))
-                    }
-                }
                 }
             }
         }
@@ -1550,7 +1420,7 @@ fun BookingRecordDetailDialog(
             identifier = if (record.serialNumber.isNotBlank()) record.serialNumber else record.serviceType,
             onConfirm = {
                 showDeleteConfirm = false
-                dismissWithAnimation()
+                onDismiss()
                 onDelete(record)
             },
             onDismiss = { showDeleteConfirm = false }

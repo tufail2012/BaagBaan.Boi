@@ -190,6 +190,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import android.graphics.drawable.ColorDrawable
+import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import com.example.data.GardenPlanningEntry
 import com.example.data.VarietyLine
@@ -2951,6 +2956,14 @@ fun GardenBookingRecordDetailDialog(
             decorFitsSystemWindows = false
         )
     ) {
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            dialogWindow?.let { win ->
+                win.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+                win.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            }
+        }
+
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
