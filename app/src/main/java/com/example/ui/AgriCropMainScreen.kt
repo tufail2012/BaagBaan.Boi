@@ -47,6 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 import com.example.ui.components.attendance.AttendanceMainScreen
+import com.skydoves.cloudy.rememberSky
+import com.skydoves.cloudy.sky
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.platform.LocalContext
@@ -161,6 +163,7 @@ fun AgriCropMainScreen(
     val cropRecordsCount = filteredCropRecords.size
 
     val hazeState = remember { HazeState() }
+    val liquidGlassSky = rememberSky()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -701,6 +704,7 @@ fun AgriCropMainScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .hazeSource(state = hazeState)
+                                    .sky(liquidGlassSky)
                             ) {
                                 when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
@@ -792,6 +796,7 @@ fun AgriCropMainScreen(
                                     }
                                 },
                                 hazeState = hazeState,
+                                liquidGlassSky = liquidGlassSky,
                                 accentColor = sectionAccentColor,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)

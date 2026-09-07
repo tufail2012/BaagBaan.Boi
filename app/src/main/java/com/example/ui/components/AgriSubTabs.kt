@@ -119,6 +119,7 @@ fun PruningSubTabs(
                 spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
                 ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
             )
+            .clip(containerShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -133,7 +134,6 @@ fun PruningSubTabs(
                     )
                 } else Modifier
             )
-            .clip(containerShape)
             .background(containerBgBrush, shape = containerShape)
             .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
             .padding(4.dp)
@@ -411,6 +411,7 @@ fun RootstockSubTabs(
                 spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
                 ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
             )
+            .clip(containerShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -425,7 +426,6 @@ fun RootstockSubTabs(
                     )
                 } else Modifier
             )
-            .clip(containerShape)
             .background(containerBgBrush, shape = containerShape)
             .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
             .padding(4.dp)

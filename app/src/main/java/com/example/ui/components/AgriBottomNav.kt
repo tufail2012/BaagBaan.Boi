@@ -39,9 +39,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
@@ -64,6 +67,9 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import com.skydoves.cloudy.Sky
+import com.skydoves.cloudy.cloudy
+import com.skydoves.cloudy.liquidGlass
 
 data class AgriNavItem(
     val title: String,
@@ -85,6 +91,7 @@ fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
     hazeState: HazeState,
+    liquidGlassSky: Sky,
     modifier: Modifier = Modifier,
     accentColor: Color? = null
 ) {
@@ -131,12 +138,13 @@ fun AgriBottomNav(
                 .height(68.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Frosted Liquid Glass Background with Deep Blur & Zero Transparency
+            // Layer 1: Frosted Liquid Glass Background with Deep Blur & Optical Refraction
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .deepBlurNavBarBackground(
                         hazeState = hazeState,
+                        sky = liquidGlassSky,
                         isDark = isDark,
                         isAmoled = isAmoled,
                         accentColor = activeSectionAccent,
@@ -206,11 +214,12 @@ fun AgriBottomNav(
                 // Fluid Water-like Sliding Liquid Pill Indicator ("Water Glass" Look)
                 val animatedAccentColor = activeSectionAccent
                 val blobGradient = if (!isDark) {
-                    // Clean "water glass" gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.35) 100%)
+                    // Subtle translucent liquid glass gradient
                     Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.70f),
-                            Color.White.copy(alpha = 0.35f)
+                            Color.White.copy(alpha = 0.28f),
+                            animatedAccentColor.copy(alpha = 0.12f),
+                            Color.White.copy(alpha = 0.16f)
                         ),
                         start = Offset.Zero,
                         end = Offset.Infinite
@@ -218,9 +227,9 @@ fun AgriBottomNav(
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.28f),
-                            animatedAccentColor.copy(alpha = 0.15f),
-                            Color.White.copy(alpha = 0.12f)
+                            Color.White.copy(alpha = 0.18f),
+                            animatedAccentColor.copy(alpha = 0.10f),
+                            Color.White.copy(alpha = 0.08f)
                         ),
                         start = Offset.Zero,
                         end = Offset.Infinite
@@ -230,7 +239,7 @@ fun AgriBottomNav(
                 // Subtle water droplet expanding ripple wave
                 if (dropletRipple.value < 0.99f) {
                     val rippleProgress = dropletRipple.value
-                    val rippleAlpha = ((1f - rippleProgress) * if (!isDark) 0.32f else 0.24f).coerceIn(0f, 1f)
+                    val rippleAlpha = ((1f - rippleProgress) * if (!isDark) 0.16f else 0.12f).coerceIn(0f, 1f)
                     val extraWidth = (rippleProgress * 14).dp
                     val extraHeight = (rippleProgress * 8).dp
 
@@ -248,15 +257,15 @@ fun AgriBottomNav(
                                 width = 1.dp,
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = rippleAlpha * 0.7f),
-                                        animatedAccentColor.copy(alpha = rippleAlpha * 0.3f),
+                                        Color.White.copy(alpha = rippleAlpha * 0.5f),
+                                        animatedAccentColor.copy(alpha = rippleAlpha * 0.2f),
                                         Color.Transparent
                                     )
                                 ),
                                 shape = dropletPillShape
                             )
                             .background(
-                                color = Color.White.copy(alpha = rippleAlpha * 0.18f),
+                                color = Color.White.copy(alpha = rippleAlpha * 0.10f),
                                 shape = dropletPillShape
                             )
                     )
@@ -273,12 +282,11 @@ fun AgriBottomNav(
                             scaleY = dynamicScaleY
                         }
                         .shadow(
-                            elevation = 3.dp,
+                            elevation = 2.dp,
                             shape = dropletPillShape,
-                            spotColor = Color.Black.copy(alpha = if (isDark) 0.10f else 0.04f),
-                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.05f else 0.02f)
+                            spotColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.03f),
+                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.04f else 0.015f)
                         )
-                        .then(Modifier)
                         .clip(dropletPillShape)
                         .background(brush = blobGradient, shape = dropletPillShape)
                         .drawWithContent {
@@ -289,8 +297,8 @@ fun AgriBottomNav(
                             drawRoundRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.55f else 0.80f),
-                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
+                                        Color.White.copy(alpha = if (isDark) 0.40f else 0.60f),
+                                        Color.White.copy(alpha = if (isDark) 0.10f else 0.18f),
                                         Color.Transparent
                                     ),
                                     startY = 0f,
@@ -303,11 +311,11 @@ fun AgriBottomNav(
                             )
                         }
                         .border(
-                            width = 1.dp,
+                            width = 0.8.dp,
                             brush = Brush.linearGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = if (!isDark) 0.65f else 0.45f),
-                                    Color.White.copy(alpha = if (!isDark) 0.50f else 0.20f)
+                                    Color.White.copy(alpha = if (!isDark) 0.45f else 0.30f),
+                                    Color.White.copy(alpha = if (!isDark) 0.25f else 0.12f)
                                 ),
                                 start = Offset.Zero,
                                 end = Offset.Infinite
@@ -409,269 +417,116 @@ fun AgriBottomNav(
  *   - Clean upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5).
  *   - Soft elevation shadow: box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04).
  */
+/**
+ * Modern Frosted Liquid Glass Navigation Surface.
+ * Implements a two-stage optical pipeline:
+ * 1. Live backdrop capture via Cloudy's Sky architecture.
+ * 2. GPU-accelerated frosted backdrop blur (radius = 22) with subtle light/dark tints.
+ * 3. RuntimeShader-based liquid-glass lens refraction, chromatic dispersion, curvature, and edge lighting.
+ * 4. Subtle translucent surface tint, high-contrast rim/highlight, and soft elevation shadow.
+ * 5. Strict clipping to the exact navigation pill shape to guarantee zero rectangular backdrop spills.
+ */
 @Composable
 fun Modifier.deepBlurNavBarBackground(
     hazeState: HazeState?,
+    sky: Sky,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    accentColor: Color,
+    shape: Shape = RoundedCornerShape(percent = 50)
+): Modifier = liquidGlassNavigationSurface(
+    sky = sky,
+    isDark = isDark,
+    isAmoled = isAmoled,
+    accentColor = accentColor,
+    shape = shape
+)
+
+@Composable
+fun Modifier.liquidGlassNavigationSurface(
+    sky: Sky,
     isDark: Boolean,
     isAmoled: Boolean,
     accentColor: Color,
     shape: Shape = RoundedCornerShape(percent = 50)
 ): Modifier {
+    var lensSize by remember {
+        mutableStateOf(Size.Zero)
+    }
 
-    val glassStyle = remember(
-        isDark,
-        isAmoled,
-        accentColor
-    ) {
-        HazeStyle(
-
-            // IMPORTANT:
-            // Haze itself must provide the frosted/backdrop treatment.
-            // Do not use an opaque background here.
-            backgroundColor = Color.Transparent,
-
-            // Real frosted backdrop blur.
-            blurRadius = 28.dp,
-
-            // Very subtle glass tint.
-            tints = listOf(
-
-                HazeTint(
-                    color = when {
-                        isAmoled ->
-                            Color.Black.copy(alpha = 0.08f)
-
-                        isDark ->
-                            Color(0xFF17151D).copy(alpha = 0.10f)
-
-                        else ->
-                            Color.White.copy(alpha = 0.12f)
-                    }
-                ),
-
-                HazeTint(
-                    color = accentColor.copy(
-                        alpha = if (isDark || isAmoled) {
-                            0.045f
-                        } else {
-                            0.035f
-                        }
-                    )
-                )
-            ),
-
-            noiseFactor = 0.02f
-        )
+    var lensCenter by remember {
+        mutableStateOf(Offset.Zero)
     }
 
     return this
-
-        // Very soft floating depth.
-        .shadow(
-            elevation = 5.dp,
-            shape = shape,
-            clip = false,
-
-            spotColor = Color.Black.copy(
-                alpha = when {
-                    isAmoled -> 0.20f
-                    isDark -> 0.14f
-                    else -> 0.06f
-                }
-            ),
-
-            ambientColor = Color.Black.copy(
-                alpha = when {
-                    isAmoled -> 0.10f
-                    isDark -> 0.07f
-                    else -> 0.025f
-                }
-            )
-        )
-
-        // Clip the glass to the existing navigation shape.
-        .clip(shape)
-
-        // IMPORTANT:
-        // Haze provides the backdrop/frosted effect.
-        .then(
-            if (hazeState != null) {
-
-                Modifier.hazeEffect(
-                    state = hazeState,
-                    style = glassStyle
-                )
-
-            } else {
-                Modifier
-            }
-        )
-
-        // Very low opacity glass surface.
-        //
-        // DO NOT use 0.72f / 0.82f / 0.90f here.
-        // Those values make the navigation bar look like
-        // an opaque card instead of frosted glass.
-        .background(
-            color = when {
-
-                isAmoled ->
-                    Color.Black.copy(alpha = 0.18f)
-
-                isDark ->
-                    Color(0xFF18161E).copy(alpha = 0.20f)
-
-                else ->
-                    Color.White.copy(alpha = 0.22f)
-            },
-
-            shape = shape
-        )
-
-        // Subtle glass reflection and edge highlight.
-        .drawWithContent {
-
-            drawContent()
-
-            val width = size.width
-            val height = size.height
-
-            // Very subtle inner glass edge.
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(
-                            alpha = if (
-                                isDark || isAmoled
-                            ) {
-                                0.26f
-                            } else {
-                                0.38f
-                            }
-                        ),
-
-                        Color.White.copy(
-                            alpha = if (
-                                isDark || isAmoled
-                            ) {
-                                0.07f
-                            } else {
-                                0.10f
-                            }
-                        ),
-
-                        Color.Transparent
-                    ),
-
-                    startY = 0f,
-                    endY = height * 0.24f
-                ),
-
-                topLeft = Offset(
-                    0.75.dp.toPx(),
-                    0.75.dp.toPx()
-                ),
-
-                size = Size(
-                    width - 1.5.dp.toPx(),
-                    height - 1.5.dp.toPx()
-                ),
-
-                cornerRadius = CornerRadius(
-                    x = height / 2f,
-                    y = height / 2f
-                ),
-
-                style = Stroke(
-                    width = 0.8.dp.toPx()
-                )
+        .onSizeChanged { size ->
+            lensSize = Size(
+                size.width.toFloat(),
+                size.height.toFloat()
             )
 
-            // Extremely subtle top glass reflection.
-            val shineMargin = 28.dp.toPx()
-
-            drawRect(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-
-                        Color.White.copy(
-                            alpha = if (
-                                isDark || isAmoled
-                            ) {
-                                0.08f
-                            } else {
-                                0.15f
-                            }
-                        ),
-
-                        Color.White.copy(
-                            alpha = if (
-                                isDark || isAmoled
-                            ) {
-                                0.16f
-                            } else {
-                                0.24f
-                            }
-                        ),
-
-                        Color.White.copy(
-                            alpha = if (
-                                isDark || isAmoled
-                            ) {
-                                0.08f
-                            } else {
-                                0.15f
-                            }
-                        ),
-
-                        Color.Transparent
-                    ),
-
-                    startX = shineMargin,
-                    endX = width - shineMargin
-                ),
-
-                topLeft = Offset(
-                    shineMargin,
-                    1.dp.toPx()
-                ),
-
-                size = Size(
-                    width - shineMargin * 2f,
-                    1.dp.toPx()
-                )
+            lensCenter = Offset(
+                size.width / 2f,
+                size.height / 2f
             )
         }
-
-        // Very subtle glass border.
+        .clip(shape)
+        .cloudy(
+            sky = sky,
+            radius = 22,
+            tint = when {
+                isAmoled -> Color.Black.copy(alpha = 0.06f)
+                isDark -> Color(0xFF17151D).copy(alpha = 0.07f)
+                else -> Color.White.copy(alpha = 0.10f)
+            },
+            shape = shape
+        )
+        .liquidGlass(
+            lensCenter = lensCenter,
+            lensSize = lensSize,
+            cornerRadius = 34f,
+            refraction = 0.22f,
+            curve = 0.22f,
+            dispersion = 0.018f,
+            saturation = 1.08f,
+            contrast = 1.02f,
+            tint = Color.Transparent,
+            edge = 0.22f
+        )
+        .background(
+            color = when {
+                isAmoled -> Color.Black.copy(alpha = 0.08f)
+                isDark -> Color(0xFF16141C).copy(alpha = 0.10f)
+                else -> Color.White.copy(alpha = 0.13f)
+            },
+            shape = shape
+        )
         .border(
             width = 0.7.dp,
-
             brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(
-                        alpha = if (
-                            isDark || isAmoled
-                        ) {
-                            0.30f
-                        } else {
-                            0.42f
-                        }
-                    ),
-
-                    Color.White.copy(
-                        alpha = if (
-                            isDark || isAmoled
-                        ) {
-                            0.08f
-                        } else {
-                            0.14f
-                        }
+                colors = if (isDark || isAmoled) {
+                    listOf(
+                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.08f)
                     )
-                )
+                } else {
+                    listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = 0.12f)
+                    )
+                }
             ),
-
             shape = shape
+        )
+        .shadow(
+            elevation = 4.dp,
+            shape = shape,
+            clip = false,
+            spotColor = Color.Black.copy(
+                alpha = if (isDark || isAmoled) 0.12f else 0.04f
+            ),
+            ambientColor = Color.Black.copy(
+                alpha = if (isDark || isAmoled) 0.05f else 0.015f
+            )
         )
 }

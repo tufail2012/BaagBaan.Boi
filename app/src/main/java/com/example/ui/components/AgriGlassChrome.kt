@@ -269,6 +269,7 @@ fun Modifier.frostedLiquidGlassSurface(
                 Modifier
             }
         )
+        .clip(shape)
         .then(
             if (effectiveHazeState != null) {
                 Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
@@ -276,7 +277,6 @@ fun Modifier.frostedLiquidGlassSurface(
                 Modifier
             }
         )
-        .clip(shape)
         .background(bgBrush, shape = shape)
         .drawWithContent {
             drawContent()

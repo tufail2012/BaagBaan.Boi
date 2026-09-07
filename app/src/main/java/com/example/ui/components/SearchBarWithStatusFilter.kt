@@ -136,6 +136,7 @@ fun SearchBarWithStatusFilter(
                         spotColor = Color.Black.copy(alpha = 0.05f),
                         ambientColor = Color.Black.copy(alpha = 0.02f)
                     )
+                    .clip(capsuleShape)
                     .then(
                         if (hazeState != null) {
                             Modifier.hazeEffect(
@@ -152,7 +153,6 @@ fun SearchBarWithStatusFilter(
                             )
                         } else Modifier
                     )
-                    .clip(capsuleShape)
                     .background(searchBgBrush, shape = capsuleShape)
                     .border(BorderStroke(1.dp, searchRimBrush), shape = capsuleShape)
                     .padding(horizontal = 14.dp),
@@ -254,6 +254,7 @@ fun SearchBarWithStatusFilter(
                             spotColor = Color.Black.copy(alpha = 0.05f),
                             ambientColor = Color.Black.copy(alpha = 0.02f)
                         )
+                        .clip(filterButtonShape)
                         .then(
                             if (hazeState != null) {
                                 Modifier.hazeEffect(
@@ -270,7 +271,6 @@ fun SearchBarWithStatusFilter(
                                 )
                             } else Modifier
                         )
-                        .clip(filterButtonShape)
                         .background(filterButtonBgBrush, shape = filterButtonShape)
                         .border(
                             if (isFilterActive) {

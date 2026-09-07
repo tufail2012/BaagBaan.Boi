@@ -143,6 +143,7 @@ fun LiquidGlassSegmentedSwitcher(
                 spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
                 ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
             )
+            .clip(containerShape)
             .then(
                 Modifier.hazeEffect(
                     state = hazeState,
@@ -155,7 +156,6 @@ fun LiquidGlassSegmentedSwitcher(
                     )
                 )
             )
-            .clip(containerShape)
             .background(trackBgBrush, shape = containerShape)
             .border(BorderStroke(1.dp, trackBorderBrush), shape = containerShape)
             .padding(4.dp)

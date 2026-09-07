@@ -189,6 +189,7 @@ private fun SummaryMetricCardItem(
                 spotColor = Color.Black.copy(alpha = 0.03f),
                 ambientColor = Color.Black.copy(alpha = 0.02f)
             )
+            .clip(cardShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -203,7 +204,6 @@ private fun SummaryMetricCardItem(
                     )
                 } else Modifier
             )
-            .clip(cardShape)
             .background(cardBgBrush, shape = cardShape)
             .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag(testTag)

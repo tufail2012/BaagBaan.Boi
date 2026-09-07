@@ -76,6 +76,7 @@ fun RecordingBookHeader(
                 spotColor = Color.Black.copy(alpha = 0.05f),
                 ambientColor = Color.Black.copy(alpha = 0.02f)
             )
+            .clip(headerShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -92,7 +93,6 @@ fun RecordingBookHeader(
                     )
                 } else Modifier
             )
-            .clip(headerShape)
             .background(fillBrush, shape = headerShape)
             .border(BorderStroke(1.dp, borderBrush), shape = headerShape)
     ) {
