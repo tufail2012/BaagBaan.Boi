@@ -430,6 +430,7 @@ fun FarmerRecordsScreen(
                             shape = RoundedCornerShape(percent = 50),
                             spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                         )
+                        .clip(RoundedCornerShape(percent = 50))
                         .then(
                             if (effectiveHazeState != null) {
                                 Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
@@ -492,6 +493,7 @@ fun FarmerRecordsScreen(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
+                        .clip(CircleShape)
                         .then(
                             if (effectiveHazeState != null) {
                                 Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
@@ -562,7 +564,8 @@ fun FarmerRecordsScreen(
             onUpdateRecord = { updatedRec ->
                 selectedDetailRecord = updatedRec
                 viewModel.updateRecordSync(updatedRec)
-            }
+            },
+            hazeState = effectiveHazeState
         )
     }
 }
@@ -684,6 +687,7 @@ private fun FarmerRecordCard(
                 spotColor = Color.Black.copy(alpha = 0.05f),
                 ambientColor = Color.Black.copy(alpha = 0.02f)
             )
+            .clip(cardShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -698,7 +702,6 @@ private fun FarmerRecordCard(
                     )
                 } else Modifier
             )
-            .clip(cardShape)
             .background(cardFillBrush, shape = cardShape)
             .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag("farmer_record_card_${record.id}")

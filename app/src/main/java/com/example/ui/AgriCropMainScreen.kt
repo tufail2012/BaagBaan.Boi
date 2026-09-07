@@ -267,7 +267,9 @@ fun AgriCropMainScreen(
             onUpdateRecord = { updatedRec ->
                 viewModel.openCropRecordDetail(updatedRec)
                 viewModel.updateRecordSync(updatedRec)
-            }
+            },
+            customPaletteColor = parsedPaletteColor,
+            hazeState = hazeState
         )
     }
 
@@ -286,7 +288,9 @@ fun AgriCropMainScreen(
                 isAttendanceActive = false
                 isMessageTemplatesActive = false
                 viewModel.closeGlobalSearch()
-            }
+            },
+            paletteAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary,
+            hazeState = hazeState
         )
     }
 
@@ -591,11 +595,14 @@ fun AgriCropMainScreen(
                     }
                 }
 
-                Box(
-                    modifier = modifier
-                        .fillMaxSize()
-                        .background(rootBgBrush)
+                CompositionLocalProvider(
+                    com.example.ui.components.LocalAppGlassHazeState provides hazeState
                 ) {
+                    Box(
+                        modifier = modifier
+                            .fillMaxSize()
+                            .background(rootBgBrush)
+                    ) {
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         containerColor = Color.Transparent,
@@ -795,6 +802,7 @@ fun AgriCropMainScreen(
                             BookingConfirmationOverlay()
                         }
                     }
+                }
                 }
             }
         }

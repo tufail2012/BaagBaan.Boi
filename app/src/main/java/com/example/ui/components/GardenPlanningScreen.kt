@@ -2490,6 +2490,7 @@ private fun GardenPlanningRecordCard(
                 spotColor = Color.Black.copy(alpha = 0.05f),
                 ambientColor = Color.Black.copy(alpha = 0.02f)
             )
+            .clip(cardShape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(
@@ -2504,7 +2505,6 @@ private fun GardenPlanningRecordCard(
                     )
                 } else Modifier
             )
-            .clip(cardShape)
             .background(cardFillBrush, shape = cardShape)
             .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag("garden_record_card_${entry.id}")
@@ -2919,7 +2919,8 @@ fun GardenBookingRecordDetailDialog(
     isDark: Boolean,
     onDismiss: () -> Unit,
     onEdit: (GardenPlanningEntry) -> Unit,
-    paletteAccent: Color = MaterialTheme.colorScheme.primary
+    paletteAccent: Color = MaterialTheme.colorScheme.primary,
+    hazeState: HazeState? = LocalAppGlassHazeState.current
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -2977,9 +2978,10 @@ fun GardenBookingRecordDetailDialog(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
+            color = if (isDark) Color(0xFF121212).copy(alpha = 0.55f) else Color(0xFFF8FAFC).copy(alpha = 0.65f)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalAppGlassHazeState provides hazeState) {
+                Box(modifier = Modifier.fillMaxSize()) {
                 if (currentEntry.paymentStatus.equals("Cancelled", ignoreCase = true)) {
                     CancelledWatermark(isDark = isDark)
                 }
@@ -4196,8 +4198,9 @@ fun GardenBookingRecordDetailDialog(
                 }
             }
         )
+            }
+        }
     }
-}
 
 @Composable
 private fun DetailSectionCard(

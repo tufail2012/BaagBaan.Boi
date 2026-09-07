@@ -688,6 +688,7 @@ fun Modifier.glassCardBackground(
             internalFocusState = focusState.isFocused || focusState.hasFocus
         }
         .then(shadowModifier)
+        .clip(effectiveShape)
         .then(
             if (effectiveHazeState != null) {
                 Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
@@ -695,7 +696,6 @@ fun Modifier.glassCardBackground(
                 Modifier
             }
         )
-        .clip(effectiveShape)
         .background(brush = cardBgBrush, shape = effectiveShape)
         .drawWithContent {
             drawContent()

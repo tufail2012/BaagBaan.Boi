@@ -222,7 +222,8 @@ fun BookingRecordDetailDialog(
     onEdit: (CropRecord) -> Unit,
     onDelete: (CropRecord) -> Unit,
     onUpdateRecord: suspend (CropRecord) -> Unit,
-    customPaletteColor: Color? = null
+    customPaletteColor: Color? = null,
+    hazeState: HazeState? = LocalAppGlassHazeState.current
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -280,9 +281,10 @@ fun BookingRecordDetailDialog(
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = if (isDark) Color(0xFF121212).copy(alpha = 0.92f) else Color(0xFFF8FAFC).copy(alpha = 0.95f)
+            color = if (isDark) Color(0xFF121212).copy(alpha = 0.55f) else Color(0xFFF8FAFC).copy(alpha = 0.65f)
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalAppGlassHazeState provides hazeState) {
+                Box(modifier = Modifier.fillMaxSize()) {
                 if (record.isCancelled) {
                     CancelledWatermark(isDark = isDark)
                 } else if (record.isReceived) {
@@ -327,75 +329,16 @@ fun BookingRecordDetailDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Bubbly Glass Capsule Serial No Badge
-                                Box(
-                                    modifier = Modifier
-                                        .shadow(
-                                            elevation = 3.dp,
-                                            shape = RoundedCornerShape(percent = 50),
-                                            spotColor = sectionAccentColor.copy(alpha = if (isDark) 0.24f else 0.12f),
-                                            ambientColor = sectionAccentColor.copy(alpha = if (isDark) 0.12f else 0.06f)
-                                        )
-                                        .clip(RoundedCornerShape(percent = 50))
-                                        .background(
-                                            brush = if (isDark) {
-                                                Brush.verticalGradient(
-                                                    colorStops = arrayOf(
-                                                        0.0f to Color.White.copy(alpha = 0.25f),
-                                                        0.60f to Color.White.copy(alpha = 0.10f),
-                                                        1.0f to sectionAccentColor.copy(alpha = 0.20f)
-                                                    )
-                                                )
-                                            } else {
-                                                Brush.verticalGradient(
-                                                    colorStops = arrayOf(
-                                                        0.0f to Color.White.copy(alpha = 0.85f),
-                                                        0.60f to Color.White.copy(alpha = 0.40f),
-                                                        1.0f to sectionAccentColor.copy(alpha = 0.15f)
-                                                    )
-                                                )
-                                            },
-                                            shape = RoundedCornerShape(percent = 50)
-                                        )
-                                        .drawWithContent {
-                                            drawContent()
-                                            val w = size.width
-                                            val h = size.height
-                                            val cornerRadius = CornerRadius(h / 2f, h / 2f)
-                                            drawRoundRect(
-                                                brush = Brush.verticalGradient(
-                                                    colors = listOf(
-                                                        Color.White.copy(alpha = if (isDark) 0.80f else 0.95f),
-                                                        Color.White.copy(alpha = if (isDark) 0.30f else 0.45f),
-                                                        Color.Transparent
-                                                    ),
-                                                    startY = 0f,
-                                                    endY = h * 0.55f
-                                                ),
-                                                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
-                                                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
-                                                cornerRadius = cornerRadius,
-                                                style = Stroke(width = 1.5.dp.toPx())
-                                            )
-                                        }
-                                        .border(
-                                            width = 1.dp,
-                                            brush = Brush.verticalGradient(
-                                                colors = listOf(
-                                                    Color.White.copy(alpha = if (isDark) 0.70f else 0.85f),
-                                                    sectionAccentColor.copy(alpha = 0.40f),
-                                                    Color.White.copy(alpha = if (isDark) 0.25f else 0.50f)
-                                                )
-                                            ),
-                                            shape = RoundedCornerShape(percent = 50)
-                                        )
-                                        .padding(horizontal = 14.dp, vertical = 7.dp)
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = sectionAccentColor
                                 ) {
                                     Text(
                                         text = "Serial No. ${record.serialNumber.ifBlank { "01" }}",
-                                        color = sectionAccentColor,
+                                        color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.5.sp
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                     )
                                 }
 
@@ -1833,8 +1776,9 @@ fun BookingRecordDetailDialog(
                 }
             }
         )
+            }
+        }
     }
-}
 
 @Composable
 private fun DetailRowItem(

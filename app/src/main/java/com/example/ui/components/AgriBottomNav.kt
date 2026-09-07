@@ -278,18 +278,7 @@ fun AgriBottomNav(
                             spotColor = Color.Black.copy(alpha = if (isDark) 0.10f else 0.04f),
                             ambientColor = Color.Black.copy(alpha = if (isDark) 0.05f else 0.02f)
                         )
-                        .then(
-                            Modifier.hazeEffect(
-                                state = hazeState,
-                                style = HazeStyle(
-                                    blurRadius = 12.dp,
-                                    tints = listOf(
-                                        HazeTint(color = animatedAccentColor.copy(alpha = if (isDark) 0.06f else 0.04f))
-                                    ),
-                                    backgroundColor = Color.Transparent
-                                )
-                            )
-                        )
+                        .then(Modifier)
                         .clip(dropletPillShape)
                         .background(brush = blobGradient, shape = dropletPillShape)
                         .drawWithContent {
@@ -420,6 +409,7 @@ fun AgriBottomNav(
  *   - Clean upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5).
  *   - Soft elevation shadow: box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04).
  */
+@Composable
 fun Modifier.deepBlurNavBarBackground(
     hazeState: HazeState?,
     isDark: Boolean,
@@ -427,145 +417,261 @@ fun Modifier.deepBlurNavBarBackground(
     accentColor: Color,
     shape: Shape = RoundedCornerShape(percent = 50)
 ): Modifier {
-    val hazeStyle = HazeStyle(
-        backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.85f)
-        } else if (isDark) {
-            // Dark Mode: background: rgba(20, 20, 20, 0.75)
-            Color(0xFF141414).copy(alpha = 0.75f)
-        } else {
-            // Light Mode: background: rgba(255, 255, 255, 0.72)
-            Color.White.copy(alpha = 0.72f)
-        },
-        blurRadius = 24.dp, // backdrop-filter: blur(20px)
-        tints = listOf(
-            HazeTint(
-                color = accentColor.copy(alpha = if (isDark || isAmoled) 0.08f else 0.10f) // tinted with 10% theme color
-            )
-        ),
-        noiseFactor = 0f
-    )
 
-    // Upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5)
-    val glassRimBrush = Brush.verticalGradient(
-        colors = if (isDark || isAmoled) {
-            listOf(
-                Color.White.copy(alpha = 0.50f),
-                accentColor.copy(alpha = 0.18f),
-                Color.White.copy(alpha = 0.15f)
-            )
-        } else {
-            listOf(
-                Color.White.copy(alpha = 0.65f),
-                accentColor.copy(alpha = 0.20f),
-                Color.White.copy(alpha = 0.35f)
-            )
-        }
-    )
+    val glassStyle = remember(
+        isDark,
+        isAmoled,
+        accentColor
+    ) {
+        HazeStyle(
+
+            // IMPORTANT:
+            // Haze itself must provide the frosted/backdrop treatment.
+            // Do not use an opaque background here.
+            backgroundColor = Color.Transparent,
+
+            // Real frosted backdrop blur.
+            blurRadius = 28.dp,
+
+            // Very subtle glass tint.
+            tints = listOf(
+
+                HazeTint(
+                    color = when {
+                        isAmoled ->
+                            Color.Black.copy(alpha = 0.08f)
+
+                        isDark ->
+                            Color(0xFF17151D).copy(alpha = 0.10f)
+
+                        else ->
+                            Color.White.copy(alpha = 0.12f)
+                    }
+                ),
+
+                HazeTint(
+                    color = accentColor.copy(
+                        alpha = if (isDark || isAmoled) {
+                            0.045f
+                        } else {
+                            0.035f
+                        }
+                    )
+                )
+            ),
+
+            noiseFactor = 0.02f
+        )
+    }
 
     return this
-        // Soft elevation shadow: box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04)
+
+        // Very soft floating depth.
         .shadow(
-            elevation = 6.dp,
+            elevation = 5.dp,
             shape = shape,
-            spotColor = Color.Black.copy(alpha = if (isAmoled) 0.30f else if (isDark) 0.18f else 0.04f),
-            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.08f else 0.02f)
+            clip = false,
+
+            spotColor = Color.Black.copy(
+                alpha = when {
+                    isAmoled -> 0.20f
+                    isDark -> 0.14f
+                    else -> 0.06f
+                }
+            ),
+
+            ambientColor = Color.Black.copy(
+                alpha = when {
+                    isAmoled -> 0.10f
+                    isDark -> 0.07f
+                    else -> 0.025f
+                }
+            )
         )
+
+        // Clip the glass to the existing navigation shape.
         .clip(shape)
-        // Strengthened backdrop blur
+
+        // IMPORTANT:
+        // Haze provides the backdrop/frosted effect.
         .then(
             if (hazeState != null) {
-                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+
+                Modifier.hazeEffect(
+                    state = hazeState,
+                    style = glassStyle
+                )
+
             } else {
                 Modifier
             }
         )
-        // Increased Background Density:
-        // Light Mode: background: rgba(255, 255, 255, 0.72) (tinted with 10% theme color)
-        // Dark Mode: background: rgba(20, 20, 20, 0.75)
+
+        // Very low opacity glass surface.
+        //
+        // DO NOT use 0.72f / 0.82f / 0.90f here.
+        // Those values make the navigation bar look like
+        // an opaque card instead of frosted glass.
         .background(
-            brush = when {
-                isAmoled -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF0F0F0F).copy(alpha = 0.88f),
-                            accentColor.copy(alpha = 0.06f),
-                            Color.Black.copy(alpha = 0.85f)
-                        )
-                    )
-                }
-                isDark -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF141414).copy(alpha = 0.82f),
-                            accentColor.copy(alpha = 0.05f),
-                            Color(0xFF141414).copy(alpha = 0.82f)
-                        )
-                    )
-                }
-                else -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.76f),
-                            accentColor.copy(alpha = 0.10f),
-                            Color.White.copy(alpha = 0.72f)
-                        )
-                    )
-                }
+            color = when {
+
+                isAmoled ->
+                    Color.Black.copy(alpha = 0.18f)
+
+                isDark ->
+                    Color(0xFF18161E).copy(alpha = 0.20f)
+
+                else ->
+                    Color.White.copy(alpha = 0.22f)
             },
+
             shape = shape
         )
-        // Edge Definition:
-        // Clean upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5)
+
+        // Subtle glass reflection and edge highlight.
         .drawWithContent {
+
             drawContent()
-            val w = size.width
-            val h = size.height
 
-            // Soft noise grain overlay
-            drawRect(
-                brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.05f else 0.06f
-            )
+            val width = size.width
+            val height = size.height
 
-            // Upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5)
+            // Very subtle inner glass edge.
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.45f else 0.50f),
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.12f else 0.18f),
+                        Color.White.copy(
+                            alpha = if (
+                                isDark || isAmoled
+                            ) {
+                                0.26f
+                            } else {
+                                0.38f
+                            }
+                        ),
+
+                        Color.White.copy(
+                            alpha = if (
+                                isDark || isAmoled
+                            ) {
+                                0.07f
+                            } else {
+                                0.10f
+                            }
+                        ),
+
                         Color.Transparent
                     ),
+
                     startY = 0f,
-                    endY = 4.dp.toPx()
+                    endY = height * 0.24f
                 ),
-                topLeft = Offset(1.dp.toPx(), 0.5.dp.toPx()),
-                size = Size(w - 2.dp.toPx(), h - 1.dp.toPx()),
-                cornerRadius = CornerRadius(h / 2, h / 2),
-                style = Stroke(width = 1.dp.toPx())
+
+                topLeft = Offset(
+                    0.75.dp.toPx(),
+                    0.75.dp.toPx()
+                ),
+
+                size = Size(
+                    width - 1.5.dp.toPx(),
+                    height - 1.5.dp.toPx()
+                ),
+
+                cornerRadius = CornerRadius(
+                    x = height / 2f,
+                    y = height / 2f
+                ),
+
+                style = Stroke(
+                    width = 0.8.dp.toPx()
+                )
             )
 
-            // Top specular shine with blended reflective color sheen
-            val margin = 20.dp.toPx()
+            // Extremely subtle top glass reflection.
+            val shineMargin = 28.dp.toPx()
+
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        accentColor.copy(alpha = if (isDark || isAmoled) 0.15f else 0.20f),
-                        Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.60f),
-                        accentColor.copy(alpha = if (isDark || isAmoled) 0.15f else 0.20f),
+
+                        Color.White.copy(
+                            alpha = if (
+                                isDark || isAmoled
+                            ) {
+                                0.08f
+                            } else {
+                                0.15f
+                            }
+                        ),
+
+                        Color.White.copy(
+                            alpha = if (
+                                isDark || isAmoled
+                            ) {
+                                0.16f
+                            } else {
+                                0.24f
+                            }
+                        ),
+
+                        Color.White.copy(
+                            alpha = if (
+                                isDark || isAmoled
+                            ) {
+                                0.08f
+                            } else {
+                                0.15f
+                            }
+                        ),
+
                         Color.Transparent
                     ),
-                    startX = margin,
-                    endX = w - margin
+
+                    startX = shineMargin,
+                    endX = width - shineMargin
                 ),
-                topLeft = Offset(margin, 1.dp.toPx()),
-                size = Size(w - (margin * 2), 1.dp.toPx())
+
+                topLeft = Offset(
+                    shineMargin,
+                    1.dp.toPx()
+                ),
+
+                size = Size(
+                    width - shineMargin * 2f,
+                    1.dp.toPx()
+                )
             )
         }
+
+        // Very subtle glass border.
         .border(
-            width = 1.dp,
-            brush = glassRimBrush,
+            width = 0.7.dp,
+
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.White.copy(
+                        alpha = if (
+                            isDark || isAmoled
+                        ) {
+                            0.30f
+                        } else {
+                            0.42f
+                        }
+                    ),
+
+                    Color.White.copy(
+                        alpha = if (
+                            isDark || isAmoled
+                        ) {
+                            0.08f
+                        } else {
+                            0.14f
+                        }
+                    )
+                )
+            ),
+
             shape = shape
         )
 }

@@ -390,6 +390,7 @@ fun Modifier.frostedGlassChrome(
                 Modifier
             }
         )
+        .clip(shape)
         .then(
             if (hazeState != null) {
                 val hazeStyle = HazeStyle(
@@ -407,7 +408,6 @@ fun Modifier.frostedGlassChrome(
                 Modifier
             }
         )
-        .clip(shape)
         .background(brush = bgBrush, shape = shape)
         .drawWithContent {
             drawContent()
