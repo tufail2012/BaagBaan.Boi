@@ -481,17 +481,23 @@ fun Modifier.liquidGlassNavigationSurface(
             },
             shape = shape
         )
-        .liquidGlass(
-            lensCenter = lensCenter,
-            lensSize = lensSize,
-            cornerRadius = 34f,
-            refraction = 0.22f,
-            curve = 0.22f,
-            dispersion = 0.018f,
-            saturation = 1.08f,
-            contrast = 1.02f,
-            tint = Color.Transparent,
-            edge = 0.22f
+        .then(
+            if (lensSize.width > 0f && lensSize.height > 0f) {
+                Modifier.liquidGlass(
+                    lensCenter = lensCenter,
+                    lensSize = lensSize,
+                    cornerRadius = (lensSize.height / 2f).coerceAtLeast(0f),
+                    refraction = 0.22f,
+                    curve = 0.22f,
+                    dispersion = 0.018f,
+                    saturation = 1.08f,
+                    contrast = 1.02f,
+                    tint = Color.Transparent,
+                    edge = 0.22f
+                )
+            } else {
+                Modifier
+            }
         )
         .background(
             color = when {
