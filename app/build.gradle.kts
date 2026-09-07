@@ -107,6 +107,7 @@ dependencies {
   implementation("dev.chrisbanes.haze:haze:1.3.1")
   implementation("dev.chrisbanes.haze:haze-materials:1.3.1")
   implementation(libs.compose.cloudy)
+  implementation(libs.backdrop)
   implementation(libs.androidx.compose.material3)
   implementation(libs.androidx.compose.ui)
   implementation(libs.androidx.compose.ui.graphics)

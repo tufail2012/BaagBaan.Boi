@@ -67,9 +67,18 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
-import com.skydoves.cloudy.Sky
-import com.skydoves.cloudy.cloudy
-import com.skydoves.cloudy.liquidGlass
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.InnerShadow
+import com.kyant.backdrop.shadow.Shadow
+import androidx.compose.ui.unit.DpOffset
 
 data class AgriNavItem(
     val title: String,
@@ -90,9 +99,9 @@ data class AgriNavItem(
 fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
-    hazeState: HazeState,
-    liquidGlassSky: Sky,
+    backdrop: Backdrop,
     modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
     accentColor: Color? = null
 ) {
     val navItems = remember {
@@ -124,6 +133,9 @@ fun AgriBottomNav(
 
     val containerShape = RoundedCornerShape(percent = 50)
 
+    val tabsBackdrop = rememberLayerBackdrop()
+    val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -142,12 +154,11 @@ fun AgriBottomNav(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .deepBlurNavBarBackground(
-                        hazeState = hazeState,
-                        sky = liquidGlassSky,
+                    .layerBackdrop(tabsBackdrop)
+                    .liquidGlassNavigationSurface(
+                        backdrop = backdrop,
                         isDark = isDark,
                         isAmoled = isAmoled,
-                        accentColor = activeSectionAccent,
                         shape = containerShape
                     )
             )
@@ -281,11 +292,40 @@ fun AgriBottomNav(
                             scaleX = dynamicScaleX
                             scaleY = dynamicScaleY
                         }
-                        .shadow(
-                            elevation = 2.dp,
-                            shape = dropletPillShape,
-                            spotColor = Color.Black.copy(alpha = if (isDark) 0.08f else 0.03f),
-                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.04f else 0.015f)
+                        .drawBackdrop(
+                            backdrop = combinedBackdrop,
+                            shape = { dropletPillShape },
+                            effects = {
+                                lens(
+                                    refractionHeight = 16f.dp.toPx(),
+                                    refractionAmount = 16f.dp.toPx(),
+                                    depthEffect = true,
+                                    chromaticAberration = true
+                                )
+                            },
+                            highlight = {
+                                Highlight(
+                                    width = 1.dp,
+                                    blurRadius = 1.dp,
+                                    alpha = if (isDark) 0.50f else 0.70f
+                                )
+                            },
+                            shadow = {
+                                Shadow(
+                                    radius = 8.dp,
+                                    offset = DpOffset(0.dp, 2.dp),
+                                    color = Color.Black,
+                                    alpha = if (isDark) 0.25f else 0.08f
+                                )
+                            },
+                            innerShadow = {
+                                InnerShadow(
+                                    radius = 6.dp,
+                                    offset = DpOffset(0.dp, 2.dp),
+                                    color = Color.White,
+                                    alpha = if (isDark) 0.25f else 0.40f
+                                )
+                            }
                         )
                         .clip(dropletPillShape)
                         .background(brush = blobGradient, shape = dropletPillShape)
@@ -427,167 +467,79 @@ fun AgriBottomNav(
  * 5. Strict clipping to the exact navigation pill shape to guarantee zero rectangular backdrop spills.
  */
 @Composable
-fun BottomNavigationGlassBackdrop(
-    sky: Sky,
-    isDark: Boolean,
-    isAmoled: Boolean,
-    shape: Shape = RoundedCornerShape(percent = 50),
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(68.dp)
-                .clip(shape)
-                .cloudy(
-                    sky = sky,
-                    radius = 18,
-                    tint = when {
-                        isAmoled ->
-                            Color.Black.copy(alpha = 0.018f)
-
-                        isDark ->
-                            Color(0xFF17151D).copy(alpha = 0.025f)
-
-                        else ->
-                            Color.White.copy(alpha = 0.030f)
-                    },
-                    shape = shape
-                )
-        )
-    }
-}
-
-@Composable
 fun Modifier.deepBlurNavBarBackground(
-    hazeState: HazeState?,
-    sky: Sky,
+    backdrop: Backdrop,
     isDark: Boolean,
     isAmoled: Boolean,
-    accentColor: Color,
-    shape: Shape = RoundedCornerShape(percent = 50)
+    accentColor: Color? = null,
+    shape: Shape = RoundedCornerShape(percent = 50),
+    hazeState: HazeState? = null
 ): Modifier = liquidGlassNavigationSurface(
-    sky = sky,
+    backdrop = backdrop,
     isDark = isDark,
     isAmoled = isAmoled,
-    accentColor = accentColor,
     shape = shape
 )
 
 @Composable
 fun Modifier.liquidGlassNavigationSurface(
-    sky: Sky,
+    backdrop: Backdrop,
     isDark: Boolean,
     isAmoled: Boolean,
-    accentColor: Color,
     shape: Shape = RoundedCornerShape(percent = 50)
 ): Modifier {
-    var lensSize by remember {
-        mutableStateOf(Size.Zero)
-    }
-
-    var lensCenter by remember {
-        mutableStateOf(Offset.Zero)
-    }
-
     return this
-        .onSizeChanged { size ->
-            lensSize = Size(
-                width = size.width.toFloat(),
-                height = size.height.toFloat()
-            )
+        .drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                vibrancy()
 
-            lensCenter = Offset(
-                x = size.width / 2f,
-                y = size.height / 2f
-            )
-        }
-
-        // The shadow belongs outside the clipped glass surface.
-        .shadow(
-            elevation = 3.dp,
-            shape = shape,
-            clip = false,
-            spotColor = Color.Black.copy(
-                alpha = if (isDark || isAmoled) 0.10f else 0.035f
-            ),
-            ambientColor = Color.Black.copy(
-                alpha = if (isDark || isAmoled) 0.045f else 0.012f
-            )
-        )
-
-        // The glass surface itself must be clipped.
-        .clip(shape)
-
-        // IMPORTANT:
-        // Do NOT put a heavy Cloudy blur inside the floating glass.
-        //
-        // The separate BottomNavigationGlassBackdrop is responsible
-        // for the backdrop frost.
-        //
-        // If the existing pipeline absolutely requires a minimal
-        // Cloudy stage for the liquidGlass shader to sample correctly,
-        // keep it extremely restrained and use the minimum amount
-        // required by the actual Cloudy API.
-        //
-        // Do NOT stack another large blur here.
-
-        .then(
-            if (lensSize.width > 0f && lensSize.height > 0f) {
-                Modifier.liquidGlass(
-                    lensCenter = lensCenter,
-                    lensSize = lensSize,
-                    cornerRadius = (lensSize.height / 2f)
-                        .coerceAtLeast(1f),
-
-                    // Optical lens strength.
-                    refraction = 0.34f,
-
-                    // Curvature of the lens.
-                    curve = 0.32f,
-
-                    // Subtle chromatic edge dispersion.
-                    dispersion = 0.025f,
-
-                    // Preserve colorful content behind the glass.
-                    saturation = 1.08f,
-
-                    contrast = 1.04f,
-
-                    // Do not paint an opaque surface over the lens.
-                    tint = Color.Transparent,
-
-                    // Stronger but still controlled edge response.
-                    edge = 0.30f
+                blur(
+                    radius = 8f.dp.toPx()
                 )
-            } else {
-                Modifier
+
+                lens(
+                    refractionHeight = 24f.dp.toPx(),
+                    refractionAmount = 24f.dp.toPx()
+                )
+            },
+            highlight = {
+                Highlight(
+                    width = 1.dp,
+                    blurRadius = 1.dp,
+                    alpha = if (isDark || isAmoled) 0.40f else 0.65f
+                )
+            },
+            shadow = {
+                Shadow(
+                    radius = 16.dp,
+                    offset = DpOffset(0.dp, 4.dp),
+                    color = Color.Black,
+                    alpha = if (isDark || isAmoled) 0.30f else 0.10f
+                )
+            },
+            innerShadow = {
+                InnerShadow(
+                    radius = 8.dp,
+                    offset = DpOffset(0.dp, 2.dp),
+                    color = Color.White,
+                    alpha = if (isDark || isAmoled) 0.20f else 0.35f
+                )
             }
         )
-
-        // Thin optical rim.
-        //
-        // This is NOT the glass background.
-        // It only defines the lens boundary.
         .border(
             width = 0.8.dp,
             brush = Brush.verticalGradient(
                 colors = if (isDark || isAmoled) {
                     listOf(
-                        Color.White.copy(alpha = 0.36f),
-                        Color.White.copy(alpha = 0.10f)
+                        Color.White.copy(alpha = 0.32f),
+                        Color.White.copy(alpha = 0.08f)
                     )
                 } else {
                     listOf(
-                        Color.White.copy(alpha = 0.48f),
-                        Color.White.copy(alpha = 0.12f)
+                        Color.White.copy(alpha = 0.46f),
+                        Color.White.copy(alpha = 0.10f)
                     )
                 }
             ),

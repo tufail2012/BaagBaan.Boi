@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
-import com.example.ui.components.BottomNavigationGlassBackdrop
 import com.example.ui.components.AgriHeader
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
@@ -48,8 +47,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 import com.example.ui.components.attendance.AttendanceMainScreen
-import com.skydoves.cloudy.rememberSky
-import com.skydoves.cloudy.sky
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.platform.LocalContext
@@ -164,7 +163,7 @@ fun AgriCropMainScreen(
     val cropRecordsCount = filteredCropRecords.size
 
     val hazeState = remember { HazeState() }
-    val liquidGlassSky = rememberSky()
+    val navigationBackdrop = rememberLayerBackdrop()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -705,7 +704,7 @@ fun AgriCropMainScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .hazeSource(state = hazeState)
-                                    .sky(liquidGlassSky)
+                                    .layerBackdrop(navigationBackdrop)
                             ) {
                                 when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
@@ -778,17 +777,6 @@ fun AgriCropMainScreen(
                             }
                         }
 
-                            // Separate Bottom Backdrop / Frost Region
-                            BottomNavigationGlassBackdrop(
-                                sky = liquidGlassSky,
-                                isDark = isDark,
-                                isAmoled = isAmoled,
-                                shape = RoundedCornerShape(percent = 50),
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .zIndex(9f)
-                            )
-
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
                                 selectedCategory = selectedService,
@@ -807,8 +795,8 @@ fun AgriCropMainScreen(
                                         }
                                     }
                                 },
+                                backdrop = navigationBackdrop,
                                 hazeState = hazeState,
-                                liquidGlassSky = liquidGlassSky,
                                 accentColor = sectionAccentColor,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
