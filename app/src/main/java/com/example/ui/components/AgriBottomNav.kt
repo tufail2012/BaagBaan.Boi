@@ -327,6 +327,41 @@ fun AgriBottomNav(
                                 )
                             }
                         )
+                        .clip(dropletPillShape)
+                        .background(brush = blobGradient, shape = dropletPillShape)
+                        .drawWithContent {
+                            drawContent()
+                            val w = size.width
+                            val h = size.height
+                            // Inset top specular highlight reflection (water meniscus reflection)
+                            drawRoundRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = if (isDark) 0.40f else 0.60f),
+                                        Color.White.copy(alpha = if (isDark) 0.10f else 0.18f),
+                                        Color.Transparent
+                                    ),
+                                    startY = 0f,
+                                    endY = h * 0.5f
+                                ),
+                                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                                cornerRadius = CornerRadius(h / 2, h / 2),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+                        }
+                        .border(
+                            width = 0.8.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (!isDark) 0.45f else 0.30f),
+                                    Color.White.copy(alpha = if (!isDark) 0.25f else 0.12f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset.Infinite
+                            ),
+                            shape = dropletPillShape
+                        )
                 )
 
                 // Navigation Tab Icons Row
@@ -461,27 +496,29 @@ fun Modifier.liquidGlassNavigationSurface(
                 vibrancy()
 
                 blur(
-                    radius = 8f.dp.toPx()
+                    radius = 8.dp.toPx()
                 )
 
                 lens(
                     refractionHeight = 24f.dp.toPx(),
-                    refractionAmount = 24f.dp.toPx()
+                    refractionAmount = 24f.dp.toPx(),
+                    depthEffect = true,
+                    chromaticAberration = true
                 )
             },
             highlight = {
                 Highlight(
-                    width = 1.dp,
-                    blurRadius = 1.dp,
-                    alpha = if (isDark || isAmoled) 0.40f else 0.65f
+                    width = 1.2.dp,
+                    blurRadius = 1.5.dp,
+                    alpha = if (isDark || isAmoled) 0.55f else 0.75f
                 )
             },
             shadow = {
                 Shadow(
-                    radius = 16.dp,
-                    offset = DpOffset(0.dp, 4.dp),
+                    radius = 10.dp,
+                    offset = DpOffset(0.dp, 3.dp),
                     color = Color.Black,
-                    alpha = if (isDark || isAmoled) 0.30f else 0.10f
+                    alpha = if (isDark || isAmoled) 0.24f else 0.07f
                 )
             },
             innerShadow = {
@@ -489,7 +526,7 @@ fun Modifier.liquidGlassNavigationSurface(
                     radius = 8.dp,
                     offset = DpOffset(0.dp, 2.dp),
                     color = Color.White,
-                    alpha = if (isDark || isAmoled) 0.20f else 0.35f
+                    alpha = if (isDark || isAmoled) 0.20f else 0.34f
                 )
             }
         )
