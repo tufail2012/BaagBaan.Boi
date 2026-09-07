@@ -427,6 +427,45 @@ fun AgriBottomNav(
  * 5. Strict clipping to the exact navigation pill shape to guarantee zero rectangular backdrop spills.
  */
 @Composable
+fun BottomNavigationGlassBackdrop(
+    sky: Sky,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    shape: Shape = RoundedCornerShape(percent = 50),
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .clip(shape)
+                .cloudy(
+                    sky = sky,
+                    radius = 18,
+                    tint = when {
+                        isAmoled ->
+                            Color.Black.copy(alpha = 0.018f)
+
+                        isDark ->
+                            Color(0xFF17151D).copy(alpha = 0.025f)
+
+                        else ->
+                            Color.White.copy(alpha = 0.030f)
+                    },
+                    shape = shape
+                )
+        )
+    }
+}
+
+@Composable
 fun Modifier.deepBlurNavBarBackground(
     hazeState: HazeState?,
     sky: Sky,
@@ -470,6 +509,8 @@ fun Modifier.liquidGlassNavigationSurface(
                 y = size.height / 2f
             )
         }
+
+        // The shadow belongs outside the clipped glass surface.
         .shadow(
             elevation = 3.dp,
             shape = shape,
@@ -481,22 +522,23 @@ fun Modifier.liquidGlassNavigationSurface(
                 alpha = if (isDark || isAmoled) 0.045f else 0.012f
             )
         )
+
+        // The glass surface itself must be clipped.
         .clip(shape)
-        .cloudy(
-            sky = sky,
-            radius = 20,
-            tint = when {
-                isAmoled ->
-                    Color.Black.copy(alpha = 0.025f)
 
-                isDark ->
-                    Color(0xFF17151D).copy(alpha = 0.035f)
+        // IMPORTANT:
+        // Do NOT put a heavy Cloudy blur inside the floating glass.
+        //
+        // The separate BottomNavigationGlassBackdrop is responsible
+        // for the backdrop frost.
+        //
+        // If the existing pipeline absolutely requires a minimal
+        // Cloudy stage for the liquidGlass shader to sample correctly,
+        // keep it extremely restrained and use the minimum amount
+        // required by the actual Cloudy API.
+        //
+        // Do NOT stack another large blur here.
 
-                else ->
-                    Color.White.copy(alpha = 0.045f)
-            },
-            shape = shape
-        )
         .then(
             if (lensSize.width > 0f && lensSize.height > 0f) {
                 Modifier.liquidGlass(
@@ -504,30 +546,48 @@ fun Modifier.liquidGlassNavigationSurface(
                     lensSize = lensSize,
                     cornerRadius = (lensSize.height / 2f)
                         .coerceAtLeast(1f),
-                    refraction = 0.30f,
-                    curve = 0.28f,
-                    dispersion = 0.020f,
-                    saturation = 1.10f,
-                    contrast = 1.03f,
+
+                    // Optical lens strength.
+                    refraction = 0.34f,
+
+                    // Curvature of the lens.
+                    curve = 0.32f,
+
+                    // Subtle chromatic edge dispersion.
+                    dispersion = 0.025f,
+
+                    // Preserve colorful content behind the glass.
+                    saturation = 1.08f,
+
+                    contrast = 1.04f,
+
+                    // Do not paint an opaque surface over the lens.
                     tint = Color.Transparent,
-                    edge = 0.24f
+
+                    // Stronger but still controlled edge response.
+                    edge = 0.30f
                 )
             } else {
                 Modifier
             }
         )
+
+        // Thin optical rim.
+        //
+        // This is NOT the glass background.
+        // It only defines the lens boundary.
         .border(
-            width = 0.7.dp,
+            width = 0.8.dp,
             brush = Brush.verticalGradient(
                 colors = if (isDark || isAmoled) {
                     listOf(
-                        Color.White.copy(alpha = 0.30f),
-                        Color.White.copy(alpha = 0.08f)
+                        Color.White.copy(alpha = 0.36f),
+                        Color.White.copy(alpha = 0.10f)
                     )
                 } else {
                     listOf(
-                        Color.White.copy(alpha = 0.42f),
-                        Color.White.copy(alpha = 0.10f)
+                        Color.White.copy(alpha = 0.48f),
+                        Color.White.copy(alpha = 0.12f)
                     )
                 }
             ),

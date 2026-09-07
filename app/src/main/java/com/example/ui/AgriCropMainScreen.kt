@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
+import com.example.ui.components.BottomNavigationGlassBackdrop
 import com.example.ui.components.AgriHeader
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
@@ -777,7 +778,18 @@ fun AgriCropMainScreen(
                             }
                         }
 
-                            // Floating Bottom Navigation Bar with Backdrop Blur overlaid inside hazeSource
+                            // Separate Bottom Backdrop / Frost Region
+                            BottomNavigationGlassBackdrop(
+                                sky = liquidGlassSky,
+                                isDark = isDark,
+                                isAmoled = isAmoled,
+                                shape = RoundedCornerShape(percent = 50),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .zIndex(9f)
+                            )
+
+                            // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
                                 selectedCategory = selectedService,
                                 onCategorySelected = { category ->
