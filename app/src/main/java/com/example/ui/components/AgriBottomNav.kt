@@ -461,23 +461,39 @@ fun Modifier.liquidGlassNavigationSurface(
     return this
         .onSizeChanged { size ->
             lensSize = Size(
-                size.width.toFloat(),
-                size.height.toFloat()
+                width = size.width.toFloat(),
+                height = size.height.toFloat()
             )
 
             lensCenter = Offset(
-                size.width / 2f,
-                size.height / 2f
+                x = size.width / 2f,
+                y = size.height / 2f
             )
         }
+        .shadow(
+            elevation = 3.dp,
+            shape = shape,
+            clip = false,
+            spotColor = Color.Black.copy(
+                alpha = if (isDark || isAmoled) 0.10f else 0.035f
+            ),
+            ambientColor = Color.Black.copy(
+                alpha = if (isDark || isAmoled) 0.045f else 0.012f
+            )
+        )
         .clip(shape)
         .cloudy(
             sky = sky,
-            radius = 22,
+            radius = 20,
             tint = when {
-                isAmoled -> Color.Black.copy(alpha = 0.06f)
-                isDark -> Color(0xFF17151D).copy(alpha = 0.07f)
-                else -> Color.White.copy(alpha = 0.10f)
+                isAmoled ->
+                    Color.Black.copy(alpha = 0.025f)
+
+                isDark ->
+                    Color(0xFF17151D).copy(alpha = 0.035f)
+
+                else ->
+                    Color.White.copy(alpha = 0.045f)
             },
             shape = shape
         )
@@ -486,26 +502,19 @@ fun Modifier.liquidGlassNavigationSurface(
                 Modifier.liquidGlass(
                     lensCenter = lensCenter,
                     lensSize = lensSize,
-                    cornerRadius = (lensSize.height / 2f).coerceAtLeast(0f),
-                    refraction = 0.22f,
-                    curve = 0.22f,
-                    dispersion = 0.018f,
-                    saturation = 1.08f,
-                    contrast = 1.02f,
+                    cornerRadius = (lensSize.height / 2f)
+                        .coerceAtLeast(1f),
+                    refraction = 0.30f,
+                    curve = 0.28f,
+                    dispersion = 0.020f,
+                    saturation = 1.10f,
+                    contrast = 1.03f,
                     tint = Color.Transparent,
-                    edge = 0.22f
+                    edge = 0.24f
                 )
             } else {
                 Modifier
             }
-        )
-        .background(
-            color = when {
-                isAmoled -> Color.Black.copy(alpha = 0.08f)
-                isDark -> Color(0xFF16141C).copy(alpha = 0.10f)
-                else -> Color.White.copy(alpha = 0.13f)
-            },
-            shape = shape
         )
         .border(
             width = 0.7.dp,
@@ -517,22 +526,11 @@ fun Modifier.liquidGlassNavigationSurface(
                     )
                 } else {
                     listOf(
-                        Color.White.copy(alpha = 0.45f),
-                        Color.White.copy(alpha = 0.12f)
+                        Color.White.copy(alpha = 0.42f),
+                        Color.White.copy(alpha = 0.10f)
                     )
                 }
             ),
             shape = shape
-        )
-        .shadow(
-            elevation = 4.dp,
-            shape = shape,
-            clip = false,
-            spotColor = Color.Black.copy(
-                alpha = if (isDark || isAmoled) 0.12f else 0.04f
-            ),
-            ambientColor = Color.Black.copy(
-                alpha = if (isDark || isAmoled) 0.05f else 0.015f
-            )
         )
 }
