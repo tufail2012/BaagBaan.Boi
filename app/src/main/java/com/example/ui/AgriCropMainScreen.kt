@@ -32,6 +32,12 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
+import androidx.compose.foundation.layout.height
+import androidx.compose.animation.core.EaseInCubic
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
@@ -47,8 +53,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 import com.example.ui.components.attendance.AttendanceMainScreen
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.platform.LocalContext
@@ -163,7 +167,6 @@ fun AgriCropMainScreen(
     val cropRecordsCount = filteredCropRecords.size
 
     val hazeState = remember { HazeState() }
-    val navigationBackdrop = rememberLayerBackdrop()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -704,7 +707,6 @@ fun AgriCropMainScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .hazeSource(state = hazeState)
-                                    .layerBackdrop(navigationBackdrop)
                             ) {
                                 when {
                                 selectedService.equals("Bookings", ignoreCase = true) -> {
@@ -777,6 +779,25 @@ fun AgriCropMainScreen(
                             }
                         }
 
+                            // Shared blur floor under the bottom navigation bar (BitChord BottomFadeBlur style)
+                            val pageBackgroundColor = MaterialTheme.colorScheme.background
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(116.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .hazeEffect(
+                                        state = hazeState,
+                                        style = HazeMaterials.ultraThin(pageBackgroundColor)
+                                    ) {
+                                        progressive = HazeProgressive.verticalGradient(
+                                            easing = EaseInCubic,
+                                            startIntensity = 0f,
+                                            endIntensity = 0.75f
+                                        )
+                                    }
+                            )
+
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
                                 selectedCategory = selectedService,
@@ -795,7 +816,6 @@ fun AgriCropMainScreen(
                                         }
                                     }
                                 },
-                                backdrop = navigationBackdrop,
                                 hazeState = hazeState,
                                 accentColor = sectionAccentColor,
                                 modifier = Modifier

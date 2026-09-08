@@ -37,30 +37,19 @@ import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,94 +57,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.InnerShadow
-import com.kyant.backdrop.shadow.Shadow
-import androidx.compose.ui.unit.DpOffset
-
-@Stable
-class InteractiveHighlight(
-    private val animationScope: CoroutineScope,
-    private val position: (Size, Offset) -> Offset
-) {
-    var pressProgress by mutableStateOf(0f)
-        private set
-
-    var pressPosition by mutableStateOf(Offset.Unspecified)
-        private set
-
-    private val animatable = Animatable(0f)
-
-    private fun updateProgress(value: Float) {
-        pressProgress = value
-    }
-
-    private fun startPress(offset: Offset) {
-        pressPosition = offset
-        animationScope.launch {
-            animatable.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = 1f,
-                    stiffness = 400f
-                )
-            ) {
-                updateProgress(value)
-            }
-        }
-    }
-
-    private fun stopPress() {
-        animationScope.launch {
-            animatable.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = 1f,
-                    stiffness = 400f
-                )
-            ) {
-                updateProgress(value)
-            }
-        }
-    }
-
-    val modifier = Modifier.pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) {
-                val down = awaitFirstDown(requireUnconsumed = false)
-
-                pressPosition = position(
-                    Size.Zero,
-                    down.position
-                )
-
-                startPress(down.position)
-
-                waitForUpOrCancellation()
-
-                stopPress()
-            }
-        }
-    }
-
-    val gestureModifier = modifier
-}
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 data class AgriNavItem(
     val title: String,
@@ -167,18 +73,18 @@ data class AgriNavItem(
 /**
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
  * Features:
- * - Real backdrop blur of the content behind via Haze.
+ * - Real backdrop blur of the content behind via HazeMaterials.regular.
  * - Sliding 3D Bubble / Droplet indicator with spring physics and responsive horizontal wobble/shake feedback.
- * - Clean, semi-transparent active palette tint with raised 3D specular highlight and drop shadow.
+ * - Clean, semi-transparent active palette tint with raised 3D specular highlight.
  * - High-contrast unselected and selected navigation icons with haptic feedback.
  */
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AgriBottomNav(
     selectedCategory: String,
     onCategorySelected: (String) -> Unit,
-    backdrop: Backdrop,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = null,
     accentColor: Color? = null
 ) {
     val navItems = remember {
@@ -193,11 +99,9 @@ fun AgriBottomNav(
     }
 
     val haptic = LocalHapticFeedback.current
-    val animationScope = rememberCoroutineScope()
 
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
-    val surfaceColor = MaterialTheme.colorScheme.surface
 
     val selectedIndex = remember(selectedCategory) {
         val idx = navItems.indexOfFirst { item ->
@@ -208,24 +112,10 @@ fun AgriBottomNav(
         if (idx >= 0) idx else 0
     }
 
-    val interactiveHighlight = remember(animationScope, selectedIndex) {
-        InteractiveHighlight(
-            animationScope = animationScope,
-            position = { size, offset ->
-                Offset(
-                    x = (selectedIndex + 0.5f) * (size.width / navItems.size),
-                    y = size.height / 2f
-                )
-            }
-        )
-    }
-
     val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
 
     val containerShape = RoundedCornerShape(percent = 50)
-
-    val tabsBackdrop = rememberLayerBackdrop()
-    val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
+    val container = MaterialTheme.colorScheme.surface
 
     Box(
         modifier = modifier
@@ -234,27 +124,18 @@ fun AgriBottomNav(
             .padding(horizontal = 14.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        // Floating pill container box (Height: 68.dp for comfortable breathing room)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp),
+                .height(68.dp)
+                .clip(containerShape)
+                .hazeEffect(
+                    state = hazeState,
+                    style = HazeMaterials.regular(container),
+                )
+                .border(0.5.dp, Color.White.copy(alpha = if (isDark) 0.12f else 0.20f), containerShape),
             contentAlignment = Alignment.Center
         ) {
-            // Layer 1: Frosted Liquid Glass Background with Deep Blur & Optical Refraction
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .liquidGlassNavigationSurface(
-                        backdrop = backdrop,
-                        isDark = isDark,
-                        isAmoled = isAmoled,
-                        shape = containerShape,
-                        interactiveHighlight = interactiveHighlight
-                    )
-            )
-
-            // Layer 2: Interactive Tabs with Fluid Liquid Indicator
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
@@ -263,7 +144,6 @@ fun AgriBottomNav(
                 val totalWidth = maxWidth
                 val itemCount = navItems.size
                 val slotWidth = totalWidth / itemCount
-                val isLight = !isDark && !isAmoled
                 val pillHeight = 48.dp
                 val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
 
@@ -373,35 +253,6 @@ fun AgriBottomNav(
                     )
                 }
 
-                Row(
-                    modifier = Modifier
-                        .clearAndSetSemantics {}
-                        .alpha(0f)
-                        .layerBackdrop(tabsBackdrop)
-                        .height(56.dp)
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    navItems.forEachIndexed { index, item ->
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = null,
-                            tint = if (index == selectedIndex) {
-                                Color.Transparent
-                            } else {
-                                if (isDark || isAmoled) {
-                                    Color(0xFF94A3B8)
-                                } else {
-                                    Color(0xFF64748B)
-                                }
-                            },
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
                 Box(
                     modifier = Modifier
                         .offset(x = animatedOffsetX)
@@ -412,68 +263,9 @@ fun AgriBottomNav(
                             scaleX = dynamicScaleX
                             scaleY = dynamicScaleY
                         }
-                        .drawBackdrop(
-                            backdrop = combinedBackdrop,
-                            shape = { dropletPillShape },
-                            effects = {
-                                val progress = interactiveHighlight.pressProgress
-
-                                lens(
-                                    refractionHeight = 10f.dp.toPx() * progress,
-                                    refractionAmount = 14f.dp.toPx() * progress,
-                                    depthEffect = true,
-                                    chromaticAberration = true
-                                )
-                            },
-                            highlight = {
-                                val progress = interactiveHighlight.pressProgress
-
-                                Highlight(
-                                    width = 1.dp,
-                                    blurRadius = 1.dp,
-                                    alpha = progress
-                                )
-                            },
-                            shadow = {
-                                val progress = interactiveHighlight.pressProgress
-
-                                Shadow(
-                                    radius = 8.dp,
-                                    offset = DpOffset(0.dp, 2.dp),
-                                    color = Color.Black,
-                                    alpha = 0.25f * progress
-                                )
-                            },
-                            innerShadow = {
-                                val progress = interactiveHighlight.pressProgress
-
-                                InnerShadow(
-                                    radius = 8.dp * progress,
-                                    offset = DpOffset(0.dp, 2.dp),
-                                    color = Color.White,
-                                    alpha = progress
-                                )
-                            },
-                            onDrawSurface = {
-                                val progress = interactiveHighlight.pressProgress
-
-                                if (!isDark && !isAmoled) {
-                                    drawRect(
-                                        Color.Black.copy(alpha = 0.10f),
-                                        alpha = 1f - progress
-                                    )
-                                } else {
-                                    drawRect(
-                                        Color.White.copy(alpha = 0.10f),
-                                        alpha = 1f - progress
-                                    )
-                                }
-
-                                drawRect(
-                                    Color.Black.copy(alpha = 0.03f * progress)
-                                )
-                            }
-                        )
+                        // no independent backdrop sampling here, it sits on top of
+                        // the container's own hazeEffect above, same as BitChord's
+                        // selected-tab highlight box
                         .clip(dropletPillShape)
                         .background(brush = blobGradient, shape = dropletPillShape)
                         .drawWithContent {
@@ -592,140 +384,4 @@ fun AgriBottomNav(
             }
         }
     }
-}
-
-/**
- * Frosted Glass Navigation Bar styling:
- * - Background Density:
- *   - Light Mode: rgba(255, 255, 255, 0.72) (tinted with 10% theme color).
- *   - Dark Mode: rgba(20, 20, 20, 0.75).
- * - Blur: backdrop-filter: blur(20px) saturate(180%).
- * - Edge Definition:
- *   - Clean upper highlight border: border-top: 1px solid rgba(255, 255, 255, 0.5).
- *   - Soft elevation shadow: box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04).
- */
-/**
- * Modern Frosted Liquid Glass Navigation Surface.
- * Implements a two-stage optical pipeline:
- * 1. Live backdrop capture via Cloudy's Sky architecture.
- * 2. GPU-accelerated frosted backdrop blur (radius = 22) with subtle light/dark tints.
- * 3. RuntimeShader-based liquid-glass lens refraction, chromatic dispersion, curvature, and edge lighting.
- * 4. Subtle translucent surface tint, high-contrast rim/highlight, and soft elevation shadow.
- * 5. Strict clipping to the exact navigation pill shape to guarantee zero rectangular backdrop spills.
- */
-@Composable
-fun Modifier.deepBlurNavBarBackground(
-    backdrop: Backdrop,
-    isDark: Boolean,
-    isAmoled: Boolean,
-    accentColor: Color? = null,
-    shape: Shape = RoundedCornerShape(percent = 50),
-    hazeState: HazeState? = null
-): Modifier = liquidGlassNavigationSurface(
-    backdrop = backdrop,
-    isDark = isDark,
-    isAmoled = isAmoled,
-    shape = shape
-)
-
-@Composable
-fun Modifier.liquidGlassNavigationSurface(
-    backdrop: Backdrop,
-    isDark: Boolean,
-    isAmoled: Boolean,
-    shape: Shape = RoundedCornerShape(percent = 50),
-    interactiveHighlight: InteractiveHighlight? = null
-): Modifier {
-    val base = this
-        .drawBackdrop(
-            backdrop = backdrop,
-            shape = { shape },
-            effects = {
-                vibrancy()
-                blur(
-                    radius = 8.dp.toPx()
-                )
-                lens(
-                    refractionHeight = 24f.dp.toPx(),
-                    refractionAmount = 24f.dp.toPx()
-                )
-            },
-            onDrawSurface = {
-                drawRect(
-                    color = when {
-                        isAmoled ->
-                            Color.Black.copy(alpha = 0.18f)
-
-                        isDark ->
-                            Color(0xFF17151D).copy(alpha = 0.18f)
-
-                        else ->
-                            Color.White.copy(alpha = 0.40f)
-                    }
-                )
-            },
-            highlight = {
-                val progress = interactiveHighlight?.pressProgress ?: 0f
-
-                Highlight(
-                    width = 1.dp,
-                    blurRadius = 1.dp,
-                    alpha = if (isDark || isAmoled) {
-                        0.55f + (0.25f * progress)
-                    } else {
-                        0.70f + (0.20f * progress)
-                    }
-                )
-            },
-            shadow = {
-                val progress = interactiveHighlight?.pressProgress ?: 0f
-
-                Shadow(
-                    radius = 8.dp,
-                    offset = DpOffset(0.dp, 2.dp),
-                    color = Color.Black,
-                    alpha = if (isDark || isAmoled) {
-                        0.20f + (0.10f * progress)
-                    } else {
-                        0.06f + (0.04f * progress)
-                    }
-                )
-            },
-            innerShadow = {
-                val progress = interactiveHighlight?.pressProgress ?: 0f
-
-                InnerShadow(
-                    radius = 6.dp,
-                    offset = DpOffset(0.dp, 2.dp),
-                    color = Color.White,
-                    alpha = if (isDark || isAmoled) {
-                        0.18f + (0.12f * progress)
-                    } else {
-                        0.30f + (0.12f * progress)
-                    }
-                )
-            }
-        )
-    val withHighlight = if (interactiveHighlight != null) {
-        base.then(interactiveHighlight.modifier)
-    } else {
-        base
-    }
-    return withHighlight.border(
-            width = 0.8.dp,
-            brush = Brush.verticalGradient(
-                colors = if (isDark || isAmoled) {
-                    listOf(
-                        Color.White.copy(alpha = 0.32f),
-                        Color.White.copy(alpha = 0.08f)
-                    )
-                } else {
-                    listOf(
-                        Color.White.copy(alpha = 0.46f),
-                        Color.White.copy(alpha = 0.10f)
-                    )
-                }
-            ),
-            shape = shape
-        )
 }
