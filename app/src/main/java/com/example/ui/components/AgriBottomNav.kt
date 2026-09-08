@@ -37,15 +37,22 @@ import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
@@ -61,6 +68,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
@@ -79,6 +88,35 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.unit.DpOffset
+
+@Stable
+class InteractiveHighlight(
+    val animationScope: CoroutineScope
+) {
+    var pressProgress by mutableStateOf(0f)
+        private set
+
+    private val animatable = Animatable(0f)
+
+    val modifier = Modifier.pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                awaitFirstDown(requireUnconsumed = false)
+                animationScope.launch {
+                    animatable.animateTo(1f, spring(dampingRatio = 1f, stiffness = 400f)) {
+                        pressProgress = value
+                    }
+                }
+                waitForUpOrCancellation()
+                animationScope.launch {
+                    animatable.animateTo(0f, spring(dampingRatio = 1f, stiffness = 400f)) {
+                        pressProgress = value
+                    }
+                }
+            }
+        }
+    }
+}
 
 data class AgriNavItem(
     val title: String,
@@ -116,6 +154,13 @@ fun AgriBottomNav(
     }
 
     val haptic = LocalHapticFeedback.current
+    val animationScope = rememberCoroutineScope()
+
+    val interactiveHighlight = remember(animationScope) {
+        InteractiveHighlight(
+            animationScope = animationScope
+        )
+    }
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -154,12 +199,12 @@ fun AgriBottomNav(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .layerBackdrop(tabsBackdrop)
                     .liquidGlassNavigationSurface(
                         backdrop = backdrop,
                         isDark = isDark,
                         isAmoled = isAmoled,
-                        shape = containerShape
+                        shape = containerShape,
+                        interactiveHighlight = interactiveHighlight
                     )
             )
 
@@ -280,6 +325,54 @@ fun AgriBottomNav(
                                 shape = dropletPillShape
                             )
                     )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .align(Alignment.Center)
+                        .clearAndSetSemantics {}
+                        .alpha(0f)
+                        .layerBackdrop(tabsBackdrop)
+                        .drawBackdrop(
+                            backdrop = backdrop,
+                            shape = { dropletPillShape },
+                            effects = {
+                                vibrancy()
+                                blur(
+                                    radius = 8.dp.toPx()
+                                )
+                                lens(
+                                    refractionHeight = 24f.dp.toPx(),
+                                    refractionAmount = 24f.dp.toPx()
+                                )
+                            },
+                            onDrawSurface = {
+                                drawRect(
+                                    color = when {
+                                        isAmoled ->
+                                            Color.Black.copy(alpha = 0.18f)
+
+                                        isDark ->
+                                            Color(0xFF17151D).copy(alpha = 0.18f)
+
+                                        else ->
+                                            Color.White.copy(alpha = 0.40f)
+                                    }
+                                )
+                            }
+                        ),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    navItems.forEach { item ->
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = null,
+                            tint = Color.Transparent
+                        )
+                    }
                 }
 
                 Box(
@@ -486,51 +579,97 @@ fun Modifier.liquidGlassNavigationSurface(
     backdrop: Backdrop,
     isDark: Boolean,
     isAmoled: Boolean,
-    shape: Shape = RoundedCornerShape(percent = 50)
+    shape: Shape = RoundedCornerShape(percent = 50),
+    interactiveHighlight: InteractiveHighlight? = null
 ): Modifier {
-    return this
+    val base = this
         .drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             effects = {
                 vibrancy()
-
                 blur(
                     radius = 8.dp.toPx()
                 )
-
                 lens(
                     refractionHeight = 24f.dp.toPx(),
-                    refractionAmount = 24f.dp.toPx(),
-                    depthEffect = true,
-                    chromaticAberration = true
+                    refractionAmount = 24f.dp.toPx()
+                )
+            },
+            layerBlock = {
+                val progress = interactiveHighlight?.pressProgress ?: 0f
+
+                val scale = lerp(
+                    1f,
+                    1f + 16f.dp.toPx() / size.width,
+                    progress
+                )
+
+                scaleX = scale
+                scaleY = scale
+            },
+            onDrawSurface = {
+                drawRect(
+                    color = when {
+                        isAmoled ->
+                            Color.Black.copy(alpha = 0.18f)
+
+                        isDark ->
+                            Color(0xFF17151D).copy(alpha = 0.18f)
+
+                        else ->
+                            Color.White.copy(alpha = 0.40f)
+                    }
                 )
             },
             highlight = {
+                val progress = interactiveHighlight?.pressProgress ?: 0f
+
                 Highlight(
-                    width = 1.2.dp,
-                    blurRadius = 1.5.dp,
-                    alpha = if (isDark || isAmoled) 0.55f else 0.75f
+                    width = 1.dp,
+                    blurRadius = 1.dp,
+                    alpha = if (isDark || isAmoled) {
+                        0.55f + (0.25f * progress)
+                    } else {
+                        0.70f + (0.20f * progress)
+                    }
                 )
             },
             shadow = {
+                val progress = interactiveHighlight?.pressProgress ?: 0f
+
                 Shadow(
-                    radius = 10.dp,
-                    offset = DpOffset(0.dp, 3.dp),
+                    radius = 8.dp,
+                    offset = DpOffset(0.dp, 2.dp),
                     color = Color.Black,
-                    alpha = if (isDark || isAmoled) 0.24f else 0.07f
+                    alpha = if (isDark || isAmoled) {
+                        0.20f + (0.10f * progress)
+                    } else {
+                        0.06f + (0.04f * progress)
+                    }
                 )
             },
             innerShadow = {
+                val progress = interactiveHighlight?.pressProgress ?: 0f
+
                 InnerShadow(
-                    radius = 8.dp,
+                    radius = 6.dp,
                     offset = DpOffset(0.dp, 2.dp),
                     color = Color.White,
-                    alpha = if (isDark || isAmoled) 0.20f else 0.34f
+                    alpha = if (isDark || isAmoled) {
+                        0.18f + (0.12f * progress)
+                    } else {
+                        0.30f + (0.12f * progress)
+                    }
                 )
             }
         )
-        .border(
+    val withHighlight = if (interactiveHighlight != null) {
+        base.then(interactiveHighlight.modifier)
+    } else {
+        base
+    }
+    return withHighlight.border(
             width = 0.8.dp,
             brush = Brush.verticalGradient(
                 colors = if (isDark || isAmoled) {
