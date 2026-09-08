@@ -385,13 +385,11 @@ fun AgriBottomNav(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     navItems.forEachIndexed { index, item ->
-                        val isSelected = index == selectedIndex
-
                         Icon(
                             imageVector = item.icon,
                             contentDescription = null,
-                            tint = if (isSelected) {
-                                animatedAccentColor
+                            tint = if (index == selectedIndex) {
+                                Color.Transparent
                             } else {
                                 if (isDark || isAmoled) {
                                     Color(0xFF94A3B8)
