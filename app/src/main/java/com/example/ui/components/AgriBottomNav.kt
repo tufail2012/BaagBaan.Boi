@@ -117,6 +117,39 @@ fun AgriBottomNav(
     val containerShape = RoundedCornerShape(percent = 50)
     val container = MaterialTheme.colorScheme.surface
 
+    // Translucent liquid glass lens surface allowing the underlying progressive blur floor to shine through
+    val glassSurfaceBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                container.copy(alpha = 0.40f),
+                container.copy(alpha = 0.52f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.45f),
+                Color.White.copy(alpha = 0.28f)
+            )
+        )
+    }
+
+    val glassBorderBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.24f),
+                Color.White.copy(alpha = 0.08f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.30f)
+            )
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -129,11 +162,8 @@ fun AgriBottomNav(
                 .fillMaxWidth()
                 .height(68.dp)
                 .clip(containerShape)
-                .hazeEffect(
-                    state = hazeState,
-                    style = HazeMaterials.regular(container),
-                )
-                .border(0.5.dp, Color.White.copy(alpha = if (isDark) 0.12f else 0.20f), containerShape),
+                .background(glassSurfaceBrush)
+                .border(BorderStroke(0.5.dp, glassBorderBrush), containerShape),
             contentAlignment = Alignment.Center
         ) {
             BoxWithConstraints(

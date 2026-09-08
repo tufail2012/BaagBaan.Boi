@@ -33,6 +33,9 @@ import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.animation.core.EaseInCubic
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.hazeEffect
@@ -781,10 +784,12 @@ fun AgriCropMainScreen(
 
                             // Shared blur floor under the bottom navigation bar (BitChord BottomFadeBlur style)
                             val pageBackgroundColor = MaterialTheme.colorScheme.background
+                            val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                            val fadeFloorHeight = navBarInset + 170.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(116.dp)
+                                    .height(fadeFloorHeight)
                                     .align(Alignment.BottomCenter)
                                     .hazeEffect(
                                         state = hazeState,
@@ -795,6 +800,7 @@ fun AgriCropMainScreen(
                                             startIntensity = 0f,
                                             endIntensity = 0.75f
                                         )
+                                        noiseFactor = 0f
                                     }
                             )
 

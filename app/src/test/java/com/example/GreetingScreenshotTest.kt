@@ -314,7 +314,7 @@ class GreetingScreenshotTest {
           Box(
             modifier = Modifier
               .fillMaxWidth()
-              .height(116.dp)
+              .height(180.dp)
               .align(Alignment.BottomCenter)
               .hazeEffect(
                 state = hazeState,
@@ -325,6 +325,7 @@ class GreetingScreenshotTest {
                   startIntensity = 0f,
                   endIntensity = 0.75f
                 )
+                noiseFactor = 0f
               }
           )
 
