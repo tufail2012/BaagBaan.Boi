@@ -91,31 +91,70 @@ import androidx.compose.ui.unit.DpOffset
 
 @Stable
 class InteractiveHighlight(
-    val animationScope: CoroutineScope
+    private val animationScope: CoroutineScope,
+    private val position: (Size, Offset) -> Offset
 ) {
     var pressProgress by mutableStateOf(0f)
         private set
 
+    var pressPosition by mutableStateOf(Offset.Unspecified)
+        private set
+
     private val animatable = Animatable(0f)
+
+    private fun updateProgress(value: Float) {
+        pressProgress = value
+    }
+
+    private fun startPress(offset: Offset) {
+        pressPosition = offset
+        animationScope.launch {
+            animatable.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = 1f,
+                    stiffness = 400f
+                )
+            ) {
+                updateProgress(value)
+            }
+        }
+    }
+
+    private fun stopPress() {
+        animationScope.launch {
+            animatable.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = 1f,
+                    stiffness = 400f
+                )
+            ) {
+                updateProgress(value)
+            }
+        }
+    }
 
     val modifier = Modifier.pointerInput(Unit) {
         awaitPointerEventScope {
             while (true) {
-                awaitFirstDown(requireUnconsumed = false)
-                animationScope.launch {
-                    animatable.animateTo(1f, spring(dampingRatio = 1f, stiffness = 400f)) {
-                        pressProgress = value
-                    }
-                }
+                val down = awaitFirstDown(requireUnconsumed = false)
+
+                pressPosition = position(
+                    Size.Zero,
+                    down.position
+                )
+
+                startPress(down.position)
+
                 waitForUpOrCancellation()
-                animationScope.launch {
-                    animatable.animateTo(0f, spring(dampingRatio = 1f, stiffness = 400f)) {
-                        pressProgress = value
-                    }
-                }
+
+                stopPress()
             }
         }
     }
+
+    val gestureModifier = modifier
 }
 
 data class AgriNavItem(
@@ -156,11 +195,6 @@ fun AgriBottomNav(
     val haptic = LocalHapticFeedback.current
     val animationScope = rememberCoroutineScope()
 
-    val interactiveHighlight = remember(animationScope) {
-        InteractiveHighlight(
-            animationScope = animationScope
-        )
-    }
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -172,6 +206,18 @@ fun AgriBottomNav(
                     (selectedCategory.equals("Garden", ignoreCase = true) && item.serviceCategory.equals("Garden Planning", ignoreCase = true))
         }
         if (idx >= 0) idx else 0
+    }
+
+    val interactiveHighlight = remember(animationScope, selectedIndex) {
+        InteractiveHighlight(
+            animationScope = animationScope,
+            position = { size, offset ->
+                Offset(
+                    x = (selectedIndex + 0.5f) * (size.width / navItems.size),
+                    y = size.height / 2f
+                )
+            }
+        )
     }
 
     val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
@@ -329,48 +375,31 @@ fun AgriBottomNav(
 
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .align(Alignment.Center)
                         .clearAndSetSemantics {}
                         .alpha(0f)
                         .layerBackdrop(tabsBackdrop)
-                        .drawBackdrop(
-                            backdrop = backdrop,
-                            shape = { dropletPillShape },
-                            effects = {
-                                vibrancy()
-                                blur(
-                                    radius = 8.dp.toPx()
-                                )
-                                lens(
-                                    refractionHeight = 24f.dp.toPx(),
-                                    refractionAmount = 24f.dp.toPx()
-                                )
-                            },
-                            onDrawSurface = {
-                                drawRect(
-                                    color = when {
-                                        isAmoled ->
-                                            Color.Black.copy(alpha = 0.18f)
-
-                                        isDark ->
-                                            Color(0xFF17151D).copy(alpha = 0.18f)
-
-                                        else ->
-                                            Color.White.copy(alpha = 0.40f)
-                                    }
-                                )
-                            }
-                        ),
+                        .height(56.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    navItems.forEach { item ->
+                    navItems.forEachIndexed { index, item ->
+                        val isSelected = index == selectedIndex
+
                         Icon(
                             imageVector = item.icon,
                             contentDescription = null,
-                            tint = Color.Transparent
+                            tint = if (isSelected) {
+                                animatedAccentColor
+                            } else {
+                                if (isDark || isAmoled) {
+                                    Color(0xFF94A3B8)
+                                } else {
+                                    Color(0xFF64748B)
+                                }
+                            },
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -389,34 +418,61 @@ fun AgriBottomNav(
                             backdrop = combinedBackdrop,
                             shape = { dropletPillShape },
                             effects = {
+                                val progress = interactiveHighlight.pressProgress
+
                                 lens(
-                                    refractionHeight = 16f.dp.toPx(),
-                                    refractionAmount = 16f.dp.toPx(),
+                                    refractionHeight = 10f.dp.toPx() * progress,
+                                    refractionAmount = 14f.dp.toPx() * progress,
                                     depthEffect = true,
                                     chromaticAberration = true
                                 )
                             },
                             highlight = {
+                                val progress = interactiveHighlight.pressProgress
+
                                 Highlight(
                                     width = 1.dp,
                                     blurRadius = 1.dp,
-                                    alpha = if (isDark) 0.50f else 0.70f
+                                    alpha = progress
                                 )
                             },
                             shadow = {
+                                val progress = interactiveHighlight.pressProgress
+
                                 Shadow(
                                     radius = 8.dp,
                                     offset = DpOffset(0.dp, 2.dp),
                                     color = Color.Black,
-                                    alpha = if (isDark) 0.25f else 0.08f
+                                    alpha = 0.25f * progress
                                 )
                             },
                             innerShadow = {
+                                val progress = interactiveHighlight.pressProgress
+
                                 InnerShadow(
-                                    radius = 6.dp,
+                                    radius = 8.dp * progress,
                                     offset = DpOffset(0.dp, 2.dp),
                                     color = Color.White,
-                                    alpha = if (isDark) 0.25f else 0.40f
+                                    alpha = progress
+                                )
+                            },
+                            onDrawSurface = {
+                                val progress = interactiveHighlight.pressProgress
+
+                                if (!isDark && !isAmoled) {
+                                    drawRect(
+                                        Color.Black.copy(alpha = 0.10f),
+                                        alpha = 1f - progress
+                                    )
+                                } else {
+                                    drawRect(
+                                        Color.White.copy(alpha = 0.10f),
+                                        alpha = 1f - progress
+                                    )
+                                }
+
+                                drawRect(
+                                    Color.Black.copy(alpha = 0.03f * progress)
                                 )
                             }
                         )
@@ -595,18 +651,6 @@ fun Modifier.liquidGlassNavigationSurface(
                     refractionHeight = 24f.dp.toPx(),
                     refractionAmount = 24f.dp.toPx()
                 )
-            },
-            layerBlock = {
-                val progress = interactiveHighlight?.pressProgress ?: 0f
-
-                val scale = lerp(
-                    1f,
-                    1f + 16f.dp.toPx() / size.width,
-                    progress
-                )
-
-                scaleX = scale
-                scaleY = scale
             },
             onDrawSurface = {
                 drawRect(
