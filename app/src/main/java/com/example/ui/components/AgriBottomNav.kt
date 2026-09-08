@@ -162,6 +162,10 @@ fun AgriBottomNav(
                 .fillMaxWidth()
                 .height(68.dp)
                 .clip(containerShape)
+                .hazeEffect(
+                    state = hazeState,
+                    style = HazeMaterials.regular(container)
+                )
                 .background(glassSurfaceBrush)
                 .border(BorderStroke(0.5.dp, glassBorderBrush), containerShape),
             contentAlignment = Alignment.Center
