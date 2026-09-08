@@ -290,7 +290,7 @@ class GreetingScreenshotTest {
             verticalArrangement = Arrangement.spacedBy(16.dp)
           ) {
             Text("Baagbaan Boi Dashboard", style = MaterialTheme.typography.headlineMedium, color = Color.White)
-            repeat(5) { i ->
+            repeat(14) { i ->
               Box(
                 modifier = Modifier
                   .fillMaxWidth()
@@ -342,5 +342,77 @@ class GreetingScreenshotTest {
     }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/agri_bottom_nav_liquid_glass.png")
+  }
+
+  @OptIn(ExperimentalHazeMaterialsApi::class)
+  @Test
+  fun agri_bottom_nav_liquid_glass_light_screenshot() {
+    composeTestRule.setContent {
+      MyApplicationTheme(themeMode = AppThemeMode.LIGHT) {
+        val hazeState = remember { HazeState() }
+        val pageBackgroundColor = MaterialTheme.colorScheme.background
+
+        Box(modifier = Modifier.fillMaxSize().background(pageBackgroundColor)) {
+          // Content layer with colorful cards to blur through the nav bar and blur floor
+          Column(
+            modifier = Modifier
+              .fillMaxSize()
+              .hazeSource(state = hazeState)
+              .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+          ) {
+            Text("Baagbaan Boi Dashboard", style = MaterialTheme.typography.headlineMedium, color = Color.Black)
+            repeat(14) { i ->
+              Box(
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .height(90.dp)
+                  .clip(RoundedCornerShape(16.dp))
+                  .background(
+                    if (i % 2 == 0) Color(0xFF2E7D32) else Color(0xFFC2410C)
+                  )
+                  .padding(16.dp)
+              ) {
+                Text(
+                  "Agricultural Field Record #$i - High Density Apple Orchard",
+                  color = Color.White,
+                  fontWeight = FontWeight.Bold
+                )
+              }
+            }
+          }
+
+          // Blur floor (BitChord BottomFadeBlur style)
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(180.dp)
+              .align(Alignment.BottomCenter)
+              .hazeEffect(
+                state = hazeState,
+                style = HazeMaterials.ultraThin(pageBackgroundColor)
+              ) {
+                progressive = HazeProgressive.verticalGradient(
+                  easing = EaseInCubic,
+                  startIntensity = 0f,
+                  endIntensity = 0.75f
+                )
+                noiseFactor = 0f
+              }
+          )
+
+          // AgriBottomNav liquid glass floating bar
+          AgriBottomNav(
+            selectedCategory = "Local Plants",
+            onCategorySelected = {},
+            hazeState = hazeState,
+            accentColor = Color(0xFFE11D48),
+            modifier = Modifier.align(Alignment.BottomCenter)
+          )
+        }
+      }
+    }
+
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/agri_bottom_nav_liquid_glass_light.png")
   }
 }
