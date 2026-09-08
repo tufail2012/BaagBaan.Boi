@@ -167,7 +167,10 @@ fun AgriBottomNav(
                     style = HazeMaterials.regular(container)
                 )
                 .background(glassSurfaceBrush)
-                .border(BorderStroke(0.5.dp, glassBorderBrush), containerShape),
+                .border(
+                    BorderStroke(0.5.dp, glassBorderBrush),
+                    containerShape
+                ),
             contentAlignment = Alignment.Center
         ) {
             BoxWithConstraints(
