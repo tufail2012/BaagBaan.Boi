@@ -310,25 +310,6 @@ class GreetingScreenshotTest {
             }
           }
 
-          // Blur floor (BitChord BottomFadeBlur style)
-          Box(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(180.dp)
-              .align(Alignment.BottomCenter)
-              .hazeEffect(
-                state = hazeState,
-                style = HazeMaterials.ultraThin(pageBackgroundColor)
-              ) {
-                progressive = HazeProgressive.verticalGradient(
-                  easing = EaseInCubic,
-                  startIntensity = 0f,
-                  endIntensity = 0.75f
-                )
-                noiseFactor = 0f
-              }
-          )
-
           // AgriBottomNav liquid glass floating bar
           AgriBottomNav(
             selectedCategory = "Local Plants",
@@ -381,25 +362,6 @@ class GreetingScreenshotTest {
               }
             }
           }
-
-          // Blur floor (BitChord BottomFadeBlur style)
-          Box(
-            modifier = Modifier
-              .fillMaxWidth()
-              .height(180.dp)
-              .align(Alignment.BottomCenter)
-              .hazeEffect(
-                state = hazeState,
-                style = HazeMaterials.ultraThin(pageBackgroundColor)
-              ) {
-                progressive = HazeProgressive.verticalGradient(
-                  easing = EaseInCubic,
-                  startIntensity = 0f,
-                  endIntensity = 0.75f
-                )
-                noiseFactor = 0f
-              }
-          )
 
           // AgriBottomNav liquid glass floating bar
           AgriBottomNav(

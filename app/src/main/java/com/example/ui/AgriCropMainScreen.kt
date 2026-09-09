@@ -36,11 +36,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.animation.core.EaseInCubic
-import dev.chrisbanes.haze.HazeProgressive
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.materials.HazeMaterials
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
@@ -781,28 +776,6 @@ fun AgriCropMainScreen(
                                 }
                             }
                         }
-
-                            // Shared blur floor under the bottom navigation bar (BitChord BottomFadeBlur style)
-                            val pageBackgroundColor = MaterialTheme.colorScheme.background
-                            val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                            val fadeFloorHeight = navBarInset + 170.dp
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(fadeFloorHeight)
-                                    .align(Alignment.BottomCenter)
-                                    .hazeEffect(
-                                        state = hazeState,
-                                        style = HazeMaterials.ultraThin(pageBackgroundColor)
-                                    ) {
-                                        progressive = HazeProgressive.verticalGradient(
-                                            easing = EaseInCubic,
-                                            startIntensity = 0f,
-                                            endIntensity = 0.75f
-                                        )
-                                        noiseFactor = 0f
-                                    }
-                            )
 
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
