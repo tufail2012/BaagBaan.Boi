@@ -149,19 +149,19 @@ fun AgriBottomNav(
         )
     }
 
-    // Translucent liquid glass lens surface allowing the underlying live content and refraction to shine through
+    // Translucent liquid glass lens surface providing physical body while preserving backdrop color & refraction
     val glassSurfaceBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.04f),
-                container.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.05f),
+                container.copy(alpha = 0.12f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.10f),
-                Color.White.copy(alpha = 0.03f)
+                Color.White.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.05f)
             )
         )
     }
@@ -169,28 +169,28 @@ fun AgriBottomNav(
     val glassBorderBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.12f),
-                Color.White.copy(alpha = 0.04f)
+                Color.White.copy(alpha = 0.40f),
+                Color.White.copy(alpha = 0.14f),
+                Color.White.copy(alpha = 0.05f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.70f),
-                Color.White.copy(alpha = 0.25f),
-                Color.White.copy(alpha = 0.08f)
+                Color.White.copy(alpha = 0.75f),
+                Color.White.copy(alpha = 0.28f),
+                Color.White.copy(alpha = 0.10f)
             )
         )
     }
 
     val localDensity = LocalDensity.current
-    // Optical clarity: gentle diffusion (6dp) so underlying live shapes/text bend distinctly without being smeared away
-    val blurRadiusPx = with(localDensity) { 6.dp.toPx() }
-    // Full capsule radius: spans 34dp (half of 68dp capsule) so entire curved surface acts as an optical lens
-    val refractionHeightPx = with(localDensity) { 34.dp.toPx() }
-    // Pronounced geometric displacement to visibly refract live content passing behind the capsule
-    val refractionAmountPx = with(localDensity) { 32.dp.toPx() }
+    // Frosted diffusion: 14dp blurs out legible text & sharp images into soft forms without washing into a flat blob
+    val blurRadiusPx = with(localDensity) { 14.dp.toPx() }
+    // Refraction height: 28dp (of 34dp radius) leaves the central strip softer while the curved perimeter acts as an optical lens
+    val refractionHeightPx = with(localDensity) { 28.dp.toPx() }
+    // Refraction amount: 26dp provides smooth, restrained optical curvature and chromatic dispersion along the rim
+    val refractionAmountPx = with(localDensity) { 26.dp.toPx() }
 
     Box(
         modifier = modifier
@@ -221,7 +221,7 @@ fun AgriBottomNav(
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
             // Live content backdrop capture -> Vibrancy -> Blur -> Lens Refraction + Dispersion ->
-            // Subtle translucent surface tint -> Specular crest & horizon bounce
+            // Subtle translucent surface tint -> Directional specular crest highlight
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -243,12 +243,13 @@ fun AgriBottomNav(
                                 },
                                 highlight = {
                                     Highlight(
-                                        width = 1.dp,
-                                        blurRadius = 1.dp,
-                                        alpha = if (isDark) 0.35f else 0.50f,
-                                        style = HighlightStyle.Ambient
+                                        width = 0.8.dp,
+                                        blurRadius = 0.5.dp,
+                                        alpha = if (isDark) 0.50f else 0.70f,
+                                        style = HighlightStyle.Default
                                     )
                                 },
+                                shadow = null,
                                 onDrawSurface = {
                                     drawRect(glassSurfaceBrush)
                                 }
@@ -266,61 +267,46 @@ fun AgriBottomNav(
                         val w = size.width
                         val h = size.height
 
-                        // 1. Soft top specular curved highlight along the upper crest (physical light reflection)
+                        // 1. Crisp top specular curved highlight along the upper crest (directional light reflection)
                         drawRoundRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     Color.White.copy(
-                                        alpha = if (isDark) 0.32f else 0.45f
+                                        alpha = if (isDark) 0.40f else 0.55f
                                     ),
                                     Color.White.copy(
-                                        alpha = if (isDark) 0.10f else 0.16f
+                                        alpha = if (isDark) 0.12f else 0.18f
                                     ),
                                     Color.Transparent
                                 ),
                                 startY = 0f,
-                                endY = h * 0.45f
+                                endY = h * 0.35f
                             ),
                             topLeft = Offset(0.8.dp.toPx(), 0.8.dp.toPx()),
                             size = Size(w - 1.6.dp.toPx(), h - 1.6.dp.toPx()),
                             cornerRadius = CornerRadius(h / 2f, h / 2f),
-                            style = Stroke(width = 1.2.dp.toPx())
+                            style = Stroke(width = 0.9.dp.toPx())
                         )
 
-                        // 2. Optical internal volume sheen (subtle upper-body depth)
-                        drawRoundRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(
-                                        alpha = if (isDark) 0.06f else 0.12f
-                                    ),
-                                    Color.Transparent
-                                ),
-                                startY = 0f,
-                                endY = h * 0.50f
-                            ),
-                            cornerRadius = CornerRadius(h / 2f, h / 2f)
-                        )
-
-                        // 3. Very subtle lower internal reflection (horizon bounce)
+                        // 2. Subtle lower internal reflection (horizon bounce)
                         drawRoundRect(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
                                     Color.White.copy(
-                                        alpha = if (isDark) 0.02f else 0.04f
+                                        alpha = if (isDark) 0.03f else 0.06f
                                     ),
                                     Color.White.copy(
                                         alpha = if (isDark) 0.06f else 0.10f
                                     )
                                 ),
-                                startY = h * 0.55f,
+                                startY = h * 0.70f,
                                 endY = h - 1.dp.toPx()
                             ),
                             topLeft = Offset(1.2.dp.toPx(), 1.2.dp.toPx()),
                             size = Size(w - 2.4.dp.toPx(), h - 2.4.dp.toPx()),
                             cornerRadius = CornerRadius(h / 2f, h / 2f),
-                            style = Stroke(width = 0.8.dp.toPx())
+                            style = Stroke(width = 0.6.dp.toPx())
                         )
                     }
             )
