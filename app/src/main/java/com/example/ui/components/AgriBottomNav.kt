@@ -62,13 +62,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -100,8 +93,7 @@ fun AgriBottomNav(
     onCategorySelected: (String) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color? = null,
-    backdrop: Backdrop? = null
+    accentColor: Color? = null
 ) {
     val navItems = remember {
         listOf(
@@ -183,14 +175,6 @@ fun AgriBottomNav(
         )
     }
 
-    val localDensity = LocalDensity.current
-    // Frosted diffusion: 14dp blurs out legible text & sharp images into soft forms without washing into a flat blob
-    val blurRadiusPx = with(localDensity) { 14.dp.toPx() }
-    // Refraction height: 28dp (of 34dp radius) leaves the central strip softer while the curved perimeter acts as an optical lens
-    val refractionHeightPx = with(localDensity) { 28.dp.toPx() }
-    // Refraction amount: 26dp provides smooth, restrained optical curvature and chromatic dispersion along the rim
-    val refractionAmountPx = with(localDensity) { 26.dp.toPx() }
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -219,49 +203,15 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            // Live content backdrop capture -> Vibrancy -> Blur -> Lens Refraction + Dispersion ->
-            // Subtle translucent surface tint -> Directional specular crest highlight
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(containerShape)
-                    .then(
-                        if (backdrop != null) {
-                            Modifier.drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { containerShape },
-                                effects = {
-                                    vibrancy()
-                                    blur(blurRadiusPx)
-                                    lens(
-                                        refractionHeight = refractionHeightPx,
-                                        refractionAmount = refractionAmountPx,
-                                        depthEffect = true,
-                                        chromaticAberration = true
-                                    )
-                                },
-                                highlight = {
-                                    Highlight(
-                                        width = 1.dp,
-                                        blurRadius = 0.8.dp,
-                                        alpha = if (isDark) 0.35f else 0.50f,
-                                        style = HighlightStyle.Default
-                                    )
-                                },
-                                shadow = null,
-                                onDrawSurface = {
-                                    drawRect(glassSurfaceBrush)
-                                }
-                            )
-                        } else {
-                            Modifier
-                                .hazeEffect(
-                                    state = hazeState,
-                                    style = glassHazeStyle
-                                )
-                                .background(glassSurfaceBrush)
-                        }
+                    .hazeEffect(
+                        state = hazeState,
+                        style = glassHazeStyle
                     )
+                    .background(glassSurfaceBrush)
             )
 
             // LAYER 2: EXISTING ACTIVE DROPLET & NAVIGATION ICONS (Sitting crisply ABOVE the glass)
