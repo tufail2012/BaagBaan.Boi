@@ -239,30 +239,7 @@ fun AgriBottomNav(
 
                 val dropletPillShape = RoundedCornerShape(percent = 50)
 
-                // Fluid Water-like Sliding Liquid Pill Indicator ("Water Glass" Look)
                 val animatedAccentColor = activeSectionAccent
-                val blobGradient = if (!isDark) {
-                    // Subtle translucent liquid glass gradient
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.28f),
-                            animatedAccentColor.copy(alpha = 0.12f),
-                            Color.White.copy(alpha = 0.16f)
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
-                    )
-                } else {
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.18f),
-                            animatedAccentColor.copy(alpha = 0.10f),
-                            Color.White.copy(alpha = 0.08f)
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
-                    )
-                }
 
                 // Subtle water droplet expanding ripple wave
                 if (dropletRipple.value < 0.99f) {
@@ -309,44 +286,8 @@ fun AgriBottomNav(
                             scaleX = dynamicScaleX
                             scaleY = dynamicScaleY
                         }
-                        // no independent backdrop sampling here, it sits on top of
-                        // the container's own hazeEffect above, same as BitChord's
-                        // selected-tab highlight box
                         .clip(dropletPillShape)
-                        .background(brush = blobGradient, shape = dropletPillShape)
-                        .drawWithContent {
-                            drawContent()
-                            val w = size.width
-                            val h = size.height
-                            // Inset top specular highlight reflection (water meniscus reflection)
-                            drawRoundRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.40f else 0.60f),
-                                        Color.White.copy(alpha = if (isDark) 0.10f else 0.18f),
-                                        Color.Transparent
-                                    ),
-                                    startY = 0f,
-                                    endY = h * 0.5f
-                                ),
-                                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
-                                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
-                                cornerRadius = CornerRadius(h / 2, h / 2),
-                                style = Stroke(width = 1.dp.toPx())
-                            )
-                        }
-                        .border(
-                            width = 0.8.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = if (!isDark) 0.45f else 0.30f),
-                                    Color.White.copy(alpha = if (!isDark) 0.25f else 0.12f)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset.Infinite
-                            ),
-                            shape = dropletPillShape
-                        )
+                        .background(animatedAccentColor.copy(alpha = 0.14f))
                 )
 
                 // Navigation Tab Icons Row
