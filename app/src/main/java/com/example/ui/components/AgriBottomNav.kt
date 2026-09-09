@@ -125,38 +125,6 @@ fun AgriBottomNav(
     val containerShape = RoundedCornerShape(percent = 50)
     val container = MaterialTheme.colorScheme.surface
 
-    val glassHazeStyle = remember(isDark, container) {
-        HazeStyle(
-            backgroundColor = container,
-            tint = HazeTint(
-                if (isDark) {
-                    container.copy(alpha = 0.20f)
-                } else {
-                    Color.White.copy(alpha = 0.12f)
-                }
-            ),
-            blurRadius = 24.dp,
-            noiseFactor = 0f
-        )
-    }
-
-    // Translucent liquid glass lens surface providing physical body while preserving backdrop color & refraction
-    val glassSurfaceBrush = if (isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.04f),
-                container.copy(alpha = 0.10f)
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.10f),
-                Color.White.copy(alpha = 0.04f)
-            )
-        )
-    }
-
     val glassBorderBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
@@ -209,9 +177,8 @@ fun AgriBottomNav(
                     .clip(containerShape)
                     .hazeEffect(
                         state = hazeState,
-                        style = glassHazeStyle
+                        style = HazeMaterials.regular(container)
                     )
-                    .background(glassSurfaceBrush)
             )
 
             // LAYER 2: EXISTING ACTIVE DROPLET & NAVIGATION ICONS (Sitting crisply ABOVE the glass)
