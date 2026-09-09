@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
 import androidx.compose.foundation.layout.height
@@ -696,6 +698,7 @@ fun AgriCropMainScreen(
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
                     ) { innerPadding ->
+                        val navBackdrop = rememberLayerBackdrop()
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -704,6 +707,7 @@ fun AgriCropMainScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .layerBackdrop(navBackdrop)
                                     .hazeSource(state = hazeState)
                             ) {
                                 when {
@@ -797,6 +801,7 @@ fun AgriCropMainScreen(
                                 },
                                 hazeState = hazeState,
                                 accentColor = sectionAccentColor,
+                                backdrop = navBackdrop,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .zIndex(10f)

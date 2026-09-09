@@ -58,10 +58,18 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.highlight.HighlightStyle
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -77,123 +85,9 @@ data class AgriNavItem(
 )
 
 /**
- * Optical Liquid-Glass AGSL Shader (Android 13+ / API 33+).
- * Computes 2D rounded rectangle signed distance field (SDF) normals, applies circular arc
- * lens distortion (refraction) bending incoming light inward towards the optical center,
- * and performs spectral chromatic aberration across 7 color bands.
- */
-private const val LiquidGlassRefractionShaderString = """
-uniform shader content;
-uniform float2 size;
-uniform float2 offset;
-uniform float4 cornerRadii;
-uniform float refractionHeight;
-uniform float refractionAmount;
-uniform float depthEffect;
-uniform float chromaticAberration;
-
-float radiusAt(float2 coord, float4 radii) {
-    if (coord.x >= 0.0) {
-        if (coord.y <= 0.0) return radii.y;
-        else return radii.z;
-    } else {
-        if (coord.y <= 0.0) return radii.x;
-        else return radii.w;
-    }
-}
-
-float sdRoundedRect(float2 coord, float2 halfSize, float radius) {
-    float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
-    float outside = length(max(cornerCoord, 0.0)) - radius;
-    float inside = min(max(cornerCoord.x, cornerCoord.y), 0.0);
-    return outside + inside;
-}
-
-float2 gradSdRoundedRect(float2 coord, float2 halfSize, float radius) {
-    float2 cornerCoord = abs(coord) - (halfSize - float2(radius));
-    if (cornerCoord.x >= 0.0 || cornerCoord.y >= 0.0) {
-        return sign(coord) * normalize(max(cornerCoord, 0.0));
-    } else {
-        float gradX = step(cornerCoord.y, cornerCoord.x);
-        return sign(coord) * float2(gradX, 1.0 - gradX);
-    }
-}
-
-float circleMap(float x) {
-    return 1.0 - sqrt(1.0 - x * x);
-}
-
-half4 main(float2 coord) {
-    float2 halfSize = size * 0.5;
-    float2 centeredCoord = (coord + offset) - halfSize;
-    float radius = radiusAt(centeredCoord, cornerRadii);
-    
-    float sd = sdRoundedRect(centeredCoord, halfSize, radius);
-    if (-sd >= refractionHeight) {
-        return content.eval(coord);
-    }
-    sd = min(sd, 0.0);
-    
-    float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
-    float gradRadius = min(radius * 1.5, min(halfSize.x, halfSize.y));
-    float lenCentered = length(centeredCoord);
-    float2 normCentered = lenCentered > 0.001 ? centeredCoord / lenCentered : float2(0.0);
-    float2 grad = normalize(gradSdRoundedRect(centeredCoord, halfSize, gradRadius) + depthEffect * normCentered);
-    
-    float2 refractedCoord = coord + d * grad;
-    float dispersionIntensity = chromaticAberration * ((centeredCoord.x * centeredCoord.y) / (halfSize.x * halfSize.y));
-    float2 dispersedCoord = d * grad * dispersionIntensity;
-    
-    half4 color = half4(0.0);
-    
-    half4 red = content.eval(refractedCoord + dispersedCoord);
-    color.r += red.r / 3.5;
-    color.a += red.a / 7.0;
-    
-    half4 orange = content.eval(refractedCoord + dispersedCoord * (2.0 / 3.0));
-    color.r += orange.r / 3.5;
-    color.g += orange.g / 7.0;
-    color.a += orange.a / 7.0;
-    
-    half4 yellow = content.eval(refractedCoord + dispersedCoord * (1.0 / 3.0));
-    color.r += yellow.r / 3.5;
-    color.g += yellow.g / 3.5;
-    color.a += yellow.a / 7.0;
-    
-    half4 green = content.eval(refractedCoord);
-    color.g += green.g / 3.5;
-    color.a += green.a / 7.0;
-    
-    half4 cyan = content.eval(refractedCoord - dispersedCoord * (1.0 / 3.0));
-    color.g += cyan.g / 3.5;
-    color.b += cyan.b / 3.0;
-    color.a += cyan.a / 7.0;
-    
-    half4 blue = content.eval(refractedCoord - dispersedCoord * (2.0 / 3.0));
-    color.b += blue.b / 3.0;
-    color.a += blue.a / 7.0;
-    
-    half4 purple = content.eval(refractedCoord - dispersedCoord);
-    color.r += purple.r / 7.0;
-    color.b += purple.b / 3.0;
-    color.a += purple.a / 7.0;
-    
-    return color;
-}
-"""
-
-private fun isLiquidGlassShaderSupported(): Boolean {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && try {
-        Class.forName("android.graphics.RuntimeShader") != null
-    } catch (_: Throwable) {
-        false
-    }
-}
-
-/**
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
  * Features:
- * - Real optical liquid-glass material layered over the live Haze backdrop.
+ * - Real optical liquid-glass material sampled from the live app backdrop.
  * - Hardware AGSL lens refraction & chromatic dispersion (Android 13+ / API 33+).
  * - Multi-stage specular reflection, upper crest highlight, and horizon bounce.
  * - Sliding 3D Bubble / Droplet indicator with spring physics and responsive horizontal wobble/shake feedback.
@@ -207,7 +101,8 @@ fun AgriBottomNav(
     onCategorySelected: (String) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color? = null
+    accentColor: Color? = null,
+    backdrop: Backdrop? = null
 ) {
     val navItems = remember {
         listOf(
@@ -289,17 +184,10 @@ fun AgriBottomNav(
         )
     }
 
-    val runtimeShader = remember {
-        if (isLiquidGlassShaderSupported()) {
-            try {
-                android.graphics.RuntimeShader(LiquidGlassRefractionShaderString)
-            } catch (_: Throwable) {
-                null
-            }
-        } else {
-            null
-        }
-    }
+    val localDensity = LocalDensity.current
+    val blurRadiusPx = with(localDensity) { 24.dp.toPx() }
+    val refractionHeightPx = with(localDensity) { 22.dp.toPx() }
+    val refractionAmountPx = with(localDensity) { 18.dp.toPx() }
 
     Box(
         modifier = modifier
@@ -329,47 +217,48 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            // Live Haze backdrop blur -> AGSL optical refraction & dispersion ->
-            // Translucent surface tint -> Directional specular crest & rim sheen
+            // Live content backdrop capture -> Vibrancy -> Blur -> Lens Refraction + Dispersion ->
+            // Subtle translucent surface tint -> Specular crest & horizon bounce
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(containerShape)
-                    .hazeEffect(
-                        state = hazeState,
-                        style = glassHazeStyle
-                    )
                     .then(
-                        if (runtimeShader != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            Modifier.graphicsLayer {
-                                val w = size.width
-                                val h = size.height
-                                if (w > 0f && h > 0f) {
-                                    try {
-                                        val r = h / 2f
-                                        val refractionHeightPx = 22.dp.toPx()
-                                        val refractionAmountPx = 18.dp.toPx()
-                                        runtimeShader.apply {
-                                            setFloatUniform("size", w, h)
-                                            setFloatUniform("offset", 0f, 0f)
-                                            setFloatUniform("cornerRadii", floatArrayOf(r, r, r, r))
-                                            setFloatUniform("refractionHeight", refractionHeightPx)
-                                            setFloatUniform("refractionAmount", -refractionAmountPx)
-                                            setFloatUniform("depthEffect", 1.0f)
-                                            setFloatUniform("chromaticAberration", 1.0f)
-                                        }
-                                        renderEffect = android.graphics.RenderEffect
-                                            .createRuntimeShaderEffect(runtimeShader, "content")
-                                            .asComposeRenderEffect()
-                                    } catch (_: Throwable) {
-                                    }
+                        if (backdrop != null) {
+                            Modifier.drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { containerShape },
+                                effects = {
+                                    vibrancy()
+                                    blur(blurRadiusPx)
+                                    lens(
+                                        refractionHeight = refractionHeightPx,
+                                        refractionAmount = refractionAmountPx,
+                                        depthEffect = true,
+                                        chromaticAberration = true
+                                    )
+                                },
+                                highlight = {
+                                    Highlight(
+                                        width = 1.dp,
+                                        blurRadius = 1.dp,
+                                        alpha = if (isDark) 0.35f else 0.50f,
+                                        style = HighlightStyle.Ambient
+                                    )
+                                },
+                                onDrawSurface = {
+                                    drawRect(glassSurfaceBrush)
                                 }
-                            }
+                            )
                         } else {
                             Modifier
+                                .hazeEffect(
+                                    state = hazeState,
+                                    style = glassHazeStyle
+                                )
+                                .background(glassSurfaceBrush)
                         }
                     )
-                    .background(glassSurfaceBrush)
                     .drawBehind {
                         val w = size.width
                         val h = size.height

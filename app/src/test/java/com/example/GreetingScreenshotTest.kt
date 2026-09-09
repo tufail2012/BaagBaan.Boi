@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import com.example.ui.AppThemeMode
 import com.example.ui.components.AgriBottomNav
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.animation.core.EaseInCubic
@@ -278,6 +280,7 @@ class GreetingScreenshotTest {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.DARK) {
         val hazeState = remember { HazeState() }
+        val navBackdrop = rememberLayerBackdrop()
         val pageBackgroundColor = MaterialTheme.colorScheme.background
 
         Box(modifier = Modifier.fillMaxSize().background(pageBackgroundColor)) {
@@ -285,6 +288,7 @@ class GreetingScreenshotTest {
           Column(
             modifier = Modifier
               .fillMaxSize()
+              .layerBackdrop(navBackdrop)
               .hazeSource(state = hazeState)
               .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -316,6 +320,7 @@ class GreetingScreenshotTest {
             onCategorySelected = {},
             hazeState = hazeState,
             accentColor = Color(0xFFE11D48),
+            backdrop = navBackdrop,
             modifier = Modifier.align(Alignment.BottomCenter)
           )
         }
@@ -331,6 +336,7 @@ class GreetingScreenshotTest {
     composeTestRule.setContent {
       MyApplicationTheme(themeMode = AppThemeMode.LIGHT) {
         val hazeState = remember { HazeState() }
+        val navBackdrop = rememberLayerBackdrop()
         val pageBackgroundColor = MaterialTheme.colorScheme.background
 
         Box(modifier = Modifier.fillMaxSize().background(pageBackgroundColor)) {
@@ -338,6 +344,7 @@ class GreetingScreenshotTest {
           Column(
             modifier = Modifier
               .fillMaxSize()
+              .layerBackdrop(navBackdrop)
               .hazeSource(state = hazeState)
               .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -369,6 +376,7 @@ class GreetingScreenshotTest {
             onCategorySelected = {},
             hazeState = hazeState,
             accentColor = Color(0xFFE11D48),
+            backdrop = navBackdrop,
             modifier = Modifier.align(Alignment.BottomCenter)
           )
         }
