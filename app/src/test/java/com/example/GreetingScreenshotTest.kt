@@ -377,4 +377,120 @@ class GreetingScreenshotTest {
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/agri_bottom_nav_liquid_glass_light.png")
   }
+
+  @OptIn(ExperimentalHazeMaterialsApi::class)
+  @Test
+  fun blur_floor_local_plants_accent_screenshot() {
+    composeTestRule.setContent {
+      val sectionAccentColor = Color(0xFFD32F2F) // Local Plants red accent
+      val r = (sectionAccentColor.red * 255f).toInt().coerceIn(0, 255)
+      val g = (sectionAccentColor.green * 255f).toInt().coerceIn(0, 255)
+      val b = (sectionAccentColor.blue * 255f).toInt().coerceIn(0, 255)
+      val hsv = FloatArray(3)
+      android.graphics.Color.RGBToHSV(r, g, b, hsv)
+      val hue = hsv[0]
+      val pageBackgroundColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.015f, 0.980f)))
+
+      val hazeState = remember { HazeState() }
+      Box(modifier = Modifier.fillMaxSize().background(pageBackgroundColor)) {
+        Column(
+          modifier = Modifier.fillMaxSize().hazeSource(state = hazeState).padding(16.dp),
+          verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+          repeat(12) { i ->
+            Box(
+              modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).background(if (i % 2 == 0) Color(0xFF2E7D32) else Color(0xFFD97706)).padding(16.dp)
+            ) {
+              Text("Local Plants Item #$i", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+          }
+        }
+
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp)
+            .align(Alignment.BottomCenter)
+            .hazeEffect(
+              state = hazeState,
+              style = HazeMaterials.ultraThin(pageBackgroundColor)
+            ) {
+              progressive = HazeProgressive.verticalGradient(
+                easing = EaseInCubic,
+                startIntensity = 0f,
+                endIntensity = 0.75f
+              )
+              noiseFactor = 0f
+            }
+        )
+
+        AgriBottomNav(
+          selectedCategory = "Local Plants",
+          onCategorySelected = {},
+          hazeState = hazeState,
+          accentColor = sectionAccentColor,
+          modifier = Modifier.align(Alignment.BottomCenter)
+        )
+      }
+    }
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/blur_floor_local_plants.png")
+  }
+
+  @OptIn(ExperimentalHazeMaterialsApi::class)
+  @Test
+  fun blur_floor_site_visit_accent_screenshot() {
+    composeTestRule.setContent {
+      val sectionAccentColor = Color(0xFF0284C7) // Site Visit blue accent
+      val r = (sectionAccentColor.red * 255f).toInt().coerceIn(0, 255)
+      val g = (sectionAccentColor.green * 255f).toInt().coerceIn(0, 255)
+      val b = (sectionAccentColor.blue * 255f).toInt().coerceIn(0, 255)
+      val hsv = FloatArray(3)
+      android.graphics.Color.RGBToHSV(r, g, b, hsv)
+      val hue = hsv[0]
+      val pageBackgroundColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.015f, 0.980f)))
+
+      val hazeState = remember { HazeState() }
+      Box(modifier = Modifier.fillMaxSize().background(pageBackgroundColor)) {
+        Column(
+          modifier = Modifier.fillMaxSize().hazeSource(state = hazeState).padding(16.dp),
+          verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+          repeat(12) { i ->
+            Box(
+              modifier = Modifier.fillMaxWidth().height(80.dp).clip(RoundedCornerShape(12.dp)).background(if (i % 2 == 0) Color(0xFF0D9488) else Color(0xFFE11D48)).padding(16.dp)
+            ) {
+              Text("Site Visit Item #$i", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+          }
+        }
+
+        Box(
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp)
+            .align(Alignment.BottomCenter)
+            .hazeEffect(
+              state = hazeState,
+              style = HazeMaterials.ultraThin(pageBackgroundColor)
+            ) {
+              progressive = HazeProgressive.verticalGradient(
+                easing = EaseInCubic,
+                startIntensity = 0f,
+                endIntensity = 0.75f
+              )
+              noiseFactor = 0f
+            }
+        )
+
+        AgriBottomNav(
+          selectedCategory = "Site Visit",
+          onCategorySelected = {},
+          hazeState = hazeState,
+          accentColor = sectionAccentColor,
+          modifier = Modifier.align(Alignment.BottomCenter)
+        )
+      }
+    }
+    composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/blur_floor_site_visit.png")
+  }
 }

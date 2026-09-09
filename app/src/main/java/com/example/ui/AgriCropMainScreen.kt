@@ -782,7 +782,19 @@ fun AgriCropMainScreen(
                             }
                         }
 
-                            val pageBackgroundColor = MaterialTheme.colorScheme.background
+                            val pageBackgroundColor = remember(isDark, isAmoled, sectionAccentColor) {
+                                val r = (sectionAccentColor.red * 255f).toInt().coerceIn(0, 255)
+                                val g = (sectionAccentColor.green * 255f).toInt().coerceIn(0, 255)
+                                val b = (sectionAccentColor.blue * 255f).toInt().coerceIn(0, 255)
+                                val hsv = FloatArray(3)
+                                android.graphics.Color.RGBToHSV(r, g, b, hsv)
+                                val hue = hsv[0]
+                                when {
+                                    isAmoled -> Color(0xFF000000)
+                                    isDark -> Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.035f, 0.078f)))
+                                    else -> Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.015f, 0.980f)))
+                                }
+                            }
                             val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                             val fadeFloorHeight = navBarInset + 170.dp
                             Box(

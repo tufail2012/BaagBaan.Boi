@@ -191,7 +191,7 @@ fun AgriBottomNav(
                 val itemCount = navItems.size
                 val slotWidth = totalWidth / itemCount
                 val pillHeight = 48.dp
-                val basePillWidth = minOf(48.dp, slotWidth * 0.68f)
+                val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
 
                 val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - basePillWidth) / 2
 
