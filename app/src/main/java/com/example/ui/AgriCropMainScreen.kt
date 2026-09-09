@@ -808,7 +808,7 @@ fun AgriCropMainScreen(
                                     ) {
                                         progressive = HazeProgressive.verticalGradient(
                                             easing = EaseInCubic,
-                                            startIntensity = 0f,
+                                            startIntensity = 0.20f,
                                             endIntensity = 0.75f
                                         )
                                         noiseFactor = 0f
