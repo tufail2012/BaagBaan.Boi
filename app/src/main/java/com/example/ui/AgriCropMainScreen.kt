@@ -71,6 +71,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.animation.core.EaseInCubic
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 import com.example.data.BusinessInfoRepository
 import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
@@ -81,7 +86,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.exceptions.ClearCredentialException
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
 fun AgriCropMainScreen(
     viewModel: CropViewModel,
@@ -776,6 +781,27 @@ fun AgriCropMainScreen(
                                 }
                             }
                         }
+
+                            val pageBackgroundColor = MaterialTheme.colorScheme.background
+                            val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                            val fadeFloorHeight = navBarInset + 170.dp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(fadeFloorHeight)
+                                    .align(Alignment.BottomCenter)
+                                    .hazeEffect(
+                                        state = hazeState,
+                                        style = HazeMaterials.ultraThin(pageBackgroundColor)
+                                    ) {
+                                        progressive = HazeProgressive.verticalGradient(
+                                            easing = EaseInCubic,
+                                            startIntensity = 0f,
+                                            endIntensity = 0.75f
+                                        )
+                                        noiseFactor = 0f
+                                    }
+                            )
 
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
