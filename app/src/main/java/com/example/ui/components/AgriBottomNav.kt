@@ -149,19 +149,19 @@ fun AgriBottomNav(
         )
     }
 
-    // Translucent liquid glass lens surface allowing the underlying progressive blur floor to shine through
+    // Translucent liquid glass lens surface allowing the underlying live content and refraction to shine through
     val glassSurfaceBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.08f),
-                container.copy(alpha = 0.16f)
+                Color.White.copy(alpha = 0.04f),
+                container.copy(alpha = 0.08f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.18f),
-                Color.White.copy(alpha = 0.06f)
+                Color.White.copy(alpha = 0.10f),
+                Color.White.copy(alpha = 0.03f)
             )
         )
     }
@@ -185,9 +185,12 @@ fun AgriBottomNav(
     }
 
     val localDensity = LocalDensity.current
-    val blurRadiusPx = with(localDensity) { 24.dp.toPx() }
-    val refractionHeightPx = with(localDensity) { 22.dp.toPx() }
-    val refractionAmountPx = with(localDensity) { 18.dp.toPx() }
+    // Optical clarity: gentle diffusion (6dp) so underlying live shapes/text bend distinctly without being smeared away
+    val blurRadiusPx = with(localDensity) { 6.dp.toPx() }
+    // Full capsule radius: spans 34dp (half of 68dp capsule) so entire curved surface acts as an optical lens
+    val refractionHeightPx = with(localDensity) { 34.dp.toPx() }
+    // Pronounced geometric displacement to visibly refract live content passing behind the capsule
+    val refractionAmountPx = with(localDensity) { 32.dp.toPx() }
 
     Box(
         modifier = modifier
