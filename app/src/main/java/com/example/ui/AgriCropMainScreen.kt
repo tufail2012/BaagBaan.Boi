@@ -796,7 +796,7 @@ fun AgriCropMainScreen(
                                 }
                             }
                             val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                            val fadeFloorHeight = navBarInset + 170.dp
+                            val fadeFloorHeight = navBarInset + 90.dp
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
