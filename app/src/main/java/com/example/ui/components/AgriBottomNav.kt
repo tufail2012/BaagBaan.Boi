@@ -14,6 +14,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,8 +42,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,9 +62,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import dev.chrisbanes.haze.HazeState
@@ -68,6 +75,8 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 data class AgriNavItem(
     val title: String,
@@ -82,8 +91,8 @@ data class AgriNavItem(
  * - Real optical liquid-glass material sampled from the live app backdrop.
  * - Hardware AGSL lens refraction & chromatic dispersion (Android 13+ / API 33+).
  * - Multi-stage specular reflection, upper crest highlight, and horizon bounce.
- * - Sliding 3D Bubble / Droplet indicator with spring physics and responsive horizontal wobble/shake feedback.
- * - Clean, semi-transparent active palette tint with raised 3D specular highlight.
+ * - Interactive Liquid Water Droplet lens active indicator with optical refraction, specular highlights,
+ *   smooth tap glide via spring physics, and fluid drag-to-switch with elastic viscous stretch.
  * - High-contrast unselected and selected navigation icons with haptic feedback.
  */
 @OptIn(ExperimentalHazeMaterialsApi::class)
@@ -107,6 +116,8 @@ fun AgriBottomNav(
     }
 
     val haptic = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
 
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
@@ -181,7 +192,7 @@ fun AgriBottomNav(
                     )
             )
 
-            // LAYER 2: EXISTING ACTIVE DROPLET & NAVIGATION ICONS (Sitting crisply ABOVE the glass)
+            // LAYER 2: INTERACTIVE LIQUID WATER DROPLET LENS & NAVIGATION ICONS
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
@@ -193,52 +204,69 @@ fun AgriBottomNav(
                 val pillHeight = 48.dp
                 val basePillWidth = minOf(54.dp, slotWidth - 2.dp)
 
-                val targetIndicatorOffset = (slotWidth * selectedIndex) + (slotWidth - basePillWidth) / 2
+                val slotWidthPx = with(density) { slotWidth.toPx() }
+                val basePillWidthPx = with(density) { basePillWidth.toPx() }
 
-                // Smooth, natural fluid spring slide animation
-                val animatedOffsetX by animateDpAsState(
-                    targetValue = targetIndicatorOffset,
-                    animationSpec = spring(
-                        dampingRatio = 0.72f, // Natural fluid spring physics
-                        stiffness = 320f
-                    ),
-                    label = "bottomNavPillSlide"
-                )
+                fun getTargetOffsetPx(index: Int): Float {
+                    return (slotWidthPx * index) + (slotWidthPx - basePillWidthPx) / 2f
+                }
 
-                // Soft water droplet spreading animation on tab switch
+                // Droplet animated position in pixels
+                val dropletOffsetPx = remember { Animatable(getTargetOffsetPx(selectedIndex)) }
+                var isDragging by remember { mutableStateOf(false) }
+                var dragVelocity by remember { mutableFloatStateOf(0f) }
+
+                // Elastic jelly bounce effect on snap
                 val dropletSpread = remember { Animatable(1f) }
                 val dropletRipple = remember { Animatable(1f) }
 
+                // Sync position on external index change when not dragging
                 LaunchedEffect(selectedIndex) {
-                    launch {
-                        dropletSpread.snapTo(0.88f)
-                        dropletSpread.animateTo(
-                            targetValue = 1f,
-                            animationSpec = spring(
-                                dampingRatio = 0.60f, // Gentle water droplet surface tension
-                                stiffness = 250f
+                    if (!isDragging) {
+                        val targetPx = getTargetOffsetPx(selectedIndex)
+                        launch {
+                            dropletOffsetPx.animateTo(
+                                targetValue = targetPx,
+                                animationSpec = spring(
+                                    dampingRatio = 0.72f,
+                                    stiffness = 340f
+                                )
                             )
-                        )
-                    }
-                    launch {
-                        dropletRipple.snapTo(0f)
-                        dropletRipple.animateTo(
-                            targetValue = 1f,
-                            animationSpec = tween(
-                                durationMillis = 450,
-                                easing = FastOutSlowInEasing
+                        }
+                        launch {
+                            dropletSpread.snapTo(0.85f)
+                            dropletSpread.animateTo(
+                                targetValue = 1f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.58f,
+                                    stiffness = 260f
+                                )
                             )
-                        )
+                        }
+                        launch {
+                            dropletRipple.snapTo(0f)
+                            dropletRipple.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(
+                                    durationMillis = 420,
+                                    easing = FastOutSlowInEasing
+                                )
+                            )
+                        }
                     }
                 }
 
-                val offsetDelta = (targetIndicatorOffset - animatedOffsetX).value
-                val glideStretch = (kotlin.math.abs(offsetDelta) / slotWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
-                val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.45f)
-                val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.20f)
+                // Calculate fluid stretch from dragging or spring motion
+                val velocityStretch = (abs(dragVelocity) / 2400f).coerceIn(0f, 0.35f)
+                val targetCenterPx = getTargetOffsetPx(selectedIndex)
+                val motionLagPx = abs(targetCenterPx - dropletOffsetPx.value)
+                val springStretch = (motionLagPx / slotWidthPx.coerceAtLeast(1f) * 0.28f).coerceIn(0f, 0.28f)
+                val fluidStretch = if (isDragging) velocityStretch else springStretch
+
+                val dynamicScaleX = dropletSpread.value * (1f + fluidStretch * 0.65f)
+                val dynamicScaleY = dropletSpread.value * (1f - fluidStretch * 0.30f)
 
                 val dropletPillShape = RoundedCornerShape(percent = 50)
-
                 val animatedAccentColor = activeSectionAccent
 
                 // Subtle water droplet expanding ripple wave
@@ -248,10 +276,12 @@ fun AgriBottomNav(
                     val extraWidth = (rippleProgress * 14).dp
                     val extraHeight = (rippleProgress * 8).dp
 
+                    val currentOffsetDp = with(density) { dropletOffsetPx.value.toDp() }
+
                     Box(
                         modifier = Modifier
                             .offset(
-                                x = animatedOffsetX - (extraWidth / 2),
+                                x = currentOffsetDp - (extraWidth / 2),
                                 y = -(extraHeight / 2)
                             )
                             .align(Alignment.CenterStart)
@@ -276,9 +306,18 @@ fun AgriBottomNav(
                     )
                 }
 
+                // -------------------------------------------------------------
+                // VISUAL AESTHETIC: LIQUID WATER DROPLET LENS COMPONENT
+                // - Ultra-transparent convex liquid glass / water droplet body
+                // - Optical refraction & subtle magnification
+                // - Specular gloss on top/bottom edges with surface tension curvature
+                // - Elastic jelly/metaball fluid stretch during drag & snap
+                // -------------------------------------------------------------
+                val dropletOffsetDp = with(density) { dropletOffsetPx.value.toDp() }
+
                 Box(
                     modifier = Modifier
-                        .offset(x = animatedOffsetX)
+                        .offset(x = dropletOffsetDp)
                         .align(Alignment.CenterStart)
                         .width(basePillWidth)
                         .height(pillHeight)
@@ -287,7 +326,154 @@ fun AgriBottomNav(
                             scaleY = dynamicScaleY
                         }
                         .clip(dropletPillShape)
-                        .background(animatedAccentColor.copy(alpha = 0.14f))
+                        // Ultra-transparent convex liquid tint with subtle ambient refraction
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    animatedAccentColor.copy(alpha = if (isDark) 0.16f else 0.12f),
+                                    animatedAccentColor.copy(alpha = if (isDark) 0.08f else 0.06f),
+                                    Color.White.copy(alpha = if (isDark) 0.04f else 0.10f)
+                                ),
+                                center = Offset(0.5f, 0.4f),
+                                radius = 90f
+                            ),
+                            shape = dropletPillShape
+                        )
+                        // Optical specular gloss, meniscus surface tension & glass rim refraction
+                        .drawWithContent {
+                            drawContent()
+                            val w = size.width
+                            val h = size.height
+
+                            // 1. Top specular gloss crest (water meniscus reflection)
+                            drawRoundRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = if (isDark) 0.55f else 0.70f),
+                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
+                                        Color.Transparent
+                                    ),
+                                    startY = 0f,
+                                    endY = h * 0.48f
+                                ),
+                                topLeft = Offset(1.5.dp.toPx(), 1.dp.toPx()),
+                                size = Size(w - 3.dp.toPx(), h * 0.48f),
+                                cornerRadius = CornerRadius(h / 2, h / 2),
+                                style = Stroke(width = 1.2.dp.toPx())
+                            )
+
+                            // 2. Bottom horizon caustics bounce (liquid refraction glow)
+                            drawRoundRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = if (isDark) 0.12f else 0.28f),
+                                        Color.White.copy(alpha = if (isDark) 0.28f else 0.45f)
+                                    ),
+                                    startY = h * 0.60f,
+                                    endY = h
+                                ),
+                                topLeft = Offset(2.dp.toPx(), h * 0.58f),
+                                size = Size(w - 4.dp.toPx(), h * 0.40f),
+                                cornerRadius = CornerRadius(h / 2, h / 2),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+                        }
+                        // Liquid droplet outer perimeter meniscus border
+                        .border(
+                            width = 0.9.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (!isDark) 0.55f else 0.38f),
+                                    animatedAccentColor.copy(alpha = if (!isDark) 0.25f else 0.18f),
+                                    Color.White.copy(alpha = if (!isDark) 0.30f else 0.15f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset.Infinite
+                            ),
+                            shape = dropletPillShape
+                        )
+                )
+
+                // -------------------------------------------------------------
+                // DUAL INTERACTION: TAP & DIRECT DRAG TO SWITCH TABS
+                // -------------------------------------------------------------
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(totalWidth, itemCount) {
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    isDragging = true
+                                    dragVelocity = 0f
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    val currentX = dropletOffsetPx.value
+                                    val newX = (currentX + dragAmount.x).coerceIn(
+                                        0f,
+                                        (slotWidthPx * (itemCount - 1)) + (slotWidthPx - basePillWidthPx) / 2f
+                                    )
+                                    coroutineScope.launch {
+                                        dropletOffsetPx.snapTo(newX)
+                                    }
+                                    dragVelocity = dragAmount.x * 60f
+
+                                    // Haptic feedback when crossing into neighboring tab
+                                    val hoveredIndex = ((newX + basePillWidthPx / 2f) / slotWidthPx)
+                                        .toInt()
+                                        .coerceIn(0, itemCount - 1)
+                                    if (hoveredIndex != selectedIndex) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                },
+                                onDragEnd = {
+                                    isDragging = false
+                                    val finalCenter = dropletOffsetPx.value + (basePillWidthPx / 2f)
+                                    val targetIndex = (finalCenter / slotWidthPx)
+                                        .toInt()
+                                        .coerceIn(0, itemCount - 1)
+
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onCategorySelected(navItems[targetIndex].serviceCategory)
+
+                                    coroutineScope.launch {
+                                        dropletOffsetPx.animateTo(
+                                            targetValue = getTargetOffsetPx(targetIndex),
+                                            animationSpec = spring(
+                                                dampingRatio = 0.65f, // Jelly bounce
+                                                stiffness = 320f
+                                            )
+                                        )
+                                    }
+                                    coroutineScope.launch {
+                                        dropletSpread.snapTo(0.82f)
+                                        dropletSpread.animateTo(
+                                            targetValue = 1f,
+                                            animationSpec = spring(
+                                                dampingRatio = 0.52f,
+                                                stiffness = 240f
+                                            )
+                                        )
+                                    }
+                                    dragVelocity = 0f
+                                },
+                                onDragCancel = {
+                                    isDragging = false
+                                    dragVelocity = 0f
+                                    coroutineScope.launch {
+                                        dropletOffsetPx.animateTo(
+                                            targetValue = getTargetOffsetPx(selectedIndex),
+                                            animationSpec = spring(
+                                                dampingRatio = 0.72f,
+                                                stiffness = 320f
+                                            )
+                                        )
+                                    }
+                                }
+                            )
+                        }
                 )
 
                 // Navigation Tab Icons Row
@@ -297,44 +483,26 @@ fun AgriBottomNav(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     navItems.forEachIndexed { index, item ->
+                        // Calculate proximity to droplet for optical magnification under the lens
+                        val tabCenterPx = (slotWidthPx * index) + (slotWidthPx / 2f)
+                        val dropletCenterPx = dropletOffsetPx.value + (basePillWidthPx / 2f)
+                        val distanceToDroplet = abs(tabCenterPx - dropletCenterPx)
+                        val proximity = (1f - (distanceToDroplet / slotWidthPx)).coerceIn(0f, 1f)
+
                         val isSelected = index == selectedIndex
                         val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
-                        // Active navigation icon dynamically pulls fill/stroke color from active theme's primary color palette
                         val selectedColor = animatedAccentColor
 
                         val iconColor by animateColorAsState(
-                            targetValue = if (isSelected) selectedColor else unselectedColor,
-                            animationSpec = tween(durationMillis = 200),
+                            targetValue = if (proximity > 0.65f) selectedColor else unselectedColor,
+                            animationSpec = tween(durationMillis = 180),
                             label = "navIconColor"
                         )
 
-                        // 3D Embossed lift, scale, and subtle rotation tilt
-                        val scale by animateFloatAsState(
-                            targetValue = if (isSelected) 1.10f else 1.0f,
-                            animationSpec = spring(
-                                dampingRatio = 0.72f,
-                                stiffness = 320f
-                            ),
-                            label = "navIconScale"
-                        )
-
-                        val liftY by animateDpAsState(
-                            targetValue = if (isSelected) (-2).dp else 0.dp,
-                            animationSpec = spring(
-                                dampingRatio = 0.72f,
-                                stiffness = 320f
-                            ),
-                            label = "navIconLift"
-                        )
-
-                        val rotX by animateFloatAsState(
-                            targetValue = if (isSelected) 6f else 0f,
-                            animationSpec = spring(
-                                dampingRatio = 0.72f,
-                                stiffness = 320f
-                            ),
-                            label = "navIconRotX"
-                        )
+                        // Optical refraction & magnification under water droplet
+                        val baseScale = 1.0f + (proximity * 0.16f)
+                        val liftY = (-2.5f * proximity).dp
+                        val rotX = (5f * proximity)
 
                         Box(
                             modifier = Modifier
@@ -358,11 +526,11 @@ fun AgriBottomNav(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .graphicsLayer {
-                                        scaleX = scale
-                                        scaleY = scale
-                                        translationY = liftY.toPx()
+                                        scaleX = baseScale
+                                        scaleY = baseScale
+                                        translationY = with(density) { liftY.toPx() }
                                         rotationX = rotX
-                                        cameraDistance = 16f * density
+                                        cameraDistance = 16f * density.density
                                     }
                             )
                         }
@@ -372,3 +540,4 @@ fun AgriBottomNav(
         }
     }
 }
+
