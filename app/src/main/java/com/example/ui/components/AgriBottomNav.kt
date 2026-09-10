@@ -294,6 +294,7 @@ fun AgriBottomNav(
                         .hazeEffect(
                             state = hazeState,
                             style = HazeStyle(
+                                backgroundColor = Color.Transparent,
                                 blurRadius = 20.dp,
                                 tint = HazeTint(
                                     // Ultra-thin slight brightness boost directly underneath the capsule
