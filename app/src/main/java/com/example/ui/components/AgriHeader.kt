@@ -1063,93 +1063,88 @@ fun Modifier.frostedLiquidGlassMenuBackground(
 ): Modifier {
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
 
-    // 1:1 match with Bottom Navigation reflective glass rim brush
+    // Crisp neutral liquid-glass rim reflection (no colored wash)
     val glassRimBrush = Brush.linearGradient(
         colors = if (isDark || isAmoled) {
             listOf(
-                Color.White.copy(alpha = 0.40f), // Crisp specular reflection along top edge
-                accentColor.copy(alpha = 0.24f), // Reflective edge sheen
-                Color.White.copy(alpha = 0.12f), // Clear lateral glass sides
-                accentColor.copy(alpha = 0.16f), // Ambient edge reflection
-                Color.White.copy(alpha = 0.08f)  // Soft specular bottom return
+                Color.White.copy(alpha = 0.35f), // Crisp specular reflection along top edge
+                Color.White.copy(alpha = 0.16f), // Clear lateral glass sides
+                Color.White.copy(alpha = 0.08f), // Ambient neutral edge reflection
+                Color.White.copy(alpha = 0.05f)  // Soft specular bottom return
             )
         } else {
             listOf(
-                Color.White.copy(alpha = 0.95f), // Crisp specular reflection along top edge
-                accentColor.copy(alpha = 0.28f), // Reflective edge sheen in light mode
+                Color.White.copy(alpha = 0.90f), // Crisp specular reflection along top edge
                 Color.White.copy(alpha = 0.50f), // Clear lateral glass sides
-                accentColor.copy(alpha = 0.18f), // Ambient edge reflection
+                Color.White.copy(alpha = 0.30f), // Ambient neutral edge reflection
                 Color.White.copy(alpha = 0.40f)  // Soft specular bottom return
             )
         }
     )
 
-    // 1:1 match with Bottom Navigation HazeStyle: blurRadius 64.dp, tints 0.05f, noiseFactor 0.08f
+    // Neutral Frosted Liquid Glass HazeStyle: blurRadius 48.dp, strong neutral diffusion, no accent color wash
     val hazeStyle = HazeStyle(
         backgroundColor = if (isAmoled) {
-            Color.Black.copy(alpha = 0.35f)
+            Color.Black.copy(alpha = 0.55f)
         } else if (isDark) {
-            Color(0xFF16141D).copy(alpha = 0.28f)
+            Color(0xFF16141D).copy(alpha = 0.48f)
         } else {
-            Color.White.copy(alpha = 0.25f)
+            Color.White.copy(alpha = 0.52f)
         },
-        blurRadius = 64.dp,
+        blurRadius = 48.dp,
         tints = listOf(
             HazeTint(
-                color = accentColor.copy(alpha = 0.05f)
+                color = if (isDark || isAmoled) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.12f)
             )
         ),
-        noiseFactor = 0.08f
+        noiseFactor = 0.05f
     )
 
     return this
-        // 1. Soft floating drop shadow with subtle ambient halo matching Bottom Navigation
+        // 1. Soft floating drop shadow with clean neutral ambient shadow
         .shadow(
             elevation = 16.dp,
             shape = shape,
             spotColor = if (isAmoled) Color.Black.copy(alpha = 0.55f) else if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0x22000000),
-            ambientColor = if (isDark || isAmoled) accentColor.copy(alpha = 0.14f) else accentColor.copy(alpha = 0.10f)
+            ambientColor = if (isAmoled) Color.Black.copy(alpha = 0.40f) else if (isDark) Color.Black.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.08f)
         )
         .clip(shape)
         // 2. Real optical backdrop blur via Haze
         .hazeEffect(state = hazeState, style = hazeStyle)
-        // 3. Uniform reflective glass body wash matching Bottom Navigation
+        // 3. Dense neutral frosted liquid glass body wash (obscures background text into soft diffuse light)
         .background(
             brush = when {
                 isAmoled -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.10f),          // Specular top glass reflection
-                            Color(0xFF100E14).copy(alpha = 0.25f),    // Translucent dark glass
-                            accentColor.copy(alpha = 0.08f),          // Uniform reflective color sheen
-                            Color(0xFF000000).copy(alpha = 0.35f)     // Pure black AMOLED foundation
+                            Color.White.copy(alpha = 0.12f),          // Specular top glass reflection
+                            Color(0xFF100E14).copy(alpha = 0.68f),    // Dense dark translucent glass
+                            Color(0xFF000000).copy(alpha = 0.82f)     // AMOLED foundation
                         )
                     )
                 }
                 isDark -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.14f),          // Specular top glass reflection
-                            Color(0xFF221F2B).copy(alpha = 0.32f),    // Translucent dark charcoal glass
-                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                            Color(0xFF14121A).copy(alpha = 0.35f)     // Dark charcoal gray foundation (non-pure-black)
+                            Color.White.copy(alpha = 0.16f),          // Specular top glass reflection
+                            Color(0xFF201D28).copy(alpha = 0.72f),    // Dense dark charcoal glass
+                            Color(0xFF14121A).copy(alpha = 0.80f)     // Charcoal gray foundation
                         )
                     )
                 }
                 else -> {
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.65f),          // Specular top glass reflection
-                            Color.White.copy(alpha = 0.25f),          // Translucent light glass
-                            accentColor.copy(alpha = 0.10f),          // Uniform reflective color sheen
-                            Color.White.copy(alpha = 0.35f)           // Base foundation
+                            Color.White.copy(alpha = 0.88f),          // Specular top glass reflection
+                            Color.White.copy(alpha = 0.76f),          // Dense white frosted glass
+                            Color(0xFFF6F7FA).copy(alpha = 0.84f)     // Milky frosted foundation
                         )
                     )
                 }
             },
             shape = shape
         )
-        // 4. Soft noise grain overlay and dual-tone reflective specular top highlight matching Bottom Navigation
+        // 4. Soft noise grain overlay and pure white specular top highlight
         .drawWithContent {
             drawContent()
             val w = size.width
@@ -1159,20 +1154,19 @@ fun Modifier.frostedLiquidGlassMenuBackground(
             // Soft procedural micro-grain overlay for tactile frosted noisy blur
             drawRect(
                 brush = SoftNoiseTexture.getOrCreateBrush(),
-                alpha = if (isDark || isAmoled) 0.08f else 0.10f
+                alpha = if (isDark || isAmoled) 0.06f else 0.08f
             )
 
-            // Top specular shine with blended reflective color sheen
-            val highlightWhiteAlpha = if (isDark || isAmoled) 0.38f else 0.70f
-            val sheenAccentAlpha = if (isDark || isAmoled) 0.18f else 0.22f
+            // Top specular shine with pure white reflection
+            val highlightWhiteAlpha = if (isDark || isAmoled) 0.35f else 0.65f
 
             drawRect(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
                         Color.Transparent,
-                        accentColor.copy(alpha = sheenAccentAlpha),
+                        Color.White.copy(alpha = highlightWhiteAlpha * 0.4f),
                         Color.White.copy(alpha = highlightWhiteAlpha),
-                        accentColor.copy(alpha = sheenAccentAlpha),
+                        Color.White.copy(alpha = highlightWhiteAlpha * 0.4f),
                         Color.Transparent
                     ),
                     startX = margin,
