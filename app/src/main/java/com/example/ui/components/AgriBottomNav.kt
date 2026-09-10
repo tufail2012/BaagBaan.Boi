@@ -216,9 +216,8 @@ fun AgriBottomNav(
                 var isDragging by remember { mutableStateOf(false) }
                 var dragVelocity by remember { mutableFloatStateOf(0f) }
 
-                // Elastic jelly bounce effect on snap
-                val dropletSpread = remember { Animatable(1f) }
-                val dropletRipple = remember { Animatable(1f) }
+                // Continuous spring-damper dynamic stretch & bounce
+                val dropletAspectAnim = remember { Animatable(1f) }
 
                 // Sync position on external index change when not dragging
                 LaunchedEffect(selectedIndex) {
@@ -228,90 +227,55 @@ fun AgriBottomNav(
                             dropletOffsetPx.animateTo(
                                 targetValue = targetPx,
                                 animationSpec = spring(
-                                    dampingRatio = 0.72f,
-                                    stiffness = 340f
+                                    dampingRatio = 0.68f, // Bounciness factor
+                                    stiffness = 320f
                                 )
                             )
                         }
                         launch {
-                            dropletSpread.snapTo(0.85f)
-                            dropletSpread.animateTo(
+                            dropletAspectAnim.snapTo(1.22f)
+                            dropletAspectAnim.animateTo(
                                 targetValue = 1f,
                                 animationSpec = spring(
-                                    dampingRatio = 0.58f,
+                                    dampingRatio = 0.54f, // Spring restorative bounce
                                     stiffness = 260f
-                                )
-                            )
-                        }
-                        launch {
-                            dropletRipple.snapTo(0f)
-                            dropletRipple.animateTo(
-                                targetValue = 1f,
-                                animationSpec = tween(
-                                    durationMillis = 420,
-                                    easing = FastOutSlowInEasing
                                 )
                             )
                         }
                     }
                 }
 
-                // Calculate fluid stretch from dragging or spring motion
-                val velocityStretch = (abs(dragVelocity) / 2400f).coerceIn(0f, 0.35f)
-                val targetCenterPx = getTargetOffsetPx(selectedIndex)
-                val motionLagPx = abs(targetCenterPx - dropletOffsetPx.value)
-                val springStretch = (motionLagPx / slotWidthPx.coerceAtLeast(1f) * 0.28f).coerceIn(0f, 0.28f)
-                val fluidStretch = if (isDragging) velocityStretch else springStretch
+                // Metaball / spring-damper elastic fluid stretch:
+                // As distance between current position and target tab increases during drag,
+                // or due to velocity, stretch horizontal scale elastically while preserving mass
+                val nearestTabIndex = remember(dropletOffsetPx.value) {
+                    val center = dropletOffsetPx.value + (basePillWidthPx / 2f)
+                    (center / slotWidthPx).toInt().coerceIn(0, itemCount - 1)
+                }
+                val nearestCenterPx = getTargetOffsetPx(nearestTabIndex)
+                val dragDistancePx = abs(dropletOffsetPx.value - nearestCenterPx)
+                val elasticRatio = (dragDistancePx / slotWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
 
-                val dynamicScaleX = dropletSpread.value * (1f + fluidStretch * 0.65f)
-                val dynamicScaleY = dropletSpread.value * (1f - fluidStretch * 0.30f)
+                val velocityStretch = (abs(dragVelocity) / 2200f).coerceIn(0f, 0.40f)
+                val continuousDragStretch = if (isDragging) {
+                    (elasticRatio * 0.45f + velocityStretch * 0.35f).coerceIn(0f, 0.55f)
+                } else {
+                    val motionLag = abs(getTargetOffsetPx(selectedIndex) - dropletOffsetPx.value)
+                    (motionLag / slotWidthPx.coerceAtLeast(1f) * 0.32f).coerceIn(0f, 0.35f)
+                }
+
+                val dynamicScaleX = (dropletAspectAnim.value + continuousDragStretch).coerceIn(0.85f, 1.65f)
+                val dynamicScaleY = (1f / dynamicScaleX.coerceAtLeast(0.7f)).coerceIn(0.65f, 1.15f)
 
                 val dropletPillShape = RoundedCornerShape(percent = 50)
                 val animatedAccentColor = activeSectionAccent
 
-                // Subtle water droplet expanding ripple wave
-                if (dropletRipple.value < 0.99f) {
-                    val rippleProgress = dropletRipple.value
-                    val rippleAlpha = ((1f - rippleProgress) * if (!isDark) 0.16f else 0.12f).coerceIn(0f, 1f)
-                    val extraWidth = (rippleProgress * 14).dp
-                    val extraHeight = (rippleProgress * 8).dp
-
-                    val currentOffsetDp = with(density) { dropletOffsetPx.value.toDp() }
-
-                    Box(
-                        modifier = Modifier
-                            .offset(
-                                x = currentOffsetDp - (extraWidth / 2),
-                                y = -(extraHeight / 2)
-                            )
-                            .align(Alignment.CenterStart)
-                            .width(basePillWidth + extraWidth)
-                            .height(pillHeight + extraHeight)
-                            .clip(dropletPillShape)
-                            .border(
-                                width = 1.dp,
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = rippleAlpha * 0.5f),
-                                        animatedAccentColor.copy(alpha = rippleAlpha * 0.2f),
-                                        Color.Transparent
-                                    )
-                                ),
-                                shape = dropletPillShape
-                            )
-                            .background(
-                                color = Color.White.copy(alpha = rippleAlpha * 0.10f),
-                                shape = dropletPillShape
-                            )
-                    )
-                }
-
                 // -------------------------------------------------------------
-                // VISUAL AESTHETIC: LIQUID WATER DROPLET LENS COMPONENT
-                // - Ultra-transparent convex liquid glass / water droplet body
-                // - Optical refraction & subtle magnification
-                // - Specular gloss on top/bottom edges with surface tension curvature
-                // - Elastic jelly/metaball fluid stretch during drag & snap
+                // 1. VISUAL RENDERING: PURE GLASS WATER DROPLET LENS
+                // - NO manual gradient fills or opaque colors.
+                // - Purely transparent glass lens with high-intensity backdrop blur filter (20px).
+                // - Slight brightness boost directly underneath the capsule.
+                // - Sharp, thin white arc specular highlight along top edge for 3D depth.
                 // -------------------------------------------------------------
                 val dropletOffsetDp = with(density) { dropletOffsetPx.value.toDp() }
 
@@ -326,77 +290,60 @@ fun AgriBottomNav(
                             scaleY = dynamicScaleY
                         }
                         .clip(dropletPillShape)
-                        // Ultra-transparent convex liquid tint with subtle ambient refraction
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    animatedAccentColor.copy(alpha = if (isDark) 0.16f else 0.12f),
-                                    animatedAccentColor.copy(alpha = if (isDark) 0.08f else 0.06f),
-                                    Color.White.copy(alpha = if (isDark) 0.04f else 0.10f)
+                        // Pure transparent glass lens backdrop blur (20.dp high-intensity blur)
+                        .hazeEffect(
+                            state = hazeState,
+                            style = HazeStyle(
+                                blurRadius = 20.dp,
+                                tint = HazeTint(
+                                    // Ultra-thin slight brightness boost directly underneath the capsule
+                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.14f)
                                 ),
-                                center = Offset(0.5f, 0.4f),
-                                radius = 90f
-                            ),
-                            shape = dropletPillShape
+                                noiseFactor = 0f
+                            )
                         )
-                        // Optical specular gloss, meniscus surface tension & glass rim refraction
+                        // Specular highlight: Sharp, thin white arc along the top edge for 3D depth
                         .drawWithContent {
                             drawContent()
                             val w = size.width
                             val h = size.height
 
-                            // 1. Top specular gloss crest (water meniscus reflection)
+                            // Sharp, thin white specular arc along top edge
                             drawRoundRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.55f else 0.70f),
-                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
+                                        Color.White.copy(alpha = if (isDark) 0.85f else 0.95f),
+                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
                                         Color.Transparent
                                     ),
                                     startY = 0f,
-                                    endY = h * 0.48f
+                                    endY = h * 0.42f
                                 ),
-                                topLeft = Offset(1.5.dp.toPx(), 1.dp.toPx()),
-                                size = Size(w - 3.dp.toPx(), h * 0.48f),
+                                topLeft = Offset(1.5.dp.toPx(), 0.8.dp.toPx()),
+                                size = Size(w - 3.dp.toPx(), h * 0.42f),
                                 cornerRadius = CornerRadius(h / 2, h / 2),
-                                style = Stroke(width = 1.2.dp.toPx())
-                            )
-
-                            // 2. Bottom horizon caustics bounce (liquid refraction glow)
-                            drawRoundRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = if (isDark) 0.12f else 0.28f),
-                                        Color.White.copy(alpha = if (isDark) 0.28f else 0.45f)
-                                    ),
-                                    startY = h * 0.60f,
-                                    endY = h
-                                ),
-                                topLeft = Offset(2.dp.toPx(), h * 0.58f),
-                                size = Size(w - 4.dp.toPx(), h * 0.40f),
-                                cornerRadius = CornerRadius(h / 2, h / 2),
-                                style = Stroke(width = 1.dp.toPx())
+                                style = Stroke(width = 1.0.dp.toPx())
                             )
                         }
-                        // Liquid droplet outer perimeter meniscus border
+                        // Pure transparent subtle glass boundary rim
                         .border(
-                            width = 0.9.dp,
-                            brush = Brush.linearGradient(
+                            width = 0.75.dp,
+                            brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = if (!isDark) 0.55f else 0.38f),
-                                    animatedAccentColor.copy(alpha = if (!isDark) 0.25f else 0.18f),
-                                    Color.White.copy(alpha = if (!isDark) 0.30f else 0.15f)
-                                ),
-                                start = Offset.Zero,
-                                end = Offset.Infinite
+                                    Color.White.copy(alpha = if (isDark) 0.45f else 0.65f),
+                                    Color.White.copy(alpha = if (isDark) 0.12f else 0.20f),
+                                    Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+                                )
                             ),
                             shape = dropletPillShape
                         )
                 )
 
                 // -------------------------------------------------------------
-                // DUAL INTERACTION: TAP & DIRECT DRAG TO SWITCH TABS
+                // 2. INTERACTION & PHYSICS: DRAG & STRETCH ENGINE
+                // - Continuous pointer/drag event listener bound to X-position
+                // - Smooth fluid deformation during movement
+                // - Spring-physics snap on release restoring aspect ratio
                 // -------------------------------------------------------------
                 Box(
                     modifier = Modifier
@@ -438,21 +385,23 @@ fun AgriBottomNav(
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onCategorySelected(navItems[targetIndex].serviceCategory)
 
+                                    // Trigger spring-physics animation with bounciness factor snapping to target center
                                     coroutineScope.launch {
                                         dropletOffsetPx.animateTo(
                                             targetValue = getTargetOffsetPx(targetIndex),
                                             animationSpec = spring(
-                                                dampingRatio = 0.65f, // Jelly bounce
+                                                dampingRatio = 0.62f, // Bounciness factor
                                                 stiffness = 320f
                                             )
                                         )
                                     }
+                                    // Restore original circular/capsule aspect ratio with elastic wobble
                                     coroutineScope.launch {
-                                        dropletSpread.snapTo(0.82f)
-                                        dropletSpread.animateTo(
+                                        dropletAspectAnim.snapTo(1.30f)
+                                        dropletAspectAnim.animateTo(
                                             targetValue = 1f,
                                             animationSpec = spring(
-                                                dampingRatio = 0.52f,
+                                                dampingRatio = 0.50f, // Bouncy elastic restoration
                                                 stiffness = 240f
                                             )
                                         )
@@ -466,8 +415,17 @@ fun AgriBottomNav(
                                         dropletOffsetPx.animateTo(
                                             targetValue = getTargetOffsetPx(selectedIndex),
                                             animationSpec = spring(
-                                                dampingRatio = 0.72f,
+                                                dampingRatio = 0.68f,
                                                 stiffness = 320f
+                                            )
+                                        )
+                                    }
+                                    coroutineScope.launch {
+                                        dropletAspectAnim.animateTo(
+                                            targetValue = 1f,
+                                            animationSpec = spring(
+                                                dampingRatio = 0.60f,
+                                                stiffness = 260f
                                             )
                                         )
                                     }
@@ -483,7 +441,7 @@ fun AgriBottomNav(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     navItems.forEachIndexed { index, item ->
-                        // Calculate proximity to droplet for optical magnification under the lens
+                        // Natural optical magnification under the lens
                         val tabCenterPx = (slotWidthPx * index) + (slotWidthPx / 2f)
                         val dropletCenterPx = dropletOffsetPx.value + (basePillWidthPx / 2f)
                         val distanceToDroplet = abs(tabCenterPx - dropletCenterPx)
@@ -494,15 +452,14 @@ fun AgriBottomNav(
                         val selectedColor = animatedAccentColor
 
                         val iconColor by animateColorAsState(
-                            targetValue = if (proximity > 0.65f) selectedColor else unselectedColor,
+                            targetValue = if (proximity > 0.60f) selectedColor else unselectedColor,
                             animationSpec = tween(durationMillis = 180),
                             label = "navIconColor"
                         )
 
-                        // Optical refraction & magnification under water droplet
-                        val baseScale = 1.0f + (proximity * 0.16f)
-                        val liftY = (-2.5f * proximity).dp
-                        val rotX = (5f * proximity)
+                        // Subtle natural lens magnification
+                        val baseScale = 1.0f + (proximity * 0.18f)
+                        val liftY = (-2.0f * proximity).dp
 
                         Box(
                             modifier = Modifier
@@ -529,8 +486,6 @@ fun AgriBottomNav(
                                         scaleX = baseScale
                                         scaleY = baseScale
                                         translationY = with(density) { liftY.toPx() }
-                                        rotationX = rotX
-                                        cameraDistance = 16f * density.density
                                     }
                             )
                         }
