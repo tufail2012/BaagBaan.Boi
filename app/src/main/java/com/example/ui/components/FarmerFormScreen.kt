@@ -3132,7 +3132,7 @@ fun FarmerFormScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(100.dp))
+        Spacer(modifier = Modifier.height(220.dp))
     }
 
     // Multiple Phone Numbers Selection Dialog
