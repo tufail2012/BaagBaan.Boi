@@ -62,6 +62,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -69,6 +71,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -103,7 +106,8 @@ fun AgriBottomNav(
     onCategorySelected: (String) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color? = null
+    accentColor: Color? = null,
+    pagerState: PagerState? = null
 ) {
     val navItems = remember {
         listOf(
@@ -233,43 +237,66 @@ fun AgriBottomNav(
                 var indicatorOffsetPx by remember { mutableFloatStateOf(getTargetOffsetPx(selectedIndex)) }
                 val indicatorAnimatable = remember { Animatable(getTargetOffsetPx(selectedIndex)) }
                 var isDragging by remember { mutableStateOf(false) }
+                var isSnappingAfterDrag by remember { mutableStateOf(false) }
                 var dragVelocity by remember { mutableFloatStateOf(0f) }
                 var lastHoveredIndex by remember { mutableIntStateOf(selectedIndex) }
+                var dragScrollJob by remember { mutableStateOf<Job?>(null) }
 
                 // Continuous spring-damper dynamic stretch & bounce
                 val dropletAspectAnim = remember { Animatable(1f) }
 
-                // Sync position on external index change when not dragging
-                LaunchedEffect(selectedIndex, slotWidthPx, basePillWidthPx) {
-                    if (!isDragging) {
-                        val targetPx = getTargetOffsetPx(selectedIndex)
-                        lastHoveredIndex = selectedIndex
-                        if (abs(indicatorOffsetPx - targetPx) > 0.5f) {
-                            launch {
-                                indicatorAnimatable.snapTo(indicatorOffsetPx)
-                                indicatorAnimatable.animateTo(
-                                    targetValue = targetPx,
-                                    animationSpec = spring(
-                                        dampingRatio = 0.68f, // Bounciness factor
-                                        stiffness = 320f
-                                    )
-                                ) {
-                                    indicatorOffsetPx = this.value
+                // Two-Way Sync (Pager Swiping Updates Pill):
+                // When the user swipes pages directly on the screen (or when pager transitions),
+                // interpolate the bottom pill position smoothly using:
+                // pagerState.currentPage + pagerState.currentPageOffsetFraction
+                if (pagerState != null) {
+                    LaunchedEffect(pagerState, isDragging, isSnappingAfterDrag, slotWidthPx, basePillWidthPx) {
+                        if (!isDragging && !isSnappingAfterDrag) {
+                            snapshotFlow { pagerState.currentPage + pagerState.currentPageOffsetFraction }
+                                .collect { progress ->
+                                    if (!isDragging && !isSnappingAfterDrag) {
+                                        val minOffset = (slotWidthPx - basePillWidthPx) / 2f
+                                        val targetPx = (slotWidthPx * progress) + minOffset
+                                        indicatorOffsetPx = targetPx
+                                        val currentTab = progress.roundToInt().coerceIn(0, itemCount - 1)
+                                        lastHoveredIndex = currentTab
+                                    }
                                 }
-                            }
-                            launch {
-                                dropletAspectAnim.snapTo(1.22f)
-                                dropletAspectAnim.animateTo(
-                                    targetValue = 1f,
-                                    animationSpec = spring(
-                                        dampingRatio = 0.54f, // Spring restorative bounce
-                                        stiffness = 260f
+                        }
+                    }
+                } else {
+                    // Fallback sync position on external index change when no pagerState is attached
+                    LaunchedEffect(selectedIndex, slotWidthPx, basePillWidthPx) {
+                        if (!isDragging) {
+                            val targetPx = getTargetOffsetPx(selectedIndex)
+                            lastHoveredIndex = selectedIndex
+                            if (abs(indicatorOffsetPx - targetPx) > 0.5f) {
+                                launch {
+                                    indicatorAnimatable.snapTo(indicatorOffsetPx)
+                                    indicatorAnimatable.animateTo(
+                                        targetValue = targetPx,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.68f, // Bounciness factor
+                                            stiffness = 320f
+                                        )
+                                    ) {
+                                        indicatorOffsetPx = this.value
+                                    }
+                                }
+                                launch {
+                                    dropletAspectAnim.snapTo(1.22f)
+                                    dropletAspectAnim.animateTo(
+                                        targetValue = 1f,
+                                        animationSpec = spring(
+                                            dampingRatio = 0.54f, // Spring restorative bounce
+                                            stiffness = 260f
+                                        )
                                     )
-                                )
+                                }
+                            } else {
+                                indicatorOffsetPx = targetPx
+                                indicatorAnimatable.snapTo(targetPx)
                             }
-                        } else {
-                            indicatorOffsetPx = targetPx
-                            indicatorAnimatable.snapTo(targetPx)
                         }
                     }
                 }
@@ -369,11 +396,13 @@ fun AgriBottomNav(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(totalWidthPx, itemCount, selectedIndex) {
+                        .pointerInput(totalWidthPx, itemCount, selectedIndex, pagerState) {
                             detectHorizontalDragGestures(
                                 onDragStart = { _ ->
                                     isDragging = true
+                                    isSnappingAfterDrag = false
                                     dragVelocity = 0f
+                                    dragScrollJob?.cancel()
                                     coroutineScope.launch {
                                         indicatorAnimatable.stop()
                                     }
@@ -387,30 +416,65 @@ fun AgriBottomNav(
                                     indicatorOffsetPx = newOffset
                                     dragVelocity = dragAmount * 60f
 
-                                    // Haptic feedback when crossing nearest tab threshold
-                                    val center = newOffset + (basePillWidthPx / 2f)
-                                    val hoveredIndex = tabCenterPoints.indices.minByOrNull { i ->
-                                        abs(tabCenterPoints[i] - center)
-                                    } ?: selectedIndex
+                                    // Fractional drag progress from the navigation bar pill:
+                                    // targetPageOffset = (dragOffsetX / tabWidth).coerceIn(0f, pageCount - 1f)
+                                    val tabWidth = slotWidthPx
+                                    val initialTabCenterOffset = (tabWidth - basePillWidthPx) / 2f
+                                    val dragOffsetX = newOffset - initialTabCenterOffset
+                                    val pageCount = pagerState?.pageCount ?: itemCount
+                                    val targetPageOffset = (dragOffsetX / tabWidth).coerceIn(0f, (pageCount - 1).toFloat())
 
+                                    // Haptic feedback when crossing nearest tab threshold
+                                    val hoveredIndex = targetPageOffset.roundToInt().coerceIn(0, itemCount - 1)
                                     if (hoveredIndex != lastHoveredIndex) {
                                         lastHoveredIndex = hoveredIndex
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
+
+                                    // Synchronize continuous dragging so that as user drags the pill horizontally,
+                                    // call pagerState.scrollToPage() so pages swipe in real-time
+                                    if (pagerState != null) {
+                                        val targetPage = targetPageOffset.roundToInt().coerceIn(0, pageCount - 1)
+                                        val targetFraction = (targetPageOffset - targetPage).coerceIn(-0.5f, 0.5f)
+                                        dragScrollJob?.cancel()
+                                        dragScrollJob = coroutineScope.launch {
+                                            pagerState.scrollToPage(targetPage, targetFraction)
+                                        }
+                                    }
                                 },
                                 onDragEnd = {
                                     isDragging = false
-                                    val finalCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
-                                    val targetIndex = tabCenterPoints.indices.minByOrNull { i ->
-                                        abs(tabCenterPoints[i] - finalCenter)
-                                    } ?: selectedIndex
+                                    dragScrollJob?.cancel()
+
+                                    val tabWidth = slotWidthPx
+                                    val initialTabCenterOffset = (tabWidth - basePillWidthPx) / 2f
+                                    val dragOffsetX = indicatorOffsetPx - initialTabCenterOffset
+                                    val pageCount = pagerState?.pageCount ?: itemCount
+                                    val targetPageOffset = (dragOffsetX / tabWidth).coerceIn(0f, (pageCount - 1).toFloat())
+                                    val nearestIndex = targetPageOffset.roundToInt().coerceIn(0, pageCount - 1)
 
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    if (targetIndex != selectedIndex) {
-                                        onCategorySelected(navItems[targetIndex].serviceCategory)
+                                    if (nearestIndex != selectedIndex && nearestIndex in navItems.indices) {
+                                        onCategorySelected(navItems[nearestIndex].serviceCategory)
                                     }
 
-                                    val snapTargetPx = getTargetOffsetPx(targetIndex)
+                                    isSnappingAfterDrag = true
+                                    val snapTargetPx = getTargetOffsetPx(nearestIndex)
+
+                                    // Snap & Settle on Drag Release:
+                                    // Animate both the pill indicator snap and the pager using coroutineScope.launch
+                                    if (pagerState != null) {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(
+                                                page = nearestIndex,
+                                                animationSpec = spring(
+                                                    dampingRatio = 0.70f,
+                                                    stiffness = 340f
+                                                )
+                                            )
+                                        }
+                                    }
+
                                     coroutineScope.launch {
                                         indicatorAnimatable.snapTo(indicatorOffsetPx)
                                         indicatorAnimatable.animateTo(
@@ -422,6 +486,7 @@ fun AgriBottomNav(
                                         ) {
                                             indicatorOffsetPx = this.value
                                         }
+                                        isSnappingAfterDrag = false
                                     }
                                     coroutineScope.launch {
                                         dropletAspectAnim.snapTo(1.30f)
@@ -438,7 +503,17 @@ fun AgriBottomNav(
                                 onDragCancel = {
                                     isDragging = false
                                     dragVelocity = 0f
-                                    val snapTargetPx = getTargetOffsetPx(selectedIndex)
+                                    dragScrollJob?.cancel()
+                                    val targetIndex = selectedIndex
+                                    isSnappingAfterDrag = true
+                                    val snapTargetPx = getTargetOffsetPx(targetIndex)
+
+                                    if (pagerState != null) {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(targetIndex)
+                                        }
+                                    }
+
                                     coroutineScope.launch {
                                         indicatorAnimatable.snapTo(indicatorOffsetPx)
                                         indicatorAnimatable.animateTo(
@@ -450,12 +525,13 @@ fun AgriBottomNav(
                                         ) {
                                             indicatorOffsetPx = this.value
                                         }
+                                        isSnappingAfterDrag = false
                                     }
                                     coroutineScope.launch {
                                         dropletAspectAnim.animateTo(
                                             targetValue = 1f,
                                             animationSpec = spring(
-                                                dampingRatio = 0.60f,
+                                                dampingRatio = 0.54f,
                                                 stiffness = 260f
                                             )
                                         )
@@ -498,6 +574,17 @@ fun AgriBottomNav(
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                         onCategorySelected(item.serviceCategory)
+                                        if (pagerState != null) {
+                                            coroutineScope.launch {
+                                                pagerState.animateScrollToPage(
+                                                    page = index,
+                                                    animationSpec = spring(
+                                                        dampingRatio = 0.72f,
+                                                        stiffness = 340f
+                                                    )
+                                                )
+                                            }
+                                        }
                                     }
                                 ),
                             contentAlignment = Alignment.Center

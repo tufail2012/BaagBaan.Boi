@@ -2,6 +2,10 @@ package com.example
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,6 +22,7 @@ import com.example.ui.components.AgriBottomNav
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -130,5 +135,87 @@ class AgriBottomNavGestureTest {
 
         // Should snap to last tab without crash or overflow
         assertEquals("Garden Planning", selectedCategory)
+    }
+
+    @Test
+    fun testBidirectionalSync_DragPillUpdatesPagerState() {
+        val pages = listOf("Local Plants", "Imported", "Rootstocks", "Site Visit", "Pruning", "Garden Planning")
+        var selectedCategory by mutableStateOf("Local Plants")
+        var recordedPage by mutableStateOf(0)
+
+        composeTestRule.setContent {
+            val hazeState = remember { HazeState() }
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { pages.size })
+
+            LaunchedEffect(pagerState.currentPage) {
+                recordedPage = pagerState.currentPage
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    Text(text = "Page: ${pages[page]}")
+                }
+
+                AgriBottomNav(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { selectedCategory = it },
+                    hazeState = hazeState,
+                    pagerState = pagerState
+                )
+            }
+        }
+
+        // Drag pill from nav_local to the right
+        composeTestRule.onNodeWithTag("nav_local").performTouchInput {
+            down(center)
+            moveBy(androidx.compose.ui.geometry.Offset(250f, 0f))
+            up()
+        }
+        composeTestRule.waitForIdle()
+
+        // Pager should have moved from page 0 and selectedCategory should be updated
+        assertTrue("Expected pager to switch away from page 0", recordedPage > 0)
+        assertTrue("Expected category to switch away from Local Plants", selectedCategory != "Local Plants")
+    }
+
+    @Test
+    fun testBidirectionalSync_TapPillScrollsPager() {
+        val pages = listOf("Local Plants", "Imported", "Rootstocks", "Site Visit", "Pruning", "Garden Planning")
+        var selectedCategory by mutableStateOf("Local Plants")
+        var recordedPage by mutableStateOf(0)
+
+        composeTestRule.setContent {
+            val hazeState = remember { HazeState() }
+            val pagerState = rememberPagerState(initialPage = 0, pageCount = { pages.size })
+
+            LaunchedEffect(pagerState.currentPage) {
+                recordedPage = pagerState.currentPage
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    Text(text = "Page: ${pages[page]}")
+                }
+
+                AgriBottomNav(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { selectedCategory = it },
+                    hazeState = hazeState,
+                    pagerState = pagerState
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("nav_site_visit").performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals("Site Visit", selectedCategory)
+        assertEquals(3, recordedPage)
     }
 }

@@ -831,6 +831,7 @@ fun AgriCropMainScreen(
                                 },
                                 hazeState = hazeState,
                                 accentColor = sectionAccentColor,
+                                pagerState = pagerState,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .zIndex(10f)
