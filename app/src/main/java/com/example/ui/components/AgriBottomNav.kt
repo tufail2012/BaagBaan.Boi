@@ -182,25 +182,13 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            val glassHazeStyle = remember(isDark, isAmoled) {
-                HazeStyle(
-                    backgroundColor = Color.Transparent,
-                    blurRadius = 80.dp,
-                    tints = listOf(
-                        HazeTint(
-                            color = if (isDark || isAmoled) Color.Black.copy(alpha = 0.02f) else Color.White.copy(alpha = 0.02f)
-                        )
-                    ),
-                    noiseFactor = 0f
-                )
-            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(containerShape)
                     .hazeEffect(
                         state = hazeState,
-                        style = glassHazeStyle
+                        style = HazeMaterials.regular(container)
                     )
             )
 

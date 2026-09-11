@@ -773,14 +773,6 @@ fun AgriCropMainScreen(
                                 }
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(120.dp)
-                                    .align(Alignment.BottomCenter)
-                                    .background(Color.Red)
-                            )
-
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
                                 selectedCategory = selectedService,
