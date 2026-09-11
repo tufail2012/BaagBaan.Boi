@@ -1094,7 +1094,9 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         blurRadius = 48.dp,
         tints = listOf(
             HazeTint(
-                color = if (isDark || isAmoled) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.12f)
+                color = if (isAmoled) Color.Black.copy(alpha = 0.30f)
+                        else if (isDark) Color(0xFF16141D).copy(alpha = 0.28f)
+                        else Color.White.copy(alpha = 0.30f)
             )
         ),
         noiseFactor = 0.05f
@@ -1111,39 +1113,6 @@ fun Modifier.frostedLiquidGlassMenuBackground(
         .clip(shape)
         // 2. Real optical backdrop blur via Haze
         .hazeEffect(state = hazeState, style = hazeStyle)
-        // 3. Dense neutral frosted liquid glass body wash (obscures background text into soft diffuse light)
-        .background(
-            brush = when {
-                isAmoled -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.12f),          // Specular top glass reflection
-                            Color(0xFF100E14).copy(alpha = 0.68f),    // Dense dark translucent glass
-                            Color(0xFF000000).copy(alpha = 0.82f)     // AMOLED foundation
-                        )
-                    )
-                }
-                isDark -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.16f),          // Specular top glass reflection
-                            Color(0xFF201D28).copy(alpha = 0.72f),    // Dense dark charcoal glass
-                            Color(0xFF14121A).copy(alpha = 0.80f)     // Charcoal gray foundation
-                        )
-                    )
-                }
-                else -> {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.88f),          // Specular top glass reflection
-                            Color.White.copy(alpha = 0.76f),          // Dense white frosted glass
-                            Color(0xFFF6F7FA).copy(alpha = 0.84f)     // Milky frosted foundation
-                        )
-                    )
-                }
-            },
-            shape = shape
-        )
         // 4. Soft noise grain overlay and pure white specular top highlight
         .drawWithContent {
             drawContent()
