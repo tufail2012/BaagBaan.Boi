@@ -182,13 +182,24 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
+            val boldGlassStyle = remember(isDark, container) {
+                HazeStyle(
+                    backgroundColor = container,
+                    tint = HazeTint(
+                        color = if (isDark) container.copy(alpha = 0.35f) else container.copy(alpha = 0.30f)
+                    ),
+                    blurRadius = 24.dp,
+                    noiseFactor = 0f
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(containerShape)
                     .hazeEffect(
                         state = hazeState,
-                        style = HazeMaterials.regular(container)
+                        style = boldGlassStyle
                     )
             )
 

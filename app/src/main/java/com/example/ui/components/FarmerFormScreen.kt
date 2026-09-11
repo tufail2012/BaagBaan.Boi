@@ -809,13 +809,6 @@ fun FarmerFormScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .background(Color.Blue)
-            )
-
             // Dedicated Sub-Tabs for Pruning & Rootstocks
             if (selectedService.equals("Pruning", ignoreCase = true)) {
                 PruningSubTabs(
