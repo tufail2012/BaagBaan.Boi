@@ -752,6 +752,7 @@ fun AgriCropMainScreen(
                                     HorizontalPager(
                                         state = pagerState,
                                         modifier = Modifier.fillMaxSize(),
+                                        beyondViewportPageCount = 1,
                                         key = { mainTabs.getOrElse(it) { "$it" } }
                                     ) { page ->
                                         val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }

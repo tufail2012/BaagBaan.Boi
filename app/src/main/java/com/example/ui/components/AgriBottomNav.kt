@@ -234,13 +234,13 @@ fun AgriBottomNav(
                 }
 
                 // Indicator offset state (synchronous binding for pointer drag)
+                // Using mutableFloatStateOf read inside layout/draw lambda (or Animatable) prevents recompositions
                 var indicatorOffsetPx by remember { mutableFloatStateOf(getTargetOffsetPx(selectedIndex)) }
                 val indicatorAnimatable = remember { Animatable(getTargetOffsetPx(selectedIndex)) }
                 var isDragging by remember { mutableStateOf(false) }
                 var isSnappingAfterDrag by remember { mutableStateOf(false) }
                 var dragVelocity by remember { mutableFloatStateOf(0f) }
                 var lastHoveredIndex by remember { mutableIntStateOf(selectedIndex) }
-                var dragScrollJob by remember { mutableStateOf<Job?>(null) }
 
                 // Continuous spring-damper dynamic stretch & bounce
                 val dropletAspectAnim = remember { Animatable(1f) }
@@ -301,45 +301,49 @@ fun AgriBottomNav(
                     }
                 }
 
-                // Nearest tab index based on current indicator center
-                val currentIndicatorCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
-                val nearestTabIndex = tabCenterPoints.indices.minByOrNull { i ->
-                    abs(tabCenterPoints[i] - currentIndicatorCenter)
-                } ?: selectedIndex
-
-                val nearestCenterPx = getTargetOffsetPx(nearestTabIndex)
-                val dragDistancePx = abs(indicatorOffsetPx - nearestCenterPx)
-                val elasticRatio = (dragDistancePx / slotWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
-
-                val velocityStretch = (abs(dragVelocity) / 2200f).coerceIn(0f, 0.40f)
-                val continuousDragStretch = if (isDragging) {
-                    (elasticRatio * 0.45f + velocityStretch * 0.35f).coerceIn(0f, 0.55f)
-                } else {
-                    val motionLag = abs(getTargetOffsetPx(selectedIndex) - indicatorOffsetPx)
-                    (motionLag / slotWidthPx.coerceAtLeast(1f) * 0.32f).coerceIn(0f, 0.35f)
-                }
-
-                val dynamicScaleX = (dropletAspectAnim.value + continuousDragStretch).coerceIn(0.85f, 1.65f)
-                val dynamicScaleY = (1f / dynamicScaleX.coerceAtLeast(0.7f)).coerceIn(0.65f, 1.15f)
-
                 val dropletPillShape = RoundedCornerShape(percent = 50)
-                val animatedAccentColor = activeSectionAccent
 
                 // -------------------------------------------------------------
                 // 1. VISUAL RENDERING: PURE GLASS WATER DROPLET LENS
+                // - Decoupled Drag via GraphicsLayer / Offset lambda:
+                // - Read indicatorOffsetPx and calculate scale inside graphicsLayer / offset { }
+                //   so drag updates only trigger drawing/layout passes, NOT full recompositions.
                 // - NO manual gradient fills or opaque colors.
                 // - Purely transparent glass lens with high-intensity backdrop blur filter (20px).
                 // - Sharp, thin white arc specular highlight along top edge for 3D depth.
                 // -------------------------------------------------------------
-                val dropletOffsetDp = with(density) { indicatorOffsetPx.toDp() }
-
                 Box(
                     modifier = Modifier
-                        .offset(x = dropletOffsetDp)
+                        .offset {
+                            IntOffset(
+                                x = indicatorOffsetPx.roundToInt(),
+                                y = 0
+                            )
+                        }
                         .align(Alignment.CenterStart)
                         .width(basePillWidth)
                         .height(pillHeight)
                         .graphicsLayer {
+                            // Calculate dynamic stretch inside graphicsLayer so micro-drags do not cause recomposition
+                            val currentIndicatorCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
+                            val nearestTabIndex = tabCenterPoints.indices.minByOrNull { i ->
+                                abs(tabCenterPoints[i] - currentIndicatorCenter)
+                            } ?: selectedIndex
+
+                            val nearestCenterPx = getTargetOffsetPx(nearestTabIndex)
+                            val dragDistancePx = abs(indicatorOffsetPx - nearestCenterPx)
+                            val elasticRatio = (dragDistancePx / slotWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                            val velocityStretch = (abs(dragVelocity) / 2200f).coerceIn(0f, 0.40f)
+                            val continuousDragStretch = if (isDragging) {
+                                (elasticRatio * 0.45f + velocityStretch * 0.35f).coerceIn(0f, 0.55f)
+                            } else {
+                                val motionLag = abs(getTargetOffsetPx(selectedIndex) - indicatorOffsetPx)
+                                (motionLag / slotWidthPx.coerceAtLeast(1f) * 0.32f).coerceIn(0f, 0.35f)
+                            }
+
+                            val dynamicScaleX = (dropletAspectAnim.value + continuousDragStretch).coerceIn(0.85f, 1.65f)
+                            val dynamicScaleY = (1f / dynamicScaleX.coerceAtLeast(0.7f)).coerceIn(0.65f, 1.15f)
+
                             scaleX = dynamicScaleX
                             scaleY = dynamicScaleY
                         }
@@ -402,7 +406,6 @@ fun AgriBottomNav(
                                     isDragging = true
                                     isSnappingAfterDrag = false
                                     dragVelocity = 0f
-                                    dragScrollJob?.cancel()
                                     coroutineScope.launch {
                                         indicatorAnimatable.stop()
                                     }
@@ -413,11 +416,11 @@ fun AgriBottomNav(
                                     val minOffset = 0f
                                     val maxOffset = (totalWidthPx - basePillWidthPx).coerceAtLeast(0f)
                                     val newOffset = (indicatorOffsetPx + dragAmount).coerceIn(minOffset, maxOffset)
+                                    val effectivePillDelta = newOffset - indicatorOffsetPx
                                     indicatorOffsetPx = newOffset
                                     dragVelocity = dragAmount * 60f
 
                                     // Fractional drag progress from the navigation bar pill:
-                                    // targetPageOffset = (dragOffsetX / tabWidth).coerceIn(0f, pageCount - 1f)
                                     val tabWidth = slotWidthPx
                                     val initialTabCenterOffset = (tabWidth - basePillWidthPx) / 2f
                                     val dragOffsetX = newOffset - initialTabCenterOffset
@@ -431,20 +434,21 @@ fun AgriBottomNav(
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
 
-                                    // Synchronize continuous dragging so that as user drags the pill horizontally,
-                                    // call pagerState.scrollToPage() so pages swipe in real-time
-                                    if (pagerState != null) {
-                                        val targetPage = targetPageOffset.roundToInt().coerceIn(0, pageCount - 1)
-                                        val targetFraction = (targetPageOffset - targetPage).coerceIn(-0.5f, 0.5f)
-                                        dragScrollJob?.cancel()
-                                        dragScrollJob = coroutineScope.launch {
-                                            pagerState.scrollToPage(targetPage, targetFraction)
+                                    // Smooth Pager Driving:
+                                    // While dragging the pill, drive pagerState.dispatchRawDelta without spawning new coroutines.
+                                    // In HorizontalPager, scrolling right on the screen consumes negative delta.
+                                    // Moving the pill forward by effectivePillDelta corresponds to scrolling the pager by:
+                                    // pagerDelta = - (effectivePillDelta / tabWidth) * pagerScreenWidth
+                                    if (pagerState != null && abs(effectivePillDelta) > 0.001f) {
+                                        val pagerPageSize = pagerState.layoutInfo.pageSize.toFloat()
+                                        if (pagerPageSize > 0f) {
+                                            val pagerDelta = - (effectivePillDelta / tabWidth) * pagerPageSize
+                                            pagerState.dispatchRawDelta(pagerDelta)
                                         }
                                     }
                                 },
                                 onDragEnd = {
                                     isDragging = false
-                                    dragScrollJob?.cancel()
 
                                     val tabWidth = slotWidthPx
                                     val initialTabCenterOffset = (tabWidth - basePillWidthPx) / 2f
@@ -461,8 +465,8 @@ fun AgriBottomNav(
                                     isSnappingAfterDrag = true
                                     val snapTargetPx = getTargetOffsetPx(nearestIndex)
 
-                                    // Snap & Settle on Drag Release:
-                                    // Animate both the pill indicator snap and the pager using coroutineScope.launch
+                                    // Page Release & Snap:
+                                    // Only launch animateScrollToPage once inside onDragEnd, never inside onDrag.
                                     if (pagerState != null) {
                                         coroutineScope.launch {
                                             pagerState.animateScrollToPage(
@@ -503,7 +507,6 @@ fun AgriBottomNav(
                                 onDragCancel = {
                                     isDragging = false
                                     dragVelocity = 0f
-                                    dragScrollJob?.cancel()
                                     val targetIndex = selectedIndex
                                     isSnappingAfterDrag = true
                                     val snapTargetPx = getTargetOffsetPx(targetIndex)
@@ -542,26 +545,16 @@ fun AgriBottomNav(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
+                    val selectedColor = activeSectionAccent
+
                     navItems.forEachIndexed { index, item ->
-                        // Natural optical magnification under the lens
-                        val tabCenterPx = tabCenterPoints[index]
-                        val dropletCenterPx = indicatorOffsetPx + (basePillWidthPx / 2f)
-                        val distanceToDroplet = abs(tabCenterPx - dropletCenterPx)
-                        val proximity = (1f - (distanceToDroplet / slotWidthPx)).coerceIn(0f, 1f)
-
                         val isSelected = index == selectedIndex
-                        val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
-                        val selectedColor = animatedAccentColor
-
                         val iconColor by animateColorAsState(
-                            targetValue = if (proximity > 0.60f) selectedColor else unselectedColor,
+                            targetValue = if (isSelected) selectedColor else unselectedColor,
                             animationSpec = tween(durationMillis = 180),
                             label = "navIconColor"
                         )
-
-                        // Subtle natural lens magnification
-                        val baseScale = 1.0f + (proximity * 0.18f)
-                        val liftY = (-2.0f * proximity).dp
 
                         Box(
                             modifier = Modifier
@@ -596,9 +589,17 @@ fun AgriBottomNav(
                                 modifier = Modifier
                                     .size(24.dp)
                                     .graphicsLayer {
+                                        // Read indicator offset inside graphicsLayer to avoid recomposition passes
+                                        val tabCenterPx = tabCenterPoints[index]
+                                        val dropletCenterPx = indicatorOffsetPx + (basePillWidthPx / 2f)
+                                        val distanceToDroplet = abs(tabCenterPx - dropletCenterPx)
+                                        val proximity = (1f - (distanceToDroplet / slotWidthPx)).coerceIn(0f, 1f)
+                                        val baseScale = 1.0f + (proximity * 0.18f)
+                                        val liftYPx = -2.0f * proximity * density.density
+
                                         scaleX = baseScale
                                         scaleY = baseScale
-                                        translationY = with(density) { liftY.toPx() }
+                                        translationY = liftYPx
                                     }
                             )
                         }
