@@ -103,6 +103,7 @@ fun SettingsScreen(
     currentUserEmail: String? = null,
     currentUserPhotoUrl: String? = null,
     onOpenThemeDialog: () -> Unit,
+    onNavigateToPermissions: () -> Unit = {},
     onNavigateToAccounts: () -> Unit = {},
     onLogout: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
@@ -481,6 +482,19 @@ fun SettingsScreen(
                                 subtitle = modeLabel,
                                 onClick = onOpenThemeDialog,
                                 testTag = "settings_theme_row"
+                            )
+
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+
+                            SettingsNavigationRow(
+                                icon = Icons.Default.Shield,
+                                title = "Device Permissions & Onboarding",
+                                subtitle = "Manage alerts, camera & location access",
+                                onClick = onNavigateToPermissions,
+                                testTag = "settings_permissions_row"
                             )
                         }
                     }

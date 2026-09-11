@@ -14,7 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -217,61 +218,77 @@ fun AgriBottomNav(
 
                 val slotWidthPx = with(density) { slotWidth.toPx() }
                 val basePillWidthPx = with(density) { basePillWidth.toPx() }
+                val totalWidthPx = with(density) { totalWidth.toPx() }
 
                 fun getTargetOffsetPx(index: Int): Float {
                     return (slotWidthPx * index) + (slotWidthPx - basePillWidthPx) / 2f
                 }
 
-                // Droplet animated position in pixels
-                val dropletOffsetPx = remember { Animatable(getTargetOffsetPx(selectedIndex)) }
+                // Precalculate tab center points
+                val tabCenterPoints = remember(slotWidthPx, itemCount) {
+                    List(itemCount) { i -> (slotWidthPx * i) + (slotWidthPx / 2f) }
+                }
+
+                // Indicator offset state (synchronous binding for pointer drag)
+                var indicatorOffsetPx by remember { mutableFloatStateOf(getTargetOffsetPx(selectedIndex)) }
+                val indicatorAnimatable = remember { Animatable(getTargetOffsetPx(selectedIndex)) }
                 var isDragging by remember { mutableStateOf(false) }
                 var dragVelocity by remember { mutableFloatStateOf(0f) }
+                var lastHoveredIndex by remember { mutableIntStateOf(selectedIndex) }
 
                 // Continuous spring-damper dynamic stretch & bounce
                 val dropletAspectAnim = remember { Animatable(1f) }
 
                 // Sync position on external index change when not dragging
-                LaunchedEffect(selectedIndex) {
+                LaunchedEffect(selectedIndex, slotWidthPx, basePillWidthPx) {
                     if (!isDragging) {
                         val targetPx = getTargetOffsetPx(selectedIndex)
-                        launch {
-                            dropletOffsetPx.animateTo(
-                                targetValue = targetPx,
-                                animationSpec = spring(
-                                    dampingRatio = 0.68f, // Bounciness factor
-                                    stiffness = 320f
+                        lastHoveredIndex = selectedIndex
+                        if (abs(indicatorOffsetPx - targetPx) > 0.5f) {
+                            launch {
+                                indicatorAnimatable.snapTo(indicatorOffsetPx)
+                                indicatorAnimatable.animateTo(
+                                    targetValue = targetPx,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.68f, // Bounciness factor
+                                        stiffness = 320f
+                                    )
+                                ) {
+                                    indicatorOffsetPx = this.value
+                                }
+                            }
+                            launch {
+                                dropletAspectAnim.snapTo(1.22f)
+                                dropletAspectAnim.animateTo(
+                                    targetValue = 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = 0.54f, // Spring restorative bounce
+                                        stiffness = 260f
+                                    )
                                 )
-                            )
-                        }
-                        launch {
-                            dropletAspectAnim.snapTo(1.22f)
-                            dropletAspectAnim.animateTo(
-                                targetValue = 1f,
-                                animationSpec = spring(
-                                    dampingRatio = 0.54f, // Spring restorative bounce
-                                    stiffness = 260f
-                                )
-                            )
+                            }
+                        } else {
+                            indicatorOffsetPx = targetPx
+                            indicatorAnimatable.snapTo(targetPx)
                         }
                     }
                 }
 
-                // Metaball / spring-damper elastic fluid stretch:
-                // As distance between current position and target tab increases during drag,
-                // or due to velocity, stretch horizontal scale elastically while preserving mass
-                val nearestTabIndex = remember(dropletOffsetPx.value) {
-                    val center = dropletOffsetPx.value + (basePillWidthPx / 2f)
-                    (center / slotWidthPx).toInt().coerceIn(0, itemCount - 1)
-                }
+                // Nearest tab index based on current indicator center
+                val currentIndicatorCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
+                val nearestTabIndex = tabCenterPoints.indices.minByOrNull { i ->
+                    abs(tabCenterPoints[i] - currentIndicatorCenter)
+                } ?: selectedIndex
+
                 val nearestCenterPx = getTargetOffsetPx(nearestTabIndex)
-                val dragDistancePx = abs(dropletOffsetPx.value - nearestCenterPx)
+                val dragDistancePx = abs(indicatorOffsetPx - nearestCenterPx)
                 val elasticRatio = (dragDistancePx / slotWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
 
                 val velocityStretch = (abs(dragVelocity) / 2200f).coerceIn(0f, 0.40f)
                 val continuousDragStretch = if (isDragging) {
                     (elasticRatio * 0.45f + velocityStretch * 0.35f).coerceIn(0f, 0.55f)
                 } else {
-                    val motionLag = abs(getTargetOffsetPx(selectedIndex) - dropletOffsetPx.value)
+                    val motionLag = abs(getTargetOffsetPx(selectedIndex) - indicatorOffsetPx)
                     (motionLag / slotWidthPx.coerceAtLeast(1f) * 0.32f).coerceIn(0f, 0.35f)
                 }
 
@@ -285,10 +302,9 @@ fun AgriBottomNav(
                 // 1. VISUAL RENDERING: PURE GLASS WATER DROPLET LENS
                 // - NO manual gradient fills or opaque colors.
                 // - Purely transparent glass lens with high-intensity backdrop blur filter (20px).
-                // - Slight brightness boost directly underneath the capsule.
                 // - Sharp, thin white arc specular highlight along top edge for 3D depth.
                 // -------------------------------------------------------------
-                val dropletOffsetDp = with(density) { dropletOffsetPx.value.toDp() }
+                val dropletOffsetDp = with(density) { indicatorOffsetPx.toDp() }
 
                 Box(
                     modifier = Modifier
@@ -308,7 +324,6 @@ fun AgriBottomNav(
                                 backgroundColor = Color.Transparent,
                                 blurRadius = 20.dp,
                                 tint = HazeTint(
-                                    // Ultra-thin slight brightness boost directly underneath the capsule
                                     Color.White.copy(alpha = if (isDark) 0.08f else 0.14f)
                                 ),
                                 noiseFactor = 0f
@@ -320,7 +335,6 @@ fun AgriBottomNav(
                             val w = size.width
                             val h = size.height
 
-                            // Sharp, thin white specular arc along top edge
                             drawRoundRect(
                                 brush = Brush.verticalGradient(
                                     colors = listOf(
@@ -351,63 +365,64 @@ fun AgriBottomNav(
                         )
                 )
 
-                // -------------------------------------------------------------
-                // 2. INTERACTION & PHYSICS: DRAG & STRETCH ENGINE
-                // - Continuous pointer/drag event listener bound to X-position
-                // - Smooth fluid deformation during movement
-                // - Spring-physics snap on release restoring aspect ratio
-                // -------------------------------------------------------------
-                Box(
+                // Navigation Tab Icons Row with pointer drag gesture detection
+                Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(totalWidth, itemCount) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
+                        .pointerInput(totalWidthPx, itemCount, selectedIndex) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { _ ->
                                     isDragging = true
                                     dragVelocity = 0f
+                                    coroutineScope.launch {
+                                        indicatorAnimatable.stop()
+                                    }
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 },
-                                onDrag = { change, dragAmount ->
+                                onHorizontalDrag = { change, dragAmount ->
                                     change.consume()
-                                    val currentX = dropletOffsetPx.value
-                                    val newX = (currentX + dragAmount.x).coerceIn(
-                                        0f,
-                                        (slotWidthPx * (itemCount - 1)) + (slotWidthPx - basePillWidthPx) / 2f
-                                    )
-                                    coroutineScope.launch {
-                                        dropletOffsetPx.snapTo(newX)
-                                    }
-                                    dragVelocity = dragAmount.x * 60f
+                                    val minOffset = 0f
+                                    val maxOffset = (totalWidthPx - basePillWidthPx).coerceAtLeast(0f)
+                                    val newOffset = (indicatorOffsetPx + dragAmount).coerceIn(minOffset, maxOffset)
+                                    indicatorOffsetPx = newOffset
+                                    dragVelocity = dragAmount * 60f
 
-                                    // Haptic feedback when crossing into neighboring tab
-                                    val hoveredIndex = ((newX + basePillWidthPx / 2f) / slotWidthPx)
-                                        .toInt()
-                                        .coerceIn(0, itemCount - 1)
-                                    if (hoveredIndex != selectedIndex) {
+                                    // Haptic feedback when crossing nearest tab threshold
+                                    val center = newOffset + (basePillWidthPx / 2f)
+                                    val hoveredIndex = tabCenterPoints.indices.minByOrNull { i ->
+                                        abs(tabCenterPoints[i] - center)
+                                    } ?: selectedIndex
+
+                                    if (hoveredIndex != lastHoveredIndex) {
+                                        lastHoveredIndex = hoveredIndex
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     }
                                 },
                                 onDragEnd = {
                                     isDragging = false
-                                    val finalCenter = dropletOffsetPx.value + (basePillWidthPx / 2f)
-                                    val targetIndex = (finalCenter / slotWidthPx)
-                                        .toInt()
-                                        .coerceIn(0, itemCount - 1)
+                                    val finalCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
+                                    val targetIndex = tabCenterPoints.indices.minByOrNull { i ->
+                                        abs(tabCenterPoints[i] - finalCenter)
+                                    } ?: selectedIndex
 
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onCategorySelected(navItems[targetIndex].serviceCategory)
+                                    if (targetIndex != selectedIndex) {
+                                        onCategorySelected(navItems[targetIndex].serviceCategory)
+                                    }
 
-                                    // Trigger spring-physics animation with bounciness factor snapping to target center
+                                    val snapTargetPx = getTargetOffsetPx(targetIndex)
                                     coroutineScope.launch {
-                                        dropletOffsetPx.animateTo(
-                                            targetValue = getTargetOffsetPx(targetIndex),
+                                        indicatorAnimatable.snapTo(indicatorOffsetPx)
+                                        indicatorAnimatable.animateTo(
+                                            targetValue = snapTargetPx,
                                             animationSpec = spring(
                                                 dampingRatio = 0.62f, // Bounciness factor
                                                 stiffness = 320f
                                             )
-                                        )
+                                        ) {
+                                            indicatorOffsetPx = this.value
+                                        }
                                     }
-                                    // Restore original circular/capsule aspect ratio with elastic wobble
                                     coroutineScope.launch {
                                         dropletAspectAnim.snapTo(1.30f)
                                         dropletAspectAnim.animateTo(
@@ -423,14 +438,18 @@ fun AgriBottomNav(
                                 onDragCancel = {
                                     isDragging = false
                                     dragVelocity = 0f
+                                    val snapTargetPx = getTargetOffsetPx(selectedIndex)
                                     coroutineScope.launch {
-                                        dropletOffsetPx.animateTo(
-                                            targetValue = getTargetOffsetPx(selectedIndex),
+                                        indicatorAnimatable.snapTo(indicatorOffsetPx)
+                                        indicatorAnimatable.animateTo(
+                                            targetValue = snapTargetPx,
                                             animationSpec = spring(
                                                 dampingRatio = 0.68f,
                                                 stiffness = 320f
                                             )
-                                        )
+                                        ) {
+                                            indicatorOffsetPx = this.value
+                                        }
                                     }
                                     coroutineScope.launch {
                                         dropletAspectAnim.animateTo(
@@ -443,19 +462,14 @@ fun AgriBottomNav(
                                     }
                                 }
                             )
-                        }
-                )
-
-                // Navigation Tab Icons Row
-                Row(
-                    modifier = Modifier.fillMaxSize(),
+                        },
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     navItems.forEachIndexed { index, item ->
                         // Natural optical magnification under the lens
-                        val tabCenterPx = (slotWidthPx * index) + (slotWidthPx / 2f)
-                        val dropletCenterPx = dropletOffsetPx.value + (basePillWidthPx / 2f)
+                        val tabCenterPx = tabCenterPoints[index]
+                        val dropletCenterPx = indicatorOffsetPx + (basePillWidthPx / 2f)
                         val distanceToDroplet = abs(tabCenterPx - dropletCenterPx)
                         val proximity = (1f - (distanceToDroplet / slotWidthPx)).coerceIn(0f, 1f)
 
