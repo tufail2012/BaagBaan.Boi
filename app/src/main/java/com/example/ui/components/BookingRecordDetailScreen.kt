@@ -422,9 +422,8 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .staticGlassCard(
                             isDark = isDark,
-                            accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(24.dp),
                             cornerRadius = 24.dp
                         )
@@ -566,9 +565,8 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .staticGlassCard(
                             isDark = isDark,
-                            accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(24.dp),
                             cornerRadius = 24.dp
                         )
@@ -650,9 +648,8 @@ fun BookingRecordDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .glassCardBackground(
+                                    .staticGlassCard(
                                         isDark = isDark,
-                                        accentColor = sectionAccentColor,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(vertical = 2.dp)
@@ -763,9 +760,8 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
+                        .staticGlassCard(
                             isDark = isDark,
-                            accentColor = sectionAccentColor,
                             shape = RoundedCornerShape(24.dp),
                             cornerRadius = 24.dp
                         )
@@ -827,9 +823,8 @@ fun BookingRecordDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .glassCardBackground(
+                                .staticGlassCard(
                                     isDark = isDark,
-                                    accentColor = sectionAccentColor,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                         ) {
@@ -1059,9 +1054,8 @@ fun BookingRecordDetailDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .glassCardBackground(
+                                            .staticGlassCard(
                                                 isDark = isDark,
-                                                accentColor = sectionAccentColor,
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                     ) {

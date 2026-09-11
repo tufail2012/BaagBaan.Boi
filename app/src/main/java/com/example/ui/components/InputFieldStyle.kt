@@ -878,6 +878,45 @@ fun Modifier.glassCardBackground(
         }
 }
 
+@Composable
+fun Modifier.staticGlassCard(
+    isDark: Boolean = isAppInDarkMode(),
+    shape: Shape? = null,
+    cornerRadius: Dp? = null,
+    elevation: Dp = 2.dp
+): Modifier {
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
+
+    val cardBgBrush = if (isDark) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.07f),
+                Color.White.copy(alpha = 0.02f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.80f),
+                Color.White.copy(alpha = 0.60f)
+            )
+        )
+    }
+
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.10f) else Color.White.copy(alpha = 0.50f)
+
+    return this
+        .shadow(
+            elevation = elevation,
+            shape = effectiveShape,
+            spotColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.08f),
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.20f else 0.04f)
+        )
+        .clip(effectiveShape)
+        .background(brush = cardBgBrush, shape = effectiveShape)
+        .border(width = 1.dp, color = borderColor, shape = effectiveShape)
+}
+
 /**
  * Modern Payment Status Button Row.
  * Ensures the selected button maintains the dynamic theme color (or section accent color),
