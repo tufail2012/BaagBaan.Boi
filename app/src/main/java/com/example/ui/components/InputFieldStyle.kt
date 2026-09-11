@@ -1,10 +1,12 @@
 package com.example.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -617,26 +619,39 @@ fun Modifier.glassCardBackground(
     var internalFocusState by remember { mutableStateOf(false) }
     val effectiveIsFocused = isFocused || internalFocusState
 
-    // Dynamic focus transition: 0.25s ease-in-out
-    val focusAlpha by animateFloatAsState(
+    // Animated transition between focused and unfocused states (tween 300ms)
+    val focusProgress by animateFloatAsState(
         targetValue = if (effectiveIsFocused) 1f else 0f,
-        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
-        label = "inputFieldFocusAlpha"
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "inputFieldFocusProgress"
     )
 
-    // Animated rotating angle for running conic gradient border: 3s linear infinite
-    val infiniteTransition = rememberInfiniteTransition(label = "runningBorderTransition")
-    val rotationAngle = infiniteTransition.animateFloat(
+    val animatedBorderWidth by animateDpAsState(
+        targetValue = if (effectiveIsFocused) 1.5.dp else 1.dp,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "inputFieldBorderWidth"
+    )
+
+    // Animated glow radius: 0.dp -> ~8.dp
+    val animatedGlowRadius by animateDpAsState(
+        targetValue = if (effectiveIsFocused) 8.dp else 0.dp,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        label = "inputFieldGlowRadius"
+    )
+
+    // Animated infinite phase for the flowing neon border gradient (3s linear infinite)
+    val infiniteTransition = rememberInfiniteTransition(label = "neonBorderSweepTransition")
+    val gradientPhase by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 360f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "rotatingBorderAngle"
+        label = "neonGradientPhase"
     )
 
-    // Neutral elevation shadow: Keep inner background fill neutral and remove any colored ambient/spot glow
+    // Base elevation shadow
     val shadowModifier = if (elevation > 0.dp) {
         Modifier.shadow(
             elevation = elevation,
@@ -688,6 +703,45 @@ fun Modifier.glassCardBackground(
             internalFocusState = focusState.isFocused || focusState.hasFocus
         }
         .then(shadowModifier)
+        // Soft outer glow / drop shadow around the field when focused using drawBehind with red blur effect (alpha ~0.35f, radius ~8.dp)
+        .drawBehind {
+            if (focusProgress > 0.001f) {
+                val glowRadiusPx = animatedGlowRadius.toPx()
+                val spreadRadius = glowRadiusPx * 0.5f
+                val glowColorArgb = Color(0xFFE53935).copy(alpha = 0.35f * focusProgress).toArgb()
+
+                drawIntoCanvas { canvas ->
+                    val paint = Paint().apply {
+                        asFrameworkPaint().apply {
+                            isAntiAlias = true
+                            color = android.graphics.Color.TRANSPARENT
+                            setShadowLayer(
+                                glowRadiusPx,
+                                0f,
+                                0f,
+                                glowColorArgb
+                            )
+                        }
+                    }
+
+                    val cornerR = cornerRadius?.toPx() ?: if (effectiveShape is RoundedCornerShape) {
+                        effectiveShape.topStart.toPx(size, this@drawBehind)
+                    } else {
+                        18.dp.toPx()
+                    }
+
+                    canvas.drawRoundRect(
+                        -spreadRadius,
+                        -spreadRadius,
+                        size.width + spreadRadius,
+                        size.height + spreadRadius,
+                        cornerR + spreadRadius,
+                        cornerR + spreadRadius,
+                        paint
+                    )
+                }
+            }
+        }
         .clip(effectiveShape)
         .then(
             if (effectiveHazeState != null) {
@@ -707,11 +761,10 @@ fun Modifier.glassCardBackground(
                 18.dp.toPx()
             }
 
-            // Inset highlight / box-shadow:
-            // Completely removed when focused to eliminate any inner glow.
-            if (focusAlpha < 0.99f) {
+            // Inset highlight / box-shadow when unfocused
+            if (focusProgress < 0.99f) {
                 val baseInsetAlpha = if (effectiveIsDark) 0.12f else 0.35f
-                val insetAlpha = baseInsetAlpha * (1f - focusAlpha)
+                val insetAlpha = baseInsetAlpha * (1f - focusProgress)
                 if (insetAlpha > 0.005f) {
                     drawRoundRect(
                         brush = Brush.verticalGradient(
@@ -730,77 +783,97 @@ fun Modifier.glassCardBackground(
                 }
             }
 
-            // Default subtle 1px border when unfocused (crossfading out on focus)
-            if (focusAlpha < 0.999f) {
-                val defaultBorderAlpha = 0.12f * (1f - focusAlpha)
-                val defaultBorderBrush = SolidColor(
-                    if (effectiveIsDark) Color.White.copy(alpha = defaultBorderAlpha)
-                    else Color(0xFF000000).copy(alpha = defaultBorderAlpha)
-                )
-                val stroke1px = borderWidth.toPx()
-                val half1px = stroke1px / 2f
+            // 1. Default dark subtle border when unfocused (Color(0xFF2A2A2A) with 1.dp width)
+            val strokeWidthPx = animatedBorderWidth.toPx()
+            val halfStroke = strokeWidthPx / 2f
+
+            if (focusProgress < 0.999f) {
+                val unfocusedAlpha = 1f - focusProgress
+                val unfocusedBorderColor = if (effectiveIsDark) {
+                    Color(0xFF2A2A2A).copy(alpha = unfocusedAlpha)
+                } else {
+                    Color(0xFFD1D5DB).copy(alpha = unfocusedAlpha)
+                }
 
                 if (effectiveShape is RoundedCornerShape) {
                     drawRoundRect(
-                        brush = defaultBorderBrush,
-                        topLeft = Offset(half1px, half1px),
-                        size = Size(w - stroke1px, h - stroke1px),
-                        cornerRadius = CornerRadius(maxOf(0f, cornerR - half1px), maxOf(0f, cornerR - half1px)),
-                        style = Stroke(width = stroke1px)
+                        color = unfocusedBorderColor,
+                        topLeft = Offset(halfStroke, halfStroke),
+                        size = Size(w - strokeWidthPx, h - strokeWidthPx),
+                        cornerRadius = CornerRadius(maxOf(0f, cornerR - halfStroke), maxOf(0f, cornerR - halfStroke)),
+                        style = Stroke(width = strokeWidthPx)
                     )
                 } else {
                     val outline = effectiveShape.createOutline(size, layoutDirection, this)
                     drawOutline(
                         outline = outline,
-                        brush = defaultBorderBrush,
-                        style = Stroke(width = stroke1px)
+                        color = unfocusedBorderColor,
+                        style = Stroke(width = strokeWidthPx)
                     )
                 }
             }
 
-            // Animated Running Gradient Border for Focused Inputs:
-            // 2px outer border with conic-gradient(from 0deg, transparent 0%, var(--theme-primary) 50%, transparent 100%)
-            // Rotating 360deg in 3s linear infinite
-            if (focusAlpha > 0.001f) {
-                val stroke2px = 2.dp.toPx()
-                val half2px = stroke2px / 2f
-                val angle = rotationAngle.value
+            // 2. Focused Animated Glowing Neon Border:
+            // Animated gradient border in theme red accent (Color(0xFFE53935) to Color(0xFFFF5252) fading to dark crimson/transparent)
+            if (focusProgress > 0.001f) {
+                val p = gradientPhase
+                // Animated flowing sweep gradient around perimeter
                 val cx = w / 2f
                 val cy = h / 2f
-
                 val sweepShader = android.graphics.SweepGradient(
                     cx,
                     cy,
                     intArrayOf(
-                        android.graphics.Color.TRANSPARENT,
-                        accentColor.toArgb(),
-                        android.graphics.Color.TRANSPARENT
+                        android.graphics.Color.argb((0.15f * 255).toInt(), 136, 14, 79),    // dark crimson/transparent
+                        android.graphics.Color.argb((0.95f * 255).toInt(), 229, 57, 53),   // Color(0xFFE53935)
+                        android.graphics.Color.argb((1.00f * 255).toInt(), 255, 82, 82),   // Color(0xFFFF5252)
+                        android.graphics.Color.argb((0.95f * 255).toInt(), 229, 57, 53),   // Color(0xFFE53935)
+                        android.graphics.Color.argb((0.15f * 255).toInt(), 136, 14, 79)     // fading to dark crimson
                     ),
-                    floatArrayOf(0.0f, 0.5f, 1.0f)
+                    floatArrayOf(0.0f, 0.25f, 0.5f, 0.75f, 1.0f)
                 )
                 val matrix = android.graphics.Matrix()
-                matrix.postRotate(angle, cx, cy)
+                matrix.postRotate(p * 360f, cx, cy)
                 sweepShader.setLocalMatrix(matrix)
-                val runningBrush = ShaderBrush(sweepShader)
+                val neonSweepBrush = ShaderBrush(sweepShader)
 
                 if (effectiveShape is RoundedCornerShape) {
                     drawRoundRect(
-                        brush = runningBrush,
-                        topLeft = Offset(half2px, half2px),
-                        size = Size(w - stroke2px, h - stroke2px),
-                        cornerRadius = CornerRadius(maxOf(0f, cornerR - half2px), maxOf(0f, cornerR - half2px)),
-                        style = Stroke(width = stroke2px),
-                        alpha = focusAlpha
+                        brush = neonSweepBrush,
+                        topLeft = Offset(halfStroke, halfStroke),
+                        size = Size(w - strokeWidthPx, h - strokeWidthPx),
+                        cornerRadius = CornerRadius(maxOf(0f, cornerR - halfStroke), maxOf(0f, cornerR - halfStroke)),
+                        style = Stroke(width = strokeWidthPx),
+                        alpha = focusProgress
                     )
                 } else {
                     val outline = effectiveShape.createOutline(size, layoutDirection, this)
                     drawOutline(
                         outline = outline,
-                        brush = runningBrush,
-                        alpha = focusAlpha,
-                        style = Stroke(width = stroke2px)
+                        brush = neonSweepBrush,
+                        alpha = focusProgress,
+                        style = Stroke(width = strokeWidthPx)
                     )
                 }
+
+                // Subtle specular accent reflection at top edge
+                val gleamHeight = 1.5.dp.toPx()
+                val gleamMargin = minOf(cornerR, w * 0.15f)
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0xFFFF5252).copy(alpha = 0.40f * focusProgress),
+                            Color.White.copy(alpha = 0.75f * focusProgress),
+                            Color(0xFFFF5252).copy(alpha = 0.40f * focusProgress),
+                            Color.Transparent
+                        ),
+                        startX = gleamMargin,
+                        endX = w - gleamMargin
+                    ),
+                    topLeft = Offset(gleamMargin, halfStroke),
+                    size = Size(w - 2f * gleamMargin, gleamHeight)
+                )
             }
         }
 }

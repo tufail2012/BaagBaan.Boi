@@ -706,14 +706,11 @@ fun AgriCropMainScreen(
                                     .fillMaxSize()
                                     .hazeSource(state = hazeState)
                             ) {
-                                when {
-                                selectedService.equals("Bookings", ignoreCase = true) -> {
+                                if (selectedService.equals("Bookings", ignoreCase = true)) {
                                     UserBookingsSection(viewModel = userDashboardViewModel)
-                                }
-                                selectedService.equals("Attendance", ignoreCase = true) -> {
+                                } else if (selectedService.equals("Attendance", ignoreCase = true)) {
                                     UserAttendanceSection(viewModel = userDashboardViewModel)
-                                }
-                                else -> {
+                                } else {
                                     HorizontalPager(
                                         state = pagerState,
                                         modifier = Modifier.fillMaxSize(),
@@ -775,7 +772,14 @@ fun AgriCropMainScreen(
                                     }
                                 }
                             }
-                        }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(120.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .background(Color.Red)
+                            )
 
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
