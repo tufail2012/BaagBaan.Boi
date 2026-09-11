@@ -47,14 +47,19 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
@@ -602,7 +607,7 @@ fun Modifier.glassCardBackground(
     isFocused: Boolean = false,
     hazeState: HazeState? = null
 ): Modifier {
-    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
+    val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 16.dp)
 
     val effectiveIsAmoled = when (themeMode) {
         AppThemeMode.AMOLED -> true
@@ -619,36 +624,23 @@ fun Modifier.glassCardBackground(
     var internalFocusState by remember { mutableStateOf(false) }
     val effectiveIsFocused = isFocused || internalFocusState
 
-    // Animated transition between focused and unfocused states (tween 300ms)
+    // Animated transition between focused and unfocused states (tween 250ms)
     val focusProgress by animateFloatAsState(
         targetValue = if (effectiveIsFocused) 1f else 0f,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
         label = "inputFieldFocusProgress"
     )
 
-    val animatedBorderWidth by animateDpAsState(
-        targetValue = if (effectiveIsFocused) 1.5.dp else 1.dp,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "inputFieldBorderWidth"
-    )
-
-    // Animated glow radius: 0.dp -> ~8.dp
-    val animatedGlowRadius by animateDpAsState(
-        targetValue = if (effectiveIsFocused) 8.dp else 0.dp,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "inputFieldGlowRadius"
-    )
-
-    // Animated infinite phase for the flowing neon border gradient (3s linear infinite)
-    val infiniteTransition = rememberInfiniteTransition(label = "neonBorderSweepTransition")
-    val gradientPhase by infiniteTransition.animateFloat(
+    // Animated continuous rotation for chromatic light ring (0f to 360f, 3000ms duration, LinearEasing, infinite repeat)
+    val infiniteTransition = rememberInfiniteTransition(label = "prismaticRingTransition")
+    val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 1f,
+        targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "neonGradientPhase"
+        label = "prismaticRotationAngle"
     )
 
     // Base elevation shadow
@@ -680,13 +672,13 @@ fun Modifier.glassCardBackground(
         )
     }
 
-    // Neutral Inner Background Gradient:
-    // Strictly neutral when focused - zero accent color tints or inner box glow inside the card
+    // Interior Content Background:
+    // Strictly neutral and constant - zero fill, tint, or color overlay inside the text input box when focused.
     val cardBgBrush = if (effectiveIsDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.07f),
-                Color.White.copy(alpha = 0.02f)
+                Color(0xFF1E1C24).copy(alpha = 0.70f),
+                Color(0xFF1E1C24).copy(alpha = 0.85f)
             )
         )
     } else {
@@ -703,42 +695,132 @@ fun Modifier.glassCardBackground(
             internalFocusState = focusState.isFocused || focusState.hasFocus
         }
         .then(shadowModifier)
-        // Soft outer glow / drop shadow around the field when focused using drawBehind with red blur effect (alpha ~0.35f, radius ~8.dp)
+        // Outer Glow: Diffused edge stroke behind the border with animated sweep gradient (alpha 0.35f-0.45f) and blur
+        // Strict Constraint: Do NOT draw inside the bounds of the text field. Glow strictly disperses outward.
         .drawBehind {
             if (focusProgress > 0.001f) {
-                val glowRadiusPx = animatedGlowRadius.toPx()
-                val spreadRadius = glowRadiusPx * 0.5f
-                val glowColorArgb = Color(0xFFE53935).copy(alpha = 0.35f * focusProgress).toArgb()
+                val w = size.width
+                val h = size.height
+                val cx = w / 2f
+                val cy = h / 2f
 
-                drawIntoCanvas { canvas ->
-                    val paint = Paint().apply {
-                        asFrameworkPaint().apply {
+                val cornerR = cornerRadius?.toPx() ?: if (effectiveShape is RoundedCornerShape) {
+                    effectiveShape.topStart.toPx(size, this@drawBehind)
+                } else {
+                    16.dp.toPx()
+                }
+
+                // Strict Constraint: Subtract the text field interior so glow ONLY bleeds outward
+                val innerFieldPath = Path().apply {
+                    if (effectiveShape is RoundedCornerShape) {
+                        addRoundRect(
+                            RoundRect(
+                                rect = Rect(0f, 0f, w, h),
+                                cornerRadius = CornerRadius(cornerR, cornerR)
+                            )
+                        )
+                    } else {
+                        val outline = effectiveShape.createOutline(size, layoutDirection, this@drawBehind)
+                        addOutline(outline)
+                    }
+                }
+
+                clipPath(path = innerFieldPath, clipOp = ClipOp.Difference) {
+                    val colorStops = floatArrayOf(0.0f, 0.25f, 0.5f, 0.75f, 1.0f)
+                    val glowAlpha = (0.40f * focusProgress).coerceIn(0f, 1f)
+                    val glowColorsInt = intArrayOf(
+                        android.graphics.Color.argb((glowAlpha * 255).toInt(), 0xFF, 0x33, 0x66),
+                        android.graphics.Color.argb((glowAlpha * 255).toInt(), 0xFF, 0x99, 0x00),
+                        android.graphics.Color.argb((glowAlpha * 255).toInt(), 0x33, 0xCC, 0xFF),
+                        android.graphics.Color.argb((glowAlpha * 255).toInt(), 0x99, 0x33, 0xFF),
+                        android.graphics.Color.argb((glowAlpha * 255).toInt(), 0xFF, 0x33, 0x66)
+                    )
+
+                    val matrix = android.graphics.Matrix()
+                    matrix.postRotate(rotationAngle, cx, cy)
+
+                    val glowShader = android.graphics.SweepGradient(cx, cy, glowColorsInt, colorStops).apply {
+                        setLocalMatrix(matrix)
+                    }
+
+                    val outerStrokeWidthPx = 5.dp.toPx()
+                    val blurRadiusPx = 5.dp.toPx()
+
+                    // Primary outer diffused edge stroke
+                    drawIntoCanvas { canvas ->
+                        val paint = android.graphics.Paint().apply {
                             isAntiAlias = true
-                            color = android.graphics.Color.TRANSPARENT
-                            setShadowLayer(
-                                glowRadiusPx,
+                            style = android.graphics.Paint.Style.STROKE
+                            strokeWidth = outerStrokeWidthPx
+                            shader = glowShader
+                            maskFilter = android.graphics.BlurMaskFilter(
+                                blurRadiusPx,
+                                android.graphics.BlurMaskFilter.Blur.NORMAL
+                            )
+                        }
+
+                        if (effectiveShape is RoundedCornerShape) {
+                            canvas.nativeCanvas.drawRoundRect(
                                 0f,
                                 0f,
-                                glowColorArgb
+                                w,
+                                h,
+                                cornerR,
+                                cornerR,
+                                paint
+                            )
+                        } else {
+                            canvas.nativeCanvas.drawPath(
+                                innerFieldPath.asAndroidPath(),
+                                paint
                             )
                         }
                     }
 
-                    val cornerR = cornerRadius?.toPx() ?: if (effectiveShape is RoundedCornerShape) {
-                        effectiveShape.topStart.toPx(size, this@drawBehind)
-                    } else {
-                        18.dp.toPx()
-                    }
-
-                    canvas.drawRoundRect(
-                        -spreadRadius,
-                        -spreadRadius,
-                        size.width + spreadRadius,
-                        size.height + spreadRadius,
-                        cornerR + spreadRadius,
-                        cornerR + spreadRadius,
-                        paint
+                    // Secondary ambient bloom layer for smooth outward light bleeding
+                    val bloomAlpha = (0.20f * focusProgress).coerceIn(0f, 1f)
+                    val bloomColorsInt = intArrayOf(
+                        android.graphics.Color.argb((bloomAlpha * 255).toInt(), 0xFF, 0x33, 0x66),
+                        android.graphics.Color.argb((bloomAlpha * 255).toInt(), 0xFF, 0x99, 0x00),
+                        android.graphics.Color.argb((bloomAlpha * 255).toInt(), 0x33, 0xCC, 0xFF),
+                        android.graphics.Color.argb((bloomAlpha * 255).toInt(), 0x99, 0x33, 0xFF),
+                        android.graphics.Color.argb((bloomAlpha * 255).toInt(), 0xFF, 0x33, 0x66)
                     )
+                    val bloomShader = android.graphics.SweepGradient(cx, cy, bloomColorsInt, colorStops).apply {
+                        setLocalMatrix(matrix)
+                    }
+                    val bloomStrokeWidthPx = 9.dp.toPx()
+                    val bloomBlurRadiusPx = 8.dp.toPx()
+
+                    drawIntoCanvas { canvas ->
+                        val paint = android.graphics.Paint().apply {
+                            isAntiAlias = true
+                            style = android.graphics.Paint.Style.STROKE
+                            strokeWidth = bloomStrokeWidthPx
+                            shader = bloomShader
+                            maskFilter = android.graphics.BlurMaskFilter(
+                                bloomBlurRadiusPx,
+                                android.graphics.BlurMaskFilter.Blur.NORMAL
+                            )
+                        }
+
+                        if (effectiveShape is RoundedCornerShape) {
+                            canvas.nativeCanvas.drawRoundRect(
+                                0f,
+                                0f,
+                                w,
+                                h,
+                                cornerR,
+                                cornerR,
+                                paint
+                            )
+                        } else {
+                            canvas.nativeCanvas.drawPath(
+                                innerFieldPath.asAndroidPath(),
+                                paint
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -758,88 +840,62 @@ fun Modifier.glassCardBackground(
             val cornerR = cornerRadius?.toPx() ?: if (effectiveShape is RoundedCornerShape) {
                 effectiveShape.topStart.toPx(size, this)
             } else {
-                18.dp.toPx()
+                16.dp.toPx()
             }
 
-            // Inset highlight / box-shadow when unfocused
-            if (focusProgress < 0.99f) {
-                val baseInsetAlpha = if (effectiveIsDark) 0.12f else 0.35f
-                val insetAlpha = baseInsetAlpha * (1f - focusProgress)
-                if (insetAlpha > 0.005f) {
-                    drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = insetAlpha),
-                                Color.Transparent
-                            ),
-                            startY = 0f,
-                            endY = 1.dp.toPx()
-                        ),
-                        topLeft = Offset(0.5.dp.toPx(), 0.5.dp.toPx()),
-                        size = Size(w - 1.dp.toPx(), h - 1.dp.toPx()),
-                        cornerRadius = CornerRadius(cornerR, cornerR),
-                        style = Stroke(width = 1.dp.toPx())
-                    )
-                }
-            }
-
-            // 1. Default dark subtle border when unfocused (Color(0xFF2A2A2A) with 1.dp width)
-            val strokeWidthPx = animatedBorderWidth.toPx()
-            val halfStroke = strokeWidthPx / 2f
-
+            // 1. Unfocused State: Subtle, clean 1.dp border (Color(0xFF2C2C2C)) with zero glow and clean dark surface background
             if (focusProgress < 0.999f) {
-                val unfocusedAlpha = 1f - focusProgress
+                val unfocusedStrokePx = 1.dp.toPx()
+                val unfocusedHalfStroke = unfocusedStrokePx / 2f
                 val unfocusedBorderColor = if (effectiveIsDark) {
-                    Color(0xFF2A2A2A).copy(alpha = unfocusedAlpha)
+                    Color(0xFF2C2C2C)
                 } else {
-                    Color(0xFFD1D5DB).copy(alpha = unfocusedAlpha)
+                    Color(0xFFCBD5E1)
                 }
+                val unfocusedAlpha = 1f - focusProgress
 
                 if (effectiveShape is RoundedCornerShape) {
                     drawRoundRect(
-                        color = unfocusedBorderColor,
-                        topLeft = Offset(halfStroke, halfStroke),
-                        size = Size(w - strokeWidthPx, h - strokeWidthPx),
-                        cornerRadius = CornerRadius(maxOf(0f, cornerR - halfStroke), maxOf(0f, cornerR - halfStroke)),
-                        style = Stroke(width = strokeWidthPx)
+                        color = unfocusedBorderColor.copy(alpha = unfocusedAlpha),
+                        topLeft = Offset(unfocusedHalfStroke, unfocusedHalfStroke),
+                        size = Size(w - unfocusedStrokePx, h - unfocusedStrokePx),
+                        cornerRadius = CornerRadius(maxOf(0f, cornerR - unfocusedHalfStroke), maxOf(0f, cornerR - unfocusedHalfStroke)),
+                        style = Stroke(width = unfocusedStrokePx)
                     )
                 } else {
                     val outline = effectiveShape.createOutline(size, layoutDirection, this)
                     drawOutline(
                         outline = outline,
-                        color = unfocusedBorderColor,
-                        style = Stroke(width = strokeWidthPx)
+                        color = unfocusedBorderColor.copy(alpha = unfocusedAlpha),
+                        style = Stroke(width = unfocusedStrokePx)
                     )
                 }
             }
 
-            // 2. Focused Animated Glowing Neon Border:
-            // Animated gradient border in theme red accent (Color(0xFFE53935) to Color(0xFFFF5252) fading to dark crimson/transparent)
+            // 2. Focused State: Base 1.5.dp sharp border with rotating spectrum sweep gradient on rounded corner shape
             if (focusProgress > 0.001f) {
-                val p = gradientPhase
-                // Animated flowing sweep gradient around perimeter
                 val cx = w / 2f
                 val cy = h / 2f
-                val sweepShader = android.graphics.SweepGradient(
-                    cx,
-                    cy,
-                    intArrayOf(
-                        android.graphics.Color.argb((0.15f * 255).toInt(), 136, 14, 79),    // dark crimson/transparent
-                        android.graphics.Color.argb((0.95f * 255).toInt(), 229, 57, 53),   // Color(0xFFE53935)
-                        android.graphics.Color.argb((1.00f * 255).toInt(), 255, 82, 82),   // Color(0xFFFF5252)
-                        android.graphics.Color.argb((0.95f * 255).toInt(), 229, 57, 53),   // Color(0xFFE53935)
-                        android.graphics.Color.argb((0.15f * 255).toInt(), 136, 14, 79)     // fading to dark crimson
-                    ),
-                    floatArrayOf(0.0f, 0.25f, 0.5f, 0.75f, 1.0f)
+                val spectrumColorsInt = intArrayOf(
+                    android.graphics.Color.rgb(0xFF, 0x33, 0x66), // Color(0xFFFF3366)
+                    android.graphics.Color.rgb(0xFF, 0x99, 0x00), // Color(0xFFFF9900)
+                    android.graphics.Color.rgb(0x33, 0xCC, 0xFF), // Color(0xFF33CCFF)
+                    android.graphics.Color.rgb(0x99, 0x33, 0xFF), // Color(0xFF9933FF)
+                    android.graphics.Color.rgb(0xFF, 0x33, 0x66)  // Color(0xFFFF3366)
                 )
-                val matrix = android.graphics.Matrix()
-                matrix.postRotate(p * 360f, cx, cy)
-                sweepShader.setLocalMatrix(matrix)
-                val neonSweepBrush = ShaderBrush(sweepShader)
+                val colorStops = floatArrayOf(0.0f, 0.25f, 0.5f, 0.75f, 1.0f)
+                val coreSweepShader = android.graphics.SweepGradient(cx, cy, spectrumColorsInt, colorStops).apply {
+                    val matrix = android.graphics.Matrix()
+                    matrix.postRotate(rotationAngle, cx, cy)
+                    setLocalMatrix(matrix)
+                }
+                val coreBrush = ShaderBrush(coreSweepShader)
+                val strokeWidthPx = 1.5.dp.toPx()
+                val halfStroke = strokeWidthPx / 2f
 
                 if (effectiveShape is RoundedCornerShape) {
                     drawRoundRect(
-                        brush = neonSweepBrush,
+                        brush = coreBrush,
                         topLeft = Offset(halfStroke, halfStroke),
                         size = Size(w - strokeWidthPx, h - strokeWidthPx),
                         cornerRadius = CornerRadius(maxOf(0f, cornerR - halfStroke), maxOf(0f, cornerR - halfStroke)),
@@ -850,30 +906,11 @@ fun Modifier.glassCardBackground(
                     val outline = effectiveShape.createOutline(size, layoutDirection, this)
                     drawOutline(
                         outline = outline,
-                        brush = neonSweepBrush,
+                        brush = coreBrush,
                         alpha = focusProgress,
                         style = Stroke(width = strokeWidthPx)
                     )
                 }
-
-                // Subtle specular accent reflection at top edge
-                val gleamHeight = 1.5.dp.toPx()
-                val gleamMargin = minOf(cornerR, w * 0.15f)
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color(0xFFFF5252).copy(alpha = 0.40f * focusProgress),
-                            Color.White.copy(alpha = 0.75f * focusProgress),
-                            Color(0xFFFF5252).copy(alpha = 0.40f * focusProgress),
-                            Color.Transparent
-                        ),
-                        startX = gleamMargin,
-                        endX = w - gleamMargin
-                    ),
-                    topLeft = Offset(gleamMargin, halfStroke),
-                    size = Size(w - 2f * gleamMargin, gleamHeight)
-                )
             }
         }
 }
@@ -887,19 +924,18 @@ fun Modifier.staticGlassCard(
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
 
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val cardBgBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.10f),
-                surfaceColor.copy(alpha = 0.85f)
+                Color(0xFF3A3742).copy(alpha = 0.65f),
+                Color(0xFF28242E).copy(alpha = 0.75f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.85f),
-                surfaceColor.copy(alpha = 0.75f)
+                Color.White.copy(alpha = 0.55f),
+                Color.White.copy(alpha = 0.40f)
             )
         )
     }

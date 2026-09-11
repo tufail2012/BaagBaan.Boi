@@ -874,19 +874,11 @@ fun BookingRecordDetailDialog(
                                 placeholder = { Text("e.g. 1000") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp), accentColor = sectionAccentColor),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                    unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                    focusedTextColor = if (isDark) Color.White else Color.Black,
-                                    unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                    focusedLabelColor = sectionAccentColor,
-                                    unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    focusedBorderColor = sectionAccentColor,
-                                    unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                    cursorColor = sectionAccentColor
-                                )
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = sectionAccentColor)
                             )
 
                             Row(
@@ -908,19 +900,11 @@ fun BookingRecordDetailDialog(
                                     },
                                     label = { Text("Payment Date") },
                                     singleLine = true,
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp), accentColor = sectionAccentColor),
                                     shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        focusedTextColor = if (isDark) Color.White else Color.Black,
-                                        unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = sectionAccentColor,
-                                        unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = sectionAccentColor,
-                                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = sectionAccentColor
-                                    )
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = sectionAccentColor)
                                 )
 
                                 OutlinedTextField(
@@ -929,19 +913,11 @@ fun BookingRecordDetailDialog(
                                     label = { Text("Mode / Note") },
                                     singleLine = true,
                                     keyboardOptions = AppDefaultWordKeyboardOptions,
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp), accentColor = sectionAccentColor),
                                     shape = RoundedCornerShape(12.dp),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                                        focusedTextColor = if (isDark) Color.White else Color.Black,
-                                        unfocusedTextColor = if (isDark) Color.White else Color.Black,
-                                        focusedLabelColor = sectionAccentColor,
-                                        unfocusedLabelColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        focusedBorderColor = sectionAccentColor,
-                                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                                        cursorColor = sectionAccentColor
-                                    )
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = sectionAccentColor)
                                 )
                             }
 

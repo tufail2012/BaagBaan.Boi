@@ -219,7 +219,9 @@ fun UserBookingsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
-                .testTag("bookings_search_input")
+                .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
+                .testTag("bookings_search_input"),
+            colors = elevatedInputFieldColors(isDark = isDark)
         )
 
         Spacer(modifier = Modifier.height(6.dp))

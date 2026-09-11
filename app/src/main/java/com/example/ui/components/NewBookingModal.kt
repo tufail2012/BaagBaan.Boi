@@ -136,6 +136,7 @@ fun NewBookingModal(
     var seasonMenuExpanded by remember { mutableStateOf(false) }
 
     var farmerNameError by remember { mutableStateOf<String?>(null) }
+    val isDark = isAppInDarkMode()
 
     Dialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
         Surface(
@@ -373,8 +374,10 @@ fun NewBookingModal(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
                             .testTag("booking_item_name_input"),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = elevatedInputFieldColors(isDark = isDark)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -401,8 +404,10 @@ fun NewBookingModal(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
                         .testTag("booking_farmer_name_input"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -417,8 +422,10 @@ fun NewBookingModal(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
                         .testTag("booking_quantity_input"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -435,8 +442,10 @@ fun NewBookingModal(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
                         .testTag("booking_date_input"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -469,8 +478,10 @@ fun NewBookingModal(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .boundedFormFieldRipple(shape = RoundedCornerShape(12.dp))
                         .testTag("booking_notes_input"),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
