@@ -887,18 +887,19 @@ fun Modifier.staticGlassCard(
 ): Modifier {
     val effectiveShape = shape ?: RoundedCornerShape(cornerRadius ?: 18.dp)
 
+    val surfaceColor = MaterialTheme.colorScheme.surface
     val cardBgBrush = if (isDark) {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.07f),
-                Color.White.copy(alpha = 0.02f)
+                Color.White.copy(alpha = 0.10f),
+                surfaceColor.copy(alpha = 0.85f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.White.copy(alpha = 0.80f),
-                Color.White.copy(alpha = 0.60f)
+                Color.White.copy(alpha = 0.85f),
+                surfaceColor.copy(alpha = 0.75f)
             )
         )
     }
