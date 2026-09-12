@@ -9,7 +9,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -152,6 +154,7 @@ class AgriBottomNavGestureTest {
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
+                val coroutineScope = rememberCoroutineScope()
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -161,7 +164,15 @@ class AgriBottomNavGestureTest {
 
                 AgriBottomNav(
                     selectedCategory = selectedCategory,
-                    onCategorySelected = { selectedCategory = it },
+                    onCategorySelected = { category ->
+                        selectedCategory = category
+                        val targetIndex = pages.indexOfFirst { it.equals(category, ignoreCase = true) }
+                        if (targetIndex >= 0) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(targetIndex)
+                            }
+                        }
+                    },
                     hazeState = hazeState,
                     pagerState = pagerState
                 )
@@ -196,6 +207,7 @@ class AgriBottomNavGestureTest {
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
+                val coroutineScope = rememberCoroutineScope()
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -205,7 +217,15 @@ class AgriBottomNavGestureTest {
 
                 AgriBottomNav(
                     selectedCategory = selectedCategory,
-                    onCategorySelected = { selectedCategory = it },
+                    onCategorySelected = { category ->
+                        selectedCategory = category
+                        val targetIndex = pages.indexOfFirst { it.equals(category, ignoreCase = true) }
+                        if (targetIndex >= 0) {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(targetIndex)
+                            }
+                        }
+                    },
                     hazeState = hazeState,
                     pagerState = pagerState
                 )
