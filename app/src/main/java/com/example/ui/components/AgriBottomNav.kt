@@ -314,16 +314,11 @@ fun AgriBottomNav(
                 // -------------------------------------------------------------
                 Box(
                     modifier = Modifier
-                        .offset {
-                            IntOffset(
-                                x = indicatorOffsetPx.roundToInt(),
-                                y = 0
-                            )
-                        }
                         .align(Alignment.CenterStart)
                         .width(basePillWidth)
                         .height(pillHeight)
                         .graphicsLayer {
+                            translationX = indicatorOffsetPx
                             // Calculate dynamic stretch inside graphicsLayer so micro-drags do not cause recomposition
                             val currentIndicatorCenter = indicatorOffsetPx + (basePillWidthPx / 2f)
                             val nearestTabIndex = tabCenterPoints.indices.minByOrNull { i ->
@@ -432,19 +427,6 @@ fun AgriBottomNav(
                                     if (hoveredIndex != lastHoveredIndex) {
                                         lastHoveredIndex = hoveredIndex
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    }
-
-                                    // Smooth Pager Driving:
-                                    // While dragging the pill, drive pagerState.dispatchRawDelta without spawning new coroutines.
-                                    // In HorizontalPager, scrolling right on the screen consumes negative delta.
-                                    // Moving the pill forward by effectivePillDelta corresponds to scrolling the pager by:
-                                    // pagerDelta = - (effectivePillDelta / tabWidth) * pagerScreenWidth
-                                    if (pagerState != null && abs(effectivePillDelta) > 0.001f) {
-                                        val pagerPageSize = pagerState.layoutInfo.pageSize.toFloat()
-                                        if (pagerPageSize > 0f) {
-                                            val pagerDelta = - (effectivePillDelta / tabWidth) * pagerPageSize
-                                            pagerState.dispatchRawDelta(pagerDelta)
-                                        }
                                     }
                                 },
                                 onDragEnd = {
