@@ -187,13 +187,13 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            val boldGlassStyle = remember(isDark, container) {
+            val boldGlassStyle = remember(isDark, container, activeSectionAccent) {
                 HazeStyle(
                     backgroundColor = container,
                     tint = HazeTint(
-                        color = if (isDark) container.copy(alpha = 0.35f) else container.copy(alpha = 0.30f)
+                        color = if (isDark) activeSectionAccent.copy(alpha = 0.22f) else activeSectionAccent.copy(alpha = 0.16f)
                     ),
-                    blurRadius = 24.dp,
+                    blurRadius = 40.dp,
                     noiseFactor = 0f
                 )
             }
@@ -207,6 +207,43 @@ fun AgriBottomNav(
                         style = boldGlassStyle
                     )
             )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.5.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.White,
+                                    Color.White,
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 1.5.dp)
+                        .height(2.dp)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = if (isDark) 0.25f else 0.10f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+            }
 
             // LAYER 2: INTERACTIVE LIQUID WATER DROPLET LENS & NAVIGATION ICONS
             BoxWithConstraints(
