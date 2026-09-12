@@ -79,8 +79,74 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.BackdropEffectScope
+import com.kyant.backdrop.backdrops.emptyBackdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.drawBackdrop as kyantDrawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.colorControls
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
+import com.kyant.backdrop.shadow.InnerShadow
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+// BitChord-v1.5.2 Liquid Glass Pipeline Constants
+private const val VIBRANCY = 1f
+private const val BLUR_RADIUS_DP = 8f
+private const val LENS_HEIGHT = 0.5f
+private const val LENS_AMOUNT = 0.5f
+private const val LENS_MAX_DP = 48f
+private const val SURFACE_OPACITY = 0.4f
+private const val GLASS_RESOLUTION_SCALE = 0.33f
+
+/**
+ * Extension overload for drawBackdrop supporting downscaled backdrop resolution via backdropScale.
+ */
+fun Modifier.drawBackdrop(
+    backdrop: Backdrop,
+    shape: () -> Shape,
+    effects: BackdropEffectScope.() -> Unit,
+    highlight: () -> Highlight = { Highlight.Default },
+    shadow: () -> Shadow = { Shadow.Default },
+    innerShadow: (() -> InnerShadow)? = null,
+    layerBlock: (GraphicsLayerScope.() -> Unit)? = null,
+    exportedBackdrop: LayerBackdrop? = null,
+    onDrawBehind: (DrawScope.() -> Unit)? = null,
+    onDrawSurface: (DrawScope.() -> Unit)? = null,
+    onDrawFront: (DrawScope.() -> Unit)? = null,
+    backdropScale: Float = 1f,
+): Modifier {
+    val scaleLayerBlock: (GraphicsLayerScope.() -> Unit)? = if (backdropScale != 1f) {
+        {
+            scaleX = backdropScale
+            scaleY = backdropScale
+            layerBlock?.invoke(this)
+            Unit
+        }
+    } else {
+        layerBlock
+    }
+    return this.kyantDrawBackdrop(
+        backdrop = backdrop,
+        shape = shape,
+        effects = effects,
+        highlight = highlight,
+        shadow = shadow,
+        innerShadow = innerShadow,
+        layerBlock = scaleLayerBlock,
+        exportedBackdrop = exportedBackdrop,
+        onDrawBehind = onDrawBehind,
+        onDrawSurface = onDrawSurface,
+        onDrawFront = onDrawFront
+    )
+}
 
 data class AgriNavItem(
     val title: String,
@@ -107,7 +173,8 @@ fun AgriBottomNav(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
-    pagerState: PagerState? = null
+    pagerState: PagerState? = null,
+    backdrop: Backdrop? = null
 ) {
     val navItems = remember {
         listOf(
@@ -139,25 +206,28 @@ fun AgriBottomNav(
     val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
 
     val containerShape = RoundedCornerShape(percent = 50)
-    val container = MaterialTheme.colorScheme.surface
 
-    val glassBorderBrush = if (isDark) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.30f),
-                Color.White.copy(alpha = 0.12f),
-                Color.White.copy(alpha = 0.04f)
-            )
-        )
+    val existingAppBackdrop = backdrop ?: remember { emptyBackdrop() }
+
+    val blurPx = with(density) { BLUR_RADIUS_DP.dp.toPx() }
+    val maxLensPx = with(density) { LENS_MAX_DP.dp.toPx() }
+    val lensHeightPx = maxLensPx * LENS_HEIGHT
+    val lensAmountPx = maxLensPx * LENS_AMOUNT
+
+    val adaptiveNeutralSurfaceColor = if (isDark || isAmoled) {
+        Color(0xFF121212)
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.50f),
-                Color.White.copy(alpha = 0.20f),
-                Color.White.copy(alpha = 0.06f)
-            )
-        )
+        MaterialTheme.colorScheme.surface
     }
+
+    // Directional specular border catching overhead ambient light
+    val specularBorderBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = if (isDark) 0.35f else 0.65f),
+            Color.White.copy(alpha = 0.08f),
+            Color.Transparent
+        )
+    )
 
     Box(
         modifier = modifier
@@ -171,79 +241,60 @@ fun AgriBottomNav(
                 .fillMaxWidth()
                 .height(68.dp)
                 .shadow(
-                    elevation = 10.dp,
+                    elevation = if (isDark) 12.dp else 6.dp,
                     shape = containerShape,
-                    spotColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.08f),
-                    ambientColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.04f)
+                    spotColor = Color.Black.copy(alpha = if (isDark) 0.60f else 0.12f),
+                    ambientColor = Color.Black.copy(alpha = 0.05f)
                 )
-                .clip(containerShape)
+                .drawBackdrop(
+                    backdrop = existingAppBackdrop,
+                    shape = { containerShape },
+                    effects = {
+                        colorControls(saturation = 1f + 0.5f * 1f)
+                        blur(blurPx)
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            lens(
+                                refractionHeight = lensHeightPx,
+                                refractionAmount = lensAmountPx,
+                                depthEffect = true,
+                                chromaticAberration = true,
+                            )
+                        }
+                    },
+                    highlight = { Highlight.Default },
+                    shadow = { Shadow.Default },
+                    onDrawSurface = {
+                        drawRect(
+                            color = adaptiveNeutralSurfaceColor.copy(alpha = 0.4f),
+                            size = size
+                        )
+                    },
+                    backdropScale = 0.33f,
+                )
+                // Specular Chamfer Stroke
                 .border(
-                    BorderStroke(
-                        width = 0.5.dp,
-                        brush = glassBorderBrush
-                    ),
+                    BorderStroke(width = 1.dp, brush = specularBorderBrush),
                     containerShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            val boldGlassStyle = remember(isDark, container) {
-                HazeStyle(
-                    backgroundColor = container,
-                    tint = HazeTint(
-                        color = if (isDark) Color.White.copy(alpha = 0.18f) else Color(0xFF1A1A1A).copy(alpha = 0.14f)
-                    ),
-                    blurRadius = 40.dp,
-                    noiseFactor = 0f
-                )
-            }
-
+            // Specular apex highlight line
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(containerShape)
-                    .hazeEffect(
-                        state = hazeState,
-                        style = boldGlassStyle
+                    .fillMaxWidth(0.85f)
+                    .height(1.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = if (isDark) 0.40f else 0.70f),
+                                Color.Transparent
+                            )
+                        )
                     )
             )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp)
-                    .align(Alignment.TopCenter)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.5.dp)
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.White,
-                                    Color.White,
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 1.5.dp)
-                        .height(2.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = if (isDark) 0.25f else 0.10f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
-            }
 
             // LAYER 2: INTERACTIVE LIQUID WATER DROPLET LENS & NAVIGATION ICONS
             BoxWithConstraints(
@@ -380,48 +431,22 @@ fun AgriBottomNav(
                             scaleY = dynamicScaleY
                         }
                         .clip(dropletPillShape)
-                        // Pure transparent glass lens backdrop blur (20.dp high-intensity blur)
-                        .hazeEffect(
-                            state = hazeState,
-                            style = HazeStyle(
-                                backgroundColor = Color.Transparent,
-                                blurRadius = 20.dp,
-                                tint = HazeTint(
-                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.14f)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.25f),
+                                    Color.Transparent
                                 ),
-                                noiseFactor = 0f
+                                radius = 90f
                             )
                         )
-                        // Specular highlight: Sharp, thin white arc along the top edge for 3D depth
-                        .drawWithContent {
-                            drawContent()
-                            val w = size.width
-                            val h = size.height
-
-                            drawRoundRect(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = if (isDark) 0.85f else 0.95f),
-                                        Color.White.copy(alpha = if (isDark) 0.35f else 0.45f),
-                                        Color.Transparent
-                                    ),
-                                    startY = 0f,
-                                    endY = h * 0.42f
-                                ),
-                                topLeft = Offset(1.5.dp.toPx(), 0.8.dp.toPx()),
-                                size = Size(w - 3.dp.toPx(), h * 0.42f),
-                                cornerRadius = CornerRadius(h / 2, h / 2),
-                                style = Stroke(width = 1.0.dp.toPx())
-                            )
-                        }
-                        // Pure transparent subtle glass boundary rim
                         .border(
-                            width = 0.75.dp,
+                            width = 1.dp,
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.45f else 0.65f),
-                                    Color.White.copy(alpha = if (isDark) 0.12f else 0.20f),
-                                    Color.White.copy(alpha = if (isDark) 0.20f else 0.35f)
+                                    Color.White.copy(alpha = if (isDark) 0.60f else 0.85f),
+                                    Color.White.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = if (isDark) 0.30f else 0.40f)
                                 )
                             ),
                             shape = dropletPillShape
