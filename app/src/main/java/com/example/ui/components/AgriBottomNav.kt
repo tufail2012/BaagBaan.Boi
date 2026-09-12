@@ -211,7 +211,7 @@ fun AgriBottomNav(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 40.dp)
                     .align(Alignment.TopCenter)
             ) {
                 Box(

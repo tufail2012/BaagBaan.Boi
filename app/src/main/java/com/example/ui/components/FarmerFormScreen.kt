@@ -47,6 +47,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -801,6 +802,13 @@ fun FarmerFormScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
+        FormAmbientBackdrop(
+            accentColor = formAccent,
+            isDark = isDark,
+            isAmoled = isAmoled,
+            scrollOffset = scrollState.value.toFloat()
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -4017,8 +4025,8 @@ fun buildDDMMYYYYFormattedFromDigits(digits: String): String {
 
 fun buildDDMMYYYYFormatted(day: String, month: String, year: String): String {
     val sb = StringBuilder()
-    sb.append(day)
     if (day.length == 2) {
+        sb.append(day)
         sb.append('/')
         if (month.isNotEmpty()) {
             sb.append(month)
@@ -4029,6 +4037,81 @@ fun buildDDMMYYYYFormatted(day: String, month: String, year: String): String {
                 }
             }
         }
+    } else {
+        sb.append(day)
     }
     return sb.toString()
+}
+
+@Composable
+private fun FormAmbientBackdrop(
+    accentColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    scrollOffset: Float,
+    modifier: Modifier = Modifier
+) {
+    val palette = com.example.ui.theme.LocalAppPalette.current
+
+    val bloomColors = remember(palette, accentColor, isDark, isAmoled) {
+        fun toSoftBloomColor(c: Color): Color {
+            val r = (c.red * 255f).toInt().coerceIn(0, 255)
+            val g = (c.green * 255f).toInt().coerceIn(0, 255)
+            val b = (c.blue * 255f).toInt().coerceIn(0, 255)
+            val hsv = FloatArray(3)
+            android.graphics.Color.RGBToHSV(r, g, b, hsv)
+            val hue = hsv[0]
+            val sat = if (isAmoled) 0.40f else if (isDark) 0.35f else 0.22f
+            val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
+            return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, value)))
+        }
+        val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+        val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+        val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+        val hsv = FloatArray(3)
+        android.graphics.Color.RGBToHSV(r, g, b, hsv)
+        val hue = hsv[0]
+        val sec = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, 0.45f, 0.90f)))
+        val tert = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, 0.40f, 0.85f)))
+        listOf(toSoftBloomColor(accentColor), toSoftBloomColor(sec), toSoftBloomColor(tert))
+    }
+    val primaryBloom = bloomColors[0]
+    val secondaryBloom = bloomColors[1]
+    val tertiaryBloom = bloomColors[2]
+
+    val bloomAlpha = if (isAmoled) 0.07f else if (isDark) 0.09f else 0.11f
+
+    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
+        val w = size.width
+        val h = size.height
+        val yShift = -scrollOffset * 0.15f
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(primaryBloom.copy(alpha = bloomAlpha), Color.Transparent),
+                center = Offset(w * 0.85f, h * 0.15f + yShift),
+                radius = w * 0.75f
+            ),
+            center = Offset(w * 0.85f, h * 0.15f + yShift),
+            radius = w * 0.75f
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(secondaryBloom.copy(alpha = bloomAlpha * 0.9f), Color.Transparent),
+                center = Offset(w * 0.10f, h * 0.45f + yShift),
+                radius = w * 0.70f
+            ),
+            center = Offset(w * 0.10f, h * 0.45f + yShift),
+            radius = w * 0.70f
+        )
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.85f), Color.Transparent),
+                center = Offset(w * 0.90f, h * 0.80f + yShift),
+                radius = w * 0.72f
+            ),
+            center = Offset(w * 0.90f, h * 0.80f + yShift),
+            radius = w * 0.72f
+        )
+    }
 }
