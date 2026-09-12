@@ -187,11 +187,11 @@ fun AgriBottomNav(
             contentAlignment = Alignment.Center
         ) {
             // LAYER 1: OUTER REFRACTING LIQUID-GLASS SURFACE
-            val boldGlassStyle = remember(isDark, container, activeSectionAccent) {
+            val boldGlassStyle = remember(isDark, container) {
                 HazeStyle(
                     backgroundColor = container,
                     tint = HazeTint(
-                        color = if (isDark) activeSectionAccent.copy(alpha = 0.22f) else activeSectionAccent.copy(alpha = 0.16f)
+                        color = if (isDark) Color.White.copy(alpha = 0.18f) else Color(0xFF1A1A1A).copy(alpha = 0.14f)
                     ),
                     blurRadius = 40.dp,
                     noiseFactor = 0f
