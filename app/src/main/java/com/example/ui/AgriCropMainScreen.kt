@@ -173,7 +173,20 @@ fun AgriCropMainScreen(
     val cropRecordsCount = filteredCropRecords.size
 
     val hazeState = remember { HazeState() }
-    val navBackdrop = rememberLayerBackdrop()
+
+    val windowBackground = MaterialTheme.colorScheme.background
+
+    val paintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(windowBackground) {
+            {
+                drawRect(windowBackground)
+                drawContent()
+            }
+        }
+
+    val navBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
 
     val snackbarHostState = remember { SnackbarHostState() }
 
