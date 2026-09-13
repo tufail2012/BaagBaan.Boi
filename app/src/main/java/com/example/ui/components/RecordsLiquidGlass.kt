@@ -127,7 +127,7 @@ fun Modifier.recordsDropdownLiquidGlass(
 
     val rimBrush = Brush.verticalGradient(
         colors = listOf(
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.65f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.60f),
             Color.White.copy(alpha = if (isDark || isAmoled) 0.12f else 0.25f),
             Color.White.copy(alpha = if (isDark || isAmoled) 0.04f else 0.08f)
         )
@@ -135,12 +135,6 @@ fun Modifier.recordsDropdownLiquidGlass(
 
     return if (backdrop != null && isGlassSupported()) {
         this
-            .shadow(
-                elevation = 12.dp,
-                shape = shape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.50f else 0.20f),
-                ambientColor = Color.Black.copy(alpha = 0.10f)
-            )
             .clip(shape)
             .drawBackdrop(
                 backdrop = backdrop,
@@ -160,38 +154,24 @@ fun Modifier.recordsDropdownLiquidGlass(
                 highlight = { Highlight.Default },
                 shadow = { Shadow.Default },
                 onDrawSurface = {
-                    drawRect(surfaceTintColor.copy(alpha = 0.45f))
+                    drawRect(surfaceTintColor.copy(alpha = 0.40f))
                 }
             )
-            .border(0.8.dp, rimBrush, shape)
+            .border(0.6.dp, rimBrush, shape)
     } else {
         val fallbackStyle = HazeStyle(
-            backgroundColor = surfaceTintColor.copy(alpha = if (isDark) 0.55f else 0.65f),
+            backgroundColor = surfaceTintColor.copy(alpha = 0.65f),
             blurRadius = 24.dp,
             tints = emptyList()
         )
         this
-            .shadow(
-                elevation = 12.dp,
-                shape = shape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.50f else 0.20f),
-                ambientColor = Color.Black.copy(alpha = 0.10f)
-            )
             .clip(shape)
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(state = hazeState, style = fallbackStyle)
                 } else Modifier
             )
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        surfaceTintColor.copy(alpha = if (isDark) 0.55f else 0.65f),
-                        surfaceTintColor.copy(alpha = if (isDark) 0.40f else 0.50f)
-                    )
-                ),
-                shape
-            )
-            .border(0.8.dp, rimBrush, shape)
+            .background(surfaceTintColor.copy(alpha = 0.40f), shape)
+            .border(0.6.dp, rimBrush, shape)
     }
 }

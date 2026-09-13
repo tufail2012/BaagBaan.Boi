@@ -824,6 +824,18 @@ fun AgriCropMainScreen(
                                                         radius = size.width * 0.70f
                                                     )
                                                 )
+                                                // Bottom-right radiant ambient orb behind floating action controls (New Entry / Scroll-to-Top)
+                                                drawCircle(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            accent.copy(alpha = if (isDarkTheme) 0.18f else 0.12f),
+                                                            accent.copy(alpha = if (isDarkTheme) 0.05f else 0.02f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(size.width * 0.82f, size.height * 0.86f),
+                                                        radius = size.width * 0.55f
+                                                    )
+                                                )
                                             }
                                         }
 
