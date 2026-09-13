@@ -111,9 +111,6 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
@@ -131,23 +128,11 @@ fun FarmerRecordsScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
-    backdrop: LayerBackdrop? = null
+    backdrop: Backdrop? = null
 ) {
-    android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started")
+    android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started - consuming recordsBackdrop: ${backdrop != null}")
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
-    val windowBackground = MaterialTheme.colorScheme.background
-    val paintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
-        remember(windowBackground) {
-            {
-                drawRect(windowBackground)
-                drawContent()
-            }
-        }
-    android.util.Log.d("RECORDS_DEBUG", "Creating Records backdrop")
-    val internalRecordsBackdrop = rememberLayerBackdrop(
-        onDraw = paintBackdrop
-    )
-    val recordsBackdrop = backdrop ?: internalRecordsBackdrop
+    val recordsBackdrop = backdrop
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -260,7 +245,6 @@ fun FarmerRecordsScreen(
                         Modifier.hazeSource(state = effectiveHazeState)
                     } else Modifier
                 )
-                .layerBackdrop(recordsBackdrop)
         ) {
             android.util.Log.d("RECORDS_DEBUG", "Creating Records LazyColumn")
             // Scrollable content (Entire screen in unified scroll flow)

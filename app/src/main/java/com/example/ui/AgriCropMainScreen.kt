@@ -192,6 +192,10 @@ fun AgriCropMainScreen(
         onDraw = paintBackdrop
     )
 
+    val recordsBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     val userDashboardViewModel = remember { UserDashboardViewModel() }
@@ -828,12 +832,24 @@ fun AgriCropMainScreen(
                                                     hazeState = hazeState
                                                 )
                                                 else -> {
-                                                    android.util.Log.d("RECORDS_DEBUG", "Opening Records")
+                                                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
                                                     com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
-                                                    FarmerRecordsScreen(
-                                                        viewModel = viewModel,
-                                                        hazeState = hazeState
-                                                    )
+                                                    Box(modifier = Modifier.fillMaxSize()) {
+                                                        // Dedicated Records backdrop source boundary:
+                                                        // Captures only the background canvas behind the Records glass surfaces.
+                                                        // No consumer composables exist inside this Box.
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxSize()
+                                                                .layerBackdrop(recordsBackdrop)
+                                                        )
+                                                        // Records content & consumers are rendered outside the backdrop source subtree
+                                                        FarmerRecordsScreen(
+                                                            viewModel = viewModel,
+                                                            hazeState = hazeState,
+                                                            backdrop = recordsBackdrop
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
