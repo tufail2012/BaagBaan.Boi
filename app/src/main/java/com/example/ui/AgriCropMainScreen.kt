@@ -174,7 +174,7 @@ fun AgriCropMainScreen(
 
     val hazeState = remember { HazeState() }
 
-    val windowBackground = MaterialTheme.colorScheme.background
+    val windowBackground = MaterialTheme.colorScheme.surface
 
     val paintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
         remember(windowBackground) {
