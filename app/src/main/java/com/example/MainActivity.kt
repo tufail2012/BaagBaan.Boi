@@ -124,7 +124,7 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val savedCrashTrace = androidx.compose.runtime.remember {
-                com.example.util.CrashReporter.getSavedCrashTrace(this@MainActivity)
+                com.example.util.CrashReporter.getPendingCrashReport(this@MainActivity)
             }
             var activeCrashTrace by androidx.compose.runtime.remember {
                 androidx.compose.runtime.mutableStateOf(savedCrashTrace)
