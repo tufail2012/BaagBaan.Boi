@@ -44,7 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -173,7 +179,62 @@ fun AgriBottomNav(
                         scaleY = 1f - lag * STRETCH * SQUASH
                     }
                     .clip(pillShape)
-                    .background(activeSectionAccent.copy(alpha = 0.14f))
+                    .background(
+                        brush = if (!isDark) {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.28f),
+                                    activeSectionAccent.copy(alpha = 0.12f),
+                                    Color.White.copy(alpha = 0.16f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset.Infinite
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.18f),
+                                    activeSectionAccent.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = 0.08f)
+                                ),
+                                start = Offset.Zero,
+                                end = Offset.Infinite
+                            )
+                        },
+                        shape = pillShape
+                    )
+                    .drawWithContent {
+                        drawContent()
+                        val w = size.width
+                        val h = size.height
+                        drawRoundRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (isDark) 0.40f else 0.60f),
+                                    Color.White.copy(alpha = if (isDark) 0.10f else 0.18f),
+                                    Color.Transparent
+                                ),
+                                startY = 0f,
+                                endY = h * 0.5f
+                            ),
+                            topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                            size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                            cornerRadius = CornerRadius(h / 2, h / 2),
+                            style = Stroke(width = 1.dp.toPx())
+                        )
+                    }
+                    .border(
+                        width = 0.8.dp,
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (!isDark) 0.45f else 0.30f),
+                                Color.White.copy(alpha = if (!isDark) 0.25f else 0.12f)
+                            ),
+                            start = Offset.Zero,
+                            end = Offset.Infinite
+                        ),
+                        shape = pillShape
+                    )
             )
         }
 
