@@ -151,9 +151,13 @@ fun AgriBottomNav(
             .padding(bottom = 2.dp)
             .fillMaxWidth()
             .clip(pillShape)
-            .hazeEffect(
-                state = hazeState,
-                style = HazeMaterials.regular(container)
+            .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+            .then(
+                if (backdrop == null || !isGlassSupported()) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
+                } else {
+                    Modifier
+                }
             )
             .border(0.5.dp, Color.White.copy(alpha = 0.10f), pillShape)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET)

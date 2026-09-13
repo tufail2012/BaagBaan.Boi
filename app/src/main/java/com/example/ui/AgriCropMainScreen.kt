@@ -32,6 +32,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
@@ -171,6 +173,7 @@ fun AgriCropMainScreen(
     val cropRecordsCount = filteredCropRecords.size
 
     val hazeState = remember { HazeState() }
+    val navBackdrop = rememberLayerBackdrop()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -743,6 +746,7 @@ fun AgriCropMainScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .hazeSource(state = hazeState)
+                                    .layerBackdrop(navBackdrop)
                             ) {
                                 if (selectedService.equals("Bookings", ignoreCase = true)) {
                                     UserBookingsSection(viewModel = userDashboardViewModel)
@@ -832,6 +836,7 @@ fun AgriCropMainScreen(
                                 },
                                 hazeState = hazeState,
                                 accentColor = sectionAccentColor,
+                                backdrop = navBackdrop,
                                 pagerState = pagerState,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
