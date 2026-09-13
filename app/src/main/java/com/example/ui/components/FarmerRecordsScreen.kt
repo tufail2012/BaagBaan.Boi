@@ -111,6 +111,8 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
@@ -168,6 +170,14 @@ fun FarmerRecordsScreen(
     val bookTitle = if (selectedService.equals("Imported", ignoreCase = true)) "Imported Plants" else "$bookTitleName Recording Book"
 
     val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
+    val windowBgColor = if (isAmoled) Color.Black else if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)
+    val recordsScrollBackdrop = rememberLayerBackdrop(
+        onDraw = {
+            drawRect(windowBgColor)
+            drawContent()
+        }
+    )
     val searchShape = RoundedCornerShape(24.dp)
     val isPruning = selectedService.equals("Pruning", ignoreCase = true)
     val isSiteVisit = selectedService.equals("Site Visit", ignoreCase = true)
@@ -240,6 +250,7 @@ fun FarmerRecordsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .layerBackdrop(recordsScrollBackdrop)
                 .then(
                     if (effectiveHazeState != null) {
                         Modifier.hazeSource(state = effectiveHazeState)
@@ -447,9 +458,9 @@ fun FarmerRecordsScreen(
                     color = Color.Transparent,
                     modifier = Modifier
                         .then(
-                            if (recordsBackdrop != null && isGlassSupported()) {
+                            if (isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = recordsBackdrop,
+                                    backdrop = recordsScrollBackdrop,
                                     shape = fabShape,
                                     customSurfaceTint = null
                                 )
@@ -527,9 +538,9 @@ fun FarmerRecordsScreen(
                     modifier = Modifier
                         .size(38.dp)
                         .then(
-                            if (recordsBackdrop != null && isGlassSupported()) {
+                            if (isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = recordsBackdrop,
+                                    backdrop = recordsScrollBackdrop,
                                     shape = CircleShape
                                 )
                             } else {

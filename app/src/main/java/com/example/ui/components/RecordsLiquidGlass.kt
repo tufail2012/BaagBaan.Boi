@@ -1,11 +1,14 @@
 package com.example.ui.components
 
 import android.os.Build
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -19,6 +22,9 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.hazeEffect
 
 internal const val RECORDS_BLUR_RADIUS_DP = 8f
 internal const val RECORDS_LENS_HEIGHT = 0.5f
@@ -88,4 +94,104 @@ fun Modifier.recordsLiquidGlass(
             }
         )
         .border(0.8.dp, rimBrush, shape)
+}
+
+/**
+ * Liquid Glass modifier specifically for dropdown menus in the Records and Garden Planning sections,
+ * matching the Profile Menu source-of-truth implementation (AgriHeader.kt):
+ * - Seamless frosted translucent surface
+ * - drawBackdrop pipeline (vibrancy, blur, lens on API 33+, Highlight.Default, Shadow.Default)
+ * - Safe fallback with hazeEffect and translucent surface tint (never opaque 85-90% black/white)
+ * - Multi-stop rim light border and soft depth shadow
+ */
+@Composable
+fun Modifier.recordsDropdownLiquidGlass(
+    backdrop: Backdrop?,
+    hazeState: HazeState? = null,
+    shape: Shape = RoundedCornerShape(20.dp)
+): Modifier {
+    val density = LocalDensity.current
+    val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
+    val blurPx = with(density) { 8f.dp.toPx() }
+    val lensHeightPx = with(density) { (0.5f * 48f).dp.toPx() }
+    val lensAmountPx = with(density) { (0.5f * 48f).dp.toPx() }
+
+    val surfaceTintColor = if (isAmoled) {
+        Color(0xFF000000)
+    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color(0xFFFAFAFA)
+    } else {
+        Color(0xFF121212)
+    }
+
+    val rimBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.65f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.12f else 0.25f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.04f else 0.08f)
+        )
+    )
+
+    return if (backdrop != null && isGlassSupported()) {
+        this
+            .shadow(
+                elevation = 12.dp,
+                shape = shape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.50f else 0.20f),
+                ambientColor = Color.Black.copy(alpha = 0.10f)
+            )
+            .clip(shape)
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { shape },
+                effects = {
+                    vibrancy()
+                    blur(blurPx)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        lens(
+                            refractionHeight = lensHeightPx,
+                            refractionAmount = lensAmountPx,
+                            depthEffect = true,
+                            chromaticAberration = true
+                        )
+                    }
+                },
+                highlight = { Highlight.Default },
+                shadow = { Shadow.Default },
+                onDrawSurface = {
+                    drawRect(surfaceTintColor.copy(alpha = 0.45f))
+                }
+            )
+            .border(0.8.dp, rimBrush, shape)
+    } else {
+        val fallbackStyle = HazeStyle(
+            backgroundColor = surfaceTintColor.copy(alpha = if (isDark) 0.55f else 0.65f),
+            blurRadius = 24.dp,
+            tints = emptyList()
+        )
+        this
+            .shadow(
+                elevation = 12.dp,
+                shape = shape,
+                spotColor = Color.Black.copy(alpha = if (isDark) 0.50f else 0.20f),
+                ambientColor = Color.Black.copy(alpha = 0.10f)
+            )
+            .clip(shape)
+            .then(
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = fallbackStyle)
+                } else Modifier
+            )
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        surfaceTintColor.copy(alpha = if (isDark) 0.55f else 0.65f),
+                        surfaceTintColor.copy(alpha = if (isDark) 0.40f else 0.50f)
+                    )
+                ),
+                shape
+            )
+            .border(0.8.dp, rimBrush, shape)
+    }
 }

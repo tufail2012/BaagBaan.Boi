@@ -67,6 +67,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -2128,6 +2130,14 @@ fun GardenPlanningRecordsTab(
     }
 
     val animatedItemIds = remember(selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
+    val isAmoled = isAppInAmoledMode()
+    val windowBgColor = if (isAmoled) Color.Black else if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)
+    val gardenScrollBackdrop = rememberLayerBackdrop(
+        onDraw = {
+            drawRect(windowBgColor)
+            drawContent()
+        }
+    )
 
     BrandedPullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -2149,14 +2159,24 @@ fun GardenPlanningRecordsTab(
             modifier = Modifier.fillMaxSize()
         ) {
             // Scrollable Content (Unified scroll flow on single seamless canvas)
-            LazyColumn(
-                state = lazyListState,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
+                    .layerBackdrop(gardenScrollBackdrop)
+                    .then(
+                        if (effectiveHazeState != null) {
+                            Modifier.hazeSource(state = effectiveHazeState)
+                        } else Modifier
+                    )
             ) {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
+                ) {
                 // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                 // Sits directly on the single continuous background canvas and scrolls together with records
                 item(key = "garden_records_header_controls") {
@@ -2303,9 +2323,9 @@ fun GardenPlanningRecordsTab(
                     color = Color.Transparent,
                     modifier = Modifier
                         .then(
-                            if (backdrop != null && isGlassSupported()) {
+                            if (isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = backdrop,
+                                    backdrop = gardenScrollBackdrop,
                                     shape = fabShape,
                                     customSurfaceTint = null
                                 )
@@ -2382,9 +2402,9 @@ fun GardenPlanningRecordsTab(
                     modifier = Modifier
                         .size(38.dp)
                         .then(
-                            if (backdrop != null && isGlassSupported()) {
+                            if (isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = backdrop,
+                                    backdrop = gardenScrollBackdrop,
                                     shape = CircleShape
                                 )
                             } else {
@@ -2433,6 +2453,7 @@ fun GardenPlanningRecordsTab(
             }
         }
     }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

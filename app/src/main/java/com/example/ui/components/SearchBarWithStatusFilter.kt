@@ -8,6 +8,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -343,7 +346,7 @@ fun SearchBarWithStatusFilter(
                     }
                 }
 
-                val dropdownShape = RoundedCornerShape(18.dp)
+                val dropdownShape = RoundedCornerShape(20.dp)
                 DropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = { dropdownExpanded = false },
@@ -353,42 +356,57 @@ fun SearchBarWithStatusFilter(
                     shadowElevation = 0.dp,
                     tonalElevation = 0.dp,
                     modifier = Modifier
-                        .then(
-                            if (backdrop != null && isGlassSupported()) {
-                                Modifier.recordsLiquidGlass(
-                                    backdrop = backdrop,
-                                    shape = dropdownShape
-                                )
-                            } else {
-                                Modifier
-                                    .shadow(elevation = 8.dp, shape = dropdownShape)
-                                    .clip(dropdownShape)
-                                    .then(
-                                        if (hazeState != null) {
-                                            Modifier.hazeEffect(
-                                                state = hazeState,
-                                                style = dev.chrisbanes.haze.materials.HazeMaterials.regular()
-                                            )
-                                        } else Modifier
-                                    )
-                                    .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.90f))
-                                    .border(
-                                        BorderStroke(
-                                            1.dp,
-                                            if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
-                                        ),
-                                        dropdownShape
-                                    )
-                            }
+                        .widthIn(min = 210.dp, max = 245.dp)
+                        .padding(vertical = 4.dp)
+                        .recordsDropdownLiquidGlass(
+                            backdrop = backdrop,
+                            hazeState = hazeState,
+                            shape = dropdownShape
                         )
                         .testTag("${testTagPrefix}_filter_menu")
                 ) {
-                    Text(
-                        text = "Filter Records",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    // Header Section
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = null,
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Text(
+                                text = "Filter Records",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White.copy(alpha = 0.95f) else Color(0xFF0F172A)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(
+                        color = Color.White.copy(alpha = if (isDark) 0.10f else 0.20f),
+                        thickness = 0.8.dp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
                     )
 
                     PAYMENT_STATUS_FILTER_OPTIONS.forEach { option ->
@@ -403,20 +421,30 @@ fun SearchBarWithStatusFilter(
                                     Text(
                                         text = option,
                                         fontSize = 13.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
-                                            if (isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0F172A)
+                                            if (isDark) Color.White.copy(alpha = 0.90f) else Color(0xFF0F172A)
                                         }
                                     )
                                     if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.25f else 0.18f)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                        }
                                     }
                                 }
                             },
@@ -424,13 +452,15 @@ fun SearchBarWithStatusFilter(
                                 onFilterSelected(option)
                                 dropdownExpanded = false
                             },
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             modifier = Modifier
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .then(
                                     if (isSelected) {
                                         Modifier.background(
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.16f else 0.08f),
-                                            shape = RoundedCornerShape(8.dp)
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.18f else 0.10f),
+                                            shape = RoundedCornerShape(12.dp)
                                         )
                                     } else Modifier
                                 )
