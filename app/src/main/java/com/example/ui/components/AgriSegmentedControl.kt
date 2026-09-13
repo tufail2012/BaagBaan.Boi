@@ -52,6 +52,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -77,7 +78,8 @@ fun AgriSegmentedControl(
     modifier: Modifier = Modifier,
     newEntryLabel: String = "New Entry",
     recordsLabel: String = "Records",
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    backdrop: Backdrop? = null
 ) {
     val items = listOf(
         SegmentedTabEntry(title = newEntryLabel, testTag = "tab_new_entry"),
@@ -90,6 +92,7 @@ fun AgriSegmentedControl(
         onItemSelected = onModeSelected,
         hazeState = hazeState,
         accentColor = accentColor,
+        backdrop = backdrop,
         modifier = modifier
     )
 }
@@ -101,7 +104,8 @@ fun LiquidGlassSegmentedSwitcher(
     onItemSelected: (Int) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    backdrop: Backdrop? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
@@ -137,27 +141,37 @@ fun LiquidGlassSegmentedSwitcher(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .height(48.dp)
-            .shadow(
-                elevation = 3.dp,
-                shape = containerShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
-            )
-            .clip(containerShape)
             .then(
-                Modifier.hazeEffect(
-                    state = hazeState,
-                    style = HazeStyle(
-                        blurRadius = 12.dp,
-                        tints = listOf(
-                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.05f))
-                        ),
-                        backgroundColor = Color.Transparent
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = containerShape
                     )
-                )
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 3.dp,
+                            shape = containerShape,
+                            spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
+                        )
+                        .clip(containerShape)
+                        .then(
+                            Modifier.hazeEffect(
+                                state = hazeState,
+                                style = HazeStyle(
+                                    blurRadius = 12.dp,
+                                    tints = listOf(
+                                        HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.05f))
+                                    ),
+                                    backgroundColor = Color.Transparent
+                                )
+                            )
+                        )
+                        .background(trackBgBrush, shape = containerShape)
+                        .border(BorderStroke(1.dp, trackBorderBrush), shape = containerShape)
+                }
             )
-            .background(trackBgBrush, shape = containerShape)
-            .border(BorderStroke(1.dp, trackBorderBrush), shape = containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(

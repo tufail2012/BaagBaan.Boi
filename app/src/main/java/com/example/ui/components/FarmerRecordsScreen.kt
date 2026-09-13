@@ -110,6 +110,10 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
@@ -126,9 +130,22 @@ import java.util.Locale
 fun FarmerRecordsScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = LocalAppGlassHazeState.current
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
+    backdrop: LayerBackdrop? = null
 ) {
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
+    val windowBackground = MaterialTheme.colorScheme.background
+    val paintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(windowBackground) {
+            {
+                drawRect(windowBackground)
+                drawContent()
+            }
+        }
+    val internalRecordsBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
+    val recordsBackdrop = backdrop ?: internalRecordsBackdrop
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -241,6 +258,7 @@ fun FarmerRecordsScreen(
                         Modifier.hazeSource(state = effectiveHazeState)
                     } else Modifier
                 )
+                .layerBackdrop(recordsBackdrop)
         ) {
             // Scrollable content (Entire screen in unified scroll flow)
             LazyColumn(
@@ -265,6 +283,7 @@ fun FarmerRecordsScreen(
                                 onSelectSubTab = { viewModel.selectPruningSubTab(it) },
                                 accentColor = paletteColor,
                                 hazeState = effectiveHazeState,
+                                backdrop = recordsBackdrop,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
@@ -276,6 +295,7 @@ fun FarmerRecordsScreen(
                                 },
                                 accentColor = paletteColor,
                                 hazeState = effectiveHazeState,
+                                backdrop = recordsBackdrop,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -291,6 +311,7 @@ fun FarmerRecordsScreen(
                                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                                 recordsLabel = "Records (${records.size})",
                                 accentColor = paletteColor,
+                                backdrop = recordsBackdrop,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -299,7 +320,8 @@ fun FarmerRecordsScreen(
                         RecordingBookHeader(
                             title = bookTitle,
                             count = records.size,
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop
                         )
                         SearchBarWithStatusFilter(
                             searchQuery = searchQuery,
@@ -309,7 +331,8 @@ fun FarmerRecordsScreen(
                             placeholderText = "Search by farmer name, phone, serial no...",
                             isDark = isDark,
                             testTagPrefix = "crop_search",
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop
                         )
                         // 2x2 Metric Grid Component placed directly below Search Bar
                         RecordsSummaryMetricCards(
@@ -320,7 +343,8 @@ fun FarmerRecordsScreen(
                             quantityLabel = quantityUnitLabel,
                             isDark = isDark,
                             paletteAccent = paletteColor,
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop
                         )
                     }
                 }
@@ -405,6 +429,7 @@ fun FarmerRecordsScreen(
                                     onDelete = { recordToDelete = record },
                                     onOpenDetail = { selectedDetailRecord = record },
                                     hazeState = effectiveHazeState,
+                                    backdrop = recordsBackdrop,
                                     paletteColor = paletteColor
                                 )
                             }
@@ -420,42 +445,54 @@ fun FarmerRecordsScreen(
                     .padding(bottom = 96.dp, end = 16.dp)
                     .zIndex(8f)
             ) {
+                val fabShape = RoundedCornerShape(percent = 50)
                 Surface(
                     onClick = { viewModel.setViewMode(0) },
-                    shape = RoundedCornerShape(percent = 50),
+                    shape = fabShape,
                     color = Color.Transparent,
                     modifier = Modifier
-                        .shadow(
-                            elevation = 8.dp,
-                            shape = RoundedCornerShape(percent = 50),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        )
-                        .clip(RoundedCornerShape(percent = 50))
                         .then(
-                            if (effectiveHazeState != null) {
-                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
-                            } else Modifier
-                        )
-                        .background(
-                            brush = Brush.verticalGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.88f else 0.92f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.68f else 0.76f)
+                            if (isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = recordsBackdrop,
+                                    shape = fabShape,
+                                    customSurfaceTint = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.85f else 0.90f)
                                 )
-                            ),
-                            shape = RoundedCornerShape(percent = 50)
-                        )
-                        .border(
-                            BorderStroke(
-                                1.dp,
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.White.copy(alpha = 0.80f),
-                                        Color.White.copy(alpha = 0.25f)
+                            } else {
+                                Modifier
+                                    .shadow(
+                                        elevation = 8.dp,
+                                        shape = fabShape,
+                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                     )
-                                )
-                            ),
-                            shape = RoundedCornerShape(percent = 50)
+                                    .clip(fabShape)
+                                    .then(
+                                        if (effectiveHazeState != null) {
+                                            Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                        } else Modifier
+                                    )
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.88f else 0.92f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.68f else 0.76f)
+                                            )
+                                        ),
+                                        shape = fabShape
+                                    )
+                                    .border(
+                                        BorderStroke(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color.White.copy(alpha = 0.80f),
+                                                    Color.White.copy(alpha = 0.25f)
+                                                )
+                                            )
+                                        ),
+                                        shape = fabShape
+                                    )
+                            }
                         )
                         .testTag("fab_add_crop_record")
                 ) {
@@ -493,29 +530,39 @@ fun FarmerRecordsScreen(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(CircleShape)
                         .then(
-                            if (effectiveHazeState != null) {
-                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
-                            } else Modifier
-                        )
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = if (isDark) 0.22f else 0.50f),
-                                    Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
+                            if (isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = recordsBackdrop,
+                                    shape = CircleShape
                                 )
-                            ),
-                            CircleShape
-                        )
-                        .border(
-                            BorderStroke(
-                                1.dp,
-                                Brush.verticalGradient(
-                                    listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f))
-                                )
-                            ),
-                            CircleShape
+                            } else {
+                                Modifier
+                                    .clip(CircleShape)
+                                    .then(
+                                        if (effectiveHazeState != null) {
+                                            Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                        } else Modifier
+                                    )
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = if (isDark) 0.22f else 0.50f),
+                                                Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                                    .border(
+                                        BorderStroke(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f))
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                            }
                         )
                         .clip(CircleShape)
                         .clickable {
@@ -597,6 +644,7 @@ private fun FarmerRecordCard(
     onDelete: () -> Unit,
     onOpenDetail: () -> Unit,
     hazeState: HazeState? = null,
+    backdrop: Backdrop? = null,
     paletteColor: Color = MaterialTheme.colorScheme.primary
 ) {
     val context = LocalContext.current
@@ -681,29 +729,39 @@ private fun FarmerRecordCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 4.dp,
-                shape = cardShape,
-                spotColor = Color.Black.copy(alpha = 0.05f),
-                ambientColor = Color.Black.copy(alpha = 0.02f)
-            )
-            .clip(cardShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            blurRadius = 12.dp,
-                            tints = listOf(
-                                HazeTint(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f))
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = cardShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = cardShape,
+                            spotColor = Color.Black.copy(alpha = 0.05f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
+                        )
+                        .clip(cardShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 12.dp,
+                                        tints = listOf(
+                                            HazeTint(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f))
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(cardFillBrush, shape = cardShape)
+                        .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
+                }
             )
-            .background(cardFillBrush, shape = cardShape)
-            .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag("farmer_record_card_${record.id}")
     ) {
         Column(

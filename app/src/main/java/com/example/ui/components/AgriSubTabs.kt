@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.getSectionAccentColor
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -77,7 +78,8 @@ fun PruningSubTabs(
     onSelectSubTab: (String) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    backdrop: Backdrop? = null
 ) {
     val subTabs = listOf("Summer Pruning", "Winter Pruning")
     val selectedIndex = if (selectedSubTab.contains("Winter", ignoreCase = true)) 1 else 0
@@ -113,29 +115,39 @@ fun PruningSubTabs(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .height(48.dp)
-            .shadow(
-                elevation = 3.dp,
-                shape = containerShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
-            )
-            .clip(containerShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            blurRadius = 10.dp,
-                            tints = listOf(
-                                HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = containerShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 3.dp,
+                            shape = containerShape,
+                            spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
+                        )
+                        .clip(containerShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 10.dp,
+                                        tints = listOf(
+                                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(containerBgBrush, shape = containerShape)
+                        .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
+                }
             )
-            .background(containerBgBrush, shape = containerShape)
-            .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(
@@ -356,7 +368,8 @@ fun RootstockSubTabs(
     onSelectSubTab: (String, String?) -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    backdrop: Backdrop? = null
 ) {
     var genevaMenuExpanded by remember { mutableStateOf(false) }
     val genevaOptions = listOf("G41", "G214", "G11", "G35", "G969", "G890")
@@ -405,29 +418,39 @@ fun RootstockSubTabs(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .height(48.dp)
-            .shadow(
-                elevation = 3.dp,
-                shape = containerShape,
-                spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
-                ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
-            )
-            .clip(containerShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            blurRadius = 10.dp,
-                            tints = listOf(
-                                HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = containerShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 3.dp,
+                            shape = containerShape,
+                            spotColor = Color.Black.copy(alpha = if (isDark) 0.12f else 0.04f),
+                            ambientColor = Color.Black.copy(alpha = if (isDark) 0.06f else 0.02f)
+                        )
+                        .clip(containerShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 10.dp,
+                                        tints = listOf(
+                                            HazeTint(color = accentColor.copy(alpha = if (isDark) 0.08f else 0.04f))
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(containerBgBrush, shape = containerShape)
+                        .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
+                }
             )
-            .background(containerBgBrush, shape = containerShape)
-            .border(BorderStroke(1.dp, containerBorderBrush), containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(

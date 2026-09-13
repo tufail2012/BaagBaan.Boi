@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -41,7 +42,8 @@ fun RecordingBookHeader(
     title: String,
     count: Int,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = LocalAppGlassHazeState.current
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
+    backdrop: Backdrop? = null
 ) {
     val isDark = isAppInDarkMode()
     val headerShape = RoundedCornerShape(18.dp)
@@ -70,31 +72,41 @@ fun RecordingBookHeader(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 2.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = headerShape,
-                spotColor = Color.Black.copy(alpha = 0.05f),
-                ambientColor = Color.Black.copy(alpha = 0.02f)
-            )
-            .clip(headerShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = dev.chrisbanes.haze.HazeStyle(
-                            blurRadius = 12.dp,
-                            tints = listOf(
-                                dev.chrisbanes.haze.HazeTint(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
-                                )
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = headerShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = headerShape,
+                            spotColor = Color.Black.copy(alpha = 0.05f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
+                        )
+                        .clip(headerShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = dev.chrisbanes.haze.HazeStyle(
+                                        blurRadius = 12.dp,
+                                        tints = listOf(
+                                            dev.chrisbanes.haze.HazeTint(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                            )
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(fillBrush, shape = headerShape)
+                        .border(BorderStroke(1.dp, borderBrush), shape = headerShape)
+                }
             )
-            .background(fillBrush, shape = headerShape)
-            .border(BorderStroke(1.dp, borderBrush), shape = headerShape)
     ) {
         Row(
             modifier = Modifier

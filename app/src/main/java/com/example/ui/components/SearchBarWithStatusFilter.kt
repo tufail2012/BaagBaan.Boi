@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.HazeMaterials
@@ -77,7 +78,8 @@ fun SearchBarWithStatusFilter(
     placeholderText: String = "Search by farmer name, phone, serial...",
     isDark: Boolean = isAppInDarkMode(),
     testTagPrefix: String = "record_search",
-    hazeState: HazeState? = LocalAppGlassHazeState.current
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
+    backdrop: Backdrop? = null
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
     val isFilterActive = selectedFilter != "All Records"
@@ -130,31 +132,41 @@ fun SearchBarWithStatusFilter(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp)
-                    .shadow(
-                        elevation = 4.dp,
-                        shape = capsuleShape,
-                        spotColor = Color.Black.copy(alpha = 0.05f),
-                        ambientColor = Color.Black.copy(alpha = 0.02f)
-                    )
-                    .clip(capsuleShape)
                     .then(
-                        if (hazeState != null) {
-                            Modifier.hazeEffect(
-                                state = hazeState,
-                                style = dev.chrisbanes.haze.HazeStyle(
-                                    blurRadius = 12.dp,
-                                    tints = listOf(
-                                        dev.chrisbanes.haze.HazeTint(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
-                                        )
-                                    ),
-                                    backgroundColor = Color.Transparent
-                                )
+                        if (backdrop != null && isGlassSupported()) {
+                            Modifier.recordsLiquidGlass(
+                                backdrop = backdrop,
+                                shape = capsuleShape
                             )
-                        } else Modifier
+                        } else {
+                            Modifier
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = capsuleShape,
+                                    spotColor = Color.Black.copy(alpha = 0.05f),
+                                    ambientColor = Color.Black.copy(alpha = 0.02f)
+                                )
+                                .clip(capsuleShape)
+                                .then(
+                                    if (hazeState != null) {
+                                        Modifier.hazeEffect(
+                                            state = hazeState,
+                                            style = dev.chrisbanes.haze.HazeStyle(
+                                                blurRadius = 12.dp,
+                                                tints = listOf(
+                                                    dev.chrisbanes.haze.HazeTint(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                                    )
+                                                ),
+                                                backgroundColor = Color.Transparent
+                                            )
+                                        )
+                                    } else Modifier
+                                )
+                                .background(searchBgBrush, shape = capsuleShape)
+                                .border(BorderStroke(1.dp, searchRimBrush), shape = capsuleShape)
+                        }
                     )
-                    .background(searchBgBrush, shape = capsuleShape)
-                    .border(BorderStroke(1.dp, searchRimBrush), shape = capsuleShape)
                     .padding(horizontal = 14.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
@@ -248,37 +260,50 @@ fun SearchBarWithStatusFilter(
                 Box(
                     modifier = Modifier
                         .height(48.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = filterButtonShape,
-                            spotColor = Color.Black.copy(alpha = 0.05f),
-                            ambientColor = Color.Black.copy(alpha = 0.02f)
-                        )
-                        .clip(filterButtonShape)
                         .then(
-                            if (hazeState != null) {
-                                Modifier.hazeEffect(
-                                    state = hazeState,
-                                    style = dev.chrisbanes.haze.HazeStyle(
-                                        blurRadius = 12.dp,
-                                        tints = listOf(
-                                            dev.chrisbanes.haze.HazeTint(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
-                                            )
-                                        ),
-                                        backgroundColor = Color.Transparent
-                                    )
+                            if (backdrop != null && isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = backdrop,
+                                    shape = filterButtonShape,
+                                    customSurfaceTint = if (isFilterActive) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.30f else 0.20f)
+                                    } else null
                                 )
-                            } else Modifier
-                        )
-                        .background(filterButtonBgBrush, shape = filterButtonShape)
-                        .border(
-                            if (isFilterActive) {
-                                BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                             } else {
-                                BorderStroke(1.dp, searchRimBrush)
-                            },
-                            shape = filterButtonShape
+                                Modifier
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = filterButtonShape,
+                                        spotColor = Color.Black.copy(alpha = 0.05f),
+                                        ambientColor = Color.Black.copy(alpha = 0.02f)
+                                    )
+                                    .clip(filterButtonShape)
+                                    .then(
+                                        if (hazeState != null) {
+                                            Modifier.hazeEffect(
+                                                state = hazeState,
+                                                style = dev.chrisbanes.haze.HazeStyle(
+                                                    blurRadius = 12.dp,
+                                                    tints = listOf(
+                                                        dev.chrisbanes.haze.HazeTint(
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.12f else 0.08f)
+                                                        )
+                                                    ),
+                                                    backgroundColor = Color.Transparent
+                                                )
+                                            )
+                                        } else Modifier
+                                    )
+                                    .background(filterButtonBgBrush, shape = filterButtonShape)
+                                    .border(
+                                        if (isFilterActive) {
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                                        } else {
+                                            BorderStroke(1.dp, searchRimBrush)
+                                        },
+                                        shape = filterButtonShape
+                                    )
+                            }
                         )
                         .clickable { dropdownExpanded = true }
                         .padding(horizontal = 12.dp)

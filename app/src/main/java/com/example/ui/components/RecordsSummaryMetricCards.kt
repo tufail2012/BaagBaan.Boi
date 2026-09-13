@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -62,6 +63,7 @@ fun RecordsSummaryMetricCards(
     isDark: Boolean,
     paletteAccent: Color = MaterialTheme.colorScheme.primary,
     hazeState: HazeState? = null,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val numberFmt = remember { NumberFormat.getNumberInstance(Locale("en", "IN")) }
@@ -86,6 +88,7 @@ fun RecordsSummaryMetricCards(
                 isDark = isDark,
                 paletteAccent = paletteAccent,
                 hazeState = hazeState,
+                backdrop = backdrop,
                 testTag = "metric_card_total_payment",
                 modifier = Modifier.weight(1f)
             )
@@ -100,6 +103,7 @@ fun RecordsSummaryMetricCards(
                 isDark = isDark,
                 paletteAccent = paletteAccent,
                 hazeState = hazeState,
+                backdrop = backdrop,
                 testTag = "metric_card_received_payment",
                 modifier = Modifier.weight(1f)
             )
@@ -120,6 +124,7 @@ fun RecordsSummaryMetricCards(
                 isDark = isDark,
                 paletteAccent = paletteAccent,
                 hazeState = hazeState,
+                backdrop = backdrop,
                 testTag = "metric_card_pending_payment",
                 modifier = Modifier.weight(1f)
             )
@@ -134,6 +139,7 @@ fun RecordsSummaryMetricCards(
                 isDark = isDark,
                 paletteAccent = paletteAccent,
                 hazeState = hazeState,
+                backdrop = backdrop,
                 testTag = "metric_card_total_quantity",
                 modifier = Modifier.weight(1f)
             )
@@ -150,6 +156,7 @@ private fun SummaryMetricCardItem(
     isDark: Boolean,
     paletteAccent: Color,
     hazeState: HazeState?,
+    backdrop: Backdrop? = null,
     testTag: String,
     modifier: Modifier = Modifier
 ) {
@@ -183,29 +190,39 @@ private fun SummaryMetricCardItem(
 
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 3.dp,
-                shape = cardShape,
-                spotColor = Color.Black.copy(alpha = 0.03f),
-                ambientColor = Color.Black.copy(alpha = 0.02f)
-            )
-            .clip(cardShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            blurRadius = 10.dp,
-                            tints = listOf(
-                                HazeTint(paletteAccent.copy(alpha = if (isDark) 0.10f else 0.06f))
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = cardShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 3.dp,
+                            shape = cardShape,
+                            spotColor = Color.Black.copy(alpha = 0.03f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
+                        )
+                        .clip(cardShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 10.dp,
+                                        tints = listOf(
+                                            HazeTint(paletteAccent.copy(alpha = if (isDark) 0.10f else 0.06f))
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(cardBgBrush, shape = cardShape)
+                        .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
+                }
             )
-            .background(cardBgBrush, shape = cardShape)
-            .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag(testTag)
     ) {
         Row(
