@@ -5,6 +5,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -57,6 +58,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import com.kyant.backdrop.Backdrop
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -319,6 +329,7 @@ fun GardenPlanningScreen(
     onManualSync: (() -> Unit)? = null,
     onNavigateToSettings: (() -> Unit)? = null,
     hazeState: HazeState? = null,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -470,7 +481,8 @@ fun GardenPlanningScreen(
                                     viewModel.selectedTabIndex.value = 0
                                 },
                                 customPaletteColor = gardenAccent,
-                                hazeState = effectiveHazeState
+                                hazeState = effectiveHazeState,
+                                backdrop = backdrop
                             )
                         }
                     }
@@ -2040,7 +2052,8 @@ fun GardenPlanningRecordsTab(
     onEdit: (GardenPlanningEntry) -> Unit,
     onAddNewEntry: () -> Unit = {},
     customPaletteColor: Color? = null,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    backdrop: Backdrop? = null
 ) {
     val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
@@ -2161,6 +2174,7 @@ fun GardenPlanningRecordsTab(
                             newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                             recordsLabel = "Records (${allEntriesList.size})",
                             accentColor = paletteAccent,
+                            backdrop = backdrop,
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -2168,7 +2182,8 @@ fun GardenPlanningRecordsTab(
                         RecordingBookHeader(
                             title = "Garden Planning Recording Book",
                             count = entries.size,
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = backdrop
                         )
                         SearchBarWithStatusFilter(
                             searchQuery = searchQuery,
@@ -2178,7 +2193,8 @@ fun GardenPlanningRecordsTab(
                             placeholderText = "Search by farmer name, phone, serial or address...",
                             isDark = isDark,
                             testTagPrefix = "garden_search",
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = backdrop
                         )
                         // 2x2 Metric Grid Component placed directly below Search Bar
                         RecordsSummaryMetricCards(
@@ -2189,7 +2205,8 @@ fun GardenPlanningRecordsTab(
                             quantityLabel = "Plants",
                             isDark = isDark,
                             paletteAccent = paletteAccent,
-                            hazeState = effectiveHazeState
+                            hazeState = effectiveHazeState,
+                            backdrop = backdrop
                         )
                     }
                 }
@@ -2263,11 +2280,155 @@ fun GardenPlanningRecordsTab(
                                     context = context,
                                     isDark = isDark,
                                     paletteAccent = paletteAccent,
-                                    hazeState = effectiveHazeState
+                                    hazeState = effectiveHazeState,
+                                    backdrop = backdrop
                                 )
                             }
                         }
                     }
+                }
+            }
+
+            // Floating Action Button (New Entry)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 96.dp, end = 16.dp)
+                    .zIndex(8f)
+            ) {
+                val fabShape = RoundedCornerShape(percent = 50)
+                Surface(
+                    onClick = { onAddNewEntry() },
+                    shape = fabShape,
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .then(
+                            if (backdrop != null && isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = backdrop,
+                                    shape = fabShape,
+                                    customSurfaceTint = null
+                                )
+                            } else {
+                                Modifier
+                                    .shadow(
+                                        elevation = 6.dp,
+                                        shape = fabShape,
+                                        spotColor = paletteAccent.copy(alpha = 0.3f)
+                                    )
+                                    .clip(fabShape)
+                                    .then(
+                                        if (effectiveHazeState != null) {
+                                            Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                        } else Modifier
+                                    )
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            listOf(
+                                                if (isDark) Color(0xFF1E293B).copy(alpha = 0.70f) else Color.White.copy(alpha = 0.75f),
+                                                if (isDark) Color(0xFF0F172A).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.55f)
+                                            )
+                                        ),
+                                        shape = fabShape
+                                    )
+                                    .border(
+                                        BorderStroke(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color.White.copy(alpha = if (isDark) 0.40f else 0.70f),
+                                                    Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
+                                                )
+                                            )
+                                        ),
+                                        shape = fabShape
+                                    )
+                            }
+                        )
+                        .testTag("fab_add_garden_record")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "New Entry",
+                            tint = paletteAccent,
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Text(
+                            text = "New Entry",
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color.White else Color(0xFF0F172A)
+                        )
+                    }
+                }
+            }
+
+            // Scroll to Top quick action button
+            AnimatedVisibility(
+                visible = lazyListState.firstVisibleItemIndex > 2,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 152.dp, end = 20.dp)
+                    .zIndex(8f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .then(
+                            if (backdrop != null && isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = backdrop,
+                                    shape = CircleShape
+                                )
+                            } else {
+                                Modifier
+                                    .clip(CircleShape)
+                                    .then(
+                                        if (effectiveHazeState != null) {
+                                            Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                        } else Modifier
+                                    )
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = if (isDark) 0.22f else 0.50f),
+                                                Color.White.copy(alpha = if (isDark) 0.08f else 0.20f)
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                                    .border(
+                                        BorderStroke(
+                                            1.dp,
+                                            Brush.verticalGradient(
+                                                listOf(Color.White.copy(alpha = 0.70f), Color.White.copy(alpha = 0.20f))
+                                            )
+                                        ),
+                                        CircleShape
+                                    )
+                            }
+                        )
+                        .clip(CircleShape)
+                        .clickable {
+                            scope.launch {
+                                lazyListState.animateScrollToItem(0)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Scroll to top",
+                        tint = paletteAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -2443,7 +2604,8 @@ private fun GardenPlanningRecordCard(
     context: Context,
     isDark: Boolean = isAppInDarkMode(),
     paletteAccent: Color = MaterialTheme.colorScheme.primary,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    backdrop: Backdrop? = null
 ) {
     val initialLetter = entry.farmerName.trim().take(1).uppercase().ifBlank { "F" }
     val avatarBgColor = paletteAccent
@@ -2484,29 +2646,39 @@ private fun GardenPlanningRecordCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 4.dp,
-                shape = cardShape,
-                spotColor = Color.Black.copy(alpha = 0.05f),
-                ambientColor = Color.Black.copy(alpha = 0.02f)
-            )
-            .clip(cardShape)
             .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(
-                        state = hazeState,
-                        style = HazeStyle(
-                            blurRadius = 12.dp,
-                            tints = listOf(
-                                HazeTint(paletteAccent.copy(alpha = if (isDark) 0.12f else 0.08f))
-                            ),
-                            backgroundColor = Color.Transparent
-                        )
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = cardShape
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = cardShape,
+                            spotColor = Color.Black.copy(alpha = 0.05f),
+                            ambientColor = Color.Black.copy(alpha = 0.02f)
+                        )
+                        .clip(cardShape)
+                        .then(
+                            if (hazeState != null) {
+                                Modifier.hazeEffect(
+                                    state = hazeState,
+                                    style = HazeStyle(
+                                        blurRadius = 12.dp,
+                                        tints = listOf(
+                                            HazeTint(paletteAccent.copy(alpha = if (isDark) 0.12f else 0.08f))
+                                        ),
+                                        backgroundColor = Color.Transparent
+                                    )
+                                )
+                            } else Modifier
+                        )
+                        .background(cardFillBrush, shape = cardShape)
+                        .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
+                }
             )
-            .background(cardFillBrush, shape = cardShape)
-            .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
             .testTag("garden_record_card_${entry.id}")
     ) {
         Column(

@@ -343,19 +343,43 @@ fun SearchBarWithStatusFilter(
                     }
                 }
 
+                val dropdownShape = RoundedCornerShape(18.dp)
                 DropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = { dropdownExpanded = false },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = dropdownShape,
+                    containerColor = Color.Transparent,
+                    border = null,
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (isDark) Color(0xFF1E293B) else Color.White)
-                        .border(
-                            BorderStroke(
-                                1.dp,
-                                if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
-                            ),
-                            RoundedCornerShape(16.dp)
+                        .then(
+                            if (backdrop != null && isGlassSupported()) {
+                                Modifier.recordsLiquidGlass(
+                                    backdrop = backdrop,
+                                    shape = dropdownShape
+                                )
+                            } else {
+                                Modifier
+                                    .shadow(elevation = 8.dp, shape = dropdownShape)
+                                    .clip(dropdownShape)
+                                    .then(
+                                        if (hazeState != null) {
+                                            Modifier.hazeEffect(
+                                                state = hazeState,
+                                                style = dev.chrisbanes.haze.materials.HazeMaterials.regular()
+                                            )
+                                        } else Modifier
+                                    )
+                                    .background(if (isDark) Color(0xFF1E293B).copy(alpha = 0.85f) else Color.White.copy(alpha = 0.90f))
+                                    .border(
+                                        BorderStroke(
+                                            1.dp,
+                                            if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.08f)
+                                        ),
+                                        dropdownShape
+                                    )
+                            }
                         )
                         .testTag("${testTagPrefix}_filter_menu")
                 ) {
@@ -383,7 +407,7 @@ fun SearchBarWithStatusFilter(
                                         color = if (isSelected) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
-                                            MaterialTheme.colorScheme.onSurface
+                                            if (isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0F172A)
                                         }
                                     )
                                     if (isSelected) {
@@ -400,7 +424,17 @@ fun SearchBarWithStatusFilter(
                                 onFilterSelected(option)
                                 dropdownExpanded = false
                             },
-                            modifier = Modifier.testTag("${testTagPrefix}_filter_option_${option.lowercase().replace(" ", "_")}")
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .then(
+                                    if (isSelected) {
+                                        Modifier.background(
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.16f else 0.08f),
+                                            shape = RoundedCornerShape(8.dp)
+                                        )
+                                    } else Modifier
+                                )
+                                .testTag("${testTagPrefix}_filter_option_${option.lowercase().replace(" ", "_")}")
                         )
                     }
                 }

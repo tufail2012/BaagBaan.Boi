@@ -451,14 +451,14 @@ fun FarmerRecordsScreen(
                                 Modifier.recordsLiquidGlass(
                                     backdrop = recordsBackdrop,
                                     shape = fabShape,
-                                    customSurfaceTint = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.50f else 0.60f)
+                                    customSurfaceTint = null
                                 )
                             } else {
                                 Modifier
                                     .shadow(
-                                        elevation = 8.dp,
+                                        elevation = 6.dp,
                                         shape = fabShape,
-                                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        spotColor = paletteColor.copy(alpha = 0.3f)
                                     )
                                     .clip(fabShape)
                                     .then(
@@ -469,8 +469,8 @@ fun FarmerRecordsScreen(
                                     .background(
                                         brush = Brush.verticalGradient(
                                             listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.88f else 0.92f),
-                                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.68f else 0.76f)
+                                                if (isDark) Color(0xFF1E293B).copy(alpha = 0.70f) else Color.White.copy(alpha = 0.75f),
+                                                if (isDark) Color(0xFF0F172A).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.55f)
                                             )
                                         ),
                                         shape = fabShape
@@ -480,8 +480,8 @@ fun FarmerRecordsScreen(
                                             1.dp,
                                             Brush.verticalGradient(
                                                 listOf(
-                                                    Color.White.copy(alpha = 0.80f),
-                                                    Color.White.copy(alpha = 0.25f)
+                                                    Color.White.copy(alpha = if (isDark) 0.40f else 0.70f),
+                                                    Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
                                                 )
                                             )
                                         ),
@@ -499,14 +499,14 @@ fun FarmerRecordsScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "New Entry",
-                            tint = Color.White,
+                            tint = paletteColor,
                             modifier = Modifier.size(19.dp)
                         )
                         Text(
                             text = "New Entry",
                             fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = if (isDark) Color.White else Color(0xFF0F172A)
                         )
                     }
                 }
@@ -571,7 +571,7 @@ fun FarmerRecordsScreen(
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Scroll to top",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = paletteColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }

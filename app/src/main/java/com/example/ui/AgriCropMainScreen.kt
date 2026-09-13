@@ -781,108 +781,109 @@ fun AgriCropMainScreen(
                                 } else if (selectedService.equals("Attendance", ignoreCase = true)) {
                                     UserAttendanceSection(viewModel = userDashboardViewModel)
                                 } else {
-                                    HorizontalPager(
-                                        state = pagerState,
-                                        modifier = Modifier.fillMaxSize(),
-                                        beyondViewportPageCount = 1,
-                                        key = { mainTabs.getOrElse(it) { "$it" } }
-                                    ) { page ->
-                                        val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }
-                                        if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
-                                            com.example.ui.components.GardenPlanningScreen(
-                                                viewModel = gardenPlanningViewModel,
-                                                onBack = null,
-                                                showHeader = false,
-                                                isDark = isDark,
-                                                themeMode = themeMode,
-                                                selectedColorHex = accentColorHex,
-                                                hazeState = hazeState,
-                                                onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-                                                onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-                                                searchQuery = searchQuery,
-                                                onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
-                                                isSearchActive = isGlobalSearchActive,
-                                                onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
-                                                onToggleSearch = { viewModel.openGlobalSearch() },
-                                                onNavigateToAttendance = { isAttendanceActive = true },
-                                                onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
-                                                onNavigateToBackupRestore = { showBackupRestoreDialog = true },
-                                                onNavigateToContactDirectory = { showContactDirectoryDialog = true },
-                                                onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
-                                                onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
-                                                onNavigateToInventory = { showInventoryDialog = true },
-                                                onOpenRecycleBin = { showRecycleBinDialog = true },
-                                                onNavigateToDashboard = { isDashboardActive = true },
-                                                onNavigateToLogin = { isLoginActive = true },
-                                                onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
-                                                unreadNotificationCount = unreadCount,
-                                                onOpenNotifications = { showNotificationCenter = true },
-                                                currentUserEmail = currentUser?.email,
-                                                currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                                onLogout = performLogout,
-                                                onManualSync = {
-                                                    coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
-                                                    }
-                                                },
-                                                onNavigateToSettings = { isSettingsActive = true },
-                                                modifier = Modifier.fillMaxSize()
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        // Dedicated Records & Garden Planning backdrop source boundary:
+                                        // Captures only the ambient background canvas (theme gradient + soft radiant lighting).
+                                        // No consumer composables exist inside this Box.
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .layerBackdrop(recordsBackdrop)
+                                        ) {
+                                            // Ambient background canvas: provides rich texture, ambient lighting, and depth
+                                            // for the glass surfaces to blur, refract, and softly diffuse.
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(rootBgBrush)
                                             )
-                                        } else {
-                                            when (viewMode) {
-                                                0 -> FarmerFormScreen(
-                                                    viewModel = viewModel,
-                                                    hazeState = hazeState
+                                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                                val accent = sectionAccentColor ?: Color(0xFF4CAF50)
+                                                val isDarkTheme = isDark || isAmoled
+                                                // Top-right radiant ambient orb
+                                                drawCircle(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            accent.copy(alpha = if (isDarkTheme) 0.20f else 0.14f),
+                                                            accent.copy(alpha = if (isDarkTheme) 0.06f else 0.03f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(size.width * 0.75f, size.height * 0.18f),
+                                                        radius = size.width * 0.65f
+                                                    )
                                                 )
-                                                else -> {
-                                                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
-                                                    com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
-                                                    Box(modifier = Modifier.fillMaxSize()) {
-                                                        // Dedicated Records backdrop source boundary:
-                                                        // Captures only the background canvas behind the Records glass surfaces.
-                                                        // No consumer composables exist inside this Box.
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .fillMaxSize()
-                                                                .layerBackdrop(recordsBackdrop)
-                                                        ) {
-                                                            // Ambient Records background canvas: provides rich texture, ambient lighting, and depth
-                                                            // for the glass surfaces to blur, refract, and softly diffuse.
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .fillMaxSize()
-                                                                    .background(rootBgBrush)
-                                                            )
-                                                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                                                val accent = sectionAccentColor ?: Color(0xFF4CAF50)
-                                                                val isDarkTheme = isDark || isAmoled
-                                                                // Top-right radiant ambient orb
-                                                                drawCircle(
-                                                                    brush = Brush.radialGradient(
-                                                                        colors = listOf(
-                                                                            accent.copy(alpha = if (isDarkTheme) 0.20f else 0.14f),
-                                                                            accent.copy(alpha = if (isDarkTheme) 0.06f else 0.03f),
-                                                                            Color.Transparent
-                                                                        ),
-                                                                        center = Offset(size.width * 0.75f, size.height * 0.18f),
-                                                                        radius = size.width * 0.65f
-                                                                    )
-                                                                )
-                                                                // Mid-left soft ambient glow
-                                                                drawCircle(
-                                                                    brush = Brush.radialGradient(
-                                                                        colors = listOf(
-                                                                            accent.copy(alpha = if (isDarkTheme) 0.15f else 0.09f),
-                                                                            accent.copy(alpha = if (isDarkTheme) 0.04f else 0.01f),
-                                                                            Color.Transparent
-                                                                        ),
-                                                                        center = Offset(size.width * 0.20f, size.height * 0.55f),
-                                                                        radius = size.width * 0.70f
-                                                                    )
-                                                                )
-                                                            }
+                                                // Mid-left soft ambient glow
+                                                drawCircle(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            accent.copy(alpha = if (isDarkTheme) 0.15f else 0.09f),
+                                                            accent.copy(alpha = if (isDarkTheme) 0.04f else 0.01f),
+                                                            Color.Transparent
+                                                        ),
+                                                        center = Offset(size.width * 0.20f, size.height * 0.55f),
+                                                        radius = size.width * 0.70f
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                        HorizontalPager(
+                                            state = pagerState,
+                                            modifier = Modifier.fillMaxSize(),
+                                            beyondViewportPageCount = 1,
+                                            key = { mainTabs.getOrElse(it) { "$it" } }
+                                        ) { page ->
+                                            val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }
+                                            if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
+                                                com.example.ui.components.GardenPlanningScreen(
+                                                    viewModel = gardenPlanningViewModel,
+                                                    onBack = null,
+                                                    showHeader = false,
+                                                    isDark = isDark,
+                                                    themeMode = themeMode,
+                                                    selectedColorHex = accentColorHex,
+                                                    hazeState = hazeState,
+                                                    backdrop = recordsBackdrop,
+                                                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                                                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                                                    searchQuery = searchQuery,
+                                                    onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
+                                                    isSearchActive = isGlobalSearchActive,
+                                                    onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
+                                                    onToggleSearch = { viewModel.openGlobalSearch() },
+                                                    onNavigateToAttendance = { isAttendanceActive = true },
+                                                    onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
+                                                    onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                                                    onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                                                    onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                                                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
+                                                    onNavigateToInventory = { showInventoryDialog = true },
+                                                    onOpenRecycleBin = { showRecycleBinDialog = true },
+                                                    onNavigateToDashboard = { isDashboardActive = true },
+                                                    onNavigateToLogin = { isLoginActive = true },
+                                                    onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
+                                                    unreadNotificationCount = unreadCount,
+                                                    onOpenNotifications = { showNotificationCenter = true },
+                                                    currentUserEmail = currentUser?.email,
+                                                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                                                    onLogout = performLogout,
+                                                    onManualSync = {
+                                                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                                            com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
                                                         }
-                                                        // Records content & consumers are rendered outside the backdrop source subtree
+                                                    },
+                                                    onNavigateToSettings = { isSettingsActive = true },
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            } else {
+                                                when (viewMode) {
+                                                    0 -> FarmerFormScreen(
+                                                        viewModel = viewModel,
+                                                        hazeState = hazeState
+                                                    )
+                                                    else -> {
+                                                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
+                                                        com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
                                                         FarmerRecordsScreen(
                                                             viewModel = viewModel,
                                                             hazeState = hazeState,
