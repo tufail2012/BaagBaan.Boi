@@ -18,6 +18,7 @@ import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.highlight.HighlightStyle
+import com.kyant.backdrop.shadow.Shadow
 
 /** RenderEffect/RenderNode backdrop blur requires Android 12 (API 31). */
 fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean = sdkInt >= Build.VERSION_CODES.S
@@ -76,14 +77,8 @@ fun Modifier.liquidGlassNav(shape: CornerBasedShape, backdrop: Backdrop?): Modif
                 )
             }
         },
-        highlight = {
-            Highlight(
-                width = GLASS_EDGE_WIDTH,
-                blurRadius = 1.dp,
-                alpha = if (isDark) 0.35f else 0.50f,
-                style = HighlightStyle.Ambient
-            )
-        },
+        highlight = { Highlight.Default },
+        shadow = { Shadow.Default },
         onDrawSurface = {
             drawRect(surfaceTintColor.copy(alpha = SURFACE_OPACITY))
         }
