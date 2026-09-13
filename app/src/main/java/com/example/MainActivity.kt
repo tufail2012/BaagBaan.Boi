@@ -49,24 +49,6 @@ class MainActivity : FragmentActivity() {
         appLockManager = AppLockManager.getInstance(applicationContext)
         appLockManager.applySecureWindowFlag(this)
 
-        // Programmatically request maximum display refresh rate (120Hz / 90Hz / 144Hz)
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                @Suppress("DEPRECATION")
-                val defaultDisplay = window?.windowManager?.defaultDisplay
-                @Suppress("DEPRECATION")
-                val modes = defaultDisplay?.supportedModes
-                val maxMode = modes?.maxByOrNull { it.refreshRate }
-                if (maxMode != null) {
-                    window?.attributes = window?.attributes?.apply {
-                        preferredDisplayModeId = maxMode.modeId
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            // Graceful fallback if device display mode is restricted
-        }
-
         enableEdgeToEdge()
 
         NotificationHelper.createNotificationChannels(this)
@@ -123,19 +105,27 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            val savedCrashTrace = androidx.compose.runtime.remember {
-                com.example.util.CrashReporter.getPendingCrashReport(this@MainActivity)
-            }
-            var activeCrashTrace by androidx.compose.runtime.remember {
-                androidx.compose.runtime.mutableStateOf(savedCrashTrace)
+            var activeCrashLog by androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf<String?>(null)
             }
 
-            if (activeCrashTrace != null) {
-                com.example.util.CrashReportScreen(
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                if (com.example.util.CrashReporter.hasCrashLog(this@MainActivity)) {
+                    val log = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.example.util.CrashReporter.readCrashLog(this@MainActivity)
+                    }
+                    if (log != null) {
+                        activeCrashLog = log
+                    }
+                }
+            }
+
+            if (activeCrashLog != null) {
+                com.example.util.CrashDiagnosticScreen(
                     context = this@MainActivity,
-                    trace = activeCrashTrace!!,
+                    crashLog = activeCrashLog!!,
                     onDismiss = {
-                        activeCrashTrace = null
+                        activeCrashLog = null
                     }
                 )
             } else {

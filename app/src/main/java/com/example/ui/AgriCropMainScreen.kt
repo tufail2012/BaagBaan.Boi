@@ -827,10 +827,14 @@ fun AgriCropMainScreen(
                                                     viewModel = viewModel,
                                                     hazeState = hazeState
                                                 )
-                                                else -> FarmerRecordsScreen(
-                                                    viewModel = viewModel,
-                                                    hazeState = hazeState
-                                                )
+                                                else -> {
+                                                    android.util.Log.d("RECORDS_DEBUG", "Opening Records")
+                                                    com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
+                                                    FarmerRecordsScreen(
+                                                        viewModel = viewModel,
+                                                        hazeState = hazeState
+                                                    )
+                                                }
                                             }
                                         }
                                     }

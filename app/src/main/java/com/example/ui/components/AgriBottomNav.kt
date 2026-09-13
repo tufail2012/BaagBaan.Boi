@@ -184,7 +184,7 @@ fun AgriBottomNav(
                             Brush.linearGradient(
                                 colors = listOf(
                                     Color.White.copy(alpha = 0.28f),
-                                    activeSectionAccent.copy(alpha = 0.12f),
+                                    Color.White.copy(alpha = 0.18f),
                                     Color.White.copy(alpha = 0.16f)
                                 ),
                                 start = Offset.Zero,
@@ -194,7 +194,7 @@ fun AgriBottomNav(
                             Brush.linearGradient(
                                 colors = listOf(
                                     Color.White.copy(alpha = 0.18f),
-                                    activeSectionAccent.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = 0.12f),
                                     Color.White.copy(alpha = 0.08f)
                                 ),
                                 start = Offset.Zero,
@@ -291,10 +291,10 @@ fun AgriBottomNav(
                     animationSpec = GlassSpring,
                     label = "tabScale"
                 )
-                val tint by animateColorAsState(
+                val iconColor by animateColorAsState(
                     targetValue = if (isSelected) activeSectionAccent else unselectedColor,
                     animationSpec = tween(200),
-                    label = "tabTint"
+                    label = "tabIconColor"
                 )
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -315,7 +315,7 @@ fun AgriBottomNav(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        tint = tint,
+                        tint = iconColor,
                         modifier = Modifier
                             .size(25.dp)
                             .graphicsLayer { scaleX = scale; scaleY = scale }
@@ -324,7 +324,7 @@ fun AgriBottomNav(
                     Text(
                         text = item.title,
                         style = MaterialTheme.typography.labelSmall,
-                        color = tint,
+                        color = unselectedColor,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )

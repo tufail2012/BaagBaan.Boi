@@ -13,9 +13,10 @@ class AgriApplication : Application() {
     }
 
     override fun onCreate() {
+        com.example.util.CrashReporter.install(this)
         super.onCreate()
         instance = this
-        com.example.util.CrashReporter.install(this)
+        com.example.util.CrashReporter.checkHistoricalExitReasons(this)
         Log.d("AgriApplication", "Starting SafeFirebase.init(this)...")
         SafeFirebase.init(this)
         val firebaseApp = SafeFirebase.ensureFirebaseApp(this)

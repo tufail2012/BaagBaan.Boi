@@ -684,6 +684,9 @@ class CropViewModel(
     }
 
     fun setViewMode(mode: Int) {
+        if (mode == 1) {
+            android.util.Log.d("RECORDS_DEBUG", "setViewMode: Switching to Records (mode=1)")
+        }
         _viewMode.value = mode
     }
 

@@ -1,9 +1,10 @@
 package com.example.util
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -28,17 +29,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.BuildConfig
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -56,84 +55,234 @@ import java.util.Date
 import java.util.Locale
 
 object CrashReporter {
-    private const val PREFS_NAME = "app_crash_reporting_prefs"
-    private const val KEY_HAS_PENDING_CRASH = "key_has_pending_crash"
-    private const val KEY_LAST_CRASH_TIMESTAMP = "key_last_crash_timestamp"
-    private const val CRASH_FILE_NAME = "last_crash.txt"
-    private const val ARCHIVED_CRASH_FILE_NAME = "last_crash_archived.txt"
+    const val CRASH_LOG_FILE_NAME = "crash_log.txt"
 
     @Volatile
     var currentScreenName: String? = null
 
+    /**
+     * Installs the uncaught exception handler as early as possible.
+     * Preserves and invokes the previous/default handler after logging.
+     */
     fun install(context: Context) {
-        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
-                val report = buildCrashReport(context, thread, throwable)
-
-                // Save synchronously to plain-text file in internal app storage
-                val crashFile = File(context.filesDir, CRASH_FILE_NAME)
-                crashFile.writeText(report)
-
-                // Update SharedPreferences flag synchronously
-                val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit()
-                    .putBoolean(KEY_HAS_PENDING_CRASH, true)
-                    .putLong(KEY_LAST_CRASH_TIMESTAMP, System.currentTimeMillis())
-                    .commit()
-
-                Log.e("CrashReporter", "Uncaught exception persisted to $CRASH_FILE_NAME:\n$report")
+                Log.e("RECORDS_DEBUG", "Uncaught exception intercepted in thread: ${thread.name}", throwable)
+                val crashReport = buildCrashReport(context, thread, throwable)
+                writeCrashLog(context, crashReport)
+                Log.e("CRASH_DIAGNOSTIC", "Crash log written to storage:\n$crashReport")
             } catch (e: Throwable) {
-                // Defensive: never throw from uncaught exception handler
-                Log.e("CrashReporter", "Failed to persist crash trace", e)
+                // Defensive: never throw from the uncaught exception handler
+                Log.e("CRASH_DIAGNOSTIC", "Failed to write crash log", e)
             } finally {
-                // Delegate to original handler so Android's normal crash lifecycle remains intact
-                defaultHandler?.uncaughtException(thread, throwable)
+                // Always call the previous default handler to keep Android crash lifecycle intact
+                previousHandler?.uncaughtException(thread, throwable)
             }
         }
+        Log.d("CRASH_DIAGNOSTIC", "Uncaught exception handler installed successfully")
     }
 
-    fun getPendingCrashReport(context: Context): String? {
-        if (!BuildConfig.DEBUG) {
-            return null
-        }
-        return try {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val hasPending = prefs.getBoolean(KEY_HAS_PENDING_CRASH, false)
-            val crashFile = File(context.filesDir, CRASH_FILE_NAME)
-            if (hasPending && crashFile.exists()) {
-                val content = crashFile.readText()
-                if (content.isNotBlank()) content else null
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            Log.e("CrashReporter", "Failed to read crash report", e)
-            null
-        }
-    }
-
-    fun clearPendingCrashReport(context: Context) {
+    /**
+     * Synchronously writes crash report to:
+     * 1. context.getExternalFilesDir(null)/"crash_log.txt"
+     * 2. context.filesDir/"crash_log.txt"
+     */
+    fun writeCrashLog(context: Context, content: String) {
+        // 1. Internal storage
         try {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().putBoolean(KEY_HAS_PENDING_CRASH, false).apply()
+            val internalFile = File(context.filesDir, CRASH_LOG_FILE_NAME)
+            internalFile.writeText(content)
+            Log.d("CRASH_DIAGNOSTIC", "Wrote crash log to internal: ${internalFile.absolutePath}")
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Error writing internal crash_log.txt", t)
+        }
 
-            val crashFile = File(context.filesDir, CRASH_FILE_NAME)
-            if (crashFile.exists()) {
-                val archiveFile = File(context.filesDir, ARCHIVED_CRASH_FILE_NAME)
-                if (archiveFile.exists()) {
-                    archiveFile.delete()
-                }
-                crashFile.renameTo(archiveFile)
+        // 2. External app files storage
+        try {
+            val externalDir = context.getExternalFilesDir(null)
+            if (externalDir != null) {
+                val externalFile = File(externalDir, CRASH_LOG_FILE_NAME)
+                externalFile.writeText(content)
+                Log.d("CRASH_DIAGNOSTIC", "Wrote crash log to external: ${externalFile.absolutePath}")
             }
-        } catch (e: Exception) {
-            Log.e("CrashReporter", "Failed to clear pending crash report", e)
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Error writing external crash_log.txt", t)
         }
     }
 
-    // Backwards-compatible aliases
-    fun getSavedCrashTrace(context: Context): String? = getPendingCrashReport(context)
-    fun clearSavedCrashTrace(context: Context) = clearPendingCrashReport(context)
+    /**
+     * Checks whether crash_log.txt exists in either internal or external storage and is not empty.
+     */
+    fun hasCrashLog(context: Context): Boolean {
+        return readCrashLog(context) != null
+    }
+
+    /**
+     * Reads the crash log from internal or external storage.
+     */
+    fun readCrashLog(context: Context): String? {
+        // Check internal filesDir
+        try {
+            val internalFile = File(context.filesDir, CRASH_LOG_FILE_NAME)
+            if (internalFile.exists() && internalFile.length() > 0) {
+                val text = internalFile.readText()
+                if (text.isNotBlank()) return text
+            }
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Failed to read internal crash_log.txt", t)
+        }
+
+        // Check external filesDir
+        try {
+            val externalDir = context.getExternalFilesDir(null)
+            if (externalDir != null) {
+                val externalFile = File(externalDir, CRASH_LOG_FILE_NAME)
+                if (externalFile.exists() && externalFile.length() > 0) {
+                    val text = externalFile.readText()
+                    if (text.isNotBlank()) return text
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Failed to read external crash_log.txt", t)
+        }
+
+        return null
+    }
+
+    /**
+     * Deletes crash_log.txt from both internal and external storage.
+     */
+    fun clearCrashLog(context: Context) {
+        try {
+            val internalFile = File(context.filesDir, CRASH_LOG_FILE_NAME)
+            if (internalFile.exists()) {
+                internalFile.delete()
+            }
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Failed to delete internal crash_log.txt", t)
+        }
+
+        try {
+            val externalDir = context.getExternalFilesDir(null)
+            if (externalDir != null) {
+                val externalFile = File(externalDir, CRASH_LOG_FILE_NAME)
+                if (externalFile.exists()) {
+                    externalFile.delete()
+                }
+            }
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Failed to delete external crash_log.txt", t)
+        }
+    }
+
+    /**
+     * Explicit recording helper for try/catch diagnostics around critical entry points.
+     */
+    fun recordExplicitCrash(throwable: Throwable, contextTag: String) {
+        try {
+            val context = com.example.AgriApplication.instance.applicationContext
+            val sw = StringWriter()
+            val pw = PrintWriter(sw)
+            throwable.printStackTrace(pw)
+            val stackTrace = sw.toString()
+
+            val timeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z", Locale.getDefault()).format(Date())
+
+            val report = buildString {
+                appendLine("========================================")
+                appendLine("BAAGBAAN EXPLICIT CAUGHT CRASH")
+                appendLine("========================================")
+                appendLine("Context Tag: $contextTag")
+                appendLine("Timestamp: $timeStr")
+                appendLine("Thread: ${Thread.currentThread().name} (id: ${Thread.currentThread().id})")
+                appendLine("Exception: ${throwable.javaClass.name}")
+                appendLine("Message: ${throwable.message ?: "(null message)"}")
+                appendLine()
+                appendLine("Cause:")
+                appendLine("${throwable.cause?.javaClass?.name ?: "None"}: ${throwable.cause?.message ?: ""}")
+                appendLine()
+                appendLine("Complete Stack Trace:")
+                appendLine(stackTrace)
+                appendLine()
+                appendLine("Environment Metadata:")
+                appendLine("Android Version: ${Build.VERSION.RELEASE}")
+                appendLine("SDK Version: ${Build.VERSION.SDK_INT}")
+                appendLine("App Version: ${getAppVersion(context)}")
+                appendLine("Device Model: ${Build.MANUFACTURER} ${Build.MODEL}")
+                appendLine("========================================")
+            }
+            writeCrashLog(context, report)
+        } catch (t: Throwable) {
+            Log.e("CRASH_DIAGNOSTIC", "Failed to record explicit crash", t)
+        }
+    }
+
+    /**
+     * Checks Android 11+ historical process exit reasons for process kills or native crashes (SIGSEGV/RenderThread).
+     */
+    fun checkHistoricalExitReasons(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Thread({
+                try {
+                    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                    val exitReasons = activityManager?.getHistoricalProcessExitReasons(context.packageName, 0, 3)
+                    val lastExit = exitReasons?.firstOrNull()
+
+                    if (lastExit != null) {
+                        val reasonDesc = when (lastExit.reason) {
+                            ApplicationExitInfo.REASON_CRASH -> "CRASH (Java/Kotlin uncaught exception)"
+                            ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE (Native signal/SIGSEGV/SIGBUS/RenderNode)"
+                            ApplicationExitInfo.REASON_ANR -> "ANR (Application Not Responding)"
+                            ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY (Killed by Low Memory Killer)"
+                            ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED (Killed by OS signal)"
+                            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "INITIALIZATION_FAILURE"
+                            ApplicationExitInfo.REASON_USER_REQUESTED -> "USER_REQUESTED"
+                            ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
+                            else -> "Reason Code: ${lastExit.reason}"
+                        }
+                        Log.d("LIFECYCLE_DEBUG", "Previous Process Exit: $reasonDesc, status=${lastExit.status}, desc=${lastExit.description}")
+
+                        // If previous exit was a native crash or abnormal termination and no crash log was written by Java handler
+                        if ((lastExit.reason == ApplicationExitInfo.REASON_CRASH_NATIVE ||
+                             lastExit.reason == ApplicationExitInfo.REASON_SIGNALED ||
+                             (lastExit.reason == ApplicationExitInfo.REASON_CRASH && !hasCrashLog(context)))) {
+                            val traceText = try {
+                                lastExit.traceInputStream?.bufferedReader()?.use { it.readText() } ?: ""
+                            } catch (_: Throwable) { "" }
+
+                            val exitReport = buildString {
+                                appendLine("========================================")
+                                appendLine("BAAGBAAN PROCESS EXIT DIAGNOSTIC")
+                                appendLine("========================================")
+                                appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault()).format(Date(lastExit.timestamp))}")
+                                appendLine("Exit Reason: $reasonDesc")
+                                appendLine("Exit Status: ${lastExit.status}")
+                                appendLine("Exit Description: ${lastExit.description ?: "None"}")
+                                appendLine("Process Importance: ${lastExit.importance}")
+                                appendLine("PSS Memory: ${lastExit.pss} kB, RSS: ${lastExit.rss} kB")
+                                if (traceText.isNotBlank()) {
+                                    appendLine()
+                                    appendLine("Native Trace / Tombstone:")
+                                    appendLine(traceText)
+                                }
+                                appendLine()
+                                appendLine("Android Version: ${Build.VERSION.RELEASE}")
+                                appendLine("SDK Version: ${Build.VERSION.SDK_INT}")
+                                appendLine("App Version: ${getAppVersion(context)}")
+                                appendLine("Device Model: ${Build.MANUFACTURER} ${Build.MODEL}")
+                                appendLine("========================================")
+                            }
+                            writeCrashLog(context, exitReport)
+                        }
+                    }
+                } catch (t: Throwable) {
+                    Log.e("LIFECYCLE_DEBUG", "Failed to inspect historical exit reasons", t)
+                }
+            }, "HistoricalExitChecker").start()
+        }
+    }
 
     private fun buildCrashReport(context: Context, thread: Thread, throwable: Throwable): String {
         val sw = StringWriter()
@@ -141,125 +290,79 @@ object CrashReporter {
         throwable.printStackTrace(pw)
         val stackTrace = sw.toString()
 
-        val timeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.getDefault()).format(Date())
-
+        val timeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z", Locale.getDefault()).format(Date())
         val exceptionClass = throwable.javaClass.name
         val message = throwable.message ?: "(null message)"
-        val directCause = throwable.cause?.let { "${it.javaClass.name}: ${it.message ?: "(null)"}" } ?: "None"
 
-        // Capture full nested causes chain
-        val nestedCausesBuilder = StringBuilder()
+        // Build complete cause chain
+        val causeChainBuilder = StringBuilder()
         var currentCause: Throwable? = throwable.cause
         var depth = 1
         while (currentCause != null) {
-            nestedCausesBuilder.append("[$depth] ${currentCause.javaClass.name}: ${currentCause.message ?: "(null)"}\n")
+            causeChainBuilder.append("[$depth] ${currentCause.javaClass.name}: ${currentCause.message ?: "(null message)"}\n")
             val causeSw = StringWriter()
             val causePw = PrintWriter(causeSw)
             currentCause.printStackTrace(causePw)
-            nestedCausesBuilder.append(causeSw.toString())
-            nestedCausesBuilder.append("\n----------------------------------------\n")
+            causeChainBuilder.append(causeSw.toString())
+            causeChainBuilder.append("\n----------------------------------------\n")
             currentCause = currentCause.cause
             depth++
         }
-        val nestedCauses = if (nestedCausesBuilder.isNotEmpty()) nestedCausesBuilder.toString().trim() else "None"
+        val causeChain = if (causeChainBuilder.isNotEmpty()) causeChainBuilder.toString().trim() else "None"
 
-        val appVersion = try {
+        val appVersion = getAppVersion(context)
+
+        return buildString {
+            appendLine("========================================")
+            appendLine("BAAGBAAN CRASH DIAGNOSTIC REPORT")
+            appendLine("========================================")
+            appendLine("Timestamp: $timeStr")
+            appendLine("Current Screen: ${currentScreenName ?: "Unknown"}")
+            appendLine("Current Thread: ${thread.name} (id: ${thread.id})")
+            appendLine("Exception Class: $exceptionClass")
+            appendLine("Exception Message: $message")
+            appendLine()
+            appendLine("Complete Cause Chain:")
+            appendLine(causeChain)
+            appendLine()
+            appendLine("Complete Stack Trace:")
+            appendLine(stackTrace)
+            appendLine()
+            appendLine("Device & Environment:")
+            appendLine("Android Version: ${Build.VERSION.RELEASE}")
+            appendLine("SDK Version: ${Build.VERSION.SDK_INT}")
+            appendLine("App Version: $appVersion")
+            appendLine("Device Model: ${Build.MANUFACTURER} ${Build.MODEL}")
+            appendLine("Board: ${Build.BOARD}, Hardware: ${Build.HARDWARE}")
+            appendLine("========================================")
+        }
+    }
+
+    private fun getAppVersion(context: Context): String {
+        return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val vCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 packageInfo.longVersionCode.toString()
             } else {
                 @Suppress("DEPRECATION")
                 packageInfo.versionCode.toString()
             }
-            "${packageInfo.versionName} ($vCode)"
+            "${packageInfo.versionName} ($versionCode)"
         } catch (_: Throwable) {
             "Unknown"
         }
-
-        val detectedScreen = currentScreenName ?: detectScreenFromStackTrace(stackTrace)
-
-        return buildString {
-            appendLine("Baagbaan Crash Diagnostic")
-            appendLine()
-            if (!detectedScreen.isNullOrBlank()) {
-                appendLine("Screen:")
-                appendLine(detectedScreen)
-                appendLine()
-            }
-            appendLine("Timestamp:")
-            appendLine(timeStr)
-            appendLine()
-            appendLine("Thread:")
-            appendLine(thread.name)
-            appendLine()
-            appendLine("Exception:")
-            appendLine(exceptionClass)
-            appendLine()
-            appendLine("Message:")
-            appendLine(message)
-            appendLine()
-            appendLine("Cause:")
-            appendLine(directCause)
-            appendLine()
-            appendLine("Stack Trace:")
-            appendLine(stackTrace)
-            appendLine()
-            appendLine("Caused By:")
-            appendLine(nestedCauses)
-            appendLine()
-            appendLine("App Version:")
-            appendLine(appVersion)
-            appendLine()
-            appendLine("Android Version:")
-            appendLine(Build.VERSION.RELEASE)
-            appendLine()
-            appendLine("SDK:")
-            appendLine(Build.VERSION.SDK_INT.toString())
-            appendLine()
-            appendLine("Device:")
-            appendLine(Build.MANUFACTURER)
-            appendLine(Build.MODEL)
-        }
-    }
-
-    fun detectScreenFromStackTrace(stackTrace: String): String? {
-        return when {
-            stackTrace.contains("FarmerRecordsScreen") || stackTrace.contains("RecordsLiquidGlass") -> "Records"
-            stackTrace.contains("drawBackdrop") || stackTrace.contains("LayerBackdrop") || stackTrace.contains("com.kyant.backdrop") -> "Records / Liquid Glass Backdrop"
-            stackTrace.contains("FarmerFormScreen") -> "New Entry (FarmerFormScreen)"
-            stackTrace.contains("AgriBottomNav") -> "Bottom Navigation"
-            stackTrace.contains("AgriHeader") -> "Header / Profile Menu"
-            else -> null
-        }
     }
 }
 
-private fun extractField(content: String, header: String): String? {
-    val lines = content.lines()
-    val index = lines.indexOfFirst { it.trim().equals(header.trim(), ignoreCase = true) }
-    if (index != -1 && index + 1 < lines.size) {
-        val result = lines[index + 1].trim()
-        if (result.isNotBlank()) return result
-    }
-    return null
-}
-
+/**
+ * Full-screen Crash Diagnostic UI displayed before normal app interaction.
+ */
 @Composable
-fun CrashReportScreen(
+fun CrashDiagnosticScreen(
     context: Context,
-    trace: String,
+    crashLog: String,
     onDismiss: () -> Unit
 ) {
-    val detectedScreen = remember(trace) {
-        extractField(trace, "Screen:") ?: CrashReporter.detectScreenFromStackTrace(trace)
-    }
-    val detectedException = remember(trace) {
-        extractField(trace, "Exception:") ?: "Throwable"
-    }
-    val detectedMessage = remember(trace) {
-        extractField(trace, "Message:") ?: "Uncaught runtime exception"
-    }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF0F172A)
@@ -270,34 +373,34 @@ fun CrashReportScreen(
                 .statusBarsPadding()
                 .padding(16.dp)
         ) {
-            // Header Section
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
-                        .background(Color(0xFFEF4444).copy(alpha = 0.15f), shape = RoundedCornerShape(10.dp)),
+                        .size(44.dp)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.18f), shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.BugReport,
                         contentDescription = "Crash Diagnostic",
                         tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Something went wrong",
+                        text = "Crash Diagnostic",
                         color = Color.White,
-                        fontSize = 19.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Crash Diagnostic Report",
+                        text = "An uncaught runtime issue was captured",
                         color = Color(0xFF94A3B8),
                         fontSize = 12.sp
                     )
@@ -306,77 +409,7 @@ fun CrashReportScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Metadata summary card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B))
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (!detectedScreen.isNullOrBlank()) {
-                        Row {
-                            Text(
-                                text = "Screen: ",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color(0xFF94A3B8),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = detectedScreen,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF38BDF8),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    Row {
-                        Text(
-                            text = "Exception: ",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF94A3B8),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = detectedException,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFF87171),
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Message:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF94A3B8),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = detectedMessage,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFE2E8F0)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Stack trace:",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF94A3B8),
-                fontWeight = FontWeight.Medium
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Full Diagnostic & Stack Trace Card
+            // Main log scrollable card
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -384,69 +417,98 @@ fun CrashReportScreen(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF020617))
             ) {
-                val verticalScroll = rememberScrollState()
-                val horizontalScroll = rememberScrollState()
+                val verticalScrollState = rememberScrollState()
+                val horizontalScrollState = rememberScrollState()
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(12.dp)
                 ) {
                     Text(
-                        text = trace,
+                        text = crashLog,
                         color = Color(0xFFFCA5A5),
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
+                        fontSize = 11.5.sp,
+                        lineHeight = 16.5.sp,
                         fontFamily = FontFamily.Monospace,
                         modifier = Modifier
-                            .verticalScroll(verticalScroll)
-                            .horizontalScroll(horizontalScroll)
+                            .verticalScroll(verticalScrollState)
+                            .horizontalScroll(horizontalScrollState)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Action Buttons: Copy Error and Continue
-            Row(
+            // Action Buttons: COPY, CLEAR LOG, CONTINUE TO APP
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("Baagbaan Crash Diagnostic", trace)
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Full diagnostic copied to clipboard!", Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("copy_crash_error_button"),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy Error",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Copy Error", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    // COPY button
+                    Button(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Baagbaan Crash Log", crashLog)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Crash log copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .testTag("crash_diagnostic_copy_button"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("COPY", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    // CLEAR LOG button
+                    OutlinedButton(
+                        onClick = {
+                            CrashReporter.clearCrashLog(context)
+                            Toast.makeText(context, "Crash log cleared", Toast.LENGTH_SHORT).show()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .testTag("crash_diagnostic_clear_button"),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Clear Log",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color(0xFFEF4444)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("CLEAR LOG", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEF4444))
+                    }
                 }
 
+                // CONTINUE TO APP button
                 Button(
-                    onClick = {
-                        CrashReporter.clearPendingCrashReport(context)
-                        onDismiss()
-                    },
+                    onClick = onDismiss,
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .height(48.dp)
-                        .testTag("continue_from_crash_button"),
-                    shape = RoundedCornerShape(12.dp),
+                        .testTag("crash_diagnostic_continue_button"),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
                 ) {
-                    Text("Continue", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("CONTINUE TO APP", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,

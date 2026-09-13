@@ -133,6 +133,7 @@ fun FarmerRecordsScreen(
     hazeState: HazeState? = LocalAppGlassHazeState.current,
     backdrop: LayerBackdrop? = null
 ) {
+    android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started")
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
     val windowBackground = MaterialTheme.colorScheme.background
     val paintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
@@ -142,6 +143,7 @@ fun FarmerRecordsScreen(
                 drawContent()
             }
         }
+    android.util.Log.d("RECORDS_DEBUG", "Creating Records backdrop")
     val internalRecordsBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
     )
@@ -260,6 +262,7 @@ fun FarmerRecordsScreen(
                 )
                 .layerBackdrop(recordsBackdrop)
         ) {
+            android.util.Log.d("RECORDS_DEBUG", "Creating Records LazyColumn")
             // Scrollable content (Entire screen in unified scroll flow)
             LazyColumn(
                 state = listState,
@@ -278,6 +281,7 @@ fun FarmerRecordsScreen(
                     ) {
                         // 1. Dedicated Sub-Tabs for Pruning & Rootstocks
                         if (selectedService.equals("Pruning", ignoreCase = true)) {
+                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
                             PruningSubTabs(
                                 selectedSubTab = selectedPruningSubTab,
                                 onSelectSubTab = { viewModel.selectPruningSubTab(it) },
@@ -287,6 +291,7 @@ fun FarmerRecordsScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
                         } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Rootstocks)")
                             RootstockSubTabs(
                                 selectedSubTab = selectedRootstockSubTab,
                                 selectedGenevaOption = selectedGenevaOption,
@@ -304,6 +309,7 @@ fun FarmerRecordsScreen(
                         val viewMode by viewModel.viewMode.collectAsState()
                         val isEditing = viewModel.editingRecordId.collectAsState().value != null
                         if (effectiveHazeState != null) {
+                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records AgriSegmentedControl")
                             AgriSegmentedControl(
                                 selectedMode = viewMode,
                                 onModeSelected = { viewModel.setViewMode(it) },
@@ -317,12 +323,14 @@ fun FarmerRecordsScreen(
                         }
 
                         // 3. Sub-Header Recording Book Pill
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records RecordingBookHeader")
                         RecordingBookHeader(
                             title = bookTitle,
                             count = records.size,
                             hazeState = effectiveHazeState,
                             backdrop = recordsBackdrop
                         )
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SearchBarWithStatusFilter")
                         SearchBarWithStatusFilter(
                             searchQuery = searchQuery,
                             onSearchQueryChange = { viewModel.setRecordsSearchQuery(it) },
@@ -335,6 +343,7 @@ fun FarmerRecordsScreen(
                             backdrop = recordsBackdrop
                         )
                         // 2x2 Metric Grid Component placed directly below Search Bar
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SummaryMetricCards")
                         RecordsSummaryMetricCards(
                             totalPayment = totalPayment,
                             receivedPayment = receivedPayment,
@@ -414,6 +423,7 @@ fun FarmerRecordsScreen(
                                 record = record,
                                 onDelete = { recordToDelete = record }
                             ) {
+                                android.util.Log.d("RECORDS_DEBUG", "Rendering FarmerRecordCard id=${record.id}, farmer=${record.farmerName}")
                                 FarmerRecordCard(
                                     record = record,
                                     searchQuery = searchQuery,
@@ -439,6 +449,7 @@ fun FarmerRecordsScreen(
             }
 
             // Target Component 4: Floating Action Button (FAB)
+            android.util.Log.d("RECORDS_DEBUG", "Rendering Records FAB")
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -518,6 +529,7 @@ fun FarmerRecordsScreen(
             }
 
             // Scroll to Top quick action button
+            android.util.Log.d("RECORDS_DEBUG", "Rendering Records Scroll-to-Top button")
             AnimatedVisibility(
                 visible = listState.firstVisibleItemIndex > 2,
                 enter = fadeIn() + expandVertically(),
