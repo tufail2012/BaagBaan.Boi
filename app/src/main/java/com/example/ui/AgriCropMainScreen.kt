@@ -745,7 +745,8 @@ fun AgriCropMainScreen(
                                         }
                                     },
                                     onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
-                                    hazeState = hazeState
+                                    hazeState = hazeState,
+                                    backdrop = navBackdrop
                                 )
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }

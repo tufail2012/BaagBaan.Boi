@@ -118,6 +118,17 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import android.os.Build
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 
 @Composable
 fun AgriHeader(
@@ -156,6 +167,7 @@ fun AgriHeader(
     onManualSync: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     hazeState: HazeState,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -336,11 +348,9 @@ fun AgriHeader(
                         modifier = Modifier
                             .widthIn(min = 250.dp, max = 310.dp)
                             .padding(vertical = 4.dp)
-                            .frostedLiquidGlassMenuBackground(
+                            .profileMenuLiquidGlass(
+                                backdrop = backdrop,
                                 hazeState = hazeState,
-                                isDark = isDark,
-                                themeMode = themeMode,
-                                accentColor = animatedAccentColor,
                                 shape = RoundedCornerShape(22.dp)
                             ),
                         shape = RoundedCornerShape(22.dp),
@@ -523,11 +533,9 @@ fun AgriHeader(
                                 modifier = Modifier
                                     .widthIn(min = 250.dp, max = 310.dp)
                                     .padding(vertical = 4.dp)
-                                    .frostedLiquidGlassMenuBackground(
+                                    .profileMenuLiquidGlass(
+                                        backdrop = backdrop,
                                         hazeState = hazeState,
-                                        isDark = isDark,
-                                        themeMode = themeMode,
-                                        accentColor = animatedAccentColor,
                                         shape = RoundedCornerShape(22.dp)
                                     ),
                                 shape = RoundedCornerShape(22.dp),
@@ -1270,6 +1278,72 @@ fun Modifier.frostedLiquidGlassMenuItem(
             border = BorderStroke(width = 1.dp, brush = glassRimBrush),
             shape = shape
         )
+}
+
+private const val PROFILE_MENU_BLUR_RADIUS_DP = 8f
+private const val PROFILE_MENU_LENS_HEIGHT = 0.5f
+private const val PROFILE_MENU_LENS_AMOUNT = 0.5f
+private const val PROFILE_MENU_LENS_MAX_DP = 48f
+private const val PROFILE_MENU_SURFACE_OPACITY = 0.4f
+
+/**
+ * Liquid Glass Modifier strictly for the Profile Menu matching the bottom navigation's
+ * backdrop rendering pipeline (vibrancy, blur, lens on API 33+, Highlight.Default, Shadow.Default,
+ * and adaptive surface tint).
+ */
+@Composable
+fun Modifier.profileMenuLiquidGlass(
+    backdrop: Backdrop?,
+    hazeState: HazeState,
+    shape: CornerBasedShape = RoundedCornerShape(22.dp)
+): Modifier {
+    val density = LocalDensity.current
+    val isDark = isAppInDarkMode()
+    val blurPx = with(density) { PROFILE_MENU_BLUR_RADIUS_DP.dp.toPx() }
+    val lensHeightPx = with(density) { (PROFILE_MENU_LENS_HEIGHT * PROFILE_MENU_LENS_MAX_DP).dp.toPx() }
+    val lensAmountPx = with(density) { (PROFILE_MENU_LENS_AMOUNT * PROFILE_MENU_LENS_MAX_DP).dp.toPx() }
+    val surfaceTintColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+        Color(0xFFFAFAFA)
+    } else {
+        Color(0xFF121212)
+    }
+
+    return if (backdrop != null && isGlassSupported()) {
+        this
+            .clip(shape)
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { shape },
+                effects = {
+                    vibrancy()
+                    blur(blurPx)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        lens(
+                            refractionHeight = lensHeightPx,
+                            refractionAmount = lensAmountPx,
+                            depthEffect = true,
+                            chromaticAberration = true
+                        )
+                    }
+                },
+                highlight = { Highlight.Default },
+                shadow = { Shadow.Default },
+                onDrawSurface = {
+                    drawRect(surfaceTintColor.copy(alpha = PROFILE_MENU_SURFACE_OPACITY))
+                }
+            )
+    } else {
+        val fallbackStyle = HazeStyle(
+            backgroundColor = surfaceTintColor.copy(alpha = 0.65f),
+            blurRadius = 24.dp,
+            tints = emptyList()
+        )
+        this
+            .clip(shape)
+            .hazeEffect(state = hazeState, style = fallbackStyle)
+            .background(surfaceTintColor.copy(alpha = PROFILE_MENU_SURFACE_OPACITY), shape)
+            .border(0.5.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), shape)
+    }
 }
 
 /**
