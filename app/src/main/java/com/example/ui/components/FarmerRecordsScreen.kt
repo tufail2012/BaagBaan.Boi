@@ -447,11 +447,11 @@ fun FarmerRecordsScreen(
                     color = Color.Transparent,
                     modifier = Modifier
                         .then(
-                            if (isGlassSupported()) {
+                            if (recordsBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
                                     backdrop = recordsBackdrop,
                                     shape = fabShape,
-                                    customSurfaceTint = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.85f else 0.90f)
+                                    customSurfaceTint = MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.50f else 0.60f)
                                 )
                             } else {
                                 Modifier
@@ -527,7 +527,7 @@ fun FarmerRecordsScreen(
                     modifier = Modifier
                         .size(38.dp)
                         .then(
-                            if (isGlassSupported()) {
+                            if (recordsBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
                                     backdrop = recordsBackdrop,
                                     shape = CircleShape

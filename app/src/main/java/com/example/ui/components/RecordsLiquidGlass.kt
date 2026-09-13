@@ -1,10 +1,12 @@
 package com.example.ui.components
 
 import android.os.Build
+import androidx.compose.foundation.border
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
@@ -39,6 +41,7 @@ fun Modifier.recordsLiquidGlass(
     if (backdrop == null || !isGlassSupported()) return this
 
     val density = LocalDensity.current
+    val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val blurPx = with(density) { RECORDS_BLUR_RADIUS_DP.dp.toPx() }
     val lensHeightPx = with(density) { (RECORDS_LENS_HEIGHT * RECORDS_LENS_MAX_DP).dp.toPx() }
@@ -52,6 +55,14 @@ fun Modifier.recordsLiquidGlass(
         Color(0xFF121212)
     }
     val surfaceColor = customSurfaceTint ?: defaultSurfaceTint.copy(alpha = RECORDS_SURFACE_OPACITY)
+
+    val rimBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.28f else 0.55f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.10f else 0.22f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.03f else 0.08f)
+        )
+    )
 
     return this
         .clip(shape)
@@ -76,4 +87,5 @@ fun Modifier.recordsLiquidGlass(
                 drawRect(surfaceColor)
             }
         )
+        .border(0.8.dp, rimBrush, shape)
 }

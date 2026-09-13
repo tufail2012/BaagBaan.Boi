@@ -409,8 +409,8 @@ fun Modifier.bubblyGlassCapsuleIndicator(
         // Light Mode
         Brush.verticalGradient(
             colorStops = arrayOf(
-                0.0f to Color.White.copy(alpha = 0.85f),
-                0.50f to Color.White.copy(alpha = 0.40f),
+                0.0f to Color.White.copy(alpha = 0.50f),
+                0.50f to Color.White.copy(alpha = 0.22f),
                 1.0f to accentColor.copy(alpha = 0.20f)
             )
         )

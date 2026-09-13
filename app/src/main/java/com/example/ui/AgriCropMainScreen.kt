@@ -30,6 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -842,7 +845,43 @@ fun AgriCropMainScreen(
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .layerBackdrop(recordsBackdrop)
-                                                        )
+                                                        ) {
+                                                            // Ambient Records background canvas: provides rich texture, ambient lighting, and depth
+                                                            // for the glass surfaces to blur, refract, and softly diffuse.
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .fillMaxSize()
+                                                                    .background(rootBgBrush)
+                                                            )
+                                                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                                                val accent = sectionAccentColor ?: Color(0xFF4CAF50)
+                                                                val isDarkTheme = isDark || isAmoled
+                                                                // Top-right radiant ambient orb
+                                                                drawCircle(
+                                                                    brush = Brush.radialGradient(
+                                                                        colors = listOf(
+                                                                            accent.copy(alpha = if (isDarkTheme) 0.20f else 0.14f),
+                                                                            accent.copy(alpha = if (isDarkTheme) 0.06f else 0.03f),
+                                                                            Color.Transparent
+                                                                        ),
+                                                                        center = Offset(size.width * 0.75f, size.height * 0.18f),
+                                                                        radius = size.width * 0.65f
+                                                                    )
+                                                                )
+                                                                // Mid-left soft ambient glow
+                                                                drawCircle(
+                                                                    brush = Brush.radialGradient(
+                                                                        colors = listOf(
+                                                                            accent.copy(alpha = if (isDarkTheme) 0.15f else 0.09f),
+                                                                            accent.copy(alpha = if (isDarkTheme) 0.04f else 0.01f),
+                                                                            Color.Transparent
+                                                                        ),
+                                                                        center = Offset(size.width * 0.20f, size.height * 0.55f),
+                                                                        radius = size.width * 0.70f
+                                                                    )
+                                                                )
+                                                            }
+                                                        }
                                                         // Records content & consumers are rendered outside the backdrop source subtree
                                                         FarmerRecordsScreen(
                                                             viewModel = viewModel,
