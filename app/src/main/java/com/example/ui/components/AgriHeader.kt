@@ -168,6 +168,7 @@ fun AgriHeader(
     onBack: (() -> Unit)? = null,
     hazeState: HazeState,
     backdrop: Backdrop? = null,
+    profileBackdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -349,7 +350,7 @@ fun AgriHeader(
                             .widthIn(min = 250.dp, max = 310.dp)
                             .padding(vertical = 4.dp)
                             .profileMenuLiquidGlass(
-                                backdrop = backdrop,
+                                backdrop = profileBackdrop,
                                 hazeState = hazeState,
                                 shape = RoundedCornerShape(22.dp)
                             ),
@@ -534,7 +535,7 @@ fun AgriHeader(
                                     .widthIn(min = 250.dp, max = 310.dp)
                                     .padding(vertical = 4.dp)
                                     .profileMenuLiquidGlass(
-                                        backdrop = backdrop,
+                                        backdrop = profileBackdrop,
                                         hazeState = hazeState,
                                         shape = RoundedCornerShape(22.dp)
                                     ),
