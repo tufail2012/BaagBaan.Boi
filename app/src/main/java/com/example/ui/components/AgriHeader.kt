@@ -221,6 +221,7 @@ fun AgriHeader(
     }
 
     val headerShape = RoundedCornerShape(percent = 50)
+    val resolvedProfileBackdrop = rememberPopupBackdrop(profileBackdrop ?: backdrop)
 
     Box(
         modifier = modifier
@@ -349,10 +350,11 @@ fun AgriHeader(
                         modifier = Modifier
                             .widthIn(min = 250.dp, max = 310.dp)
                             .profileMenuLiquidGlass(
-                                backdrop = profileBackdrop ?: backdrop,
+                                backdrop = resolvedProfileBackdrop,
                                 hazeState = hazeState,
                                 shape = RoundedCornerShape(22.dp)
-                            ),
+                            )
+                            .padding(vertical = 4.dp),
                         shape = RoundedCornerShape(22.dp),
                         containerColor = Color.Transparent,
                         border = null,
@@ -533,10 +535,11 @@ fun AgriHeader(
                                 modifier = Modifier
                                     .widthIn(min = 250.dp, max = 310.dp)
                                     .profileMenuLiquidGlass(
-                                        backdrop = profileBackdrop ?: backdrop,
+                                        backdrop = resolvedProfileBackdrop,
                                         hazeState = hazeState,
                                         shape = RoundedCornerShape(22.dp)
-                                    ),
+                                    )
+                                    .padding(vertical = 4.dp),
                                 shape = RoundedCornerShape(22.dp),
                                 containerColor = Color.Transparent,
                                 border = null,

@@ -76,6 +76,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import com.example.ui.components.rememberPopupBackdrop
 import com.example.data.BusinessInfoRepository
 import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
@@ -201,6 +204,12 @@ fun AgriCropMainScreen(
 
     val gardenContentBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
+    )
+
+    val navBackdropCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val profileMenuBackdrop = rememberPopupBackdrop(
+        backdrop = navBackdrop,
+        sourceCoordinatesProvider = { navBackdropCoordinates.value }
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -762,7 +771,7 @@ fun AgriCropMainScreen(
                                     onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
                                     hazeState = hazeState,
                                     backdrop = navBackdrop,
-                                    profileBackdrop = navBackdrop
+                                    profileBackdrop = profileMenuBackdrop
                                 )
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -775,6 +784,7 @@ fun AgriCropMainScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
                                     .hazeSource(state = hazeState)
                                     .layerBackdrop(navBackdrop)
                             ) {
