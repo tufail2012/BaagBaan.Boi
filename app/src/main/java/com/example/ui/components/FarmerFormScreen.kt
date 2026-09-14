@@ -1187,10 +1187,21 @@ fun FarmerFormScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .glassCardBackground(
-                                    accentColor = MaterialTheme.colorScheme.primary,
+                                .liquidGlassNav(
                                     shape = RoundedCornerShape(12.dp),
-                                                                    )
+                                    backdrop = backdrop
+                                )
+                                .then(
+                                    if (backdrop == null || !isGlassSupported()) {
+                                        Modifier.glassCardBackground(
+                                            isDark = isDark,
+                                            accentColor = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp),
@@ -2488,11 +2499,21 @@ fun FarmerFormScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .glassCardBackground(
-                    isDark = isDark,
-                    accentColor = MaterialTheme.colorScheme.primary,
+                .liquidGlassNav(
                     shape = RoundedCornerShape(16.dp),
-                                    )
+                    backdrop = backdrop
+                )
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.glassCardBackground(
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),

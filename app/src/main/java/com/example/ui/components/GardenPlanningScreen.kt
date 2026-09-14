@@ -169,6 +169,8 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -182,6 +184,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -2123,6 +2126,21 @@ fun GardenPlanningRecordsTab(
         }
     }
 
+    var isBackdropReady by remember { mutableStateOf(false) }
+    var contentVersion by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        if (!isBackdropReady) {
+            isBackdropReady = true
+        }
+    }
+
+    LaunchedEffect(entries, isInitialLoading) {
+        withFrameNanos { }
+        contentVersion++
+    }
+
     if (selectedDetailEntry != null) {
         GardenBookingRecordDetailDialog(
             entry = selectedDetailEntry!!,
@@ -2191,6 +2209,11 @@ fun GardenPlanningRecordsTab(
                                 Modifier.layerBackdrop(contentBackdrop)
                             } else Modifier
                         )
+                        .onGloballyPositioned {
+                            if (!isBackdropReady) {
+                                isBackdropReady = true
+                            }
+                        }
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
@@ -2334,74 +2357,76 @@ fun GardenPlanningRecordsTab(
                     .padding(bottom = 96.dp, end = 16.dp)
                     .zIndex(8f)
             ) {
-                val fabShape = RoundedCornerShape(percent = 50)
-                Surface(
-                    onClick = { onAddNewEntry() },
-                    shape = fabShape,
-                    color = Color.Transparent,
-                    modifier = Modifier
-                        .then(
-                            if (fabEffectiveBackdrop != null && isGlassSupported()) {
-                                Modifier.recordsLiquidGlass(
-                                    backdrop = fabEffectiveBackdrop,
-                                    shape = fabShape,
-                                    customSurfaceTint = null
-                                )
-                            } else {
-                                Modifier
-                                    .shadow(
-                                        elevation = 6.dp,
+                key(isBackdropReady, contentVersion) {
+                    val fabShape = RoundedCornerShape(percent = 50)
+                    Surface(
+                        onClick = { onAddNewEntry() },
+                        shape = fabShape,
+                        color = Color.Transparent,
+                        modifier = Modifier
+                            .then(
+                                if (fabEffectiveBackdrop != null && isGlassSupported()) {
+                                    Modifier.recordsLiquidGlass(
+                                        backdrop = fabEffectiveBackdrop,
                                         shape = fabShape,
-                                        spotColor = paletteAccent.copy(alpha = 0.3f)
+                                        customSurfaceTint = null
                                     )
-                                    .clip(fabShape)
-                                    .then(
-                                        if (effectiveHazeState != null) {
-                                            Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
-                                        } else Modifier
-                                    )
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            listOf(
-                                                if (isDark) Color(0xFF1E293B).copy(alpha = 0.70f) else Color.White.copy(alpha = 0.75f),
-                                                if (isDark) Color(0xFF0F172A).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.55f)
-                                            )
-                                        ),
-                                        shape = fabShape
-                                    )
-                                    .border(
-                                        BorderStroke(
-                                            1.dp,
-                                            Brush.verticalGradient(
+                                } else {
+                                    Modifier
+                                        .shadow(
+                                            elevation = 6.dp,
+                                            shape = fabShape,
+                                            spotColor = paletteAccent.copy(alpha = 0.3f)
+                                        )
+                                        .clip(fabShape)
+                                        .then(
+                                            if (effectiveHazeState != null) {
+                                                Modifier.hazeEffect(state = effectiveHazeState, style = HazeMaterials.thin())
+                                            } else Modifier
+                                        )
+                                        .background(
+                                            brush = Brush.verticalGradient(
                                                 listOf(
-                                                    Color.White.copy(alpha = if (isDark) 0.40f else 0.70f),
-                                                    Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
+                                                    if (isDark) Color(0xFF1E293B).copy(alpha = 0.70f) else Color.White.copy(alpha = 0.75f),
+                                                    if (isDark) Color(0xFF0F172A).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.55f)
                                                 )
-                                            )
-                                        ),
-                                        shape = fabShape
-                                    )
-                            }
-                        )
-                        .testTag("fab_add_garden_record")
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(7.dp)
+                                            ),
+                                            shape = fabShape
+                                        )
+                                        .border(
+                                            BorderStroke(
+                                                1.dp,
+                                                Brush.verticalGradient(
+                                                    listOf(
+                                                        Color.White.copy(alpha = if (isDark) 0.40f else 0.70f),
+                                                        Color.White.copy(alpha = if (isDark) 0.10f else 0.25f)
+                                                    )
+                                                )
+                                            ),
+                                            shape = fabShape
+                                        )
+                                }
+                            )
+                            .testTag("fab_add_garden_record")
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "New Entry",
-                            tint = paletteAccent,
-                            modifier = Modifier.size(19.dp)
-                        )
-                        Text(
-                            text = "New Entry",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color.White else Color(0xFF0F172A)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "New Entry",
+                                tint = paletteAccent,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Text(
+                                text = "New Entry",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                        }
                     }
                 }
             }
