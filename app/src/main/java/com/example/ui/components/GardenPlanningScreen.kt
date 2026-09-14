@@ -467,7 +467,8 @@ fun GardenPlanningScreen(
                                 isDark = isDark,
                                 onSaved = { viewModel.selectedTabIndex.value = 1 },
                                 customPaletteColor = gardenAccent,
-                                hazeState = effectiveHazeState
+                                hazeState = effectiveHazeState,
+                                backdrop = backdrop
                             )
                         }
                         1 -> {
@@ -521,7 +522,8 @@ fun GardenPlanningFormTab(
     isDark: Boolean,
     onSaved: () -> Unit,
     customPaletteColor: Color? = null,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    backdrop: Backdrop? = null
 ) {
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
@@ -1040,7 +1042,8 @@ fun GardenPlanningFormTab(
                             },
                             onRemove = {
                                 viewModel.removeVarietyLine(index)
-                            }
+                            },
+                            backdrop = backdrop
                         )
                     }
 
@@ -1269,9 +1272,16 @@ fun GardenPlanningFormTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .glassCardBackground(
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        shape = textFieldShape
+                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.glassCardBackground(
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                shape = textFieldShape
+                            )
+                        } else {
+                            Modifier
+                        }
                     )
                     .boundedFormFieldRipple(
                         shape = textFieldShape,
@@ -1620,10 +1630,17 @@ fun GardenPlanningFormTab(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .glassCardBackground(
-                    isDark = isDark,
-                    accentColor = gardenAccent,
-                    shape = RoundedCornerShape(16.dp)
+                .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.glassCardBackground(
+                            isDark = isDark,
+                            accentColor = gardenAccent,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                    } else {
+                        Modifier
+                    }
                 )
         ) {
             Column(
@@ -3295,11 +3312,9 @@ fun GardenBookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
-                            isDark = isDark,
-                            accentColor = paletteAccent,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .recordsDropdownLiquidGlass(
+                            hazeState = hazeState,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Row(
@@ -3377,11 +3392,9 @@ fun GardenBookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .recordsDropdownLiquidGlass(
+                            hazeState = hazeState,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Column(
@@ -3408,9 +3421,8 @@ fun GardenBookingRecordDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .glassCardBackground(
-                                        isDark = isDark,
-                                        accentColor = MaterialTheme.colorScheme.primary,
+                                    .recordsDropdownLiquidGlass(
+                                        hazeState = hazeState,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(vertical = 2.dp)
@@ -3502,11 +3514,9 @@ fun GardenBookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .glassCardBackground(
-                            isDark = isDark,
-                            accentColor = paletteAccent,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .recordsDropdownLiquidGlass(
+                            hazeState = hazeState,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Column(
@@ -3565,9 +3575,8 @@ fun GardenBookingRecordDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .glassCardBackground(
-                                    isDark = isDark,
-                                    accentColor = paletteAccent,
+                                .recordsDropdownLiquidGlass(
+                                    hazeState = hazeState,
                                     shape = RoundedCornerShape(14.dp)
                                 )
                         ) {
@@ -3772,9 +3781,8 @@ fun GardenBookingRecordDetailDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .glassCardBackground(
-                                                isDark = isDark,
-                                                accentColor = paletteAccent,
+                                            .recordsDropdownLiquidGlass(
+                                                hazeState = hazeState,
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                     ) {
@@ -4640,16 +4648,24 @@ fun GardenPlanningVarietyLineCard(
     isDark: Boolean,
     textFieldShape: RoundedCornerShape,
     onUpdate: (VarietyLine) -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    backdrop: Backdrop? = null
 ) {
     var lastEdited by remember { mutableStateOf(LastEditedField.NONE) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
-                accentColor = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(12.dp)
+            .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
+            .then(
+                if (backdrop == null || !isGlassSupported()) {
+                    Modifier.glassCardBackground(
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                } else {
+                    Modifier
+                }
             )
     ) {
         Column(
