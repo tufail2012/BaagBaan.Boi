@@ -24,6 +24,7 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
 internal const val RECORDS_BLUR_RADIUS_DP = 8f
@@ -106,72 +107,58 @@ fun Modifier.recordsLiquidGlass(
  */
 @Composable
 fun Modifier.recordsDropdownLiquidGlass(
-    backdrop: Backdrop?,
+    backdrop: Backdrop? = null,
     hazeState: HazeState? = null,
     shape: Shape = RoundedCornerShape(20.dp)
 ): Modifier {
-    val density = LocalDensity.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
-    val blurPx = with(density) { 8f.dp.toPx() }
-    val lensHeightPx = with(density) { (0.5f * 48f).dp.toPx() }
-    val lensAmountPx = with(density) { (0.5f * 48f).dp.toPx() }
 
     val surfaceTintColor = if (isAmoled) {
-        Color(0xFF000000)
-    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color(0xFFFAFAFA)
+        Color(0xFF0F0F14)
+    } else if (isDark) {
+        Color(0xFF1E293B)
     } else {
-        Color(0xFF121212)
+        Color(0xFFF8FAFC)
     }
 
     val rimBrush = Brush.verticalGradient(
         colors = listOf(
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.35f else 0.60f),
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.12f else 0.25f),
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.04f else 0.08f)
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.45f else 0.75f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.18f else 0.35f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.06f else 0.12f)
         )
     )
 
-    return if (backdrop != null && isGlassSupported()) {
-        this
-            .clip(shape)
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { shape },
-                effects = {
-                    vibrancy()
-                    blur(blurPx)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        lens(
-                            refractionHeight = lensHeightPx,
-                            refractionAmount = lensAmountPx,
-                            depthEffect = true,
-                            chromaticAberration = true
-                        )
-                    }
-                },
-                highlight = { Highlight.Default },
-                shadow = { Shadow.Default },
-                onDrawSurface = {
-                    drawRect(surfaceTintColor.copy(alpha = 0.40f))
-                }
+    val hazeStyle = HazeStyle(
+        backgroundColor = surfaceTintColor.copy(alpha = if (isAmoled) 0.55f else if (isDark) 0.50f else 0.58f),
+        blurRadius = 32.dp,
+        tints = listOf(
+            HazeTint(
+                color = if (isAmoled) Color.Black.copy(alpha = 0.25f)
+                        else if (isDark) Color(0xFF0F172A).copy(alpha = 0.22f)
+                        else Color.White.copy(alpha = 0.35f)
             )
-            .border(0.6.dp, rimBrush, shape)
-    } else {
-        val fallbackStyle = HazeStyle(
-            backgroundColor = surfaceTintColor.copy(alpha = 0.65f),
-            blurRadius = 24.dp,
-            tints = emptyList()
+        ),
+        noiseFactor = 0.05f
+    )
+
+    return this
+        .shadow(
+            elevation = 16.dp,
+            shape = shape,
+            spotColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.45f else 0.18f),
+            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.25f else 0.08f)
         )
-        this
-            .clip(shape)
-            .then(
-                if (hazeState != null) {
-                    Modifier.hazeEffect(state = hazeState, style = fallbackStyle)
-                } else Modifier
-            )
-            .background(surfaceTintColor.copy(alpha = 0.40f), shape)
-            .border(0.6.dp, rimBrush, shape)
-    }
+        .clip(shape)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else Modifier
+        )
+        .background(
+            color = surfaceTintColor.copy(alpha = if (isAmoled) 0.55f else if (isDark) 0.48f else 0.55f),
+            shape = shape
+        )
+        .border(0.8.dp, rimBrush, shape)
 }

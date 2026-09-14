@@ -111,6 +111,8 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.HazeMaterials
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.BrandedPullToRefreshBox
 import com.example.data.CropRecord
 import com.example.data.calculateRemainingBalance
@@ -128,11 +130,13 @@ fun FarmerRecordsScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
-    backdrop: Backdrop? = null
+    backdrop: Backdrop? = null,
+    contentBackdrop: LayerBackdrop? = null
 ) {
-    android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started - consuming recordsBackdrop: ${backdrop != null}")
+    android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started - consuming recordsBackdrop: ${backdrop != null}, contentBackdrop: ${contentBackdrop != null}")
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
     val recordsBackdrop = backdrop
+    val fabEffectiveBackdrop = contentBackdrop ?: recordsBackdrop
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
@@ -253,6 +257,11 @@ fun FarmerRecordsScreen(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .then(
+                        if (contentBackdrop != null) {
+                            Modifier.layerBackdrop(contentBackdrop)
+                        } else Modifier
+                    )
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
@@ -448,9 +457,9 @@ fun FarmerRecordsScreen(
                     color = Color.Transparent,
                     modifier = Modifier
                         .then(
-                            if (recordsBackdrop != null && isGlassSupported()) {
+                            if (fabEffectiveBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = recordsBackdrop,
+                                    backdrop = fabEffectiveBackdrop,
                                     shape = fabShape,
                                     customSurfaceTint = null
                                 )
@@ -528,9 +537,9 @@ fun FarmerRecordsScreen(
                     modifier = Modifier
                         .size(38.dp)
                         .then(
-                            if (recordsBackdrop != null && isGlassSupported()) {
+                            if (fabEffectiveBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = recordsBackdrop,
+                                    backdrop = fabEffectiveBackdrop,
                                     shape = CircleShape
                                 )
                             } else {

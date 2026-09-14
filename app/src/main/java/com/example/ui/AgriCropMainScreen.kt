@@ -199,6 +199,14 @@ fun AgriCropMainScreen(
         onDraw = paintBackdrop
     )
 
+    val recordsContentBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
+
+    val gardenContentBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
+
     val snackbarHostState = remember { SnackbarHostState() }
 
     val userDashboardViewModel = remember { UserDashboardViewModel() }
@@ -856,6 +864,7 @@ fun AgriCropMainScreen(
                                                     selectedColorHex = accentColorHex,
                                                     hazeState = hazeState,
                                                     backdrop = recordsBackdrop,
+                                                    contentBackdrop = gardenContentBackdrop,
                                                     onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
                                                     onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
                                                     searchQuery = searchQuery,
@@ -899,7 +908,8 @@ fun AgriCropMainScreen(
                                                         FarmerRecordsScreen(
                                                             viewModel = viewModel,
                                                             hazeState = hazeState,
-                                                            backdrop = recordsBackdrop
+                                                            backdrop = recordsBackdrop,
+                                                            contentBackdrop = recordsContentBackdrop
                                                         )
                                                     }
                                                 }

@@ -67,6 +67,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.draw.clip
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -330,6 +332,7 @@ fun GardenPlanningScreen(
     onNavigateToSettings: (() -> Unit)? = null,
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
+    contentBackdrop: LayerBackdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -482,7 +485,8 @@ fun GardenPlanningScreen(
                                 },
                                 customPaletteColor = gardenAccent,
                                 hazeState = effectiveHazeState,
-                                backdrop = backdrop
+                                backdrop = backdrop,
+                                contentBackdrop = contentBackdrop
                             )
                         }
                     }
@@ -2053,8 +2057,10 @@ fun GardenPlanningRecordsTab(
     onAddNewEntry: () -> Unit = {},
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null,
-    backdrop: Backdrop? = null
+    backdrop: Backdrop? = null,
+    contentBackdrop: LayerBackdrop? = null
 ) {
+    val fabEffectiveBackdrop = contentBackdrop ?: backdrop
     val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -2163,6 +2169,11 @@ fun GardenPlanningRecordsTab(
                     state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
+                        .then(
+                            if (contentBackdrop != null) {
+                                Modifier.layerBackdrop(contentBackdrop)
+                            } else Modifier
+                        )
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
@@ -2313,9 +2324,9 @@ fun GardenPlanningRecordsTab(
                     color = Color.Transparent,
                     modifier = Modifier
                         .then(
-                            if (backdrop != null && isGlassSupported()) {
+                            if (fabEffectiveBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = backdrop,
+                                    backdrop = fabEffectiveBackdrop,
                                     shape = fabShape,
                                     customSurfaceTint = null
                                 )
@@ -2392,9 +2403,9 @@ fun GardenPlanningRecordsTab(
                     modifier = Modifier
                         .size(38.dp)
                         .then(
-                            if (backdrop != null && isGlassSupported()) {
+                            if (fabEffectiveBackdrop != null && isGlassSupported()) {
                                 Modifier.recordsLiquidGlass(
-                                    backdrop = backdrop,
+                                    backdrop = fabEffectiveBackdrop,
                                     shape = CircleShape
                                 )
                             } else {
