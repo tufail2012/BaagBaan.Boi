@@ -1288,63 +1288,76 @@ private const val PROFILE_MENU_LENS_MAX_DP = 48f
 private const val PROFILE_MENU_SURFACE_OPACITY = 0.4f
 
 /**
- * Liquid Glass Modifier strictly for the Profile Menu matching the bottom navigation's
- * backdrop rendering pipeline (vibrancy, blur, lens on API 33+, Highlight.Default, Shadow.Default,
- * and adaptive surface tint).
+ * Liquid Glass Modifier strictly for the Profile Menu.
+ * Resolves the Popup window boundary issue by leveraging Haze's absolute screen-coordinate
+ * sampling (positionOnScreen) to accurately capture and blur the live background directly
+ * behind the menu popup, avoiding BLASTBufferQueue cross-window surface leaks.
+ *
+ * Preserves the exact Liquid Glass styling:
+ * - Silky optical backdrop blur and ambient vibrancy
+ * - 0.4f translucent surface tint (without opaque double-stacking)
+ * - Soft floating elevation shadow
+ * - Refined multi-stop vertical rim highlight that softly defines the top edge and rounded corners
  */
 @Composable
 fun Modifier.profileMenuLiquidGlass(
-    backdrop: Backdrop?,
-    hazeState: HazeState,
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = null,
     shape: CornerBasedShape = RoundedCornerShape(22.dp)
 ): Modifier {
-    val density = LocalDensity.current
     val isDark = isAppInDarkMode()
-    val blurPx = with(density) { PROFILE_MENU_BLUR_RADIUS_DP.dp.toPx() }
-    val lensHeightPx = with(density) { (PROFILE_MENU_LENS_HEIGHT * PROFILE_MENU_LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (PROFILE_MENU_LENS_AMOUNT * PROFILE_MENU_LENS_MAX_DP).dp.toPx() }
-    val surfaceTintColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+    val isAmoled = isAppInAmoledMode()
+    val surfaceTintColor = if (isAmoled) {
+        Color(0xFF0F0F14)
+    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
         Color(0xFFFAFAFA)
     } else {
         Color(0xFF121212)
     }
 
-    return if (backdrop != null && isGlassSupported()) {
-        this
-            .clip(shape)
-            .drawBackdrop(
-                backdrop = backdrop,
-                shape = { shape },
-                effects = {
-                    vibrancy()
-                    blur(blurPx)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        lens(
-                            refractionHeight = lensHeightPx,
-                            refractionAmount = lensAmountPx,
-                            depthEffect = true,
-                            chromaticAberration = true
-                        )
-                    }
-                },
-                highlight = { Highlight.Default },
-                shadow = { Shadow.Default },
-                onDrawSurface = {
-                    drawRect(surfaceTintColor.copy(alpha = PROFILE_MENU_SURFACE_OPACITY))
-                }
-            )
-    } else {
-        val fallbackStyle = HazeStyle(
-            backgroundColor = surfaceTintColor.copy(alpha = 0.65f),
-            blurRadius = 24.dp,
-            tints = emptyList()
+    // Delicate vertical gradient rim highlight matching the liquid glass aesthetic:
+    // Softly illuminates the top edge and wraps gracefully around the rounded corners
+    val rimBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.38f else 0.65f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.15f else 0.28f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.04f else 0.08f)
         )
-        this
-            .clip(shape)
-            .hazeEffect(state = hazeState, style = fallbackStyle)
-            .background(surfaceTintColor.copy(alpha = PROFILE_MENU_SURFACE_OPACITY), shape)
-            .border(0.5.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), shape)
-    }
+    )
+
+    val hazeStyle = HazeStyle(
+        backgroundColor = Color.Transparent,
+        blurRadius = 16.dp,
+        tints = listOf(
+            HazeTint(
+                color = if (isAmoled) Color.Black.copy(alpha = 0.20f)
+                else if (isDark) surfaceTintColor.copy(alpha = 0.22f)
+                else Color.White.copy(alpha = 0.28f)
+            )
+        ),
+        noiseFactor = 0.04f
+    )
+
+    return this
+        .shadow(
+            elevation = 16.dp,
+            shape = shape,
+            spotColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.45f else 0.16f),
+            ambientColor = Color.Black.copy(alpha = if (isDark || isAmoled) 0.25f else 0.08f)
+        )
+        .clip(shape)
+        .then(
+            if (hazeState != null) {
+                Modifier.hazeEffect(state = hazeState, style = hazeStyle)
+            } else {
+                Modifier
+            }
+        )
+        .background(
+            color = surfaceTintColor.copy(alpha = PROFILE_MENU_SURFACE_OPACITY),
+            shape = shape
+        )
+        .border(0.8.dp, rimBrush, shape)
 }
 
 /**

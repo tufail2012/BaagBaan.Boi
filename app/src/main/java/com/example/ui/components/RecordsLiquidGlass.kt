@@ -98,11 +98,11 @@ fun Modifier.recordsLiquidGlass(
 }
 
 /**
- * Liquid Glass modifier specifically for dropdown menus in the Records and Garden Planning sections,
- * matching the Profile Menu source-of-truth implementation (AgriHeader.kt):
- * - Seamless frosted translucent surface
- * - drawBackdrop pipeline (vibrancy, blur, lens on API 33+, Highlight.Default, Shadow.Default)
- * - Safe fallback with hazeEffect and translucent surface tint (never opaque 85-90% black/white)
+ * Liquid Glass modifier specifically for dropdown menus in the Records and Garden Planning sections:
+ * - Seamless frosted translucent surface using Haze and custom gradients
+ * - Designed specifically for popup/dropdown windows where cross-window hardware backdrop
+ *   sampling causes BLASTBufferQueue transaction leaks on window destruction (dtor)
+ * - Safe across all Android versions (including Android 16 / SDK 36 on Samsung)
  * - Multi-stop rim light border and soft depth shadow
  */
 @Composable
@@ -121,7 +121,6 @@ fun Modifier.recordsDropdownLiquidGlass(
     } else {
         Color(0xFFF8FAFC)
     }
-
     val rimBrush = Brush.verticalGradient(
         colors = listOf(
             Color.White.copy(alpha = if (isDark || isAmoled) 0.45f else 0.75f),
@@ -129,7 +128,6 @@ fun Modifier.recordsDropdownLiquidGlass(
             Color.White.copy(alpha = if (isDark || isAmoled) 0.06f else 0.12f)
         )
     )
-
     val hazeStyle = HazeStyle(
         backgroundColor = surfaceTintColor.copy(alpha = if (isAmoled) 0.55f else if (isDark) 0.50f else 0.58f),
         blurRadius = 32.dp,

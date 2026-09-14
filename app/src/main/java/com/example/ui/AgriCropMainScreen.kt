@@ -191,10 +191,6 @@ fun AgriCropMainScreen(
         onDraw = paintBackdrop
     )
 
-    val profileBackdrop = rememberLayerBackdrop(
-        onDraw = paintBackdrop
-    )
-
     val recordsBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
     )
@@ -681,9 +677,7 @@ fun AgriCropMainScreen(
                             .background(rootBgBrush)
                     ) {
                     Scaffold(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .layerBackdrop(profileBackdrop),
+                        modifier = Modifier.fillMaxSize(),
                         containerColor = Color.Transparent,
                         topBar = {
                             AgriHeader(
@@ -767,8 +761,7 @@ fun AgriCropMainScreen(
                                     },
                                     onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
                                     hazeState = hazeState,
-                                    backdrop = navBackdrop,
-                                    profileBackdrop = profileBackdrop
+                                    backdrop = navBackdrop
                                 )
                         },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
