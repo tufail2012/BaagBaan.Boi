@@ -900,7 +900,16 @@ fun FarmerFormScreen(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    }
+                )
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("serial_number_input"),
             colors = elevatedInputFieldColors(isDark = isDark),
@@ -981,7 +990,16 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    }
+                )
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_name_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -1006,7 +1024,16 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    }
+                )
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_address_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -1076,7 +1103,16 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    }
+                )
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .onFocusChanged { focusState ->
                     if (focusState.isFocused) {
@@ -1249,7 +1285,16 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .boundedFormFieldRipple(shape = textFieldShape)
+                                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                        .then(
+                                            if (backdrop == null || !isGlassSupported()) {
+                                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                            } else {
+                                                Modifier
+                                                    .bringIntoViewOnFocus()
+                                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                            }
+                                        )
                                         .testTag("variety_line_name_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
@@ -1274,7 +1319,16 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                                } else {
+                                                    Modifier
+                                                        .bringIntoViewOnFocus()
+                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                                }
+                                            )
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1297,7 +1351,16 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                                } else {
+                                                    Modifier
+                                                        .bringIntoViewOnFocus()
+                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                                }
+                                            )
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1331,7 +1394,16 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                                } else {
+                                                    Modifier
+                                                        .bringIntoViewOnFocus()
+                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                                }
+                                            )
                                             .testTag("variety_line_qty_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1358,7 +1430,16 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .boundedFormFieldRipple(shape = textFieldShape)
+                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                                } else {
+                                                    Modifier
+                                                        .bringIntoViewOnFocus()
+                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                                }
+                                            )
                                             .testTag("variety_line_price_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1454,7 +1535,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("visit_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1479,7 +1569,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("soil_health_observations_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1504,7 +1603,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("plant_health_observations_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1559,7 +1667,16 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("orchard_site_location_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1614,7 +1731,16 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("orchard_location_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1639,7 +1765,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("plant_variety_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1670,7 +1805,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("rootstock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1697,7 +1841,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("feathers_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1709,7 +1862,18 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { saplingAgeMenuExpanded = true }
-                        .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                            } else {
+                                Modifier.border(
+                                    1.dp,
+                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                    textFieldShape
+                                )
+                            }
+                        )
                 ) {
                     OutlinedTextField(
                         value = healthStage.ifBlank { "1 Year" },
@@ -1777,7 +1941,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("rootstock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1803,7 +1976,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("feathers_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1832,7 +2014,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("import_country_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1842,7 +2033,18 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clickable { saplingAgeMenuExpanded = true }
-                            .boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
+                                } else {
+                                    Modifier.border(
+                                        1.dp,
+                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                        textFieldShape
+                                    )
+                                }
+                            )
                     ) {
                         OutlinedTextField(
                             value = healthStage.ifBlank { "1 Year" },
@@ -1907,7 +2109,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("rootstock_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1935,7 +2146,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("import_country_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1957,7 +2177,16 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                                } else {
+                                    Modifier
+                                        .bringIntoViewOnFocus()
+                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                }
+                            )
                             .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                             .testTag("root_diameter_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1995,7 +2224,16 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                        } else {
+                            Modifier
+                                .bringIntoViewOnFocus()
+                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                        }
+                    )
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("scion_variety_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2027,7 +2265,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            }
+                        )
                         .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                         .testTag("graft_type_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2057,12 +2304,26 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .boundedFormFieldRipple(
-                        shape = textFieldShape,
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        
-                        onClick = {
-                            viewModel.enableMultiVarietyForCurrentTab()
+                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.boundedFormFieldRipple(
+                                shape = textFieldShape,
+                                accentColor = MaterialTheme.colorScheme.primary,
+                                onClick = {
+                                    viewModel.enableMultiVarietyForCurrentTab()
+                                }
+                            )
+                        } else {
+                            Modifier
+                                .clickable {
+                                    viewModel.enableMultiVarietyForCurrentTab()
+                                }
+                                .border(
+                                    1.dp,
+                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                    textFieldShape
+                                )
                         }
                     )
                     .testTag("add_multiple_varieties_button"),
@@ -2226,7 +2487,19 @@ fun FarmerFormScreen(
                             leadingIcon = {
                                 Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             },
-                            modifier = Modifier.fillMaxWidth().testTag("grafting_charges_input"),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                .then(
+                                    if (backdrop == null || !isGlassSupported()) {
+                                        Modifier.boundedFormFieldRipple(shape = pillShape)
+                                    } else {
+                                        Modifier
+                                            .bringIntoViewOnFocus()
+                                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                                    }
+                                )
+                                .testTag("grafting_charges_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
                     }
@@ -2261,7 +2534,16 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .boundedFormFieldRipple(shape = pillShape)
+                    .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.boundedFormFieldRipple(shape = pillShape)
+                        } else {
+                            Modifier
+                                .bringIntoViewOnFocus()
+                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                        }
+                    )
                     .elevated3dShadow(shape = pillShape, isDark = isDark)
                     .testTag("quantity_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2315,7 +2597,16 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = pillShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                            }
+                        )
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("unit_price_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2361,7 +2652,16 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = pillShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                            }
+                        )
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("grafting_charges_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2408,7 +2708,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = pillShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                            }
+                        )
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("quantity_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2435,7 +2744,16 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .boundedFormFieldRipple(shape = pillShape)
+                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.boundedFormFieldRipple(shape = pillShape)
+                            } else {
+                                Modifier
+                                    .bringIntoViewOnFocus()
+                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                            }
+                        )
                         .elevated3dShadow(shape = pillShape, isDark = isDark)
                         .testTag("unit_price_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -2489,7 +2807,16 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = pillShape)
+                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = pillShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
+                    }
+                )
                 .elevated3dShadow(shape = pillShape, isDark = isDark)
                 .testTag("amount_paid_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -2606,7 +2933,16 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                        } else {
+                            Modifier
+                                .bringIntoViewOnFocus()
+                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                        }
+                    )
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("booking_date_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2654,7 +2990,16 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                        } else {
+                            Modifier
+                                .bringIntoViewOnFocus()
+                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                        }
+                    )
                     .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                     .testTag("expected_delivery_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2772,7 +3117,16 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .boundedFormFieldRipple(shape = textFieldShape)
+                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    } else {
+                        Modifier
+                            .bringIntoViewOnFocus()
+                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    }
+                )
                 .elevated3dShadow(shape = textFieldShape, isDark = isDark)
                 .testTag("farmer_notes_input"),
             colors = elevatedInputFieldColors(isDark = isDark)
@@ -2867,7 +3221,18 @@ fun FarmerFormScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                .then(
+                                    if (backdrop == null || !isGlassSupported()) {
+                                        Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                                    } else {
+                                        Modifier.border(
+                                            1.dp,
+                                            Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                            pillShape
+                                        )
+                                    }
+                                )
                         ) {
                             OutlinedTextField(
                                 value = selectedTemplate,
