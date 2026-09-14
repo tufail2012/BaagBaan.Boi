@@ -19,7 +19,10 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -188,7 +191,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 fun FarmerFormScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier,
-    hazeState: HazeState? = LocalAppGlassHazeState.current
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
+    backdrop: LayerBackdrop? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -802,12 +806,18 @@ fun FarmerFormScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        FormAmbientBackdrop(
-            accentColor = formAccent,
-            isDark = isDark,
-            isAmoled = isAmoled,
-            scrollOffset = scrollState.value.toFloat()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
+        ) {
+            FormAmbientBackdrop(
+                accentColor = formAccent,
+                isDark = isDark,
+                isAmoled = isAmoled,
+                scrollOffset = scrollState.value.toFloat()
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -1126,11 +1136,18 @@ fun FarmerFormScreen(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFE2E8F0).copy(alpha = 0.8f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isDark) Color(0xFF171517) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
+                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
@@ -2143,11 +2160,18 @@ fun FarmerFormScreen(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color.Transparent,
-                border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1).copy(alpha = 0.8f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
+                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+                    .then(
+                        if (backdrop == null || !isGlassSupported()) {
+                            Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
@@ -2627,13 +2651,20 @@ fun FarmerFormScreen(
         )
 
         Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color.Transparent,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
-            shape = RoundedCornerShape(20.dp),
-            color = Color.Transparent,
-            border = androidx.compose.foundation.BorderStroke(1.dp, if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+                    } else {
+                        Modifier
+                    }
+                )
+                .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
         ) {
             Row(
                 modifier = Modifier
@@ -2732,6 +2763,8 @@ fun FarmerFormScreen(
         val messageCardShape = RoundedCornerShape(16.dp)
 
         Surface(
+            shape = messageCardShape,
+            color = Color.Transparent,
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(
@@ -2741,14 +2774,16 @@ fun FarmerFormScreen(
                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                 )
                 .clip(messageCardShape)
-                .background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
-                .testTag("new_entry_message_preview_card"),
-            shape = messageCardShape,
-            color = Color.Transparent,
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (isDark) Color(0xFF333540).copy(alpha = 0.6f) else Color(0xFFE2E8F0).copy(alpha = 0.8f)
-            )
+                .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
+                .then(
+                    if (backdrop == null || !isGlassSupported()) {
+                        Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
+                    } else {
+                        Modifier
+                    }
+                )
+                .border(0.5.dp, Color.White.copy(alpha = 0.10f), messageCardShape)
+                .testTag("new_entry_message_preview_card")
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -2862,6 +2897,8 @@ fun FarmerFormScreen(
 
                         // Preview Box Display
                         Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.Transparent,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .shadow(
@@ -2871,13 +2908,15 @@ fun FarmerFormScreen(
                                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                                 )
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f)),
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.Transparent,
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                if (isDark) Color(0xFF2E313A).copy(alpha = 0.6f) else Color(0xFFE2E8F0).copy(alpha = 0.8f)
-                            )
+                                .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
+                                .then(
+                                    if (backdrop == null || !isGlassSupported()) {
+                                        Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
@@ -2914,10 +2953,6 @@ fun FarmerFormScreen(
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
                                     color = Color.Transparent,
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp,
-                                        if (isDark) Color(0xFF2E313A).copy(alpha = 0.6f) else Color(0xFFE0E0E0).copy(alpha = 0.8f)
-                                    ),
                                     shadowElevation = if (isDark) 4.dp else 3.dp,
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -2928,7 +2963,15 @@ fun FarmerFormScreen(
                                             spotColor = if (isDark) Color.Black else Color(0x25000000)
                                         )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
+                                        .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
+                                        .then(
+                                            if (backdrop == null || !isGlassSupported()) {
+                                                Modifier.background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
+                                            } else {
+                                                Modifier
+                                            }
+                                        )
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
                                 ) {
                                     Text(
                                         text = generatedMessage,

@@ -206,6 +206,10 @@ fun AgriCropMainScreen(
         onDraw = paintBackdrop
     )
 
+    val formContentBackdrop = rememberLayerBackdrop(
+        onDraw = paintBackdrop
+    )
+
     val navBackdropCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
     val profileMenuBackdrop = rememberPopupBackdrop(
         backdrop = navBackdrop,
@@ -904,7 +908,8 @@ fun AgriCropMainScreen(
                                                 when (viewMode) {
                                                     0 -> FarmerFormScreen(
                                                         viewModel = viewModel,
-                                                        hazeState = hazeState
+                                                        hazeState = hazeState,
+                                                        backdrop = formContentBackdrop
                                                     )
                                                     else -> {
                                                         android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
