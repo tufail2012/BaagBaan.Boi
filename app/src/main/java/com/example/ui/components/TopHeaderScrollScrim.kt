@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -18,6 +19,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -49,6 +53,7 @@ fun rememberScrollUnderHeaderTopPadding(extraPadding: Dp = 68.dp): Dp {
  * - Progressive vertical gradient without hard horizontal lines or opaque bounding cards.
  * - Preserves complete sharpness and readability of header controls.
  */
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun TopHeaderScrollScrim(
     modifier: Modifier = Modifier,
@@ -100,7 +105,22 @@ fun TopHeaderScrollScrim(
             .height(totalHeight)
             .then(
                 if (effectiveHazeState != null && progress > 0.01f) {
-                    Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
+                    Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle) {
+                        // Sample at 1/3 resolution and upscale — the blur hides the
+                        // upscale, so full-resolution pixels here are paid for but
+                        // never seen. Same trade already made by the app's other
+                        // liquid-glass surfaces.
+                        inputScale = HazeInputScale.Fixed(0.33f)
+                        // Ramps the blur radius from full (at the top of the strip)
+                        // to nothing (at its bottom edge), so the strip has no hard
+                        // line where the blur stops — it fades out the same way the
+                        // scrim below it already does.
+                        progressive = HazeProgressive.verticalGradient(
+                            easing = EaseOutCubic,
+                            startIntensity = 1f,
+                            endIntensity = 0f
+                        )
+                    }
                 } else {
                     Modifier
                 }
