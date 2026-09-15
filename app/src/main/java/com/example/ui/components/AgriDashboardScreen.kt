@@ -1222,8 +1222,8 @@ fun AgriDashboardScreen(
         }
 
                 TopHeaderScrollScrim(
+                    scrollOffset = scrollOffset,
                     hazeState = effectiveHazeState,
-                    accentColor = dashboardAccent,
                     isDark = isDark,
                     isAmoled = isAmoled,
                     modifier = Modifier.align(Alignment.TopCenter)

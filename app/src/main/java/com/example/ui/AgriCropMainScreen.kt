@@ -45,6 +45,10 @@ import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.GlobalSearchResultsScreen
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.runtime.mutableFloatStateOf
 import com.example.ui.components.PruningSubTabs
 import com.example.ui.components.RootstockSubTabs
 import com.example.ui.theme.AgriRedPrimary
@@ -684,6 +688,38 @@ fun AgriCropMainScreen(
                 CompositionLocalProvider(
                     com.example.ui.components.LocalAppGlassHazeState provides hazeState
                 ) {
+                    val recordsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                    val formListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                    var generalScrollOffset by remember { mutableFloatStateOf(0f) }
+
+                    val headerNestedScrollConnection = remember {
+                        object : NestedScrollConnection {
+                            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                                val delta = available.y
+                                generalScrollOffset = (generalScrollOffset - delta).coerceAtLeast(0f)
+                                return Offset.Zero
+                            }
+                        }
+                    }
+
+                    LaunchedEffect(selectedService, viewMode, pagerState.currentPage) {
+                        generalScrollOffset = 0f
+                    }
+
+                    val headerScrollOffsetProvider: () -> Float = {
+                        if (selectedService.equals("Bookings", ignoreCase = true) ||
+                            selectedService.equals("Attendance", ignoreCase = true) ||
+                            mainTabs.getOrNull(pagerState.currentPage)?.equals("Garden Planning", ignoreCase = true) == true
+                        ) {
+                            generalScrollOffset
+                        } else {
+                            when (viewMode) {
+                                0 -> formListState.firstVisibleItemIndex * 200f + formListState.firstVisibleItemScrollOffset
+                                else -> recordsListState.firstVisibleItemIndex * 200f + recordsListState.firstVisibleItemScrollOffset
+                            }
+                        }
+                    }
+
                     Box(
                         modifier = modifier
                             .fillMaxSize()
@@ -700,6 +736,7 @@ fun AgriCropMainScreen(
                             // Floating Top Header with Progressive Scrim
                             AgriHeader(
                                 title = displayHeaderTitle,
+                                scrollOffsetProvider = headerScrollOffsetProvider,
                                 themeMode = themeMode,
                                 accentColor = sectionAccentColor,
                                 selectedColorHex = accentColorHex,
@@ -789,6 +826,7 @@ fun AgriCropMainScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    .nestedScroll(headerNestedScrollConnection)
                                     .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
                                     .hazeSource(state = hazeState)
                                     .layerBackdrop(navBackdrop)
@@ -910,7 +948,8 @@ fun AgriCropMainScreen(
                                                     0 -> FarmerFormScreen(
                                                         viewModel = viewModel,
                                                         hazeState = hazeState,
-                                                        backdrop = formContentBackdrop
+                                                        backdrop = formContentBackdrop,
+                                                        lazyListState = formListState
                                                     )
                                                     else -> {
                                                         android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
@@ -919,7 +958,8 @@ fun AgriCropMainScreen(
                                                             viewModel = viewModel,
                                                             hazeState = hazeState,
                                                             backdrop = recordsBackdrop,
-                                                            contentBackdrop = recordsContentBackdrop
+                                                            contentBackdrop = recordsContentBackdrop,
+                                                            listState = recordsListState
                                                         )
                                                     }
                                                 }

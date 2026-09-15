@@ -200,7 +200,8 @@ fun FarmerFormScreen(
     viewModel: CropViewModel,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
-    backdrop: LayerBackdrop? = null
+    backdrop: LayerBackdrop? = null,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -650,7 +651,6 @@ fun FarmerFormScreen(
         }
     }
 
-    val lazyListState = rememberLazyListState()
     var ambientScrollOffset by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(lazyListState.isScrollInProgress) {
         if (!lazyListState.isScrollInProgress) {

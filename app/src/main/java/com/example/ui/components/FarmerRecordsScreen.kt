@@ -134,7 +134,8 @@ fun FarmerRecordsScreen(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
     backdrop: Backdrop? = null,
-    contentBackdrop: LayerBackdrop? = null
+    contentBackdrop: LayerBackdrop? = null,
+    listState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
 ) {
     android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started - consuming recordsBackdrop: ${backdrop != null}, contentBackdrop: ${contentBackdrop != null}")
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
@@ -150,7 +151,6 @@ fun FarmerRecordsScreen(
     var selectedDetailRecord by remember { mutableStateOf<CropRecord?>(null) }
     var recordToDelete by remember { mutableStateOf<CropRecord?>(null) }
 
-    val listState = rememberLazyListState()
     listState.rememberScrollHapticFeedback()
 
     LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption, selectedPaymentFilter) {

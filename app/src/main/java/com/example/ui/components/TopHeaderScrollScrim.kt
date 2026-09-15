@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -19,6 +22,11 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+
+/**
+ * CompositionLocal providing scroll offset for top header scrim when available.
+ */
+val LocalHeaderScrollOffset = compositionLocalOf { 0f }
 
 /**
  * Calculates dynamic top padding for scrollable containers so that in resting state,
@@ -34,17 +42,18 @@ fun rememberScrollUnderHeaderTopPadding(extraPadding: Dp = 68.dp): Dp {
 /**
  * Reusable Global Top Header Scroll Scrim.
  *
- * Renders behind the floating top header across the screen width:
- * 1. Provides a smooth, progressive vertical gradient fade from the background tint at the top
- *    down to transparent, eliminating any hard horizontal bottom line or opaque card bounding box.
- * 2. Uses real-time backdrop blur (via HazeState) to softly diffuse any scrollable content passing
- *    behind the header area, keeping header controls, titles, and icons 100% readable.
- * 3. Uses [drawWithCache] to ensure zero per-pixel recomposition, zero allocations during scrolling,
- *    and rock-solid visual stability when scrolling pauses.
+ * Behavior:
+ * - At scroll offset = 0: NO visible blur, NO shade, and NO tint (clean & transparent).
+ * - When content starts scrolling underneath the header: the blur/fade gradually and smoothly appears.
+ * - Purely neutral: no accent color tint.
+ * - Progressive vertical gradient without hard horizontal lines or opaque bounding cards.
+ * - Preserves complete sharpness and readability of header controls.
  */
 @Composable
 fun TopHeaderScrollScrim(
     modifier: Modifier = Modifier,
+    scrollOffset: Float = LocalHeaderScrollOffset.current,
+    scrollOffsetProvider: (() -> Float)? = null,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
     accentColor: Color? = null,
     isDark: Boolean = isAppInDarkMode(),
@@ -65,17 +74,22 @@ fun TopHeaderScrollScrim(
         }
     }
 
-    val hazeStyle = remember(isDark, isAmoled, accentColor) {
+    // Dynamic scroll progress strictly driven by the actual scroll offset:
+    // 0f when at rest (offset <= 0), smoothly ramping up to 1f over the first 100px of scroll.
+    val progress by remember(scrollOffset, scrollOffsetProvider) {
+        derivedStateOf {
+            val offset = scrollOffsetProvider?.invoke() ?: scrollOffset
+            (offset / 100f).coerceIn(0f, 1f)
+        }
+    }
+
+    // Neutral blur style: absolutely NO accentColor tint, purely soft backdrop diffusion
+    val hazeStyle = remember(progress) {
+        val currentBlur = (12.dp * progress).coerceAtLeast(0.dp)
         HazeStyle(
             backgroundColor = Color.Transparent,
-            blurRadius = 14.dp,
-            tints = listOf(
-                HazeTint(
-                    color = (accentColor ?: Color.Transparent).copy(
-                        alpha = if (isAmoled) 0.08f else if (isDark) 0.10f else 0.05f
-                    )
-                )
-            ),
+            blurRadius = currentBlur,
+            tints = emptyList(),
             noiseFactor = 0f
         )
     }
@@ -85,24 +99,27 @@ fun TopHeaderScrollScrim(
             .fillMaxWidth()
             .height(totalHeight)
             .then(
-                if (effectiveHazeState != null) {
+                if (effectiveHazeState != null && progress > 0.01f) {
                     Modifier.hazeEffect(state = effectiveHazeState, style = hazeStyle)
                 } else {
                     Modifier
                 }
             )
             .drawWithCache {
-                // Progressive cubic-ease gradient fading out downwards to completely transparent
+                val topAlpha = (if (isAmoled) 0.70f else if (isDark) 0.65f else 0.55f) * progress
                 val scrimBrush = Brush.verticalGradient(
-                    0.00f to baseColor.copy(alpha = if (isAmoled) 0.95f else if (isDark) 0.92f else 0.88f),
-                    0.35f to baseColor.copy(alpha = if (isAmoled) 0.86f else if (isDark) 0.82f else 0.76f),
-                    0.65f to baseColor.copy(alpha = if (isAmoled) 0.55f else if (isDark) 0.50f else 0.45f),
-                    0.85f to baseColor.copy(alpha = if (isAmoled) 0.22f else if (isDark) 0.20f else 0.16f),
+                    0.00f to baseColor.copy(alpha = topAlpha),
+                    0.35f to baseColor.copy(alpha = topAlpha * 0.75f),
+                    0.65f to baseColor.copy(alpha = topAlpha * 0.38f),
+                    0.85f to baseColor.copy(alpha = topAlpha * 0.10f),
                     1.00f to Color.Transparent
                 )
                 onDrawWithContent {
                     drawContent()
-                    drawRect(brush = scrimBrush)
+                    // At scroll offset 0 (progress <= 0.001f), draw absolutely nothing (100% transparent)
+                    if (progress > 0.001f) {
+                        drawRect(brush = scrimBrush)
+                    }
                 }
             }
     )

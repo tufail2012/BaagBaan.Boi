@@ -355,11 +355,19 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(settingsBgBrush)
     ) {
+        val settingsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val settingsScrollOffset by remember {
+            androidx.compose.runtime.derivedStateOf {
+                settingsListState.firstVisibleItemIndex * 200f + settingsListState.firstVisibleItemScrollOffset
+            }
+        }
+
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
             // Top App Bar - Wide Pill-Shaped Glass Header
             LazyColumn(
+                state = settingsListState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -912,7 +920,7 @@ fun SettingsScreen(
             }
 
             TopHeaderScrollScrim(
-                accentColor = settingsAccent,
+                scrollOffset = settingsScrollOffset,
                 isDark = isDark,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
