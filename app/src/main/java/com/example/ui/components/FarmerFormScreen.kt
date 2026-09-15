@@ -48,8 +48,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -141,6 +143,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -645,18 +648,21 @@ fun FarmerFormScreen(
 
     val scrollState = rememberScrollState()
     var isGlassActive by remember { mutableStateOf(true) }
+    var ambientScrollOffset by remember { mutableFloatStateOf(scrollState.value.toFloat()) }
     LaunchedEffect(scrollState.isScrollInProgress) {
         if (scrollState.isScrollInProgress) {
             isGlassActive = false
         } else {
             delay(180)
             isGlassActive = true
+            ambientScrollOffset = scrollState.value.toFloat()
         }
     }
     scrollState.rememberScrollHapticFeedback()
 
     LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption) {
         scrollState.scrollTo(0)
+        ambientScrollOffset = 0f
     }
 
     // Read DataStore saved serial number per service type on screen load / service switch
@@ -825,7 +831,8 @@ fun FarmerFormScreen(
                 accentColor = formAccent,
                 isDark = isDark,
                 isAmoled = isAmoled,
-                scrollOffset = scrollState.value.toFloat()
+                scrollOffset = ambientScrollOffset,
+                scrollOffsetProvider = { ambientScrollOffset }
             )
         }
 
@@ -4576,6 +4583,7 @@ private fun FormAmbientBackdrop(
     isDark: Boolean,
     isAmoled: Boolean = false,
     scrollOffset: Float = 0f,
+    scrollOffsetProvider: (() -> Float)? = null,
     modifier: Modifier = Modifier
 ) {
     val palette = com.example.ui.theme.LocalAppPalette.current
@@ -4627,38 +4635,50 @@ private fun FormAmbientBackdrop(
 
     // Kept deliberately more subtle than Dashboard's — this screen is read/typed on constantly
     val bloomAlpha = if (isAmoled) 0.06f else if (isDark) 0.08f else 0.10f
+    val currentScrollOffset = scrollOffsetProvider ?: { scrollOffset }
 
-    androidx.compose.foundation.Canvas(modifier = modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
-        val yShift = -scrollOffset * 0.20f
+    Spacer(
+        modifier = modifier
+            .fillMaxSize()
+            .drawWithCache {
+                val w = size.width
+                val h = size.height
+                val brush1 = Brush.radialGradient(
+                    colors = listOf(primaryBloom.copy(alpha = bloomAlpha), Color.Transparent),
+                    center = Offset(w * 0.85f, h * 0.12f),
+                    radius = w * 0.78f
+                )
+                val brush2 = Brush.radialGradient(
+                    colors = listOf(secondaryBloom.copy(alpha = bloomAlpha * 0.9f), Color.Transparent),
+                    center = Offset(w * 0.10f, h * 0.42f),
+                    radius = w * 0.72f
+                )
+                val brush3 = Brush.radialGradient(
+                    colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.85f), Color.Transparent),
+                    center = Offset(w * 0.90f, h * 0.78f),
+                    radius = w * 0.74f
+                )
 
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(primaryBloom.copy(alpha = bloomAlpha), Color.Transparent),
-                center = Offset(w * 0.85f, h * 0.12f + yShift),
-                radius = w * 0.78f
-            ),
-            center = Offset(w * 0.85f, h * 0.12f + yShift),
-            radius = w * 0.78f
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(secondaryBloom.copy(alpha = bloomAlpha * 0.9f), Color.Transparent),
-                center = Offset(w * 0.10f, h * 0.42f + yShift),
-                radius = w * 0.72f
-            ),
-            center = Offset(w * 0.10f, h * 0.42f + yShift),
-            radius = w * 0.72f
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.85f), Color.Transparent),
-                center = Offset(w * 0.90f, h * 0.78f + yShift),
-                radius = w * 0.74f
-            ),
-            center = Offset(w * 0.90f, h * 0.78f + yShift),
-            radius = w * 0.74f
-        )
-    }
+                onDrawBehind {
+                    val yShift = -currentScrollOffset() * 0.20f
+                    translate(left = 0f, top = yShift) {
+                        drawCircle(
+                            brush = brush1,
+                            center = Offset(w * 0.85f, h * 0.12f),
+                            radius = w * 0.78f
+                        )
+                        drawCircle(
+                            brush = brush2,
+                            center = Offset(w * 0.10f, h * 0.42f),
+                            radius = w * 0.72f
+                        )
+                        drawCircle(
+                            brush = brush3,
+                            center = Offset(w * 0.90f, h * 0.78f),
+                            radius = w * 0.74f
+                        )
+                    }
+                }
+            }
+    )
 }
