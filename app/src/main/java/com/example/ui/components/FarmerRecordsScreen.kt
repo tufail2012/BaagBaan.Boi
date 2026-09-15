@@ -139,7 +139,7 @@ fun FarmerRecordsScreen(
     android.util.Log.d("RECORDS_DEBUG", "FarmerRecordsScreen started - consuming recordsBackdrop: ${backdrop != null}, contentBackdrop: ${contentBackdrop != null}")
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
     val recordsBackdrop = backdrop
-    val fabEffectiveBackdrop = contentBackdrop ?: recordsBackdrop
+    val fabEffectiveBackdrop = recordsBackdrop
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()

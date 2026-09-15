@@ -183,6 +183,7 @@ import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "agri_crop_preferences")
 
@@ -643,6 +644,15 @@ fun FarmerFormScreen(
     }
 
     val scrollState = rememberScrollState()
+    var isGlassActive by remember { mutableStateOf(true) }
+    LaunchedEffect(scrollState.isScrollInProgress) {
+        if (scrollState.isScrollInProgress) {
+            isGlassActive = false
+        } else {
+            delay(180)
+            isGlassActive = true
+        }
+    }
     scrollState.rememberScrollHapticFeedback()
 
     LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption) {
@@ -900,9 +910,11 @@ fun FarmerFormScreen(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = textFieldShape)
                     } else {
                         Modifier
@@ -990,9 +1002,11 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = textFieldShape)
                     } else {
                         Modifier
@@ -1024,9 +1038,11 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = textFieldShape)
                     } else {
                         Modifier
@@ -1103,9 +1119,11 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = textFieldShape)
                     } else {
                         Modifier
@@ -1175,9 +1193,11 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
                         } else {
                             Modifier
@@ -1223,12 +1243,11 @@ fun FarmerFormScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlassNav(
-                                    shape = RoundedCornerShape(12.dp),
-                                    backdrop = backdrop
-                                )
+                                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop) else Modifier)
+
                                 .then(
-                                    if (backdrop == null || !isGlassSupported()) {
+
+                                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                         Modifier.glassCardBackground(
                                             isDark = isDark,
                                             accentColor = MaterialTheme.colorScheme.primary,
@@ -1285,9 +1304,11 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                                         .then(
-                                            if (backdrop == null || !isGlassSupported()) {
+
+                                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                             } else {
                                                 Modifier
@@ -1319,9 +1340,11 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                                             .then(
-                                                if (backdrop == null || !isGlassSupported()) {
+
+                                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                                 } else {
                                                     Modifier
@@ -1351,9 +1374,11 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                                             .then(
-                                                if (backdrop == null || !isGlassSupported()) {
+
+                                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                                 } else {
                                                     Modifier
@@ -1394,9 +1419,11 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                                             .then(
-                                                if (backdrop == null || !isGlassSupported()) {
+
+                                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                                 } else {
                                                     Modifier
@@ -1430,9 +1457,11 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                                             .then(
-                                                if (backdrop == null || !isGlassSupported()) {
+
+                                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                                 } else {
                                                     Modifier
@@ -1535,9 +1564,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1569,9 +1600,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1603,9 +1636,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1667,9 +1702,11 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1731,9 +1768,11 @@ fun FarmerFormScreen(
                     } else null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1765,9 +1804,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -1805,9 +1846,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -1841,9 +1884,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -1862,9 +1907,11 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { saplingAgeMenuExpanded = true }
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
                             } else {
                                 Modifier.border(
@@ -1941,9 +1988,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -1976,9 +2025,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -2014,9 +2065,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -2033,9 +2086,11 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .clickable { saplingAgeMenuExpanded = true }
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
                                 } else {
                                     Modifier.border(
@@ -2109,9 +2164,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -2146,9 +2203,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -2177,9 +2236,11 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                             .then(
-                                if (backdrop == null || !isGlassSupported()) {
+
+                                if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                     Modifier.boundedFormFieldRipple(shape = textFieldShape)
                                 } else {
                                     Modifier
@@ -2224,9 +2285,11 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.boundedFormFieldRipple(shape = textFieldShape)
                         } else {
                             Modifier
@@ -2265,9 +2328,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = textFieldShape)
                             } else {
                                 Modifier
@@ -2304,9 +2369,11 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.boundedFormFieldRipple(
                                 shape = textFieldShape,
                                 accentColor = MaterialTheme.colorScheme.primary,
@@ -2435,9 +2502,11 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
                         } else {
                             Modifier
@@ -2489,9 +2558,11 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                                 .then(
-                                    if (backdrop == null || !isGlassSupported()) {
+
+                                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                         Modifier.boundedFormFieldRipple(shape = pillShape)
                                     } else {
                                         Modifier
@@ -2534,9 +2605,11 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.boundedFormFieldRipple(shape = pillShape)
                         } else {
                             Modifier
@@ -2597,9 +2670,11 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = pillShape)
                             } else {
                                 Modifier
@@ -2652,9 +2727,11 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = pillShape)
                             } else {
                                 Modifier
@@ -2708,9 +2785,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = pillShape)
                             } else {
                                 Modifier
@@ -2744,9 +2823,11 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                         .then(
-                            if (backdrop == null || !isGlassSupported()) {
+
+                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                 Modifier.boundedFormFieldRipple(shape = pillShape)
                             } else {
                                 Modifier
@@ -2807,9 +2888,11 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = pillShape)
                     } else {
                         Modifier
@@ -2826,12 +2909,11 @@ fun FarmerFormScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(
-                    shape = RoundedCornerShape(16.dp),
-                    backdrop = backdrop
-                )
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.glassCardBackground(
                             isDark = isDark,
                             accentColor = MaterialTheme.colorScheme.primary,
@@ -2933,9 +3015,11 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.boundedFormFieldRipple(shape = textFieldShape)
                         } else {
                             Modifier
@@ -2990,9 +3074,11 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                    .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                     .then(
-                        if (backdrop == null || !isGlassSupported()) {
+
+                        if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                             Modifier.boundedFormFieldRipple(shape = textFieldShape)
                         } else {
                             Modifier
@@ -3022,9 +3108,11 @@ fun FarmerFormScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
                     } else {
                         Modifier
@@ -3117,9 +3205,11 @@ fun FarmerFormScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = textFieldShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.boundedFormFieldRipple(shape = textFieldShape)
                     } else {
                         Modifier
@@ -3149,9 +3239,11 @@ fun FarmerFormScreen(
                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                 )
                 .clip(messageCardShape)
-                .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
+                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = messageCardShape, backdrop = backdrop) else Modifier)
+
                 .then(
-                    if (backdrop == null || !isGlassSupported()) {
+
+                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                         Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
                     } else {
                         Modifier
@@ -3221,9 +3313,11 @@ fun FarmerFormScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop) else Modifier)
+
                                 .then(
-                                    if (backdrop == null || !isGlassSupported()) {
+
+                                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                         Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
                                     } else {
                                         Modifier.border(
@@ -3294,9 +3388,11 @@ fun FarmerFormScreen(
                                     spotColor = if (isDark) Color.Black else Color(0x30000000)
                                 )
                                 .clip(RoundedCornerShape(14.dp))
-                                .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
+                                .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop) else Modifier)
+
                                 .then(
-                                    if (backdrop == null || !isGlassSupported()) {
+
+                                    if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                         Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
                                     } else {
                                         Modifier
@@ -3349,9 +3445,11 @@ fun FarmerFormScreen(
                                             spotColor = if (isDark) Color.Black else Color(0x25000000)
                                         )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
+                                        .then(if (isGlassActive) Modifier.liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop) else Modifier)
+
                                         .then(
-                                            if (backdrop == null || !isGlassSupported()) {
+
+                                            if (backdrop == null || !isGlassSupported() || !isGlassActive) {
                                                 Modifier.background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
                                             } else {
                                                 Modifier
