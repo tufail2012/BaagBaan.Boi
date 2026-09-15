@@ -4257,9 +4257,9 @@ private fun FormAmbientBackdrop(
                 val hsv = FloatArray(3)
                 android.graphics.Color.RGBToHSV(r, g, b, hsv)
                 val hue = hsv[0]
-                val sat = if (isAmoled) 0.28f else if (isDark) 0.24f else 0.16f
+                val sat = if (isAmoled) 0.42f else if (isDark) 0.38f else 0.30f
                 val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
-                return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat.coerceIn(0.06f, 0.35f), value)))
+                return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat.coerceIn(0.06f, 0.50f), value)))
             }
 
             listOf(toSoftBloomColor(baseP), toSoftBloomColor(baseS), toSoftBloomColor(baseT))
@@ -4270,8 +4270,20 @@ private fun FormAmbientBackdrop(
     val secondaryBloom = bloomColors[1]
     val tertiaryBloom = bloomColors[2]
 
+    val centerBloom = remember(accentColor, isDark, isAmoled) {
+        val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
+        val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
+        val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
+        val hsv = FloatArray(3)
+        android.graphics.Color.RGBToHSV(r, g, b, hsv)
+        val hue = (hsv[0] + 90f) % 360f
+        val sat = if (isAmoled) 0.45f else if (isDark) 0.40f else 0.32f
+        val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
+        Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, value)))
+    }
+
     // Kept deliberately more subtle than Dashboard's — this screen is read/typed on constantly
-    val bloomAlpha = if (isAmoled) 0.06f else if (isDark) 0.08f else 0.10f
+    val bloomAlpha = if (isAmoled) 0.14f else if (isDark) 0.18f else 0.22f
     val currentScrollOffset = scrollOffsetProvider ?: { scrollOffset }
 
     Spacer(
@@ -4295,6 +4307,11 @@ private fun FormAmbientBackdrop(
                     center = Offset(w * 0.90f, h * 0.78f),
                     radius = w * 0.74f
                 )
+                val brush4 = Brush.radialGradient(
+                    colors = listOf(centerBloom.copy(alpha = bloomAlpha * 1.1f), Color.Transparent),
+                    center = Offset(w * 0.50f, h * 0.45f),
+                    radius = w * 0.55f
+                )
 
                 onDrawBehind {
                     val yShift = -currentScrollOffset() * 0.20f
@@ -4313,6 +4330,11 @@ private fun FormAmbientBackdrop(
                             brush = brush3,
                             center = Offset(w * 0.90f, h * 0.78f),
                             radius = w * 0.74f
+                        )
+                        drawCircle(
+                            brush = brush4,
+                            center = Offset(w * 0.50f, h * 0.45f),
+                            radius = w * 0.55f
                         )
                     }
                 }
