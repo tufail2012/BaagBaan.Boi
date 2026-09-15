@@ -134,7 +134,7 @@ fun UserBookingsSection(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 8.dp)
     ) {
         // Header & Action Bar
         Row(

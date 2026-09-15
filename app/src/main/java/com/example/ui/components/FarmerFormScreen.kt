@@ -657,7 +657,7 @@ fun FarmerFormScreen(
             ambientScrollOffset = lazyListState.firstVisibleItemIndex * 260f + lazyListState.firstVisibleItemScrollOffset
         }
     }
-    lazyListState.rememberScrollHapticFeedback()
+    // Scroll haptic feedback explicitly disabled for FarmerFormScreen per performance and haptic directives
 
     LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption) {
         lazyListState.scrollToItem(0)
@@ -893,7 +893,7 @@ fun FarmerFormScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .imePadding(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Sub-Tabs for Pruning & Rootstocks

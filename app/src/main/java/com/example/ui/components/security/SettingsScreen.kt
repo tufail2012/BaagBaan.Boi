@@ -1,5 +1,8 @@
 package com.example.ui.components.security
 
+import com.example.ui.components.TopHeaderScrollScrim
+import com.example.ui.components.rememberScrollUnderHeaderTopPadding
+import androidx.compose.foundation.layout.PaddingValues
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -352,86 +355,13 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(settingsBgBrush)
     ) {
-        Column(
+        Box(
             modifier = Modifier.fillMaxSize()
         ) {
             // Top App Bar - Wide Pill-Shaped Glass Header
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .frostedGlassChrome(
-                        isDark = isDark,
-                        accentColor = settingsAccent,
-                        shape = RoundedCornerShape(percent = 50)
-                    )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("settings_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = settingsAccent
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(settingsAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings Icon",
-                            tint = settingsAccent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Settings",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                letterSpacing = (-0.3).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Appearance, Account, Security & Storage",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -978,6 +908,80 @@ fun SettingsScreen(
 
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+
+            TopHeaderScrollScrim(
+                accentColor = settingsAccent,
+                isDark = isDark,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .align(Alignment.TopCenter)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("settings_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = settingsAccent
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(settingsAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings Icon",
+                            tint = settingsAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Appearance, Account, Security & Storage",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

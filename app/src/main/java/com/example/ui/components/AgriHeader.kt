@@ -226,17 +226,21 @@ fun AgriHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(
-                horizontal = 16.dp,
-                vertical = 6.dp
-            )
-            .frostedGlassChrome(
-                isDark = isDark,
-                accentColor = animatedAccentColor,
-                shape = headerShape
-            )
     ) {
+        TopHeaderScrollScrim(
+            hazeState = hazeState,
+            accentColor = animatedAccentColor
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(
+                    horizontal = 16.dp,
+                    vertical = 6.dp
+                )
+        ) {
         if (activeSearchMode) {
             // Global Search Bar active in Header
             Row(
@@ -575,6 +579,7 @@ fun AgriHeader(
                     }
                 }
             }
+        }
         }
     }
 

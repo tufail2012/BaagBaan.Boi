@@ -692,99 +692,100 @@ fun AgriCropMainScreen(
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         containerColor = Color.Transparent,
-                        topBar = {
-                            AgriHeader(
-                                    title = displayHeaderTitle,
-                                    themeMode = themeMode,
-                                    accentColor = sectionAccentColor,
-                                    selectedColorHex = accentColorHex,
-                                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-                                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-                                    searchQuery = searchQuery,
-                                    onSearchQueryChange = { newQuery ->
-                                        viewModel.setSearchQuery(newQuery)
-                                    },
-                                    isSearchActive = isGlobalSearchActive,
-                                    onSearchActiveChange = { active ->
-                                        if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch()
-                                    },
-                                    onToggleSearch = {
-                                        viewModel.openGlobalSearch()
-                                    },
-                                    onNavigateToAttendance = {
-                                        isAttendanceActive = true
-                                    },
-                                    onNavigateToBookings = {
-                                        viewModel.selectServiceCategory("Bookings")
-                                    },
-                                    onNavigateToBackupRestore = {
-                                        showBackupRestoreDialog = true
-                                    },
-                                    onNavigateToContactDirectory = {
-                                        showContactDirectoryDialog = true
-                                    },
-                                    onNavigateToPaymentReminders = {
-                                        showPaymentRemindersDialog = true
-                                    },
-                                    onNavigateToSeasonalReminders = {
-                                        showSeasonalRemindersDialog = true
-                                    },
-                                    onNavigateToInventory = {
-                                        showInventoryDialog = true
-                                    },
-                                    onOpenRecycleBin = {
-                                        showRecycleBinDialog = true
-                                    },
-                                    onOpenThemeDialog = {
-                                        showThemePreferencesDialog = true
-                                    },
-                                    onNavigateToDashboard = {
-                                        isDashboardActive = true
-                                    },
-                                    onNavigateToLogin = {
-                                        isLoginActive = true
-                                    },
-                                    onNavigateToGardenPlanning = {
-                                        viewModel.selectServiceCategory("Garden Planning")
-                                        gardenPlanningViewModel.resetToNewEntry()
-                                    },
-                                    onNavigateToSettings = {
-                                        isSettingsActive = true
-                                    },
-                                    onNavigateToBusinessInfo = {
-                                        showBusinessInfoDialog = true
-                                    },
-                                    onNavigateToMessageTemplates = {
-                                        isMessageTemplatesActive = true
-                                    },
-                                    onNavigateToQrScanner = {
-                                        showQrScannerDialog = true
-                                    },
-                                    unreadNotificationCount = unreadCount,
-                                    onOpenNotifications = {
-                                        showNotificationCenter = true
-                                    },
-                                    currentUserEmail = currentUser?.email,
-                                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                    onLogout = performLogout,
-                                    onManualSync = {
-                                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                            com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
-                                        }
-                                    },
-                                    onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
-                                    hazeState = hazeState,
-                                    backdrop = navBackdrop,
-                                    profileBackdrop = profileMenuBackdrop
-                                )
-                        },
                         snackbarHost = { SnackbarHost(snackbarHostState) }
-                    ) { innerPadding ->
+                    ) { _ ->
                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = innerPadding.calculateTopPadding())
+                            modifier = Modifier.fillMaxSize()
                         ) {
+                            // Floating Top Header with Progressive Scrim
+                            AgriHeader(
+                                title = displayHeaderTitle,
+                                themeMode = themeMode,
+                                accentColor = sectionAccentColor,
+                                selectedColorHex = accentColorHex,
+                                onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                                onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { newQuery ->
+                                    viewModel.setSearchQuery(newQuery)
+                                },
+                                isSearchActive = isGlobalSearchActive,
+                                onSearchActiveChange = { active ->
+                                    if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch()
+                                },
+                                onToggleSearch = {
+                                    viewModel.openGlobalSearch()
+                                },
+                                onNavigateToAttendance = {
+                                    isAttendanceActive = true
+                                },
+                                onNavigateToBookings = {
+                                    viewModel.selectServiceCategory("Bookings")
+                                },
+                                onNavigateToBackupRestore = {
+                                    showBackupRestoreDialog = true
+                                },
+                                onNavigateToContactDirectory = {
+                                    showContactDirectoryDialog = true
+                                },
+                                onNavigateToPaymentReminders = {
+                                    showPaymentRemindersDialog = true
+                                },
+                                onNavigateToSeasonalReminders = {
+                                    showSeasonalRemindersDialog = true
+                                },
+                                onNavigateToInventory = {
+                                    showInventoryDialog = true
+                                },
+                                onOpenRecycleBin = {
+                                    showRecycleBinDialog = true
+                                },
+                                onOpenThemeDialog = {
+                                    showThemePreferencesDialog = true
+                                },
+                                onNavigateToDashboard = {
+                                    isDashboardActive = true
+                                },
+                                onNavigateToLogin = {
+                                    isLoginActive = true
+                                },
+                                onNavigateToGardenPlanning = {
+                                    viewModel.selectServiceCategory("Garden Planning")
+                                    gardenPlanningViewModel.resetToNewEntry()
+                                },
+                                onNavigateToSettings = {
+                                    isSettingsActive = true
+                                },
+                                onNavigateToBusinessInfo = {
+                                    showBusinessInfoDialog = true
+                                },
+                                onNavigateToMessageTemplates = {
+                                    isMessageTemplatesActive = true
+                                },
+                                onNavigateToQrScanner = {
+                                    showQrScannerDialog = true
+                                },
+                                unreadNotificationCount = unreadCount,
+                                onOpenNotifications = {
+                                    showNotificationCenter = true
+                                },
+                                currentUserEmail = currentUser?.email,
+                                currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                                onLogout = performLogout,
+                                onManualSync = {
+                                    coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
+                                    }
+                                },
+                                onBack = if (isAttendanceActive) ({ isAttendanceActive = false }) else if (selectedService.equals("Attendance", ignoreCase = true)) ({ viewModel.selectServiceCategory("Local Plants") }) else null,
+                                hazeState = hazeState,
+                                backdrop = navBackdrop,
+                                profileBackdrop = profileMenuBackdrop,
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .zIndex(20f)
+                            )
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()

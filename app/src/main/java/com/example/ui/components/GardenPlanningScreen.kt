@@ -411,7 +411,16 @@ fun GardenPlanningScreen(
             modifier = modifier.fillMaxSize(),
             color = if (showHeader) MaterialTheme.colorScheme.background else Color.Transparent
         ) {
-            Column(modifier = Modifier.fillMaxSize().hazeSource(state = effectiveHazeState)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (!showHeader) {
+                            Modifier.padding(top = rememberScrollUnderHeaderTopPadding())
+                        } else Modifier
+                    )
+                    .hazeSource(state = effectiveHazeState)
+            ) {
                 // Consistent Main App Header
                 if (showHeader) {
                     AgriHeader(

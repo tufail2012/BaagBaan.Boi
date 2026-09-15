@@ -287,7 +287,7 @@ fun FarmerRecordsScreen(
                     }
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
+                contentPadding = PaddingValues(top = rememberScrollUnderHeaderTopPadding(), bottom = 110.dp)
             ) {
                 // Unified Controls Header: Sub-Tabs, Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                 // Sits directly on the single continuous background canvas and scrolls together with records
