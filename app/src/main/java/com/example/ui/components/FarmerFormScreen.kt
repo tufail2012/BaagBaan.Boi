@@ -1,4 +1,6 @@
 package com.example.ui.components
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.shape.CornerBasedShape
 
@@ -648,17 +650,17 @@ fun FarmerFormScreen(
         }
     }
 
-    val scrollState = rememberScrollState()
-    var ambientScrollOffset by remember { mutableFloatStateOf(scrollState.value.toFloat()) }
-    LaunchedEffect(scrollState.isScrollInProgress) {
-        if (!scrollState.isScrollInProgress) {
-            ambientScrollOffset = scrollState.value.toFloat()
+    val lazyListState = rememberLazyListState()
+    var ambientScrollOffset by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(lazyListState.isScrollInProgress) {
+        if (!lazyListState.isScrollInProgress) {
+            ambientScrollOffset = lazyListState.firstVisibleItemIndex * 260f + lazyListState.firstVisibleItemScrollOffset
         }
     }
-    scrollState.rememberScrollHapticFeedback()
+    lazyListState.rememberScrollHapticFeedback()
 
     LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption) {
-        scrollState.scrollTo(0)
+        lazyListState.scrollToItem(0)
         ambientScrollOffset = 0f
     }
 
@@ -833,37 +835,8 @@ fun FarmerFormScreen(
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding()
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Dedicated Sub-Tabs for Pruning & Rootstocks
-            if (selectedService.equals("Pruning", ignoreCase = true)) {
-                PruningSubTabs(
-                    selectedSubTab = selectedPruningSubTab,
-                    onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                    accentColor = formAccent,
-                    hazeState = hazeState,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                RootstockSubTabs(
-                    selectedSubTab = selectedRootstockSubTab,
-                    selectedGenevaOption = selectedGenevaOption,
-                    onSelectSubTab = { subTab, genevaOpt ->
-                        viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                    },
-                    accentColor = formAccent,
-                    hazeState = hazeState,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            // Liquid Glass Switcher (New Entry / Records)
+        // Form States & Specifications Hoisted for LazyColumn
+        // Liquid Glass Switcher (New Entry / Records)
             val viewMode by viewModel.viewMode.collectAsState()
             val isEditing = editingId != null
             val allCropRecords by viewModel.allRecords.collectAsState(initial = emptyList())
@@ -885,7 +858,74 @@ fun FarmerFormScreen(
                 }
             }
 
+        // Serial Number Manual Field with inner Save Icon & Full Width
+        val isSerialLocked by viewModel.isSerialLocked.collectAsState()
+
+        val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
+        val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
+        val isSiteVisit = serviceType.equals("Site Visit", ignoreCase = true)
+        val isPruning = serviceType.equals("Pruning", ignoreCase = true)
+        val isGardenPlanning = serviceType.equals("Garden Planning", ignoreCase = true) || serviceType.equals("Garden", ignoreCase = true)
+        val isMultiVarietyApplicable = !isPruning && !isSiteVisit && !isGardenPlanning
+
+        val specTitle = when {
+            isImportedPlants -> "IMPORTED PLANTS SPECIFICATION"
+            isImportedRootstocks -> "IMPORTED ROOTSTOCKS SPECIFICATION"
+            isSiteVisit -> "SITE VISIT SPECIFICATION"
+            isPruning -> "PRUNING SPECIFICATION"
+            else -> "$serviceType SPECIFICATION".uppercase()
+        }
+
+        // Automatic Calculation: Total Payment = (Quantity * Unit Price) + Grafting Charges (if entered)
+        val isMultiVariety = isMultiVarietyApplicable && varietyLines.isNotEmpty()
+        val multiVarietySum = if (isMultiVariety) calculateTotalAmountMultiVariety(varietyLines) else 0.0
+        val qtyNum = if (isMultiVariety) varietyLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
+        val priceNum = landAreaAcres.toDoubleOrNull() ?: 0.0
+        val graftingChargesNum = if (isImportedRootstocks && graftingCharges.isNotBlank()) (graftingCharges.toDoubleOrNull() ?: 0.0) else 0.0
+        val totalPayment = if (isMultiVariety) multiVarietySum + graftingChargesNum else (qtyNum * priceNum) + graftingChargesNum
+        val paidAmountNum = amountPaid.toDoubleOrNull() ?: 0.0
+        val remainingBalance = maxOf(0.0, totalPayment - paidAmountNum)
+
+        val pillShape = textFieldShape
+
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Sub-Tabs for Pruning & Rootstocks
+            if (selectedService.equals("Pruning", ignoreCase = true)) {
+                item(key = "pruning_sub_tabs") {
+                    PruningSubTabs(
+                        selectedSubTab = selectedPruningSubTab,
+                        onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                        accentColor = formAccent,
+                        hazeState = hazeState,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                item(key = "rootstock_sub_tabs") {
+                    RootstockSubTabs(
+                        selectedSubTab = selectedRootstockSubTab,
+                        selectedGenevaOption = selectedGenevaOption,
+                        onSelectSubTab = { subTab, genevaOpt ->
+                            viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                        },
+                        accentColor = formAccent,
+                        hazeState = hazeState,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            // Segmented Control (New Entry / Records)
             if (hazeState != null) {
+                item(key = "view_mode_segmented_control") {
+                    if (hazeState != null) {
                 AgriSegmentedControl(
                     selectedMode = viewMode,
                     onModeSelected = { viewModel.setViewMode(it) },
@@ -896,11 +936,12 @@ fun FarmerFormScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+                }
+            }
 
-            // Serial Number Manual Field with inner Save Icon & Full Width
-        val isSerialLocked by viewModel.isSerialLocked.collectAsState()
-
-        OutlinedTextField(
+            // Serial Number Field
+            item(key = "serial_number_field") {
+                OutlinedTextField(
             value = serialNumber,
             onValueChange = { 
                 if (!isSerialLocked) {
@@ -977,8 +1018,12 @@ fun FarmerFormScreen(
                 }
             }
         )
+            }
 
-        // Section Title: FARMER DETAILS
+            // Section 1: FARMER DETAILS
+            item(key = "section_farmer_details") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: FARMER DETAILS
         Text(
             text = "FARMER DETAILS",
             fontSize = 13.sp,
@@ -1130,29 +1175,24 @@ fun FarmerFormScreen(
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
         }
+                }
+            }
 
-        // Existing Booking(s) Lookup Result Section (Shared Component)
+            // Existing Bookings Lookup Section
+            if (matchingPreviousBookings.isNotEmpty()) {
+                item(key = "existing_bookings_lookup") {
+                    // Existing Booking(s) Lookup Result Section (Shared Component)
         ExistingBookingsLookupSection(
             matchingBookings = matchingPreviousBookings,
             isDark = isDark
         )
+                }
+            }
 
-        val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
-        val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
-        val isSiteVisit = serviceType.equals("Site Visit", ignoreCase = true)
-        val isPruning = serviceType.equals("Pruning", ignoreCase = true)
-        val isGardenPlanning = serviceType.equals("Garden Planning", ignoreCase = true) || serviceType.equals("Garden", ignoreCase = true)
-        val isMultiVarietyApplicable = !isPruning && !isSiteVisit && !isGardenPlanning
-
-        val specTitle = when {
-            isImportedPlants -> "IMPORTED PLANTS SPECIFICATION"
-            isImportedRootstocks -> "IMPORTED ROOTSTOCKS SPECIFICATION"
-            isSiteVisit -> "SITE VISIT SPECIFICATION"
-            isPruning -> "PRUNING SPECIFICATION"
-            else -> "$serviceType SPECIFICATION".uppercase()
-        }
-
-        // Section Title: CROP / PLANT / SITE VISIT SPECIFICATION
+            // Section 2: CROP / PLANT / SITE VISIT SPECIFICATION
+            item(key = "section_crop_specification") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: CROP / PLANT / SITE VISIT SPECIFICATION
         Text(
             text = specTitle,
             fontSize = 13.sp,
@@ -2018,8 +2058,14 @@ fun FarmerFormScreen(
                 }
             }
         }
+                }
+            }
 
-        // Section Title: GRAFTING DETAILS (Only for Imported Rootstocks)
+            // Section 3: GRAFTING DETAILS (Only for Imported Rootstocks)
+            if (isImportedRootstocks) {
+                item(key = "section_grafting_details") {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Section Title: GRAFTING DETAILS (Only for Imported Rootstocks)
         if (isImportedRootstocks) {
             Text(
                 text = "GRAFTING DETAILS",
@@ -2108,8 +2154,14 @@ fun FarmerFormScreen(
                 }
             }
         }
+                    }
+                }
+            }
 
-        // Section Title: PRICING & QUANTITY / PRICING & VISIT DETAILS
+            // Section 4: PRICING & QUANTITY / PRICING & VISIT DETAILS
+            item(key = "section_pricing_details") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: PRICING & QUANTITY / PRICING & VISIT DETAILS
         Text(
             text = if (isSiteVisit) "PRICING & VISIT DETAILS" else "PRICING & QUANTITY",
             fontSize = 13.sp,
@@ -2453,18 +2505,13 @@ fun FarmerFormScreen(
                 }
             }
         }
+                }
+            }
 
-        // Automatic Calculation: Total Payment = (Quantity * Unit Price) + Grafting Charges (if entered)
-        val isMultiVariety = isMultiVarietyApplicable && varietyLines.isNotEmpty()
-        val multiVarietySum = if (isMultiVariety) calculateTotalAmountMultiVariety(varietyLines) else 0.0
-        val qtyNum = if (isMultiVariety) varietyLines.sumOf { if (it.quantity > 0) it.quantity else it.totalPlants } else (quantity.toIntOrNull() ?: quantity.toDoubleOrNull()?.toInt() ?: 0)
-        val priceNum = landAreaAcres.toDoubleOrNull() ?: 0.0
-        val graftingChargesNum = if (isImportedRootstocks && graftingCharges.isNotBlank()) (graftingCharges.toDoubleOrNull() ?: 0.0) else 0.0
-        val totalPayment = if (isMultiVariety) multiVarietySum + graftingChargesNum else (qtyNum * priceNum) + graftingChargesNum
-        val paidAmountNum = amountPaid.toDoubleOrNull() ?: 0.0
-        val remainingBalance = maxOf(0.0, totalPayment - paidAmountNum)
-
-        // Section Title: PAYMENT STATUS
+            // Section 5: PAYMENT STATUS
+            item(key = "section_payment_status") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: PAYMENT STATUS
         Text(
             text = "PAYMENT STATUS",
             fontSize = 13.sp,
@@ -2547,8 +2594,13 @@ fun FarmerFormScreen(
                 }
             }
         }
+                }
+            }
 
-        // Section Title: SCHEDULE & DATES
+            // Section 6: SCHEDULE & DATES
+            item(key = "section_schedule_dates") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: SCHEDULE & DATES
         Text(
             text = "SCHEDULE & DATES",
             fontSize = 13.sp,
@@ -2664,7 +2716,13 @@ fun FarmerFormScreen(
                 )
             }
         }
-        // Section Title: ATTACH UPI PAYMENT PROOF
+                }
+            }
+
+            // Section: ATTACH UPI PAYMENT PROOF
+            item(key = "section_upi_payment_proof") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section Title: ATTACH UPI PAYMENT PROOF
         Text(
             text = "ATTACH UPI PAYMENT PROOF",
             fontSize = 13.sp,
@@ -2739,8 +2797,12 @@ fun FarmerFormScreen(
                 }
             }
         }
+                }
+            }
 
-        // Notes & Special Observations
+            // Notes & Special Observations
+            item(key = "notes_field") {
+                // Notes & Special Observations
         OutlinedTextField(
             value = notes,
             onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
@@ -2795,8 +2857,11 @@ fun FarmerFormScreen(
         )
 
         Spacer(modifier = Modifier.height(12.dp))
+            }
 
-        // Collapsible Message Preview Section (Collapsed by default)
+            // Collapsible Message Preview Section
+            item(key = "message_preview_section") {
+                // Collapsible Message Preview Section (Collapsed by default)
         val messageCardShape = RoundedCornerShape(16.dp)
 
         Surface(
@@ -3048,8 +3113,11 @@ fun FarmerFormScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+            }
 
-        // Action Buttons
+            // Action Buttons
+            item(key = "action_buttons_section") {
+                // Action Buttons
         val generateReceipt = {
             val isRootstockForm = selectedService.equals("Rootstocks", ignoreCase = true) || selectedService.contains("Rootstock", ignoreCase = true)
             val actualRootstockVal = if (rootstock.isNotBlank()) rootstock else if (isRootstockForm) selectedRootstockSubTab else ""
@@ -3238,9 +3306,13 @@ fun FarmerFormScreen(
                 )
             }
         }
+    }
 
+    // Bottom Spacer for navigation bar clearance
+    item(key = "bottom_spacer") {
         Spacer(modifier = Modifier.height(100.dp))
     }
+}
 
     // Multiple Phone Numbers Selection Dialog
     if (multiplePhoneNumbers != null) {
