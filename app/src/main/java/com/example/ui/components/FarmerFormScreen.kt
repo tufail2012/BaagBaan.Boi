@@ -1,4 +1,6 @@
 package com.example.ui.components
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.shape.CornerBasedShape
 
 import android.content.Context
 import androidx.compose.material3.LocalTextStyle
@@ -986,182 +988,154 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Farmer Name
-        OutlinedTextField(
-            value = farmerName,
-            onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
-            label = { Text("Farmer Name *") },
-            placeholder = { Text("e.g. Mohammad Abdullah") },
-            shape = textFieldShape,
-            singleLine = true,
-            keyboardOptions = AppDefaultWordKeyboardOptions,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                    } else {
-                        Modifier
-                            .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                    }
-                )
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("farmer_name_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Farmer Address
-        OutlinedTextField(
-            value = farmerAddress,
-            onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
-            label = { Text("Farmer Address *") },
-            placeholder = { Text("e.g. Village Green Valley, Sector 4") },
-            shape = textFieldShape,
-            singleLine = false,
-            maxLines = 2,
-            keyboardOptions = AppDefaultWordKeyboardOptions,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.LocationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                    } else {
-                        Modifier
-                            .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                    }
-                )
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("farmer_address_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Contact Number
-        OutlinedTextField(
-            value = contactTextFieldValue,
-            onValueChange = { newValue ->
-                val rawText = newValue.text
-
-                // Extract digits typed after "+91 " prefix or from user input
-                var cleanDigits = if (rawText.startsWith(prefix)) {
-                    rawText.substring(prefix.length).filter { it.isDigit() }
-                } else {
-                    // If user tried to delete or backspace into "+91 "
-                    rawText.removePrefix("+91").removePrefix("+").filter { it.isDigit() }
-                }
-
-                if (cleanDigits.length > 10) {
-                    cleanDigits = cleanDigits.take(10)
-                }
-
-                val formattedText = prefix + cleanDigits
-
-                // Prevent cursor from going before "+91 "
-                val targetSelStart = maxOf(prefix.length, minOf(newValue.selection.start, formattedText.length))
-                val targetSelEnd = maxOf(prefix.length, minOf(newValue.selection.end, formattedText.length))
-
-                val updatedValue = TextFieldValue(
-                    text = formattedText,
-                    selection = TextRange(targetSelStart, targetSelEnd)
-                )
-
-                contactTextFieldValue = updatedValue
-                viewModel.contactNumber.value = formattedText
-            },
-            label = { Text("Contact Number *") },
-            placeholder = { Text("e.g. 9876543210") },
-            shape = textFieldShape,
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-                            launchContactPicker()
-                        } else {
-                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                        }
-                    },
-                    modifier = Modifier.testTag("contacts_picker_button")
-                ) {
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark
+        ) {
+            // Farmer Name
+            OutlinedTextField(
+                value = farmerName,
+                onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
+                label = { Text("Farmer Name *") },
+                placeholder = { Text("e.g. Mohammad Abdullah") },
+                shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
+                leadingIcon = {
                     Icon(
-                        imageVector = Icons.Default.ContactPhone,
-                        contentDescription = "Contact Picker",
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewOnFocus()
+                    .testTag("farmer_name_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
 
-                .then(
+            FormFieldDivider(isDark = isDark)
 
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
+            // Farmer Address
+            OutlinedTextField(
+                value = farmerAddress,
+                onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
+                label = { Text("Farmer Address *") },
+                placeholder = { Text("e.g. Village Green Valley, Sector 4") },
+                shape = textFieldShape,
+                singleLine = false,
+                maxLines = 2,
+                keyboardOptions = AppDefaultWordKeyboardOptions,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewOnFocus()
+                    .testTag("farmer_address_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
+            FormFieldDivider(isDark = isDark)
+
+            // Contact Number
+            OutlinedTextField(
+                value = contactTextFieldValue,
+                onValueChange = { newValue ->
+                    val rawText = newValue.text
+
+                    // Extract digits typed after "+91 " prefix or from user input
+                    var cleanDigits = if (rawText.startsWith(prefix)) {
+                        rawText.substring(prefix.length).filter { it.isDigit() }
                     } else {
-                        Modifier
-                            .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                        // If user tried to delete or backspace into "+91 "
+                        rawText.removePrefix("+91").removePrefix("+").filter { it.isDigit() }
                     }
-                )
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused) {
-                        if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
-                            val initialText = prefix
-                            viewModel.contactNumber.value = initialText
-                            contactTextFieldValue = TextFieldValue(
-                                text = initialText,
-                                selection = TextRange(initialText.length)
-                            )
-                        } else {
-                            val selStart = maxOf(prefix.length, contactTextFieldValue.selection.start)
-                            val selEnd = maxOf(prefix.length, contactTextFieldValue.selection.end)
-                            contactTextFieldValue = contactTextFieldValue.copy(
-                                selection = TextRange(selStart, selEnd)
-                            )
+
+                    if (cleanDigits.length > 10) {
+                        cleanDigits = cleanDigits.take(10)
+                    }
+
+                    val formattedText = prefix + cleanDigits
+
+                    // Prevent cursor from going before "+91 "
+                    val targetSelStart = maxOf(prefix.length, minOf(newValue.selection.start, formattedText.length))
+                    val targetSelEnd = maxOf(prefix.length, minOf(newValue.selection.end, formattedText.length))
+
+                    val updatedValue = TextFieldValue(
+                        text = formattedText,
+                        selection = TextRange(targetSelStart, targetSelEnd)
+                    )
+
+                    contactTextFieldValue = updatedValue
+                    viewModel.contactNumber.value = formattedText
+                },
+                label = { Text("Contact Number *") },
+                placeholder = { Text("e.g. 9876543210") },
+                shape = textFieldShape,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                                launchContactPicker()
+                            } else {
+                                contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                            }
+                        },
+                        modifier = Modifier.testTag("contacts_picker_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContactPhone,
+                            contentDescription = "Contact Picker",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewOnFocus()
+                    .onFocusChanged { focusState ->
+                        if (focusState.isFocused) {
+                            if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
+                                val initialText = prefix
+                                viewModel.contactNumber.value = initialText
+                                contactTextFieldValue = TextFieldValue(
+                                    text = initialText,
+                                    selection = TextRange(initialText.length)
+                                )
+                            } else {
+                                val selStart = maxOf(prefix.length, contactTextFieldValue.selection.start)
+                                val selEnd = maxOf(prefix.length, contactTextFieldValue.selection.end)
+                                contactTextFieldValue = contactTextFieldValue.copy(
+                                    selection = TextRange(selStart, selEnd)
+                                )
+                            }
                         }
                     }
-                }
-                .testTag("contact_number_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
+                    .testTag("contact_number_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+        }
 
         // Existing Booking(s) Lookup Result Section (Shared Component)
         ExistingBookingsLookupSection(
             matchingBookings = matchingPreviousBookings,
             isDark = isDark
         )
-
 
         val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
         val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
@@ -1188,152 +1162,126 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF8FAFC).copy(alpha = 0.65f))
-                        } else {
-                            Modifier
-                        }
-                    )
-                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark
+        ) {
+            if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Layers,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "Booking Varieties (${varietyLines.size})",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        TextButton(
-                            onClick = { viewModel.clearVarietyLines() },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                        ) {
-                            Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Layers,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Booking Varieties (${varietyLines.size})",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
+                    TextButton(
+                        onClick = { viewModel.clearVarietyLines() },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Switch to Single", fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                    }
+                }
 
-                    varietyLines.forEachIndexed { index, line ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
-
-                                .then(
-
-                                    if (backdrop == null || !isGlassSupported()) {
-                                        Modifier.glassCardBackground(
-                                            isDark = isDark,
-                                            accentColor = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                    } else {
-                                        Modifier
-                                    }
-                                )
+                varietyLines.forEachIndexed { index, line ->
+                    if (index > 0) {
+                        FormFieldDivider(isDark = isDark)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDark) Color.White.copy(alpha = 0.04f) else Color.Black.copy(alpha = 0.03f))
+                            .border(0.5.dp, if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Item #${index + 1}",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    if (varietyLines.size > 1) {
-                                        IconButton(
-                                            onClick = { viewModel.removeVarietyLine(index) },
-                                            modifier = Modifier.size(24.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.DeleteOutline,
-                                                contentDescription = "Remove Variety Line",
-                                                tint = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
+                                Text(
+                                    text = "Item #${index + 1}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                if (varietyLines.size > 1) {
+                                    IconButton(
+                                        onClick = { viewModel.removeVarietyLine(index) },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteOutline,
+                                            contentDescription = "Remove Item",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                     }
                                 }
+                            }
 
-                                // Variety Name
-                                OutlinedTextField(
-                                    value = line.variety,
-                                    onValueChange = { newVar ->
-                                        viewModel.updateVarietyLine(index, line.copy(variety = capitalizeWordsNaturally(newVar)))
-                                    },
-                                    label = { Text("Variety Name *") },
-                                    placeholder = { Text("e.g. Gala, Red Delicious, Fuji") },
-                                    shape = textFieldShape,
-                                    singleLine = true,
-                                    keyboardOptions = AppDefaultWordKeyboardOptions,
-                                    leadingIcon = {
-                                        Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            // Variety Name
+                            OutlinedTextField(
+                                value = line.variety,
+                                onValueChange = { newName ->
+                                    viewModel.updateVarietyLine(
+                                        index,
+                                        line.copy(variety = capitalizeWordsNaturally(newName))
+                                    )
+                                },
+                                label = { Text(if (isImportedRootstocks) "Rootstock *" else "Variety Name *") },
+                                placeholder = { Text(if (isImportedRootstocks) "e.g. M9, MM106" else "e.g. Gala Apple, Red Delicious") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = if (isImportedRootstocks) Icons.Default.Spa else Icons.Outlined.LocalFlorist,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .bringIntoViewOnFocus()
+                                    .testTag("variety_line_name_${index}"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
 
-                                        .then(
-
-                                            if (backdrop == null || !isGlassSupported()) {
-                                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                            } else {
-                                                Modifier
-                                                    .bringIntoViewOnFocus()
-                                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                            }
-                                        )
-                                        .testTag("variety_line_name_${index}"),
-                                    colors = elevatedInputFieldColors(isDark = isDark)
-                                )
-
-                                // Rootstock & Feathers Row (Feathers allows mixed letters/numbers/symbols like "3F", "2-3")
+                            // Rootstock & Feathers Row (if not imported rootstocks and not site visit/pruning)
+                            if (!isImportedRootstocks) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     OutlinedTextField(
                                         value = line.rootstock,
-                                        onValueChange = { newRs ->
-                                            viewModel.updateVarietyLine(index, line.copy(rootstock = capitalizeWordsNaturally(newRs)))
+                                        onValueChange = { newRoot ->
+                                            viewModel.updateVarietyLine(
+                                                index,
+                                                line.copy(rootstock = capitalizeWordsNaturally(newRoot))
+                                            )
                                         },
                                         label = { Text("Rootstock") },
-                                        placeholder = { Text("e.g. M9, MM106") },
+                                        placeholder = { Text("e.g. M9") },
                                         shape = textFieldShape,
                                         singleLine = true,
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -1342,18 +1290,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                                            .then(
-
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                                } else {
-                                                    Modifier
-                                                        .bringIntoViewOnFocus()
-                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                                }
-                                            )
+                                            .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1376,884 +1313,708 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                                            .then(
-
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                                } else {
-                                                    Modifier
-                                                        .bringIntoViewOnFocus()
-                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                                }
-                                            )
+                                            .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
                                 }
+                            }
 
-                                // Quantity & Unit Price Row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedTextField(
-                                        value = if (line.quantity == 0) "" else line.quantity.toString(),
-                                        onValueChange = { newQ ->
-                                            val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
-                                            viewModel.updateVarietyLine(
-                                                index,
-                                                line.copy(
-                                                    quantity = q,
-                                                    totalPlants = q,
-                                                    totalPlantsStr = if (q > 0) q.toString() else ""
-                                                )
+                            // Quantity & Unit Price Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = if (line.quantity == 0) "" else line.quantity.toString(),
+                                    onValueChange = { newQ ->
+                                        val q = newQ.filter { it.isDigit() }.toIntOrNull() ?: 0
+                                        viewModel.updateVarietyLine(
+                                            index,
+                                            line.copy(
+                                                quantity = q,
+                                                totalPlants = q,
+                                                totalPlantsStr = if (q > 0) q.toString() else ""
                                             )
-                                        },
-                                        label = { Text("Quantity *") },
-                                        placeholder = { Text("Qty") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        leadingIcon = {
-                                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                                        )
+                                    },
+                                    label = { Text("Quantity *") },
+                                    placeholder = { Text("Qty") },
+                                    shape = textFieldShape,
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    leadingIcon = {
+                                        Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .bringIntoViewOnFocus()
+                                        .testTag("variety_line_qty_${index}"),
+                                    colors = elevatedInputFieldColors(isDark = isDark)
+                                )
 
-                                            .then(
-
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                                } else {
-                                                    Modifier
-                                                        .bringIntoViewOnFocus()
-                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                                }
+                                OutlinedTextField(
+                                    value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
+                                    onValueChange = { newP ->
+                                        val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
+                                        viewModel.updateVarietyLine(
+                                            index,
+                                            line.copy(
+                                                unitPrice = p,
+                                                unitPriceStr = if (p > 0.0) p.toString() else ""
                                             )
-                                            .testTag("variety_line_qty_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
+                                        )
+                                    },
+                                    label = { Text("Rate (₹) *") },
+                                    placeholder = { Text("Price") },
+                                    shape = textFieldShape,
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    leadingIcon = {
+                                        Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .bringIntoViewOnFocus()
+                                        .testTag("variety_line_price_${index}"),
+                                    colors = elevatedInputFieldColors(isDark = isDark)
+                                )
+                            }
 
-                                    OutlinedTextField(
-                                        value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
-                                        onValueChange = { newP ->
-                                            val p = newP.filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
-                                            viewModel.updateVarietyLine(
-                                                index,
-                                                line.copy(
-                                                    unitPrice = p,
-                                                    unitPriceStr = if (p > 0.0) p.toString() else ""
-                                                )
-                                            )
-                                        },
-                                        label = { Text("Rate (₹) *") },
-                                        placeholder = { Text("Price") },
-                                        shape = textFieldShape,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                        leadingIcon = {
-                                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                        },
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                                            .then(
-
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                                } else {
-                                                    Modifier
-                                                        .bringIntoViewOnFocus()
-                                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                                }
-                                            )
-                                            .testTag("variety_line_price_${index}"),
-                                        colors = elevatedInputFieldColors(isDark = isDark)
-                                    )
-                                }
-
-                                // Subtotal
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    val lineQty = if (line.quantity > 0) line.quantity else line.totalPlants
-                                    Text(
-                                        text = "Subtotal: ₹${(lineQty * line.unitPrice).toInt()}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                            // Subtotal
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                val lineQty = if (line.quantity > 0) line.quantity else line.totalPlants
+                                Text(
+                                    text = "Subtotal: ₹${(lineQty * line.unitPrice).toInt()}",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
-                    }
-
-                    Button(
-                        onClick = {
-                            val defaultPrice = varietyLines.lastOrNull()?.unitPrice ?: 0.0
-                            val defaultRs = varietyLines.lastOrNull()?.rootstock ?: ""
-                            viewModel.addVarietyLine(VarietyLine(variety = "", quantity = 0, unitPrice = defaultPrice, rootstock = defaultRs, feathers = "", totalPlants = 0))
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp)
-                            .testTag("add_another_variety_button"),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
-            }
-        } else {
-            if (isSiteVisit) {
-                // 1. Visit Date
-                OutlinedTextField(
-                    value = visitDateTFV,
-                    onValueChange = { newVal ->
-                        val formatted = formatAutoSlashDate(visitDateTFV.text, newVal.text)
-                        val newPos = if (formatted.length > visitDateTFV.text.length && formatted.endsWith("/")) {
-                            formatted.length
-                        } else if (newVal.selection.end <= formatted.length) {
-                            newVal.selection.end
-                        } else {
-                            formatted.length
-                        }
-                        visitDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
-                        viewModel.visitDate.value = formatted
-                    },
-                    label = { Text("Visit Date *") },
-                    placeholder = { Text("DD/MM/YYYY") },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                showDatePicker(visitDate.ifBlank { bookingDate }) { selected ->
-                                    viewModel.visitDate.value = selected
-                                    if (viewModel.bookingDate.value.isBlank()) {
-                                        viewModel.bookingDate.value = selected
-                                    }
-                                }
-                            },
-                            modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DateRange,
-                                contentDescription = "Select Visit Date",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    },
+
+                FormFieldDivider(isDark = isDark)
+
+                Button(
+                    onClick = { viewModel.addVarietyLine() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("visit_date_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // 2. Soil Health Observations
-                OutlinedTextField(
-                    value = soilHealthObservations,
-                    onValueChange = { viewModel.soilHealthObservations.value = capitalizeWordsNaturally(it) },
-                    label = { Text("Soil Health Observations") },
-                    placeholder = { Text("e.g. Good organic content, pH 6.5, well drained") },
-                    shape = textFieldShape,
-                    singleLine = false,
-                    maxLines = 3,
-                    keyboardOptions = AppDefaultWordKeyboardOptions,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Landscape,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("soil_health_observations_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // 3. Plant Health Observations
-                OutlinedTextField(
-                    value = plantHealthObservations,
-                    onValueChange = { viewModel.plantHealthObservations.value = capitalizeWordsNaturally(it) },
-                    label = { Text("Plant Health Observations") },
-                    placeholder = { Text("e.g. Healthy foliage, minor pest damage on lower leaves") },
-                    shape = textFieldShape,
-                    singleLine = false,
-                    maxLines = 3,
-                    keyboardOptions = AppDefaultWordKeyboardOptions,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.HealthAndSafety,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("plant_health_observations_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // 4. Orchard/Site Location
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { input ->
-                        viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
-                            input.startsWith("http://", ignoreCase = true) || 
-                            input.startsWith("https://", ignoreCase = true) || 
-                            input.startsWith("maps.", ignoreCase = true) || 
-                            input.startsWith("www.google.", ignoreCase = true) || 
-                            input.startsWith("goo.gl/", ignoreCase = true)) {
-                            input
-                        } else {
-                            capitalizeWordsNaturally(input)
-                        }
-                    },
-                    label = { Text("Orchard/Site Location *") },
-                    placeholder = { Text("e.g. Block A, North Field or Maps link") },
-                    shape = textFieldShape,
-                    singleLine = false,
-                    maxLines = 3,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
-                        {
-                            IconButton(
-                                onClick = {
-                                    MapHelper.openGoogleMaps(context, location)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.OpenInNew,
-                                    contentDescription = "Open in Google Maps",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    } else null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("orchard_site_location_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-            } else if (isPruning) {
-                // Orchard Location (Single field for Pruning Specification)
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { input ->
-                        viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
-                            input.startsWith("http://", ignoreCase = true) || 
-                            input.startsWith("https://", ignoreCase = true) || 
-                            input.startsWith("maps.", ignoreCase = true) || 
-                            input.startsWith("www.google.", ignoreCase = true) || 
-                            input.startsWith("goo.gl/", ignoreCase = true)) {
-                            input
-                        } else {
-                            capitalizeWordsNaturally(input)
-                        }
-                    },
-                    label = { Text("Orchard Location *") },
-                    placeholder = { Text("e.g. Block A, North Field or Maps link") },
-                    shape = textFieldShape,
-                    singleLine = false,
-                    maxLines = 3,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Place,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
-                        {
-                            IconButton(
-                                onClick = {
-                                    MapHelper.openGoogleMaps(context, location)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.OpenInNew,
-                                    contentDescription = "Open in Google Maps",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    } else null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("orchard_location_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
+                        .height(44.dp)
+                        .testTag("add_another_variety_button"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "+ Add Another Variety",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                }
             } else {
-            // 1. Plant Variety (Manual Input Text Field) - Removed for Imported Rootstocks
-            if (!isImportedRootstocks) {
-                OutlinedTextField(
-                    value = plantVariety,
-                    onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
-                    label = { Text("Plant Variety *") },
-                    placeholder = { Text("Type plant variety (e.g. Gala Apple, Cherry, Wheat)") },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    keyboardOptions = AppDefaultWordKeyboardOptions,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.LocalFlorist,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                if (isSiteVisit) {
+                    // 1. Visit Date
+                    OutlinedTextField(
+                        value = visitDateTFV,
+                        onValueChange = { newVal ->
+                            val formatted = formatAutoSlashDate(visitDateTFV.text, newVal.text)
+                            val newPos = if (formatted.length > visitDateTFV.text.length && formatted.endsWith("/")) {
+                                formatted.length
+                            } else if (newVal.selection.end <= formatted.length) {
+                                newVal.selection.end
                             } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                                formatted.length
                             }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("plant_variety_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-            }
-
-            // 2. Local Plants: Rootstock | Feathers side-by-side, then Sapling Age
-            if (!isImportedPlants && !isImportedRootstocks) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Rootstock (Manual Input Text Field)
-                    OutlinedTextField(
-                        value = rootstock,
-                        onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
-                        label = { Text("Rootstock *") },
-                        placeholder = { Text("e.g. M9, MM106") },
+                            visitDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                            viewModel.visitDate.value = formatted
+                        },
+                        textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
+                        label = { Text("Visit Date *") },
+                        placeholder = { Text("DD/MM/YYYY") },
                         shape = textFieldShape,
                         singleLine = true,
-                        keyboardOptions = AppDefaultWordKeyboardOptions,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Spa,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("rootstock_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-
-                    // Feathers (Full Standard Text Input Field)
-                    OutlinedTextField(
-                        value = feathers,
-                        onValueChange = { viewModel.feathers.value = it },
-                        label = { Text("Feathers") },
-                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
-                        shape = textFieldShape,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Characters
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Nature,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("feathers_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-                }
-
-                // Sapling Age (Dropdown Field with Defined Age Options)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { saplingAgeMenuExpanded = true }
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
-                            } else {
-                                Modifier.border(
-                                    1.dp,
-                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                                    textFieldShape
+                            IconButton(
+                                onClick = {
+                                    showDatePicker(visitDate) {
+                                        viewModel.visitDate.value = it
+                                        visitDateTFV = TextFieldValue(text = it, selection = TextRange(it.length))
+                                    }
+                                },
+                                modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarToday,
+                                    contentDescription = "Select Visit Date",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
                                 )
-                            }
-                        )
-                ) {
-                    OutlinedTextField(
-                        value = healthStage.ifBlank { "1 Year" },
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Sapling Age *") },
-                        shape = textFieldShape,
-                        singleLine = true,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.HourglassTop,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { saplingAgeMenuExpanded = true }) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { saplingAgeMenuExpanded = true }
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("sapling_age_dropdown"),
+                            .bringIntoViewOnFocus()
+                            .testTag("visit_date_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
 
-                    DropdownMenu(
-                        expanded = saplingAgeMenuExpanded,
-                        onDismissRequest = { saplingAgeMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
-                    ) {
-                        saplingAgeOptions.forEach { age ->
-                            DropdownMenuItem(
-                                text = { Text(age) },
-                                onClick = {
-                                    viewModel.healthStage.value = age
-                                    saplingAgeMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            } else if (isImportedPlants) {
-                // Imported Plants: Rootstock | Feathers side-by-side
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                    FormFieldDivider(isDark = isDark)
+
+                    // 2. Soil Health Observations
                     OutlinedTextField(
-                        value = rootstock,
-                        onValueChange = { viewModel.rootstock.value = it },
-                        label = { Text("Rootstock *") },
-                        placeholder = { Text("e.g. M9, MM106") },
+                        value = soilHealthObservations,
+                        onValueChange = { viewModel.soilHealthObservations.value = it },
+                        label = { Text("Soil Health Observations") },
+                        placeholder = { Text("e.g. Moisture, pH, texture") },
                         shape = textFieldShape,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        singleLine = false,
+                        maxLines = 3,
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Spa,
+                                imageVector = Icons.Default.Landscape,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         },
                         modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("rootstock_input"),
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("soil_health_observations_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
 
+                    FormFieldDivider(isDark = isDark)
+
+                    // 3. Plant Health Observations
                     OutlinedTextField(
-                        value = feathers,
-                        onValueChange = { viewModel.feathers.value = it },
-                        label = { Text("Feathers") },
-                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                        value = plantHealthObservations,
+                        onValueChange = { viewModel.plantHealthObservations.value = it },
+                        label = { Text("Plant Health Observations") },
+                        placeholder = { Text("e.g. Pests, diseases, growth") },
                         shape = textFieldShape,
-                        singleLine = true,
+                        singleLine = false,
+                        maxLines = 3,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.HealthAndSafety,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("plant_health_observations_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    FormFieldDivider(isDark = isDark)
+
+                    // 4. Orchard/Site Location
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { input ->
+                            viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
+                                input.startsWith("http://", ignoreCase = true) || 
+                                input.startsWith("https://", ignoreCase = true) || 
+                                input.startsWith("maps.", ignoreCase = true) || 
+                                input.startsWith("www.google.", ignoreCase = true) || 
+                                input.startsWith("goo.gl/", ignoreCase = true)) {
+                                input
+                            } else {
+                                capitalizeWordsNaturally(input)
+                            }
+                        },
+                        label = { Text("Orchard/Site Location *") },
+                        placeholder = { Text("e.g. Block A, North Field or Maps link") },
+                        shape = textFieldShape,
+                        singleLine = false,
+                        maxLines = 3,
                         keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
                             keyboardType = KeyboardType.Text,
-                            capitalization = KeyboardCapitalization.Characters
+                            imeAction = ImeAction.Next
                         ),
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.Nature,
+                                imageVector = Icons.Default.Place,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("feathers_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-                }
-
-                // Country / Source of Import & Sapling Age side-by-side
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = importCountry,
-                        onValueChange = { viewModel.importCountry.value = it },
-                        label = { Text("Country / Source *") },
-                        placeholder = { Text("e.g. Italy") },
-                        shape = textFieldShape,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Public,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("import_country_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { saplingAgeMenuExpanded = true }
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape) { saplingAgeMenuExpanded = true }
-                                } else {
-                                    Modifier.border(
-                                        1.dp,
-                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                                        textFieldShape
+                        trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
+                            {
+                                IconButton(
+                                    onClick = {
+                                        MapHelper.openGoogleMaps(context, location)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = "Open in Google Maps",
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
+                            }
+                        } else null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("orchard_site_location_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                } else if (isPruning) {
+                    // Orchard Location (Single field for Pruning Specification)
+                    OutlinedTextField(
+                        value = location,
+                        onValueChange = { input ->
+                            viewModel.location.value = if (MapHelper.isGoogleMapsUrl(input) || 
+                                input.startsWith("http://", ignoreCase = true) || 
+                                input.startsWith("https://", ignoreCase = true) || 
+                                input.startsWith("maps.", ignoreCase = true) || 
+                                input.startsWith("www.google.", ignoreCase = true) || 
+                                input.startsWith("goo.gl/", ignoreCase = true)) {
+                                input
+                            } else {
+                                capitalizeWordsNaturally(input)
+                            }
+                        },
+                        label = { Text("Orchard Location *") },
+                        placeholder = { Text("e.g. Block A, North Field or Maps link") },
+                        shape = textFieldShape,
+                        singleLine = false,
+                        maxLines = 3,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next
+                        ),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Place,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
                             )
-                    ) {
+                        },
+                        trailingIcon = if (MapHelper.isGoogleMapsUrl(location)) {
+                            {
+                                IconButton(
+                                    onClick = {
+                                        MapHelper.openGoogleMaps(context, location)
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = "Open in Google Maps",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        } else null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("orchard_location_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                } else {
+                    // 1. Plant Variety (Removed for Imported Rootstocks)
+                    if (!isImportedRootstocks) {
                         OutlinedTextField(
-                            value = healthStage.ifBlank { "1 Year" },
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Sapling Age *") },
+                            value = plantVariety,
+                            onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
+                            label = { Text("Plant Variety *") },
+                            placeholder = { Text("Type plant variety (e.g. Gala Apple, Cherry, Wheat)") },
                             shape = textFieldShape,
                             singleLine = true,
+                            keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.HourglassTop,
+                                    imageVector = Icons.Outlined.LocalFlorist,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             },
-                            trailingIcon = {
-                                IconButton(onClick = { saplingAgeMenuExpanded = true }) {
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
-                                }
-                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnFocus()
+                                .testTag("plant_variety_input"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
+                    }
+
+                    // 2. Local Plants: Rootstock | Feathers side-by-side, then Sapling Age
+                    if (!isImportedPlants && !isImportedRootstocks) {
+                        if (!isImportedRootstocks) {
+                            FormFieldDivider(isDark = isDark)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = rootstock,
+                                onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
+                                label = { Text("Rootstock *") },
+                                placeholder = { Text("e.g. M9, MM106") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Spa,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("rootstock_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            OutlinedTextField(
+                                value = feathers,
+                                onValueChange = { viewModel.feathers.value = it },
+                                label = { Text("Feathers") },
+                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    capitalization = KeyboardCapitalization.Characters
+                                ),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Nature,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("feathers_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+                        }
+
+                        FormFieldDivider(isDark = isDark)
+
+                        // Sapling Age
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { saplingAgeMenuExpanded = true }
-                                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                                .testTag("sapling_age_dropdown"),
+                        ) {
+                            OutlinedTextField(
+                                value = healthStage.ifBlank { "1 Year" },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Sapling Age *") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.HourglassTop,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { saplingAgeMenuExpanded = true }) {
+                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { saplingAgeMenuExpanded = true }
+                                    .testTag("sapling_age_dropdown"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            DropdownMenu(
+                                expanded = saplingAgeMenuExpanded,
+                                onDismissRequest = { saplingAgeMenuExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                saplingAgeOptions.forEach { age ->
+                                    DropdownMenuItem(
+                                        text = { Text(age) },
+                                        onClick = {
+                                            viewModel.healthStage.value = age
+                                            saplingAgeMenuExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    } else if (isImportedPlants) {
+                        FormFieldDivider(isDark = isDark)
+
+                        // Imported Plants: Rootstock | Feathers side-by-side
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = rootstock,
+                                onValueChange = { viewModel.rootstock.value = it },
+                                label = { Text("Rootstock *") },
+                                placeholder = { Text("e.g. M9, MM106") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Spa,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("rootstock_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            OutlinedTextField(
+                                value = feathers,
+                                onValueChange = { viewModel.feathers.value = it },
+                                label = { Text("Feathers") },
+                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    capitalization = KeyboardCapitalization.Characters
+                                ),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Nature,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("feathers_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+                        }
+
+                        FormFieldDivider(isDark = isDark)
+
+                        // Country / Source of Import & Sapling Age side-by-side
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = importCountry,
+                                onValueChange = { viewModel.importCountry.value = it },
+                                label = { Text("Country / Source *") },
+                                placeholder = { Text("e.g. Italy") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("import_country_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { saplingAgeMenuExpanded = true }
+                            ) {
+                                OutlinedTextField(
+                                    value = healthStage.ifBlank { "1 Year" },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Sapling Age *") },
+                                    shape = textFieldShape,
+                                    singleLine = true,
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.HourglassTop,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { saplingAgeMenuExpanded = true }) {
+                                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { saplingAgeMenuExpanded = true }
+                                        .testTag("sapling_age_dropdown"),
+                                    colors = elevatedInputFieldColors(isDark = isDark)
+                                )
+
+                                DropdownMenu(
+                                    expanded = saplingAgeMenuExpanded,
+                                    onDismissRequest = { saplingAgeMenuExpanded = false },
+                                    modifier = Modifier.fillMaxWidth(0.9f)
+                                ) {
+                                    saplingAgeOptions.forEach { age ->
+                                        DropdownMenuItem(
+                                            text = { Text(age) },
+                                            onClick = {
+                                                viewModel.healthStage.value = age
+                                                saplingAgeMenuExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else if (isImportedRootstocks) {
+                        // Imported Rootstocks: Rootstock (Full Width)
+                        OutlinedTextField(
+                            value = rootstock,
+                            onValueChange = { viewModel.rootstock.value = it },
+                            label = { Text("Rootstock *") },
+                            placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
+                            shape = textFieldShape,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Spa,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnFocus()
+                                .testTag("rootstock_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
 
-                        DropdownMenu(
-                            expanded = saplingAgeMenuExpanded,
-                            onDismissRequest = { saplingAgeMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
+                        FormFieldDivider(isDark = isDark)
+
+                        // Country / Source of Import & Root Diameter (mm) side-by-side
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            saplingAgeOptions.forEach { age ->
-                                DropdownMenuItem(
-                                    text = { Text(age) },
-                                    onClick = {
-                                        viewModel.healthStage.value = age
-                                        saplingAgeMenuExpanded = false
-                                    }
-                                )
-                            }
+                            OutlinedTextField(
+                                value = importCountry,
+                                onValueChange = { viewModel.importCountry.value = it },
+                                label = { Text("Country / Source *") },
+                                placeholder = { Text("e.g. Italy") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Public,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("import_country_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
+
+                            OutlinedTextField(
+                                value = rootDiameter,
+                                onValueChange = { viewModel.rootDiameter.value = it },
+                                label = { Text("Root Dia (mm) *") },
+                                placeholder = { Text("e.g. 9-12 mm") },
+                                shape = textFieldShape,
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Straighten,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .bringIntoViewOnFocus()
+                                    .testTag("root_diameter_input"),
+                                colors = elevatedInputFieldColors(isDark = isDark)
+                            )
                         }
                     }
                 }
-            } else if (isImportedRootstocks) {
-                // Imported Rootstocks: Rootstock (Full Width), then [Country / Source of Import & Root Diameter (mm)] side-by-side
-                OutlinedTextField(
-                    value = rootstock,
-                    onValueChange = { viewModel.rootstock.value = it },
-                    label = { Text("Rootstock *") },
-                    placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
-                    shape = textFieldShape,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Spa,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
 
-                        .then(
+                if (isMultiVarietyApplicable) {
+                    FormFieldDivider(isDark = isDark)
 
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                    // Switch to Multi-Variety Button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(textFieldShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.15f else 0.10f))
+                            .clickable {
+                                viewModel.enableMultiVarietyForCurrentTab()
                             }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("rootstock_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // Country / Source of Import & Root Diameter ('mm') side-by-side
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = importCountry,
-                        onValueChange = { viewModel.importCountry.value = it },
-                        label = { Text("Country / Source *") },
-                        placeholder = { Text("e.g. Italy") },
-                        shape = textFieldShape,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                        leadingIcon = {
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.35f else 0.25f),
+                                textFieldShape
+                            )
+                            .testTag("add_multiple_varieties_button"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Public,
+                                imageVector = Icons.Default.Layers,
                                 contentDescription = null,
+                                modifier = Modifier.size(18.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "+ Add Multiple Varieties to this Booking",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("import_country_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
-
-                    OutlinedTextField(
-                        value = rootDiameter,
-                        onValueChange = { viewModel.rootDiameter.value = it },
-                        label = { Text("Root Dia ('mm') *") },
-                        placeholder = { Text("e.g. 9-12 mm") },
-                        shape = textFieldShape,
-                        singleLine = true,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Straighten,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                            .then(
-
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                                } else {
-                                    Modifier
-                                        .bringIntoViewOnFocus()
-                                        .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                                }
-                            )
-                            .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                            .testTag("root_diameter_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
-                    )
+                        }
+                    }
                 }
             }
         }
@@ -2269,156 +2030,84 @@ fun FarmerFormScreen(
                 modifier = Modifier.padding(top = 12.dp)
             )
 
-            // Scion Variety (Manual Text Field)
-            OutlinedTextField(
-                value = scionVariety,
-                onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
-                label = { Text("Scion Variety") },
-                placeholder = { Text("Enter scion variety (e.g. Honeycrisp, Gala)") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Nature,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                        } else {
-                            Modifier
-                                .bringIntoViewOnFocus()
-                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                        }
-                    )
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("scion_variety_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            var graftTypeMenuExpanded by remember { mutableStateOf(false) }
-            val graftTypeOptions = listOf("Bench Grafting", "Tongue Grafting", "T-Budding", "Chip Budding", "Cleft Grafting", "Whip & Tongue", "Bark Grafting")
-
-            Box(modifier = Modifier.fillMaxWidth()) {
+            FormSectionGlassCard(
+                backdrop = backdrop,
+                isDark = isDark
+            ) {
+                // Scion Variety (Manual Text Field)
                 OutlinedTextField(
-                    value = graftType,
-                    onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
-                    label = { Text("Graft Type") },
-                    placeholder = { Text("Type or select graft type (e.g. Bench Grafting)") },
+                    value = scionVariety,
+                    onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
+                    label = { Text("Scion Variety") },
+                    placeholder = { Text("Enter scion variety (e.g. Honeycrisp, Gala)") },
                     shape = textFieldShape,
                     singleLine = true,
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.ContentCut,
+                            imageVector = Icons.Default.Nature,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
-                    trailingIcon = {
-                        IconButton(onClick = { graftTypeMenuExpanded = true }) {
-                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Graft Type")
-                        }
-                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                        .testTag("graft_type_input"),
+                        .bringIntoViewOnFocus()
+                        .testTag("scion_variety_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
-                DropdownMenu(
-                    expanded = graftTypeMenuExpanded,
-                    onDismissRequest = { graftTypeMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    graftTypeOptions.forEach { typeOption ->
-                        DropdownMenuItem(
-                            text = { Text(typeOption) },
-                            onClick = {
-                                viewModel.graftType.value = typeOption
-                                graftTypeMenuExpanded = false
+                FormFieldDivider(isDark = isDark)
+
+                var graftTypeMenuExpanded by remember { mutableStateOf(false) }
+                val graftTypeOptions = listOf("Bench Grafting", "Tongue Grafting", "T-Budding", "Chip Budding", "Cleft Grafting", "Whip & Tongue", "Bark Grafting")
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = graftType,
+                        onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
+                        label = { Text("Graft Type") },
+                        placeholder = { Text("Type or select graft type (e.g. Bench Grafting)") },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.ContentCut,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { graftTypeMenuExpanded = true }) {
+                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Graft Type")
                             }
-                        )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("graft_type_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    DropdownMenu(
+                        expanded = graftTypeMenuExpanded,
+                        onDismissRequest = { graftTypeMenuExpanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    ) {
+                        graftTypeOptions.forEach { typeOption ->
+                            DropdownMenuItem(
+                                text = { Text(typeOption) },
+                                onClick = {
+                                    viewModel.graftType.value = typeOption
+                                    graftTypeMenuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
-
-        if (isMultiVarietyApplicable) {
-            // Switch to Multi-Variety Button (shown on EVERY applicable booking tab/field by default when currently in single-variety mode)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.boundedFormFieldRipple(
-                                shape = textFieldShape,
-                                accentColor = MaterialTheme.colorScheme.primary,
-                                onClick = {
-                                    viewModel.enableMultiVarietyForCurrentTab()
-                                }
-                            )
-                        } else {
-                            Modifier
-                                .clickable {
-                                    viewModel.enableMultiVarietyForCurrentTab()
-                                }
-                                .border(
-                                    1.dp,
-                                    Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                                    textFieldShape
-                                )
-                        }
-                    )
-                    .testTag("add_multiple_varieties_button"),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Layers,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "+ Add Multiple Varieties to this Booking",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-    }
 
         // Section Title: PRICING & QUANTITY / PRICING & VISIT DETAILS
         Text(
@@ -2452,72 +2141,61 @@ fun FarmerFormScreen(
             }
         }
 
-        if (isStockApplicable && matchedInventoryItem != null) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color.Transparent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isInsufficientStock) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark
+        ) {
+            if (isStockApplicable && matchedInventoryItem != null) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.Transparent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isInsufficientStock) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Inventory,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Current Stock: ${matchedInventoryItem!!.currentQuantity} units (Initial: ${matchedInventoryItem!!.initialQuantity})",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isInsufficientStock) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    if (matchedInventoryItem!!.sku.isNotBlank()) {
-                        Text(
-                            text = "SKU: ${matchedInventoryItem!!.sku}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Inventory,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Current Stock: ${matchedInventoryItem!!.currentQuantity} units (Initial: ${matchedInventoryItem!!.initialQuantity})",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isInsufficientStock) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        if (matchedInventoryItem!!.sku.isNotBlank()) {
+                            Text(
+                                text = "SKU: ${matchedInventoryItem!!.sku}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
+
+                FormFieldDivider(isDark = isDark)
             }
-        }
 
-        if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
-            val totalMultiQty = varietyLines.sumOf { it.quantity }
-            val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color.Transparent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
+            if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
+                val totalMultiQty = varietyLines.sumOf { it.quantity }
+                val totalMultiPrice = calculateTotalAmountMultiVariety(varietyLines)
 
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.background(if (isDark) Color(0xFF171517) else Color(0xFFF1F5F9).copy(alpha = 0.65f))
-                        } else {
-                            Modifier
-                        }
-                    )
-                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
@@ -2543,7 +2221,8 @@ fun FarmerFormScreen(
                     }
 
                     if (isImportedRootstocks) {
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)))
+                        FormFieldDivider(isDark = isDark)
+
                         OutlinedTextField(
                             value = perUnitGraftingCharge,
                             onValueChange = { 
@@ -2560,220 +2239,28 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                                .then(
-
-                                    if (backdrop == null || !isGlassSupported()) {
-                                        Modifier.boundedFormFieldRipple(shape = pillShape)
-                                    } else {
-                                        Modifier
-                                            .bringIntoViewOnFocus()
-                                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                                    }
-                                )
+                                .bringIntoViewOnFocus()
                                 .testTag("grafting_charges_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
                     }
                 }
-            }
-        } else if (isImportedRootstocks) {
-            val isUnitPriceError = landAreaAcres.isNotBlank() && (landAreaAcres.toDoubleOrNull() ?: 0.0) <= 0.0
-            val isGraftChargeError = perUnitGraftingCharge.isNotBlank() && (perUnitGraftingCharge.toDoubleOrNull() ?: -1.0) < 0.0
+            } else if (isImportedRootstocks) {
+                val isUnitPriceError = landAreaAcres.isNotBlank() && (landAreaAcres.toDoubleOrNull() ?: 0.0) <= 0.0
+                val isGraftChargeError = perUnitGraftingCharge.isNotBlank() && (perUnitGraftingCharge.toDoubleOrNull() ?: -1.0) < 0.0
 
-            // 1. Quantity (Roots) on its own line at the top
-            OutlinedTextField(
-                value = quantity,
-                onValueChange = { 
-                    viewModel.quantity.value = it 
-                    viewModel.updateQuantityOrPrice()
-                },
-                label = { Text("Quantity (Roots) *") },
-                placeholder = { Text("Enter quantity") },
-                isError = isInsufficientStock,
-                supportingText = if (isInsufficientStock) {
-                    { Text("Insufficient stock. Only $effectiveAvailableStock units are available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
-                } else null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = pillShape,
-                singleLine = true,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.FormatListNumbered,
-                        contentDescription = null,
-                        tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.boundedFormFieldRipple(shape = pillShape)
-                        } else {
-                            Modifier
-                                .bringIntoViewOnFocus()
-                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                        }
-                    )
-                    .elevated3dShadow(shape = pillShape, isDark = isDark)
-                    .testTag("quantity_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            // 2. Unit Price & Graft Charge / Unit Side-by-Side below Quantity
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Unit Price
-                OutlinedTextField(
-                    value = landAreaAcres,
-                    onValueChange = { 
-                        viewModel.landAreaAcres.value = sanitizeCurrencyInput(it)
-                        viewModel.updateQuantityOrPrice()
-                    },
-                    label = { 
-                        Text(
-                            text = "Unit Price (₹) *", 
-                            fontSize = 12.sp,
-                            maxLines = 1, 
-                            overflow = TextOverflow.Ellipsis
-                        ) 
-                    },
-                    placeholder = { 
-                        Text(
-                            text = "Enter price", 
-                            fontSize = 12.sp,
-                            maxLines = 1, 
-                            overflow = TextOverflow.Ellipsis
-                        ) 
-                    },
-                    isError = isUnitPriceError,
-                    supportingText = if (isUnitPriceError) {
-                        { Text("Must be > 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = pillShape,
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CurrencyRupee,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = pillShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = pillShape, isDark = isDark)
-                        .testTag("unit_price_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-
-                // Graft Charge / Unit
-                OutlinedTextField(
-                    value = perUnitGraftingCharge,
-                    onValueChange = { 
-                        viewModel.perUnitGraftingCharge.value = sanitizeCurrencyInput(it)
-                        viewModel.updateQuantityOrPrice()
-                    },
-                    label = { 
-                        Text(
-                            text = "Graft Charge / Unit (₹)", 
-                            fontSize = 12.sp,
-                            maxLines = 1, 
-                            overflow = TextOverflow.Ellipsis
-                        ) 
-                    },
-                    placeholder = { 
-                        Text(
-                            text = "Per unit charge", 
-                            fontSize = 12.sp,
-                            maxLines = 1, 
-                            overflow = TextOverflow.Ellipsis
-                        ) 
-                    },
-                    isError = isGraftChargeError,
-                    supportingText = if (isGraftChargeError) {
-                        { Text("Must be ≥ 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
-                    } else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = pillShape,
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CurrencyRupee,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = pillShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = pillShape, isDark = isDark)
-                        .testTag("grafting_charges_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
-            }
-
-            if (graftingCharges.isNotBlank() && (graftingCharges.toDoubleOrNull() ?: 0.0) > 0.0) {
-                Text(
-                    text = "Total Grafting Charges: ₹$graftingCharges",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(start = 12.dp, top = 2.dp)
-                )
-            }
-        } else {
-            // Side-by-Side: Quantity & Unit Price for other categories
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 1. Quantity (Plants / Visits)
+                // 1. Quantity (Roots)
                 OutlinedTextField(
                     value = quantity,
                     onValueChange = { 
                         viewModel.quantity.value = it 
                         viewModel.updateQuantityOrPrice()
                     },
-                    label = { Text(if (isSiteVisit) "No. of Visits *" else "Quantity *") },
-                    placeholder = { Text(if (isSiteVisit) "e.g. 1" else "Enter quantity") },
+                    label = { Text("Quantity (Roots) *") },
+                    placeholder = { Text("Enter quantity") },
                     isError = isInsufficientStock,
                     supportingText = if (isInsufficientStock) {
-                        { Text("Insufficient stock. Only $effectiveAvailableStock units available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        { Text("Insufficient stock. Only $effectiveAvailableStock units are available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = pillShape,
@@ -2786,61 +2273,184 @@ fun FarmerFormScreen(
                         )
                     },
                     modifier = Modifier
-                        .weight(1f)
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                        .then(
-
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = pillShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = pillShape, isDark = isDark)
+                        .fillMaxWidth()
+                        .bringIntoViewOnFocus()
                         .testTag("quantity_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
 
-                // 2. Unit Price / Visit Charge
-                OutlinedTextField(
-                    value = landAreaAcres,
-                    onValueChange = { 
-                        viewModel.landAreaAcres.value = it 
-                        viewModel.updateQuantityOrPrice()
-                    },
-                    label = { Text(if (isSiteVisit) "Visit Fee (₹) *" else "Unit Price (₹) *") },
-                    placeholder = { Text("Enter price") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = pillShape,
-                    singleLine = true,
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.CurrencyRupee,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
+                FormFieldDivider(isDark = isDark)
+
+                // 2. Unit Price & Graft Charge / Unit Side-by-Side below Quantity
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Unit Price
+                    OutlinedTextField(
+                        value = landAreaAcres,
+                        onValueChange = { 
+                            viewModel.landAreaAcres.value = sanitizeCurrencyInput(it)
+                            viewModel.updateQuantityOrPrice()
+                        },
+                        label = { 
+                            Text(
+                                text = "Unit Price (₹) *", 
+                                fontSize = 12.sp,
+                                maxLines = 1, 
+                                overflow = TextOverflow.Ellipsis
+                            ) 
+                        },
+                        placeholder = { 
+                            Text(
+                                text = "Enter price", 
+                                fontSize = 12.sp,
+                                maxLines = 1, 
+                                overflow = TextOverflow.Ellipsis
+                            ) 
+                        },
+                        isError = isUnitPriceError,
+                        supportingText = if (isUnitPriceError) {
+                            { Text("Must be > 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
+                        } else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = pillShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CurrencyRupee,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .bringIntoViewOnFocus()
+                            .testTag("unit_price_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
 
-                        .then(
+                    // Graft Charge / Unit
+                    OutlinedTextField(
+                        value = perUnitGraftingCharge,
+                        onValueChange = { 
+                            viewModel.perUnitGraftingCharge.value = sanitizeCurrencyInput(it)
+                            viewModel.updateQuantityOrPrice()
+                        },
+                        label = { 
+                            Text(
+                                text = "Graft Charge / Unit (₹)", 
+                                fontSize = 12.sp,
+                                maxLines = 1, 
+                                overflow = TextOverflow.Ellipsis
+                            ) 
+                        },
+                        placeholder = { 
+                            Text(
+                                text = "Per unit charge", 
+                                fontSize = 12.sp,
+                                maxLines = 1, 
+                                overflow = TextOverflow.Ellipsis
+                            ) 
+                        },
+                        isError = isGraftChargeError,
+                        supportingText = if (isGraftChargeError) {
+                            { Text("Must be ≥ 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
+                        } else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = pillShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CurrencyRupee,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .bringIntoViewOnFocus()
+                            .testTag("grafting_charges_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                }
 
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.boundedFormFieldRipple(shape = pillShape)
-                            } else {
-                                Modifier
-                                    .bringIntoViewOnFocus()
-                                    .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                            }
-                        )
-                        .elevated3dShadow(shape = pillShape, isDark = isDark)
-                        .testTag("unit_price_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
-                )
+                if (graftingCharges.isNotBlank() && (graftingCharges.toDoubleOrNull() ?: 0.0) > 0.0) {
+                    Text(
+                        text = "Total Grafting Charges: ₹$graftingCharges",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(start = 12.dp, top = 2.dp)
+                    )
+                }
+            } else {
+                // Side-by-Side: Quantity & Unit Price for other categories
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 1. Quantity (Plants / Visits)
+                    OutlinedTextField(
+                        value = quantity,
+                        onValueChange = { 
+                            viewModel.quantity.value = it 
+                            viewModel.updateQuantityOrPrice()
+                        },
+                        label = { Text(if (isSiteVisit) "No. of Visits *" else "Quantity *") },
+                        placeholder = { Text(if (isSiteVisit) "e.g. 1" else "Enter quantity") },
+                        isError = isInsufficientStock,
+                        supportingText = if (isInsufficientStock) {
+                            { Text("Insufficient stock. Only $effectiveAvailableStock units available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
+                        } else null,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = pillShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.FormatListNumbered,
+                                contentDescription = null,
+                                tint = if (isInsufficientStock) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .bringIntoViewOnFocus()
+                            .testTag("quantity_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    // 2. Unit Price / Visit Charge
+                    OutlinedTextField(
+                        value = landAreaAcres,
+                        onValueChange = { 
+                            viewModel.landAreaAcres.value = it 
+                            viewModel.updateQuantityOrPrice()
+                        },
+                        label = { Text(if (isSiteVisit) "Visit Fee (₹) *" else "Unit Price (₹) *") },
+                        placeholder = { Text("Enter price") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = pillShape,
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.CurrencyRupee,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .bringIntoViewOnFocus()
+                            .testTag("unit_price_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+                }
             }
         }
 
@@ -2864,70 +2474,50 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        PaymentStatusSelector(
-            selectedStatus = paymentStatus,
-            onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
-            accentColor = formAccent,
-            isDark = isDark,
-            testTagPrefix = "payment_status"
-        )
-
-        // Input Field: Amount Paid (₹)
-        OutlinedTextField(
-            value = amountPaid,
-            onValueChange = { viewModel.updateAmountPaid(it) },
-            label = { Text("Amount Paid (₹)") },
-            placeholder = { Text("Enter amount paid") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            shape = pillShape,
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Payments,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = pillShape)
-                    } else {
-                        Modifier
-                            .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), pillShape)
-                    }
-                )
-                .elevated3dShadow(shape = pillShape, isDark = isDark)
-                .testTag("amount_paid_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        // Calculated Payment Summary Box (Amount Breakdown)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.glassCardBackground(
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark
         ) {
+            PaymentStatusSelector(
+                selectedStatus = paymentStatus,
+                onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
+                accentColor = formAccent,
+                isDark = isDark,
+                testTagPrefix = "payment_status"
+            )
+
+            FormFieldDivider(isDark = isDark)
+
+            // Input Field: Amount Paid (₹)
+            OutlinedTextField(
+                value = amountPaid,
+                onValueChange = { viewModel.updateAmountPaid(it) },
+                label = { Text("Amount Paid (₹)") },
+                placeholder = { Text("Enter amount paid") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = pillShape,
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Payments,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewOnFocus()
+                    .testTag("amount_paid_input"),
+                colors = elevatedInputFieldColors(isDark = isDark)
+            )
+
+            FormFieldDivider(isDark = isDark)
+
+            // Calculated Payment Summary Box (Amount Breakdown)
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
@@ -2968,132 +2558,112 @@ fun FarmerFormScreen(
             modifier = Modifier.padding(top = 12.dp)
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark
         ) {
-            // 1. Booking Date
-            OutlinedTextField(
-                value = bookingDateTFV,
-                onValueChange = { newVal ->
-                    val formatted = formatAutoSlashDate(bookingDateTFV.text, newVal.text)
-                    val newPos = if (formatted.length > bookingDateTFV.text.length && formatted.endsWith("/")) {
-                        formatted.length
-                    } else if (newVal.selection.end <= formatted.length) {
-                        newVal.selection.end
-                    } else {
-                        formatted.length
-                    }
-                    bookingDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
-                    viewModel.bookingDate.value = formatted
-                },
-                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
-                label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("DD/MM/YYYY") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                leadingIcon = {
-                    IconButton(
-                        onClick = {
-                            showDatePicker(bookingDate) {
-                                viewModel.bookingDate.value = it
-                                bookingDateTFV = TextFieldValue(text = it, selection = TextRange(it.length))
-                            }
-                        },
-                        modifier = Modifier.size(36.dp).testTag("booking_date_picker_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Select Booking Date",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Booking Date
+                OutlinedTextField(
+                    value = bookingDateTFV,
+                    onValueChange = { newVal ->
+                        val formatted = formatAutoSlashDate(bookingDateTFV.text, newVal.text)
+                        val newPos = if (formatted.length > bookingDateTFV.text.length && formatted.endsWith("/")) {
+                            formatted.length
+                        } else if (newVal.selection.end <= formatted.length) {
+                            newVal.selection.end
                         } else {
-                            Modifier
-                                .bringIntoViewOnFocus()
-                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            formatted.length
                         }
-                    )
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("booking_date_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
+                        bookingDateTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                        viewModel.bookingDate.value = formatted
+                    },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
+                    label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("DD/MM/YYYY") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    leadingIcon = {
+                        IconButton(
+                            onClick = {
+                                showDatePicker(bookingDate) {
+                                    viewModel.bookingDate.value = it
+                                    bookingDateTFV = TextFieldValue(text = it, selection = TextRange(it.length))
+                                }
+                            },
+                            modifier = Modifier.size(36.dp).testTag("booking_date_picker_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = "Select Booking Date",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .bringIntoViewOnFocus()
+                        .testTag("booking_date_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
 
-            // 2. Expected Delivery
-            OutlinedTextField(
-                value = expectedDeliveryTFV,
-                onValueChange = { newVal ->
-                    val formatted = formatAutoSlashDate(expectedDeliveryTFV.text, newVal.text)
-                    val newPos = if (formatted.length > expectedDeliveryTFV.text.length && formatted.endsWith("/")) {
-                        formatted.length
-                    } else if (newVal.selection.end <= formatted.length) {
-                        newVal.selection.end
-                    } else {
-                        formatted.length
-                    }
-                    expectedDeliveryTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
-                    viewModel.expectedDelivery.value = formatted
-                },
-                textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
-                label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                placeholder = { Text("DD/MM/YYYY") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                leadingIcon = {
-                    IconButton(
-                        onClick = {
-                            showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) {
-                                viewModel.expectedDelivery.value = it
-                                expectedDeliveryTFV = TextFieldValue(text = it, selection = TextRange(it.length))
-                            }
-                        },
-                        modifier = Modifier.size(36.dp).testTag("expected_delivery_picker_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocalShipping,
-                            contentDescription = "Select Expected Delivery Date",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-
-                    .then(
-
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.boundedFormFieldRipple(shape = textFieldShape)
+                // 2. Expected Delivery
+                OutlinedTextField(
+                    value = expectedDeliveryTFV,
+                    onValueChange = { newVal ->
+                        val formatted = formatAutoSlashDate(expectedDeliveryTFV.text, newVal.text)
+                        val newPos = if (formatted.length > expectedDeliveryTFV.text.length && formatted.endsWith("/")) {
+                            formatted.length
+                        } else if (newVal.selection.end <= formatted.length) {
+                            newVal.selection.end
                         } else {
-                            Modifier
-                                .bringIntoViewOnFocus()
-                                .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
+                            formatted.length
                         }
-                    )
-                    .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                    .testTag("expected_delivery_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
+                        expectedDeliveryTFV = TextFieldValue(text = formatted, selection = TextRange(newPos))
+                        viewModel.expectedDelivery.value = formatted
+                    },
+                    textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
+                    label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("DD/MM/YYYY") },
+                    shape = textFieldShape,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    leadingIcon = {
+                        IconButton(
+                            onClick = {
+                                showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) {
+                                    viewModel.expectedDelivery.value = it
+                                    expectedDeliveryTFV = TextFieldValue(text = it, selection = TextRange(it.length))
+                                }
+                            },
+                            modifier = Modifier.size(36.dp).testTag("expected_delivery_picker_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalShipping,
+                                contentDescription = "Select Expected Delivery Date",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .bringIntoViewOnFocus()
+                        .testTag("expected_delivery_input"),
+                    colors = elevatedInputFieldColors(isDark = isDark)
+                )
+            }
         }
-
         // Section Title: ATTACH UPI PAYMENT PROOF
         Text(
             text = "ATTACH UPI PAYMENT PROOF",
@@ -4675,5 +4245,58 @@ private fun FormAmbientBackdrop(
                     }
                 }
             }
+    )
+}
+
+
+@Composable
+private fun FormSectionGlassCard(
+    backdrop: LayerBackdrop?,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+    shape: CornerBasedShape = RoundedCornerShape(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        shape = shape,
+        color = Color.Transparent,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .liquidGlassNav(shape = shape, backdrop = backdrop)
+            .then(
+                if (backdrop == null || !isGlassSupported()) {
+                    Modifier.glassCardBackground(
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary,
+                        shape = shape
+                    )
+                } else {
+                    Modifier
+                }
+            )
+            .border(
+                1.dp,
+                Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                shape
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun FormFieldDivider(
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.material3.HorizontalDivider(
+        modifier = modifier.fillMaxWidth(),
+        thickness = 0.5.dp,
+        color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
     )
 }
