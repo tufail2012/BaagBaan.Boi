@@ -10,14 +10,11 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -45,16 +42,11 @@ fun rememberScrollUnderHeaderTopPadding(extraPadding: Dp = 68.dp): Dp {
 }
 
 private val FADE_RUN = 32.dp
-private const val PEAK = 0.75f
-private const val SCRIM_PEAK = 0.42f
-private const val SCRIM_STOPS = 12
 
 /**
  * Reusable Global Top Header Scroll Scrim.
  *
  * Behavior:
- * - At scroll offset = 0: NO visible blur, NO shade, and NO tint (clean & transparent).
- * - When content starts scrolling underneath the header: the blur/fade gradually and smoothly appears.
  * - Purely neutral: no accent color tint, uses HazeMaterials.ultraThin(pageColor).
  * - Progressive vertical gradient without hard horizontal lines or opaque bounding cards.
  * - Preserves complete sharpness and readability of header controls.
@@ -72,71 +64,58 @@ fun TopHeaderScrollScrim(
     customHeight: Dp? = null
 ) {
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topBarHeightEquivalent = customHeight ?: (statusBarTop + 54.dp)
+    val topBarHeightEquivalent = customHeight ?: (statusBarTop + 52.dp)
     val height = topBarHeightEquivalent + FADE_RUN
 
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
 
     val themeBgColor = MaterialTheme.colorScheme.background
-    val pageColor = remember(isDark, isAmoled, themeBgColor) {
+    val baseColor = remember(isDark, isAmoled, themeBgColor) {
         when {
             isAmoled -> Color.Black
             isDark -> Color(0xFF0F172A)
             else -> themeBgColor
         }
     }
-    val scrimColor = pageColor
+    val pageColor = baseColor
 
-    // Dynamic scroll progress strictly driven by the actual scroll offset:
-    // 0f when at rest (offset <= 0), smoothly ramping up to 1f over the first 80px of scroll.
-    val progress by remember(scrollOffset, scrollOffsetProvider) {
-        derivedStateOf {
-            val offset = scrollOffsetProvider?.invoke() ?: scrollOffset
-            (offset / 80f).coerceIn(0f, 1f)
-        }
-    }
-
-    val colorStops = remember(scrimColor) {
-        Array(SCRIM_STOPS) { i ->
-            val t = i / (SCRIM_STOPS - 1f)
-            t to scrimColor.copy(
-                alpha = SCRIM_PEAK * (1f - EaseOutCubic.transform(t))
-            )
-        }
+    val scrim = remember(baseColor) {
+        Brush.verticalGradient(
+            colorStops = Array(12) { i ->
+                val t = i / 11f
+                t to baseColor.copy(
+                    alpha = 0.42f * (1f - EaseOutCubic.transform(t))
+                )
+            }
+        )
     }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .graphicsLayer {
-                alpha = progress
-            }
             .then(
-                if (effectiveHazeState != null && progress > 0.001f) {
+                if (effectiveHazeState != null) {
                     Modifier.hazeEffect(
                         state = effectiveHazeState,
-                        style = HazeMaterials.ultraThin(pageColor)
+                        style = HazeMaterials.ultraThin(pageColor),
                     ) {
                         inputScale = HazeInputScale.Fixed(0.33f)
+
                         progressive = HazeProgressive.verticalGradient(
                             easing = EaseOutCubic,
-                            startIntensity = PEAK,
+                            startIntensity = 0.75f,
                             endIntensity = 0f,
                         )
+
+                        noiseFactor = 0f
                     }
                 } else {
                     Modifier
                 }
             )
-            .drawWithCache {
-                val scrimBrush = Brush.verticalGradient(colorStops = *colorStops)
-                onDrawWithContent {
-                    drawContent()
-                    if (progress > 0.001f) {
-                        drawRect(brush = scrimBrush)
-                    }
-                }
+            .drawBehind {
+                drawRect(brush = scrim)
             }
     )
 }
