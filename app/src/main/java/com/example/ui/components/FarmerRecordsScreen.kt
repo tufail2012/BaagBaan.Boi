@@ -643,7 +643,8 @@ fun FarmerRecordsScreen(
                 selectedDetailRecord = updatedRec
                 viewModel.updateRecordSync(updatedRec)
             },
-            hazeState = effectiveHazeState
+            hazeState = effectiveHazeState,
+            backdrop = backdrop ?: contentBackdrop
         )
     }
 }

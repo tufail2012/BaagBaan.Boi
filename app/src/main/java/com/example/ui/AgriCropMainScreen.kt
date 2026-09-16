@@ -325,7 +325,8 @@ fun AgriCropMainScreen(
                 viewModel.updateRecordSync(updatedRec)
             },
             customPaletteColor = parsedPaletteColor,
-            hazeState = hazeState
+            hazeState = hazeState,
+            backdrop = recordsBackdrop
         )
     }
 
@@ -540,7 +541,8 @@ fun AgriCropMainScreen(
                     viewModel = viewModel,
                     gardenPlanningViewModel = gardenPlanningViewModel,
                     onBack = { viewModel.closeGlobalSearch() },
-                    modifier = modifier
+                    modifier = modifier,
+                    backdrop = recordsBackdrop
                 )
             }
             "INVENTORY" -> {

@@ -351,7 +351,7 @@ fun BookingRecordDetailDialog(
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
     val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
-    val internalBackdrop = rememberLayerBackdrop()
+    val internalBackdrop = if (backdrop == null) rememberLayerBackdrop() else null
     val effectiveBackdrop = backdrop ?: internalBackdrop
 
     val scrollState = rememberScrollState()
@@ -378,39 +378,43 @@ fun BookingRecordDetailDialog(
         ) {
             CompositionLocalProvider(LocalAppGlassHazeState provides hazeState) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Backdrop capture layer for real Liquid Glass
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (effectiveBackdrop is LayerBackdrop) {
-                                    Modifier.layerBackdrop(effectiveBackdrop)
-                                } else Modifier
-                            )
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        sectionAccentColor.copy(alpha = if (isDark) 0.20f else 0.14f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(size.width * 0.85f, size.height * 0.18f),
-                                    radius = size.width * 0.70f
+                    // Dedicated backdrop capture layer for fallback when no external backdrop is passed
+                    if (backdrop == null && effectiveBackdrop is LayerBackdrop) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .layerBackdrop(effectiveBackdrop)
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            sectionAccentColor.copy(alpha = if (isDark) 0.20f else 0.14f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(size.width * 0.85f, size.height * 0.18f),
+                                        radius = size.width * 0.70f
+                                    )
                                 )
-                            )
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        sectionAccentColor.copy(alpha = if (isDark) 0.16f else 0.10f),
-                                        Color.Transparent
-                                    ),
-                                    center = Offset(size.width * 0.15f, size.height * 0.55f),
-                                    radius = size.width * 0.75f
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            sectionAccentColor.copy(alpha = if (isDark) 0.16f else 0.10f),
+                                            Color.Transparent
+                                        ),
+                                        center = Offset(size.width * 0.15f, size.height * 0.55f),
+                                        radius = size.width * 0.75f
+                                    )
                                 )
-                            )
-                        }
+                            }
 
+                            if (record.isCancelled) {
+                                CancelledWatermark(isDark = isDark)
+                            } else if (record.isReceived) {
+                                ReceivedWatermark(isDark = isDark)
+                            }
+                        }
+                    } else {
                         if (record.isCancelled) {
                             CancelledWatermark(isDark = isDark)
                         } else if (record.isReceived) {

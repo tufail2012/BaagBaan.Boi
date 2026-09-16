@@ -84,6 +84,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kyant.backdrop.Backdrop
 import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.GlobalSearchResult
@@ -96,7 +97,8 @@ fun GlobalSearchResultsScreen(
     viewModel: CropViewModel,
     gardenPlanningViewModel: GardenPlanningViewModel? = null,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null
 ) {
     var selectedDetailCropRecord by remember { mutableStateOf<CropRecord?>(null) }
     var selectedDetailGardenEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
@@ -522,7 +524,8 @@ fun GlobalSearchResultsScreen(
             onUpdateRecord = { updatedRec ->
                 selectedDetailCropRecord = updatedRec
                 viewModel.updateRecordSync(updatedRec)
-            }
+            },
+            backdrop = backdrop
         )
     }
 
