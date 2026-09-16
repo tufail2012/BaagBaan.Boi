@@ -55,8 +55,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -4224,6 +4228,7 @@ private fun FormAmbientBackdrop(
     modifier: Modifier = Modifier
 ) {
     val palette = com.example.ui.theme.LocalAppPalette.current
+    val textMeasurer = rememberTextMeasurer()
 
     val bloomColors = remember(palette, accentColor, isDark, isAmoled) {
         if (palette.isTwoColor) {
@@ -4286,6 +4291,17 @@ private fun FormAmbientBackdrop(
     val bloomAlpha = if (isAmoled) 0.14f else if (isDark) 0.18f else 0.22f
     val currentScrollOffset = scrollOffsetProvider ?: { scrollOffset }
 
+    // Text reads more strongly than an abstract shape at the same alpha, so
+    // this stays a notch below shapeAlpha to avoid competing with the form
+    // fields the user is actually typing into.
+    val wordAlpha = bloomAlpha * 1.1f
+    fun wordStyle(color: Color) = TextStyle(
+        color = color.copy(alpha = wordAlpha),
+        fontSize = 34.sp,
+        fontWeight = FontWeight.Black,
+        letterSpacing = 4.sp
+    )
+
     Spacer(
         modifier = modifier
             .fillMaxSize()
@@ -4336,6 +4352,39 @@ private fun FormAmbientBackdrop(
                             center = Offset(w * 0.50f, h * 0.45f),
                             radius = w * 0.55f
                         )
+
+                        rotate(degrees = -12f, pivot = Offset(w * 0.5f, h * 0.22f)) {
+                            drawText(
+                                textMeasurer = textMeasurer,
+                                text = "GROW",
+                                topLeft = Offset(w * 0.28f, h * 0.20f),
+                                style = wordStyle(primaryBloom)
+                            )
+                        }
+                        rotate(degrees = 8f, pivot = Offset(w * 0.5f, h * 0.52f)) {
+                            drawText(
+                                textMeasurer = textMeasurer,
+                                text = "HARVEST",
+                                topLeft = Offset(w * 0.18f, h * 0.50f),
+                                style = wordStyle(secondaryBloom)
+                            )
+                        }
+                        rotate(degrees = -6f, pivot = Offset(w * 0.5f, h * 0.65f)) {
+                            drawText(
+                                textMeasurer = textMeasurer,
+                                text = "BLOOM",
+                                topLeft = Offset(w * 0.32f, h * 0.63f),
+                                style = wordStyle(tertiaryBloom)
+                            )
+                        }
+                        rotate(degrees = 10f, pivot = Offset(w * 0.5f, h * 0.93f)) {
+                            drawText(
+                                textMeasurer = textMeasurer,
+                                text = "ROOTED",
+                                topLeft = Offset(w * 0.22f, h * 0.91f),
+                                style = wordStyle(centerBloom)
+                            )
+                        }
                     }
                 }
             }
