@@ -880,13 +880,13 @@ fun AgriCropMainScreen(
                                             val recordsListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
                                             LaunchedEffect(
-                                                formListState.isScrollInProgress,
-                                                recordsListState.isScrollInProgress,
+                                                formListState.canScrollBackward,
+                                                recordsListState.canScrollBackward,
                                                 pagerState.currentPage
                                             ) {
                                                 if (pagerState.currentPage == page) {
-                                                    isHeaderBlurActive = formListState.isScrollInProgress ||
-                                                        recordsListState.isScrollInProgress
+                                                    isHeaderBlurActive = formListState.canScrollBackward ||
+                                                        recordsListState.canScrollBackward
                                                 }
                                             }
                                             if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
