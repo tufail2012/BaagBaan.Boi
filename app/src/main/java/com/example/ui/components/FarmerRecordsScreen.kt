@@ -5,9 +5,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -83,6 +86,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -475,6 +479,11 @@ fun FarmerRecordsScreen(
             ) {
                 key(isBackdropReady, contentVersion) {
                     val fabShape = RoundedCornerShape(percent = 50)
+                    val isFabCollapsed by remember {
+                        derivedStateOf {
+                            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0
+                        }
+                    }
                     Surface(
                         onClick = { viewModel.setViewMode(0) },
                         shape = fabShape,
@@ -524,9 +533,13 @@ fun FarmerRecordsScreen(
                                 }
                             )
                             .testTag("fab_add_crop_record")
+                            .animateContentSize()
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                            modifier = Modifier.padding(
+                                horizontal = if (isFabCollapsed) 13.dp else 16.dp,
+                                vertical = 11.dp
+                            ),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(7.dp)
                         ) {
@@ -536,12 +549,20 @@ fun FarmerRecordsScreen(
                                 tint = paletteColor,
                                 modifier = Modifier.size(19.dp)
                             )
-                            Text(
-                                text = "New Entry",
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                            )
+                            AnimatedVisibility(
+                                visible = !isFabCollapsed,
+                                enter = fadeIn() + expandHorizontally(),
+                                exit = fadeOut() + shrinkHorizontally()
+                            ) {
+                                Text(
+                                    text = "New Entry",
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }
