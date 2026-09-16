@@ -598,6 +598,18 @@ private fun Modifier.formLiquidGlassContainer(
 }
 
 @Composable
+private fun FormFieldDivider(
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.material3.HorizontalDivider(
+        modifier = modifier.fillMaxWidth(),
+        thickness = 0.5.dp,
+        color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
+    )
+}
+
+@Composable
 private fun NestedLiquidGlassSection(
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = RoundedCornerShape(20.dp),
@@ -1013,70 +1025,75 @@ fun GardenPlanningFormTab(
         val remainingBalance = viewModel.calculateRemainingBalance()
         val previewMsg = viewModel.getGeneratedPreviewMessage()
 
-        // Serial Number field with Lock / Save / Refresh icons matching FarmerFormScreen
-        OutlinedTextField(
-            value = serialNumber,
-            onValueChange = { 
-                if (!isSerialLocked) {
-                    viewModel.updateSerialNumber(it)
-                }
-            },
-            readOnly = isSerialLocked,
-            label = { Text("Serial No. (Garden Planning) *") },
-            placeholder = { Text("Type serial number (e.g. GP-1001)") },
-            shape = textFieldShape,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .fieldLiquidGlass(
-                    shape = textFieldShape,
-                    backdrop = backdrop,
-                    hazeState = effectiveHaze,
-                    isDark = isDark,
-                    accentColor = gardenAccent
-                )
-                .boundedFormFieldRipple(shape = textFieldShape)
-                .testTag("garden_serial_number_input"),
-            colors = elevatedInputFieldColors(isDark = isDark),
-            leadingIcon = {
-                Icon(
-                    imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
-                    contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
-                    tint = gardenAccent,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        // Section 1: SERIAL NUMBER (Liquid Glass Card)
+        NestedLiquidGlassSection(
+            backdrop = backdrop,
+            hazeState = effectiveHaze,
+            isDark = isDark
+        ) {
+            FormSectionHeader(
+                title = "SERIAL NUMBER",
+                accentColor = gardenAccent,
+                isDark = isDark
+            )
+
+            OutlinedTextField(
+                value = serialNumber,
+                onValueChange = { 
                     if (!isSerialLocked) {
+                        viewModel.updateSerialNumber(it)
+                    }
+                },
+                readOnly = isSerialLocked,
+                label = { Text("Serial No. (Garden Planning) *") },
+                placeholder = { Text("Type serial number (e.g. GP-1001)") },
+                shape = textFieldShape,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewOnFocus()
+                    .testTag("garden_serial_number_input"),
+                colors = elevatedInputFieldColors(isDark = isDark),
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                        contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
+                        tint = gardenAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (!isSerialLocked) {
+                            IconButton(
+                                onClick = { viewModel.lockSerialNumber() },
+                                modifier = Modifier.testTag("save_serial_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Save,
+                                    contentDescription = "Save Serial Number",
+                                    tint = gardenAccent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                         IconButton(
-                            onClick = { viewModel.lockSerialNumber() },
-                            modifier = Modifier.testTag("save_serial_button")
+                            onClick = { viewModel.resetSerialNumber() },
+                            modifier = Modifier.testTag("new_serial_button")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Save Serial Number",
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "New Serial",
                                 tint = gardenAccent,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
-                    IconButton(
-                        onClick = { viewModel.resetSerialNumber() },
-                        modifier = Modifier.testTag("new_serial_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "New Serial",
-                            tint = gardenAccent,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
                 }
-            }
-        )
+            )
+        }
 
-        // Section 1: FARMER DETAILS (Liquid Glass Card)
+        // Section 2: FARMER DETAILS (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1106,17 +1123,12 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = gardenAccent
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_farmer_name_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
+
+            FormFieldDivider(isDark = isDark)
 
             // Farmer Address
             OutlinedTextField(
@@ -1137,17 +1149,12 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = gardenAccent
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_farmer_address_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
+
+            FormFieldDivider(isDark = isDark)
 
             // Contact Number Field Pattern (+91 Prefix + Contact Picker)
             OutlinedTextField(
@@ -1204,14 +1211,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = gardenAccent
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
                             if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
@@ -1235,7 +1235,7 @@ fun GardenPlanningFormTab(
             )
         }
 
-        // Section 2: GARDEN PLANNING SPECIFICATION (Liquid Glass Card)
+        // Section 3: GARDEN PLANNING SPECIFICATION (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1358,14 +1358,7 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldLiquidGlass(
-                                shape = textFieldShape,
-                                backdrop = backdrop,
-                                hazeState = effectiveHaze,
-                                isDark = isDark,
-                                accentColor = gardenAccent
-                            )
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .bringIntoViewOnFocus()
                             .testTag("garden_plant_variety_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1388,14 +1381,7 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldLiquidGlass(
-                                shape = textFieldShape,
-                                backdrop = backdrop,
-                                hazeState = effectiveHaze,
-                                isDark = isDark,
-                                accentColor = gardenAccent
-                            )
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .bringIntoViewOnFocus()
                             .testTag("garden_root_stock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1437,14 +1423,7 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { ageDropdownExpanded = true }
-                                .fieldLiquidGlass(
-                                    shape = textFieldShape,
-                                    backdrop = backdrop,
-                                    hazeState = effectiveHaze,
-                                    isDark = isDark,
-                                    accentColor = gardenAccent
-                                )
-                                .boundedFormFieldRipple(shape = textFieldShape)
+                                .bringIntoViewOnFocus()
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1489,14 +1468,7 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { originDropdownExpanded = true }
-                                .fieldLiquidGlass(
-                                    shape = textFieldShape,
-                                    backdrop = backdrop,
-                                    hazeState = effectiveHaze,
-                                    isDark = isDark,
-                                    accentColor = gardenAccent
-                                )
-                                .boundedFormFieldRipple(shape = textFieldShape)
+                                .bringIntoViewOnFocus()
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1538,14 +1510,7 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = gardenAccent
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_feathers_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -1555,19 +1520,10 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-                        .then(
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.glassCardBackground(
-                                    accentColor = gardenAccent,
-                                    shape = textFieldShape
-                                )
-                            } else {
-                                Modifier.background(
-                                    if (isDark) Color(0xFF1B1D22).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.25f),
-                                    textFieldShape
-                                )
-                            }
+                        .clip(textFieldShape)
+                        .background(
+                            if (isDark) Color(0xFF1B1D22).copy(alpha = 0.40f) else Color.White.copy(alpha = 0.50f),
+                            textFieldShape
                         )
                         .border(
                             width = 0.8.dp,
@@ -1611,7 +1567,7 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Section 3: COST & QUANTITY DETAILS (Liquid Glass Card)
+        // Section 4: COST & QUANTITY DETAILS (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1631,19 +1587,9 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
-                        .then(
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.background(
-                                    if (isDark) Color(0xFF1E2026).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.6f),
-                                    RoundedCornerShape(14.dp)
-                                )
-                            } else {
-                                Modifier.background(
-                                    if (isDark) Color(0xFF1E2026).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.25f),
-                                    RoundedCornerShape(14.dp)
-                                )
-                            }
+                        .background(
+                            if (isDark) Color(0xFF1E2026).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.60f),
+                            RoundedCornerShape(14.dp)
                         )
                         .border(
                             width = 0.8.dp,
@@ -1717,14 +1663,7 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldLiquidGlass(
-                                shape = textFieldShape,
-                                backdrop = backdrop,
-                                hazeState = effectiveHaze,
-                                isDark = isDark,
-                                accentColor = gardenAccent
-                            )
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .bringIntoViewOnFocus()
                             .testTag("garden_kanal_area_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1774,14 +1713,7 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldLiquidGlass(
-                                shape = textFieldShape,
-                                backdrop = backdrop,
-                                hazeState = effectiveHaze,
-                                isDark = isDark,
-                                accentColor = gardenAccent
-                            )
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .bringIntoViewOnFocus()
                             .testTag("garden_plants_per_kanal_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1818,14 +1750,7 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldLiquidGlass(
-                                shape = textFieldShape,
-                                backdrop = backdrop,
-                                hazeState = effectiveHaze,
-                                isDark = isDark,
-                                accentColor = gardenAccent
-                            )
-                            .boundedFormFieldRipple(shape = textFieldShape)
+                            .bringIntoViewOnFocus()
                             .testTag("garden_total_plants_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1852,14 +1777,7 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = gardenAccent
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_cost_per_plant_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -1884,19 +1802,9 @@ fun GardenPlanningFormTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
-                            .then(
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.background(
-                                        if (isDark) Color(0xFF22242B).copy(alpha = 0.5f) else Color(0xFFF8F9FA).copy(alpha = 0.6f),
-                                        RoundedCornerShape(16.dp)
-                                    )
-                                } else {
-                                    Modifier.background(
-                                        if (isDark) Color(0xFF22242B).copy(alpha = 0.15f) else Color(0xFFF8F9FA).copy(alpha = 0.25f),
-                                        RoundedCornerShape(16.dp)
-                                    )
-                                }
+                            .background(
+                                if (isDark) Color(0xFF22242B).copy(alpha = 0.50f) else Color(0xFFF8F9FA).copy(alpha = 0.70f),
+                                RoundedCornerShape(16.dp)
                             )
                             .border(
                                 width = 0.8.dp,
@@ -1951,7 +1859,7 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Section 4: PAYMENT STATUS (Liquid Glass Card)
+        // Section 5: PAYMENT STATUS (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1989,14 +1897,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = pillShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = gardenAccent
-                    )
-                    .boundedFormFieldRipple(shape = pillShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_amount_paid_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
@@ -2006,19 +1907,9 @@ fun GardenPlanningFormTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = backdrop)
-                    .then(
-                        if (backdrop == null || !isGlassSupported()) {
-                            Modifier.background(
-                                if (isDark) Color(0xFF1E2026).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.6f),
-                                RoundedCornerShape(16.dp)
-                            )
-                        } else {
-                            Modifier.background(
-                                if (isDark) Color(0xFF1E2026).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.25f),
-                                RoundedCornerShape(16.dp)
-                            )
-                        }
+                    .background(
+                        if (isDark) Color(0xFF1E2026).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.70f),
+                        RoundedCornerShape(16.dp)
                     )
                     .border(
                         width = 0.8.dp,
@@ -2066,7 +1957,7 @@ fun GardenPlanningFormTab(
             }
         }
 
-        // Section 5: SCHEDULE & DATES (Liquid Glass Card)
+        // Section 6: SCHEDULE & DATES (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -2121,14 +2012,7 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = gardenAccent
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_booking_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2169,21 +2053,14 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = gardenAccent
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_expected_delivery_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
             }
         }
 
-        // Section 6: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
+        // Section 7: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -2232,14 +2109,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = gardenAccent
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_notes_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
@@ -2253,15 +2123,19 @@ fun GardenPlanningFormTab(
             )
         }
 
-        // Action Buttons
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Section 8: ACTIONS (Liquid Glass Card)
+        NestedLiquidGlassSection(
+            backdrop = backdrop,
+            hazeState = effectiveHaze,
+            isDark = isDark
         ) {
-            // 1. Save Booking Entry
+            FormSectionHeader(
+                title = "ACTIONS",
+                accentColor = gardenAccent,
+                isDark = isDark
+            )
+
+            // 1. New Booking Entry / Update Booking Entry
             Button(
                 onClick = {
                     if (!isSaving) {
@@ -2294,7 +2168,7 @@ fun GardenPlanningFormTab(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (editingEntryId != null) "Update Booking Entry" else "Save Booking Entry",
+                    text = if (editingEntryId != null) "Update Booking Entry" else "New Booking Entry",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color.White
@@ -2465,9 +2339,9 @@ fun GardenPlanningFormTab(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-
-            Spacer(modifier = Modifier.height(100.dp))
         }
+
+        Spacer(modifier = Modifier.height(100.dp))
     }
 
     if (showDatePickerDialog) {
@@ -5116,19 +4990,9 @@ fun GardenPlanningVarietyLineCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(cardShape)
-            .liquidGlassNav(shape = cardShape, backdrop = backdrop)
-            .then(
-                if (backdrop == null || !isGlassSupported()) {
-                    Modifier.glassCardBackground(
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        shape = cardShape
-                    )
-                } else {
-                    Modifier.background(
-                        if (isDark) Color(0xFF1B1D22).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.25f),
-                        cardShape
-                    )
-                }
+            .background(
+                if (isDark) Color(0xFF1B1D22).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.60f),
+                cardShape
             )
             .border(
                 width = 0.7.dp,
@@ -5142,27 +5006,6 @@ fun GardenPlanningVarietyLineCard(
                 ),
                 shape = cardShape
             )
-            .drawWithContent {
-                drawContent()
-                val w = size.width
-                val h = size.height
-                val cornerRadiusPx = 14.dp.toPx()
-                drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.22f else 0.38f),
-                            Color.White.copy(alpha = if (isDark) 0.04f else 0.10f),
-                            Color.Transparent
-                        ),
-                        startY = 0f,
-                        endY = minOf(h * 0.4f, 40.dp.toPx())
-                    ),
-                    topLeft = Offset(0.8.dp.toPx(), 0.8.dp.toPx()),
-                    size = Size(w - 1.6.dp.toPx(), h - 1.6.dp.toPx()),
-                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                    style = Stroke(width = 0.8.dp.toPx())
-                )
-            }
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -5210,14 +5053,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = MaterialTheme.colorScheme.primary
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_variety_line_name_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
@@ -5242,14 +5078,7 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_rootstock_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5272,14 +5101,7 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_feathers_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5325,14 +5147,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_kanal_area_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5403,14 +5218,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_plants_per_kanal_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5455,14 +5263,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .fieldLiquidGlass(
-                            shape = textFieldShape,
-                            backdrop = backdrop,
-                            hazeState = effectiveHaze,
-                            isDark = isDark,
-                            accentColor = MaterialTheme.colorScheme.primary
-                        )
-                        .boundedFormFieldRipple(shape = textFieldShape)
+                        .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_total_plants_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5485,14 +5286,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldLiquidGlass(
-                        shape = textFieldShape,
-                        backdrop = backdrop,
-                        hazeState = effectiveHaze,
-                        isDark = isDark,
-                        accentColor = MaterialTheme.colorScheme.primary
-                    )
-                    .boundedFormFieldRipple(shape = textFieldShape)
+                    .bringIntoViewOnFocus()
                     .testTag("garden_variety_line_price_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
