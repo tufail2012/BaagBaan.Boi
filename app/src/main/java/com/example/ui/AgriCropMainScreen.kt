@@ -51,6 +51,7 @@ import com.example.ui.theme.AgriRedPrimary
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -657,10 +658,13 @@ fun AgriCropMainScreen(
                     pageCount = { mainTabs.size }
                 )
 
+                var animatingNavTargetPage by remember { mutableIntStateOf(-1) }
+                var navAnimationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
                 // Synchronize tab when user finishes swiping to a new page
-                LaunchedEffect(pagerState.currentPage) {
-                    if (pagerState.currentPage in mainTabs.indices) {
-                        val targetCategory = mainTabs[pagerState.currentPage]
+                LaunchedEffect(pagerState.settledPage, pagerState.isScrollInProgress) {
+                    if (!pagerState.isScrollInProgress && animatingNavTargetPage == -1 && pagerState.settledPage in mainTabs.indices) {
+                        val targetCategory = mainTabs[pagerState.settledPage]
                         if (!selectedService.equals(targetCategory, ignoreCase = true)) {
                             viewModel.selectServiceCategory(targetCategory)
                             if (targetCategory.equals("Garden Planning", ignoreCase = true)) {
@@ -670,10 +674,14 @@ fun AgriCropMainScreen(
                     }
                 }
 
-                // Synchronize pager when tab is selected from outside (e.g. bottom nav, dashboard, search)
+                // Synchronize pager when tab is selected from outside (e.g. dashboard, search)
                 LaunchedEffect(selectedService) {
                     val targetIndex = mainTabs.indexOfFirst { it.equals(selectedService, ignoreCase = true) }
-                    if (targetIndex >= 0 && pagerState.currentPage != targetIndex && !pagerState.isScrollInProgress) {
+                    if (targetIndex >= 0 &&
+                        targetIndex != pagerState.currentPage &&
+                        targetIndex != pagerState.targetPage &&
+                        targetIndex != animatingNavTargetPage
+                    ) {
                         pagerState.animateScrollToPage(
                             page = targetIndex,
                             animationSpec = tween(durationMillis = 300)
@@ -952,16 +960,24 @@ fun AgriCropMainScreen(
                                 selectedCategory = selectedService,
                                 onCategorySelected = { category ->
                                     val targetIndex = mainTabs.indexOfFirst { it.equals(category, ignoreCase = true) }
-                                    viewModel.selectServiceCategory(category)
                                     if (category.equals("Garden Planning", ignoreCase = true) || category.equals("Garden", ignoreCase = true)) {
                                         gardenPlanningViewModel.resetToNewEntry()
                                     }
-                                    if (targetIndex >= 0) {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(
-                                                page = targetIndex,
-                                                animationSpec = tween(durationMillis = 300)
-                                            )
+                                    viewModel.selectServiceCategory(category)
+                                    if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+                                        animatingNavTargetPage = targetIndex
+                                        navAnimationJob?.cancel()
+                                        navAnimationJob = coroutineScope.launch {
+                                            try {
+                                                pagerState.animateScrollToPage(
+                                                    page = targetIndex,
+                                                    animationSpec = tween(durationMillis = 300)
+                                                )
+                                            } finally {
+                                                if (animatingNavTargetPage == targetIndex) {
+                                                    animatingNavTargetPage = -1
+                                                }
+                                            }
                                         }
                                     }
                                 },

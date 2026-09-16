@@ -135,17 +135,33 @@ fun AgriBottomNav(
 
     val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
     val tabStepPx = if (rowSize.width > 0 && n > 0) (rowSize.width + gapPx) / n else 0f
-    val pillTargetPx = if (tabStepPx > 0f) selectedIndex * tabStepPx + dragOffset else 0f
 
-    val animatedPillOffset by animateFloatAsState(
-        targetValue = pillTargetPx,
+    val fallbackPillOffset by animateFloatAsState(
+        targetValue = if (tabStepPx > 0f) selectedIndex * tabStepPx + dragOffset else 0f,
         animationSpec = GlassSpring,
         label = "bottomNavPillOffset"
     )
 
-    val lag = if (tabStepPx > 0f) {
-        (kotlin.math.abs(pillTargetPx - animatedPillOffset) / tabStepPx).coerceIn(0f, 1f)
-    } else 0f
+    val pillOffsetPx = if (pagerState != null) {
+        val continuousPage = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+            .coerceIn(0f, (n - 1).toFloat())
+        if (tabStepPx > 0f) continuousPage * tabStepPx + dragOffset else 0f
+    } else {
+        fallbackPillOffset
+    }
+
+    val lag = if (pagerState != null) {
+        if (pagerState.isScrollInProgress) {
+            (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f)
+        } else if (tabStepPx > 0f && dragOffset != 0f) {
+            (kotlin.math.abs(dragOffset) / tabStepPx).coerceIn(0f, 1f)
+        } else 0f
+    } else {
+        val pillTargetPx = if (tabStepPx > 0f) selectedIndex * tabStepPx + dragOffset else 0f
+        if (tabStepPx > 0f) {
+            (kotlin.math.abs(pillTargetPx - fallbackPillOffset) / tabStepPx).coerceIn(0f, 1f)
+        } else 0f
+    }
 
     var lastHapticTab by remember { mutableIntStateOf(selectedIndex) }
     LaunchedEffect(selectedIndex) { dragOffset = 0f }
@@ -174,7 +190,7 @@ fun AgriBottomNav(
                     .width(with(density) { tabWidthPx.toDp() })
                     .height(with(density) { rowSize.height.toDp() })
                     .graphicsLayer {
-                        translationX = animatedPillOffset
+                        translationX = pillOffsetPx
                         scaleX = 1f + lag * STRETCH
                         scaleY = 1f - lag * STRETCH * SQUASH
                     }
@@ -283,8 +299,13 @@ fun AgriBottomNav(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val activeTabIndex = if (pagerState != null && pagerState.isScrollInProgress) {
+                pagerState.targetPage.coerceIn(0, navItems.lastIndex)
+            } else {
+                selectedIndex
+            }
             navItems.forEachIndexed { index, item ->
-                val isSelected = index == selectedIndex
+                val isSelected = index == activeTabIndex
                 val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
                 val scale by animateFloatAsState(
                     targetValue = if (isSelected) 1.08f else 1f,
