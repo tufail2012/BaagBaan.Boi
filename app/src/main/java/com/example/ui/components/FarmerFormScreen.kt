@@ -826,6 +826,11 @@ fun FarmerFormScreen(
                 .fillMaxSize()
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundBrush)
+            )
             FormAmbientBackdrop(
                 accentColor = formAccent,
                 isDark = isDark,
