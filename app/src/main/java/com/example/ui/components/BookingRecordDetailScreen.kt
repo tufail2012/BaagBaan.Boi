@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -98,8 +100,20 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.highlight.Highlight
+import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -214,6 +228,81 @@ fun serializePaymentHistory(list: List<PaymentInstallment>): String {
     return array.toString()
 }
 
+private const val BLUR_RADIUS_DP = 8f
+private const val LENS_HEIGHT = 0.5f
+private const val LENS_AMOUNT = 0.5f
+private const val LENS_MAX_DP = 48f
+private const val SURFACE_OPACITY = 0.4f
+
+/**
+ * Liquid Glass modifier for Booking Record Detail cards utilizing genuine Backdrop sampling,
+ * vibrancy, 8dp blur, lens refraction, depth effect, chromatic aberration, highlight, shadow,
+ * and adaptive surface tint.
+ */
+@Composable
+fun Modifier.bookingDetailLiquidGlass(
+    backdrop: Backdrop?,
+    shape: Shape = RoundedCornerShape(24.dp)
+): Modifier {
+    if (backdrop == null || !isGlassSupported()) {
+        val isDark = isAppInDarkMode()
+        val fallbackBg = if (isDark) Color(0xFF1E293B).copy(alpha = 0.70f) else Color.White.copy(alpha = 0.70f)
+        val fallbackBorder = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.60f)
+        return this
+            .clip(shape)
+            .background(fallbackBg)
+            .border(0.8.dp, fallbackBorder, shape)
+    }
+
+    val density = LocalDensity.current
+    val blurPx = with(density) { 8.dp.toPx() }
+    val lensHeightPx = with(density) { (0.5f * 48f).dp.toPx() }
+    val lensAmountPx = with(density) { (0.5f * 48f).dp.toPx() }
+
+    val surfaceTintColor =
+        if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
+            Color(0xFFFAFAFA)
+        } else {
+            Color(0xFF121212)
+        }
+
+    val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
+    val rimBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.28f else 0.55f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.10f else 0.22f),
+            Color.White.copy(alpha = if (isDark || isAmoled) 0.03f else 0.08f)
+        )
+    )
+
+    return this
+        .clip(shape)
+        .drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                vibrancy()
+                blur(blurPx)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensHeightPx,
+                        refractionAmount = lensAmountPx,
+                        depthEffect = true,
+                        chromaticAberration = true
+                    )
+                }
+            },
+            highlight = { Highlight.Default },
+            shadow = { Shadow.Default },
+            onDrawSurface = {
+                drawRect(surfaceTintColor.copy(alpha = 0.4f))
+            }
+        )
+        .border(0.8.dp, rimBrush, shape)
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BookingRecordDetailDialog(
@@ -223,7 +312,8 @@ fun BookingRecordDetailDialog(
     onDelete: (CropRecord) -> Unit,
     onUpdateRecord: suspend (CropRecord) -> Unit,
     customPaletteColor: Color? = null,
-    hazeState: HazeState? = LocalAppGlassHazeState.current
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
+    backdrop: Backdrop? = null
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -261,6 +351,9 @@ fun BookingRecordDetailDialog(
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
     val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
+    val internalBackdrop = rememberLayerBackdrop()
+    val effectiveBackdrop = backdrop ?: internalBackdrop
+
     val scrollState = rememberScrollState()
 
     Dialog(
@@ -285,11 +378,45 @@ fun BookingRecordDetailDialog(
         ) {
             CompositionLocalProvider(LocalAppGlassHazeState provides hazeState) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                if (record.isCancelled) {
-                    CancelledWatermark(isDark = isDark)
-                } else if (record.isReceived) {
-                    ReceivedWatermark(isDark = isDark)
-                }
+                    // Backdrop capture layer for real Liquid Glass
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (effectiveBackdrop is LayerBackdrop) {
+                                    Modifier.layerBackdrop(effectiveBackdrop)
+                                } else Modifier
+                            )
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        sectionAccentColor.copy(alpha = if (isDark) 0.20f else 0.14f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.85f, size.height * 0.18f),
+                                    radius = size.width * 0.70f
+                                )
+                            )
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        sectionAccentColor.copy(alpha = if (isDark) 0.16f else 0.10f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.15f, size.height * 0.55f),
+                                    radius = size.width * 0.75f
+                                )
+                            )
+                        }
+
+                        if (record.isCancelled) {
+                            CancelledWatermark(isDark = isDark)
+                        } else if (record.isReceived) {
+                            ReceivedWatermark(isDark = isDark)
+                        }
+                    }
 
                 Column(
                     modifier = Modifier
@@ -422,10 +549,9 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .staticGlassCard(
-                            isDark = isDark,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .bookingDetailLiquidGlass(
+                            backdrop = effectiveBackdrop,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Column(
@@ -565,10 +691,9 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .staticGlassCard(
-                            isDark = isDark,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .bookingDetailLiquidGlass(
+                            backdrop = effectiveBackdrop,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Column(
@@ -648,8 +773,8 @@ fun BookingRecordDetailDialog(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .staticGlassCard(
-                                        isDark = isDark,
+                                    .bookingDetailLiquidGlass(
+                                        backdrop = effectiveBackdrop,
                                         shape = RoundedCornerShape(12.dp)
                                     )
                                     .padding(vertical = 2.dp)
@@ -760,10 +885,9 @@ fun BookingRecordDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .staticGlassCard(
-                            isDark = isDark,
-                            shape = RoundedCornerShape(24.dp),
-                            cornerRadius = 24.dp
+                        .bookingDetailLiquidGlass(
+                            backdrop = effectiveBackdrop,
+                            shape = RoundedCornerShape(24.dp)
                         )
                 ) {
                     Column(
@@ -823,8 +947,8 @@ fun BookingRecordDetailDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .staticGlassCard(
-                                    isDark = isDark,
+                                .bookingDetailLiquidGlass(
+                                    backdrop = effectiveBackdrop,
                                     shape = RoundedCornerShape(12.dp)
                                 )
                         ) {
@@ -1030,8 +1154,8 @@ fun BookingRecordDetailDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .staticGlassCard(
-                                                isDark = isDark,
+                                            .bookingDetailLiquidGlass(
+                                                backdrop = effectiveBackdrop,
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                     ) {
