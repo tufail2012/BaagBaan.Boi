@@ -54,9 +54,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -4228,68 +4234,37 @@ private fun FormAmbientBackdrop(
     scrollOffsetProvider: (() -> Float)? = null,
     modifier: Modifier = Modifier
 ) {
-    val palette = com.example.ui.theme.LocalAppPalette.current
-
-    val bloomColors = remember(palette, accentColor, isDark, isAmoled) {
-        if (palette.isTwoColor) {
-            val p = if (isDark || isAmoled) Color(0xFF3F3F46) else Color(0xFFCBD5E1)
-            val s = if (isDark || isAmoled) Color(0xFF27272A) else Color(0xFFE2E8F0)
-            val t = if (isDark || isAmoled) Color(0xFF52525B) else Color(0xFF94A3B8)
-            listOf(p, s, t)
-        } else {
-            val (baseP, baseS, baseT) = if (palette.id != "solid_active") {
-                Triple(
-                    palette.getPrimary(isDark, isAmoled),
-                    palette.getSecondary(isDark, isAmoled),
-                    palette.getTertiary(isDark, isAmoled)
-                )
-            } else {
-                val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
-                val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
-                val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
-                val hsv = FloatArray(3)
-                android.graphics.Color.RGBToHSV(r, g, b, hsv)
-                val hue = hsv[0]
-                val sec = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue + 42f) % 360f, 0.55f, 0.90f)))
-                val tert = Color(android.graphics.Color.HSVToColor(floatArrayOf((hue - 38f + 360f) % 360f, 0.50f, 0.85f)))
-                Triple(accentColor, sec, tert)
-            }
-
-            fun toSoftBloomColor(c: Color): Color {
-                val r = (c.red * 255f).toInt().coerceIn(0, 255)
-                val g = (c.green * 255f).toInt().coerceIn(0, 255)
-                val b = (c.blue * 255f).toInt().coerceIn(0, 255)
-                val hsv = FloatArray(3)
-                android.graphics.Color.RGBToHSV(r, g, b, hsv)
-                val hue = hsv[0]
-                val sat = if (isAmoled) 0.42f else if (isDark) 0.38f else 0.30f
-                val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
-                return Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat.coerceIn(0.06f, 0.50f), value)))
-            }
-
-            listOf(toSoftBloomColor(baseP), toSoftBloomColor(baseS), toSoftBloomColor(baseT))
-        }
+    // Restrained, blended orchard color palette configured for subtle depth behind Liquid Glass
+    val appleRed = remember(isDark, isAmoled) {
+        val alpha = if (isAmoled) 0.15f else if (isDark) 0.17f else 0.15f
+        Color(0xFFD94A4A).copy(alpha = alpha)
     }
-
-    val primaryBloom = bloomColors[0]
-    val secondaryBloom = bloomColors[1]
-    val tertiaryBloom = bloomColors[2]
-
-    val centerBloom = remember(accentColor, isDark, isAmoled) {
-        val r = (accentColor.red * 255f).toInt().coerceIn(0, 255)
-        val g = (accentColor.green * 255f).toInt().coerceIn(0, 255)
-        val b = (accentColor.blue * 255f).toInt().coerceIn(0, 255)
-        val hsv = FloatArray(3)
-        android.graphics.Color.RGBToHSV(r, g, b, hsv)
-        val hue = (hsv[0] + 90f) % 360f
-        val sat = if (isAmoled) 0.45f else if (isDark) 0.40f else 0.32f
-        val value = if (isAmoled) 0.85f else if (isDark) 0.80f else 0.95f
-        Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, value)))
+    val deepAppleRed = remember(isDark, isAmoled) {
+        val alpha = if (isAmoled) 0.09f else if (isDark) 0.11f else 0.09f
+        Color(0xFFA83232).copy(alpha = alpha)
     }
-
-    // Kept deliberately more subtle than Dashboard's — this screen is read/typed on constantly
-    val bloomAlpha = if (isAmoled) 0.14f else if (isDark) 0.18f else 0.22f
-    val currentScrollOffset = scrollOffsetProvider ?: { scrollOffset }
+    val leafGreen = remember(isDark, isAmoled) {
+        val alpha = if (isAmoled) 0.13f else if (isDark) 0.15f else 0.13f
+        Color(0xFF5C8F62).copy(alpha = alpha)
+    }
+    val deepGreen = remember(isDark, isAmoled) {
+        val alpha = if (isAmoled) 0.08f else if (isDark) 0.09f else 0.08f
+        Color(0xFF315C42).copy(alpha = alpha)
+    }
+    val warmAmber = remember(isDark, isAmoled, accentColor) {
+        val alpha = if (isAmoled) 0.10f else if (isDark) 0.12f else 0.10f
+        val base = Color(0xFFC58A3A)
+        Color(
+            red = (base.red * 0.85f + accentColor.red * 0.15f).coerceIn(0f, 1f),
+            green = (base.green * 0.85f + accentColor.green * 0.15f).coerceIn(0f, 1f),
+            blue = (base.blue * 0.85f + accentColor.blue * 0.15f).coerceIn(0f, 1f),
+            alpha = alpha
+        )
+    }
+    val softCream = remember(isDark, isAmoled) {
+        val alpha = if (isAmoled) 0.05f else if (isDark) 0.07f else 0.06f
+        Color(0xFFE8D8B8).copy(alpha = alpha)
+    }
 
     Spacer(
         modifier = modifier
@@ -4297,54 +4272,283 @@ private fun FormAmbientBackdrop(
             .drawWithCache {
                 val w = size.width
                 val h = size.height
-                val brush1 = Brush.radialGradient(
-                    colors = listOf(primaryBloom.copy(alpha = bloomAlpha), Color.Transparent),
-                    center = Offset(w * 0.85f, h * 0.12f),
-                    radius = w * 0.78f
-                )
-                val brush2 = Brush.radialGradient(
-                    colors = listOf(secondaryBloom.copy(alpha = bloomAlpha * 0.9f), Color.Transparent),
-                    center = Offset(w * 0.10f, h * 0.42f),
-                    radius = w * 0.72f
-                )
-                val brush3 = Brush.radialGradient(
-                    colors = listOf(tertiaryBloom.copy(alpha = bloomAlpha * 0.85f), Color.Transparent),
-                    center = Offset(w * 0.90f, h * 0.78f),
-                    radius = w * 0.74f
-                )
-                val brush4 = Brush.radialGradient(
-                    colors = listOf(centerBloom.copy(alpha = bloomAlpha * 1.1f), Color.Transparent),
-                    center = Offset(w * 0.50f, h * 0.45f),
-                    radius = w * 0.55f
-                )
+
+                // Sizes configured in 24dp–90dp range
+                val apple1Size = 56.dp.toPx()
+                val apple2Size = 64.dp.toPx()
+                val apple3Size = 36.dp.toPx()
+                val leaf1Size = 42.dp.toPx()
+                val leaf2Size = 30.dp.toPx()
+                val leaf3Size = 46.dp.toPx()
+                val leaf4Size = 28.dp.toPx()
+                val leaf5Size = 34.dp.toPx()
+                val branchStroke = 3.8.dp.toPx()
+                val subBranchLen = 32.dp.toPx()
+                val treeHeight = 72.dp.toPx()
+                val treeCrown = 48.dp.toPx()
 
                 onDrawBehind {
-                    val yShift = -currentScrollOffset() * 0.20f
-                    translate(left = 0f, top = yShift) {
-                        drawCircle(
-                            brush = brush1,
-                            center = Offset(w * 0.85f, h * 0.12f),
-                            radius = w * 0.78f
-                        )
-                        drawCircle(
-                            brush = brush2,
-                            center = Offset(w * 0.10f, h * 0.42f),
-                            radius = w * 0.72f
-                        )
-                        drawCircle(
-                            brush = brush3,
-                            center = Offset(w * 0.90f, h * 0.78f),
-                            radius = w * 0.74f
-                        )
-                        drawCircle(
-                            brush = brush4,
-                            center = Offset(w * 0.50f, h * 0.45f),
-                            radius = w * 0.55f
-                        )
-                    }
+                    // Fixed Orchard Canvas: Stable screen coordinate system, unaffected by form scrolling
+
+                    // 1. Upper-Right Canopy: subtle overhanging bough, apple, and overlapping leaves
+                    drawBranch(
+                        start = Offset(w * 1.04f, h * 0.04f),
+                        controlPoint = Offset(w * 0.82f, h * 0.07f),
+                        end = Offset(w * 0.68f, h * 0.12f),
+                        strokeWidth = branchStroke,
+                        color = warmAmber,
+                        subBranchAngleDeg = 65f,
+                        subBranchLength = subBranchLen
+                    )
+                    drawLeaf(
+                        center = Offset(w * 0.71f, h * 0.11f),
+                        size = leaf1Size,
+                        color = leafGreen,
+                        rotation = -34f
+                    )
+                    drawApple(
+                        center = Offset(w * 0.83f, h * 0.17f),
+                        size = apple1Size,
+                        color = appleRed,
+                        rotation = 12f
+                    )
+                    drawLeaf(
+                        center = Offset(w * 0.88f, h * 0.14f),
+                        size = leaf2Size,
+                        color = deepGreen,
+                        rotation = 40f
+                    )
+
+                    // 2. Mid-Left Orchard Silhouette: gentle orchard tree and foliage
+                    drawTree(
+                        base = Offset(w * 0.08f, h * 0.54f),
+                        height = treeHeight,
+                        crownWidth = treeCrown,
+                        color = deepGreen,
+                        rotation = 6f
+                    )
+                    drawLeaf(
+                        center = Offset(w * 0.18f, h * 0.46f),
+                        size = leaf3Size,
+                        color = leafGreen,
+                        rotation = 52f
+                    )
+
+                    // 3. Lower-Left Harvest Depth: deep apple with subtle overlapping cream leaf
+                    drawApple(
+                        center = Offset(w * 0.16f, h * 0.67f),
+                        size = apple2Size,
+                        color = deepAppleRed,
+                        rotation = -16f
+                    )
+                    drawLeaf(
+                        center = Offset(w * 0.22f, h * 0.69f),
+                        size = leaf4Size,
+                        color = softCream,
+                        rotation = -60f
+                    )
+
+                    // 4. Lower-Right Harvest Accent: small apple with warm amber leaf
+                    drawApple(
+                        center = Offset(w * 0.86f, h * 0.81f),
+                        size = apple3Size,
+                        color = appleRed,
+                        rotation = 10f
+                    )
+                    drawLeaf(
+                        center = Offset(w * 0.81f, h * 0.83f),
+                        size = leaf5Size,
+                        color = warmAmber,
+                        rotation = -24f
+                    )
                 }
             }
     )
+}
+
+/**
+ * Reusable organic apple silhouette drawing helper with dual-cheek lobes, tapered base, and curved stem.
+ */
+private fun DrawScope.drawApple(
+    center: Offset,
+    size: Float,
+    color: Color,
+    rotation: Float = 0f
+) {
+    rotate(rotation, center) {
+        val r = size * 0.42f
+
+        // Two soft overlapping cheek lobes for the organic apple shape
+        drawCircle(
+            color = color,
+            radius = r,
+            center = center + Offset(-r * 0.35f, 0f)
+        )
+        drawCircle(
+            color = color,
+            radius = r,
+            center = center + Offset(r * 0.35f, 0f)
+        )
+
+        // Lower body oval to form the gently tapered apple base
+        drawOval(
+            color = color,
+            topLeft = Offset(center.x - r * 0.92f, center.y - r * 0.10f),
+            size = Size(r * 1.84f, r * 1.32f)
+        )
+
+        // Subtle curved stem at the top cleft
+        val stemPath = Path().apply {
+            moveTo(center.x, center.y - r * 0.72f)
+            quadraticBezierTo(
+                center.x + r * 0.22f, center.y - r * 1.15f,
+                center.x + r * 0.38f, center.y - r * 1.30f
+            )
+        }
+        drawPath(
+            path = stemPath,
+            color = color.copy(alpha = (color.alpha * 0.90f).coerceAtMost(1f)),
+            style = Stroke(width = (size * 0.045f).coerceAtLeast(1.5f), cap = StrokeCap.Round)
+        )
+    }
+}
+
+/**
+ * Reusable organic leaf silhouette drawing helper with curved contours and central vein.
+ */
+private fun DrawScope.drawLeaf(
+    center: Offset,
+    size: Float,
+    color: Color,
+    rotation: Float = 0f
+) {
+    rotate(rotation, center) {
+        val path = Path().apply {
+            moveTo(center.x, center.y - size * 0.5f)
+            quadraticBezierTo(
+                center.x + size * 0.52f,
+                center.y - size * 0.08f,
+                center.x,
+                center.y + size * 0.5f
+            )
+            quadraticBezierTo(
+                center.x - size * 0.52f,
+                center.y - size * 0.08f,
+                center.x,
+                center.y - size * 0.5f
+            )
+            close()
+        }
+        drawPath(path, color)
+
+        // Delicate organic center vein line
+        val veinPath = Path().apply {
+            moveTo(center.x, center.y - size * 0.40f)
+            quadraticBezierTo(
+                center.x + size * 0.03f, center.y,
+                center.x, center.y + size * 0.40f
+            )
+        }
+        drawPath(
+            path = veinPath,
+            color = color.copy(alpha = (color.alpha * 0.65f).coerceAtMost(1f)),
+            style = Stroke(width = (size * 0.032f).coerceAtLeast(1f), cap = StrokeCap.Round)
+        )
+    }
+}
+
+/**
+ * Reusable organic branch silhouette drawing helper with optional secondary offshoot.
+ */
+private fun DrawScope.drawBranch(
+    start: Offset,
+    controlPoint: Offset,
+    end: Offset,
+    strokeWidth: Float,
+    color: Color,
+    subBranchAngleDeg: Float = 0f,
+    subBranchLength: Float = 0f
+) {
+    val branchPath = Path().apply {
+        moveTo(start.x, start.y)
+        quadraticBezierTo(controlPoint.x, controlPoint.y, end.x, end.y)
+    }
+    drawPath(
+        path = branchPath,
+        color = color,
+        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+    )
+
+    if (subBranchLength > 0f) {
+        val midX = 0.25f * start.x + 0.5f * controlPoint.x + 0.25f * end.x
+        val midY = 0.25f * start.y + 0.5f * controlPoint.y + 0.25f * end.y
+        val rad = Math.toRadians(subBranchAngleDeg.toDouble())
+        val subEnd = Offset(
+            midX + (Math.cos(rad) * subBranchLength).toFloat(),
+            midY + (Math.sin(rad) * subBranchLength).toFloat()
+        )
+        val subControl = Offset(
+            midX + (Math.cos(rad - 0.25) * subBranchLength * 0.55f).toFloat(),
+            midY + (Math.sin(rad - 0.25) * subBranchLength * 0.55f).toFloat()
+        )
+        val subPath = Path().apply {
+            moveTo(midX, midY)
+            quadraticBezierTo(subControl.x, subControl.y, subEnd.x, subEnd.y)
+        }
+        drawPath(
+            path = subPath,
+            color = color.copy(alpha = (color.alpha * 0.85f).coerceAtMost(1f)),
+            style = Stroke(width = (strokeWidth * 0.65f).coerceAtLeast(1f), cap = StrokeCap.Round)
+        )
+    }
+}
+
+/**
+ * Reusable organic orchard tree silhouette drawing helper with trunk and soft canopy lobes.
+ */
+private fun DrawScope.drawTree(
+    base: Offset,
+    height: Float,
+    crownWidth: Float,
+    color: Color,
+    rotation: Float = 0f
+) {
+    rotate(rotation, base) {
+        // Slender organic orchard trunk
+        val trunkPath = Path().apply {
+            moveTo(base.x - crownWidth * 0.06f, base.y)
+            quadraticBezierTo(
+                base.x - crownWidth * 0.03f, base.y - height * 0.45f,
+                base.x, base.y - height * 0.85f
+            )
+            lineTo(base.x + crownWidth * 0.03f, base.y - height * 0.85f)
+            quadraticBezierTo(
+                base.x + crownWidth * 0.05f, base.y - height * 0.45f,
+                base.x + crownWidth * 0.06f, base.y
+            )
+            close()
+        }
+        drawPath(trunkPath, color.copy(alpha = (color.alpha * 0.90f).coerceAtMost(1f)))
+
+        // Organic orchard canopy lobes
+        val crownCenter = Offset(base.x, base.y - height * 0.72f)
+        val crownR = crownWidth * 0.38f
+        drawOval(
+            color = color,
+            topLeft = Offset(crownCenter.x - crownR * 1.05f, crownCenter.y - crownR * 0.75f),
+            size = Size(crownR * 2.1f, crownR * 1.5f)
+        )
+        drawCircle(
+            color = color.copy(alpha = (color.alpha * 0.85f).coerceAtMost(1f)),
+            radius = crownR * 0.72f,
+            center = crownCenter + Offset(-crownR * 0.42f, -crownR * 0.22f)
+        )
+        drawCircle(
+            color = color.copy(alpha = (color.alpha * 0.85f).coerceAtMost(1f)),
+            radius = crownR * 0.68f,
+            center = crownCenter + Offset(crownR * 0.42f, -crownR * 0.18f)
+        )
+    }
 }
 
 
