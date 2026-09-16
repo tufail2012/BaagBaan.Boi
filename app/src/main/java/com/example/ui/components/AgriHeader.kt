@@ -169,8 +169,7 @@ fun AgriHeader(
     hazeState: HazeState,
     backdrop: Backdrop? = null,
     profileBackdrop: Backdrop? = null,
-    scrollOffset: Float = 0f,
-    scrollOffsetProvider: (() -> Float)? = null,
+    isScrolling: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -230,8 +229,7 @@ fun AgriHeader(
             .fillMaxWidth()
     ) {
         TopHeaderScrollScrim(
-            scrollOffset = scrollOffset,
-            scrollOffsetProvider = scrollOffsetProvider,
+            isScrolling = isScrolling,
             hazeState = hazeState
         )
 

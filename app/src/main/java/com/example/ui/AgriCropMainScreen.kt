@@ -684,15 +684,7 @@ fun AgriCropMainScreen(
                 CompositionLocalProvider(
                     com.example.ui.components.LocalAppGlassHazeState provides hazeState
                 ) {
-                    val recordsListState = androidx.compose.foundation.lazy.rememberLazyListState()
-                    val formListState = androidx.compose.foundation.lazy.rememberLazyListState()
-
-                    val headerScrollOffsetProvider: () -> Float = {
-                        when (viewMode) {
-                            0 -> formListState.firstVisibleItemIndex * 200f + formListState.firstVisibleItemScrollOffset
-                            else -> recordsListState.firstVisibleItemIndex * 200f + recordsListState.firstVisibleItemScrollOffset
-                        }
-                    }
+                    var isHeaderBlurActive by remember { mutableStateOf(false) }
 
                     Box(
                         modifier = modifier
@@ -710,7 +702,7 @@ fun AgriCropMainScreen(
                             // Floating Top Header with Progressive Scrim
                             AgriHeader(
                                 title = displayHeaderTitle,
-                                scrollOffsetProvider = headerScrollOffsetProvider,
+                                isScrolling = isHeaderBlurActive,
                                 themeMode = themeMode,
                                 accentColor = sectionAccentColor,
                                 selectedColorHex = accentColorHex,
@@ -874,6 +866,19 @@ fun AgriCropMainScreen(
                                             key = { mainTabs.getOrElse(it) { "$it" } }
                                         ) { page ->
                                             val tabCategory = mainTabs.getOrElse(page) { "Local Plants" }
+                                            val formListState = androidx.compose.foundation.lazy.rememberLazyListState()
+                                            val recordsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+                                            LaunchedEffect(
+                                                formListState.isScrollInProgress,
+                                                recordsListState.isScrollInProgress,
+                                                pagerState.currentPage
+                                            ) {
+                                                if (pagerState.currentPage == page) {
+                                                    isHeaderBlurActive = formListState.isScrollInProgress ||
+                                                        recordsListState.isScrollInProgress
+                                                }
+                                            }
                                             if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
                                                 com.example.ui.components.GardenPlanningScreen(
                                                     viewModel = gardenPlanningViewModel,

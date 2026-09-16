@@ -55,13 +55,14 @@ private val FADE_RUN = 32.dp
 @Composable
 fun TopHeaderScrollScrim(
     modifier: Modifier = Modifier,
-    scrollOffset: Float = LocalHeaderScrollOffset.current,
-    scrollOffsetProvider: (() -> Float)? = null,
+    isScrolling: Boolean = false,
     hazeState: HazeState? = LocalAppGlassHazeState.current,
     accentColor: Color? = null,
     isDark: Boolean = isAppInDarkMode(),
     isAmoled: Boolean = isAppInAmoledMode(),
-    customHeight: Dp? = null
+    customHeight: Dp? = null,
+    scrollOffset: Float = 0f,
+    scrollOffsetProvider: (() -> Float)? = null
 ) {
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val topBarHeightEquivalent = customHeight ?: (statusBarTop + 52.dp)
@@ -95,7 +96,7 @@ fun TopHeaderScrollScrim(
             .fillMaxWidth()
             .height(height)
             .then(
-                if (effectiveHazeState != null) {
+                if (effectiveHazeState != null && isScrolling) {
                     Modifier.hazeEffect(
                         state = effectiveHazeState,
                         style = HazeMaterials.ultraThin(pageColor),
