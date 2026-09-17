@@ -620,7 +620,9 @@ private fun NestedLiquidGlassSection(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val sectionTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
-    Box(
+    Surface(
+        shape = shape,
+        color = Color.Transparent,
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
@@ -633,42 +635,25 @@ private fun NestedLiquidGlassSection(
                         Modifier.background(sectionTint.copy(alpha = if (isDark) 0.35f else 0.45f), shape)
                     }
                 } else {
-                    Modifier.background(sectionTint.copy(alpha = if (isDark) 0.12f else 0.20f), shape)
+                    Modifier
                 }
             )
             .border(
-                width = 0.7.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (!isDark) 0.40f else 0.20f),
-                        Color.White.copy(alpha = if (!isDark) 0.15f else 0.08f)
-                    ),
-                    start = Offset.Zero,
-                    end = Offset.Infinite
-                ),
+                width = if (backdrop != null && isGlassSupported()) GLASS_EDGE_WIDTH else 0.7.dp,
+                brush = if (backdrop != null && isGlassSupported()) {
+                    androidx.compose.ui.graphics.SolidColor(GLASS_EDGE_COLOR)
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (!isDark) 0.40f else 0.20f),
+                            Color.White.copy(alpha = if (!isDark) 0.15f else 0.08f)
+                        ),
+                        start = Offset.Zero,
+                        end = Offset.Infinite
+                    )
+                },
                 shape = shape
             )
-            .drawWithContent {
-                drawContent()
-                val w = size.width
-                val h = size.height
-                val cornerRadiusPx = 20.dp.toPx()
-                drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (isDark) 0.22f else 0.38f),
-                            Color.White.copy(alpha = if (isDark) 0.04f else 0.10f),
-                            Color.Transparent
-                        ),
-                        startY = 0f,
-                        endY = minOf(h * 0.4f, 50.dp.toPx())
-                    ),
-                    topLeft = Offset(0.8.dp.toPx(), 0.8.dp.toPx()),
-                    size = Size(w - 1.6.dp.toPx(), h - 1.6.dp.toPx()),
-                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                    style = Stroke(width = 0.8.dp.toPx())
-                )
-            }
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -1024,6 +1009,7 @@ fun GardenPlanningFormTab(
                 newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
                 recordsLabel = "Records (${allEntriesList.size})",
                 accentColor = gardenAccent,
+                backdrop = backdrop,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -1530,7 +1516,7 @@ fun GardenPlanningFormTab(
                         .height(48.dp)
                         .clip(textFieldShape)
                         .background(
-                            if (isDark) Color(0xFF1B1D22).copy(alpha = 0.40f) else Color.White.copy(alpha = 0.50f),
+                            gardenAccent.copy(alpha = if (isDark) 0.12f else 0.08f),
                             textFieldShape
                         )
                         .border(
@@ -1598,7 +1584,7 @@ fun GardenPlanningFormTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .background(
-                            if (isDark) Color(0xFF1E2026).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.60f),
+                            gardenAccent.copy(alpha = if (isDark) 0.10f else 0.06f),
                             RoundedCornerShape(14.dp)
                         )
                         .border(
@@ -1813,7 +1799,7 @@ fun GardenPlanningFormTab(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (isDark) Color(0xFF22242B).copy(alpha = 0.50f) else Color(0xFFF8F9FA).copy(alpha = 0.70f),
+                                gardenAccent.copy(alpha = if (isDark) 0.10f else 0.06f),
                                 RoundedCornerShape(16.dp)
                             )
                             .border(
@@ -1920,7 +1906,7 @@ fun GardenPlanningFormTab(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(
-                        if (isDark) Color(0xFF1E2026).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.70f),
+                        gardenAccent.copy(alpha = if (isDark) 0.10f else 0.06f),
                         RoundedCornerShape(16.dp)
                     )
                     .border(
@@ -4869,7 +4855,9 @@ private fun GardenRecordSummaryCards(
     pendingPayment: Double,
     totalQuantity: Int,
     isDark: Boolean,
-    paletteAccent: Color = MaterialTheme.colorScheme.primary
+    paletteAccent: Color = MaterialTheme.colorScheme.primary,
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = null
 ) {
     val numberFmt = NumberFormat.getNumberInstance(Locale("en", "IN"))
 
@@ -4888,6 +4876,8 @@ private fun GardenRecordSummaryCards(
                 icon = Icons.Default.AccountBalanceWallet,
                 accentColor = paletteAccent,
                 isDark = isDark,
+                backdrop = backdrop,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
 
@@ -4898,6 +4888,8 @@ private fun GardenRecordSummaryCards(
                 icon = Icons.Default.CheckCircle,
                 accentColor = paletteAccent,
                 isDark = isDark,
+                backdrop = backdrop,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -4913,6 +4905,8 @@ private fun GardenRecordSummaryCards(
                 icon = Icons.Default.HourglassTop,
                 accentColor = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
                 isDark = isDark,
+                backdrop = backdrop,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
 
@@ -4923,6 +4917,8 @@ private fun GardenRecordSummaryCards(
                 icon = Icons.Default.Inventory2,
                 accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                 isDark = isDark,
+                backdrop = backdrop,
+                hazeState = hazeState,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -4936,14 +4932,27 @@ private fun GardenSummaryCardItem(
     icon: ImageVector,
     accentColor: Color,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = null
 ) {
+    val cardShape = RoundedCornerShape(14.dp)
     Box(
         modifier = modifier
-            .glassCardBackground(
-                isDark = isDark,
-                accentColor = accentColor,
-                shape = RoundedCornerShape(14.dp)
+            .then(
+                if (backdrop != null && isGlassSupported()) {
+                    Modifier.recordsLiquidGlass(
+                        backdrop = backdrop,
+                        shape = cardShape
+                    )
+                } else {
+                    Modifier.glassCardBackground(
+                        isDark = isDark,
+                        accentColor = accentColor,
+                        shape = cardShape,
+                        hazeState = hazeState
+                    )
+                }
             )
     ) {
         Row(

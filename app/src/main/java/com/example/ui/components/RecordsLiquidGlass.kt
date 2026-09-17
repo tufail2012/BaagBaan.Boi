@@ -3,6 +3,7 @@ package com.example.ui.components
 import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -27,17 +28,10 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
-internal const val RECORDS_BLUR_RADIUS_DP = 8f
-internal const val RECORDS_LENS_HEIGHT = 0.5f
-internal const val RECORDS_LENS_AMOUNT = 0.5f
-internal const val RECORDS_LENS_MAX_DP = 48f
-internal const val RECORDS_SURFACE_OPACITY = 0.4f
-
 /**
  * Liquid Glass modifier strictly for Records section components
- * utilizing the dedicated recordsBackdrop and matching the established
- * liquid glass pipeline (vibrancy, blur, lens on API 33+, Highlight.Default,
- * Shadow.Default, and adaptive surface tint).
+ * reusing the canonical LiquidGlassNav implementation (vibrancy, blur 8.dp,
+ * lens on API 33+, Highlight.Default, Shadow.Default, and surface tint).
  */
 @Composable
 fun Modifier.recordsLiquidGlass(
@@ -45,56 +39,8 @@ fun Modifier.recordsLiquidGlass(
     shape: Shape,
     customSurfaceTint: Color? = null
 ): Modifier {
-    if (backdrop == null || !isGlassSupported()) return this
-
-    val density = LocalDensity.current
-    val isDark = isAppInDarkMode()
-    val isAmoled = isAppInAmoledMode()
-    val blurPx = with(density) { RECORDS_BLUR_RADIUS_DP.dp.toPx() }
-    val lensHeightPx = with(density) { (RECORDS_LENS_HEIGHT * RECORDS_LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (RECORDS_LENS_AMOUNT * RECORDS_LENS_MAX_DP).dp.toPx() }
-
-    val defaultSurfaceTint = if (isAmoled) {
-        Color(0xFF000000)
-    } else if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
-    val surfaceColor = customSurfaceTint ?: defaultSurfaceTint.copy(alpha = RECORDS_SURFACE_OPACITY)
-
-    val rimBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.28f else 0.55f),
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.10f else 0.22f),
-            Color.White.copy(alpha = if (isDark || isAmoled) 0.03f else 0.08f)
-        )
-    )
-
-    return this
-        .clip(shape)
-        .drawBackdrop(
-            backdrop = backdrop,
-            shape = { shape },
-            effects = {
-                vibrancy()
-                blur(blurPx)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensHeightPx,
-                        refractionAmount = lensAmountPx,
-                        depthEffect = true,
-                        chromaticAberration = true
-                    )
-                }
-            },
-            highlight = { Highlight.Default },
-            shadow = { Shadow.Default },
-            onDrawSurface = {
-                drawRect(surfaceColor)
-            }
-        )
-        .border(0.8.dp, rimBrush, shape)
+    val cornerShape = shape as? CornerBasedShape ?: RoundedCornerShape(percent = 50)
+    return this.liquidGlassNav(shape = cornerShape, backdrop = backdrop)
 }
 
 /**
