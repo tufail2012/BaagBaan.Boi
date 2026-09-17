@@ -894,6 +894,8 @@ fun AgriCropMainScreen(
                                                     viewModel = gardenPlanningViewModel,
                                                     onBack = null,
                                                     showHeader = false,
+                                                    formListState = formListState,
+                                                    recordsListState = recordsListState,
                                                     isDark = isDark,
                                                     themeMode = themeMode,
                                                     selectedColorHex = accentColorHex,

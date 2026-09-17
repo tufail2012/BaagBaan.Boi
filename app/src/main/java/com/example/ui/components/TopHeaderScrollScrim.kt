@@ -91,12 +91,14 @@ fun TopHeaderScrollScrim(
         )
     }
 
+    val effectiveIsScrolling = isScrolling || scrollOffset > 0f || ((scrollOffsetProvider?.invoke() ?: 0f) > 0f)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .then(
-                if (effectiveHazeState != null && isScrolling) {
+                if (effectiveHazeState != null && effectiveIsScrolling) {
                     Modifier.hazeEffect(
                         state = effectiveHazeState,
                         style = HazeMaterials.ultraThin(pageColor),

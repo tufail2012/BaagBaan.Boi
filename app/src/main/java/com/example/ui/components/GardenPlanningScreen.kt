@@ -346,6 +346,8 @@ fun GardenPlanningScreen(
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
     contentBackdrop: LayerBackdrop? = null,
+    formListState: LazyListState = rememberLazyListState(),
+    recordsListState: LazyListState = rememberLazyListState(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -424,11 +426,6 @@ fun GardenPlanningScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(
-                        if (!showHeader) {
-                            Modifier.padding(top = rememberScrollUnderHeaderTopPadding())
-                        } else Modifier
-                    )
                     .hazeSource(state = effectiveHazeState)
             ) {
                 // Consistent Main App Header
@@ -463,7 +460,8 @@ fun GardenPlanningScreen(
                     onManualSync = onManualSync,
                     onNavigateToSettings = onNavigateToSettings,
                     onBack = null,
-                    hazeState = effectiveHazeState
+                    hazeState = effectiveHazeState,
+                    isScrolling = formListState.canScrollBackward || recordsListState.canScrollBackward
                 )
                 }
 
@@ -490,7 +488,9 @@ fun GardenPlanningScreen(
                                 onSaved = { viewModel.selectedTabIndex.value = 1 },
                                 customPaletteColor = gardenAccent,
                                 hazeState = effectiveHazeState,
-                                backdrop = backdrop
+                                backdrop = backdrop,
+                                lazyListState = formListState,
+                                showHeader = showHeader
                             )
                         }
                         1 -> {
@@ -509,7 +509,9 @@ fun GardenPlanningScreen(
                                 customPaletteColor = gardenAccent,
                                 hazeState = effectiveHazeState,
                                 backdrop = backdrop,
-                                contentBackdrop = contentBackdrop
+                                contentBackdrop = contentBackdrop,
+                                lazyListState = recordsListState,
+                                showHeader = showHeader
                             )
                         }
                     }
@@ -746,7 +748,8 @@ fun GardenPlanningFormTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
-    lazyListState: LazyListState = rememberLazyListState()
+    lazyListState: LazyListState = rememberLazyListState(),
+    showHeader: Boolean = true
 ) {
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
@@ -995,7 +998,12 @@ fun GardenPlanningFormTab(
         modifier = Modifier
             .fillMaxSize()
             .imePadding(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp,
+            bottom = 110.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Liquid Glass Switcher (New Entry / Records)
@@ -2374,7 +2382,9 @@ fun GardenPlanningRecordsTab(
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
-    contentBackdrop: LayerBackdrop? = null
+    contentBackdrop: LayerBackdrop? = null,
+    lazyListState: LazyListState = rememberLazyListState(),
+    showHeader: Boolean = true
 ) {
     val fabEffectiveBackdrop = contentBackdrop ?: backdrop
     val paletteAccent = customPaletteColor ?: com.example.ui.theme.getSectionAccentColor("Garden Planning", customPaletteColor = customPaletteColor)
@@ -2405,7 +2415,6 @@ fun GardenPlanningRecordsTab(
         }
     }
 
-    val lazyListState = rememberLazyListState()
     lazyListState.rememberScrollHapticFeedback()
 
     var selectedDetailEntry by remember { mutableStateOf<GardenPlanningEntry?>(null) }
@@ -2512,7 +2521,10 @@ fun GardenPlanningRecordsTab(
                         }
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 10.dp, bottom = 110.dp)
+                    contentPadding = PaddingValues(
+                        top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp,
+                        bottom = 110.dp
+                    )
                 ) {
                 // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                 // Sits directly on the single continuous background canvas and scrolls together with records

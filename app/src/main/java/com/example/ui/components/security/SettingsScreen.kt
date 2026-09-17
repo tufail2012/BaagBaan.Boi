@@ -1,5 +1,7 @@
 package com.example.ui.components.security
 
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.TopHeaderScrollScrim
 import com.example.ui.components.rememberScrollUnderHeaderTopPadding
 import androidx.compose.foundation.layout.PaddingValues
@@ -356,6 +358,7 @@ fun SettingsScreen(
             .background(settingsBgBrush)
     ) {
         val settingsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val settingsHazeState = remember { HazeState() }
         val settingsScrollOffset by remember {
             androidx.compose.runtime.derivedStateOf {
                 settingsListState.firstVisibleItemIndex * 200f + settingsListState.firstVisibleItemScrollOffset
@@ -368,7 +371,9 @@ fun SettingsScreen(
             // Top App Bar - Wide Pill-Shaped Glass Header
             LazyColumn(
                 state = settingsListState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(settingsHazeState),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -921,7 +926,9 @@ fun SettingsScreen(
 
             TopHeaderScrollScrim(
                 scrollOffset = settingsScrollOffset,
+                hazeState = settingsHazeState,
                 isDark = isDark,
+                isAmoled = isAmoled,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 

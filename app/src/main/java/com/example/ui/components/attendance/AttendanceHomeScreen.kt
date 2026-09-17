@@ -157,6 +157,8 @@ fun AttendanceHomeScreen(
     }
 
     val hazeState = remember { HazeState() }
+    val attendanceHomeListState = rememberLazyListState()
+    attendanceHomeListState.rememberScrollHapticFeedback()
 
     Scaffold(
         topBar = {
@@ -191,7 +193,8 @@ fun AttendanceHomeScreen(
                     onLogout = onLogout,
                     onManualSync = onManualSync,
                     onBack = onNavigateBack,
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    isScrolling = attendanceHomeListState.canScrollBackward
                 )
 
                 Surface(
@@ -364,9 +367,6 @@ fun AttendanceHomeScreen(
                     }
                 }
             } else {
-                val attendanceHomeListState = rememberLazyListState()
-                attendanceHomeListState.rememberScrollHapticFeedback()
-
                 BrandedPullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = {
