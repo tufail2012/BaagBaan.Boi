@@ -1804,10 +1804,15 @@ fun FarmerFormScreen(
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
 
+                            val saplingAgeDropdownShape = RoundedCornerShape(16.dp)
                             DropdownMenu(
                                 expanded = saplingAgeMenuExpanded,
                                 onDismissRequest = { saplingAgeMenuExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                shape = saplingAgeDropdownShape,
+                                containerColor = Color.Transparent,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .recordsDropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape)
                             ) {
                                 saplingAgeOptions.forEach { age ->
                                     DropdownMenuItem(
@@ -1936,10 +1941,15 @@ fun FarmerFormScreen(
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
 
+                                val saplingAgeDropdownShape2 = RoundedCornerShape(16.dp)
                                 DropdownMenu(
                                     expanded = saplingAgeMenuExpanded,
                                     onDismissRequest = { saplingAgeMenuExpanded = false },
-                                    modifier = Modifier.fillMaxWidth(0.9f)
+                                    shape = saplingAgeDropdownShape2,
+                                    containerColor = Color.Transparent,
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.9f)
+                                        .recordsDropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape2)
                                 ) {
                                     saplingAgeOptions.forEach { age ->
                                         DropdownMenuItem(
@@ -2152,10 +2162,15 @@ fun FarmerFormScreen(
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
 
+                    val graftTypeDropdownShape = RoundedCornerShape(16.dp)
                     DropdownMenu(
                         expanded = graftTypeMenuExpanded,
                         onDismissRequest = { graftTypeMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
+                        shape = graftTypeDropdownShape,
+                        containerColor = Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth(0.9f)
+                            .recordsDropdownLiquidGlass(hazeState = hazeState, shape = graftTypeDropdownShape)
                     ) {
                         graftTypeOptions.forEach { typeOption ->
                             DropdownMenuItem(
@@ -3008,10 +3023,15 @@ fun FarmerFormScreen(
                                     .clickable { templateMenuExpanded = true }
                             )
 
+                            val templateDropdownShape = RoundedCornerShape(16.dp)
                             DropdownMenu(
                                 expanded = templateMenuExpanded,
                                 onDismissRequest = { templateMenuExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                shape = templateDropdownShape,
+                                containerColor = Color.Transparent,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .recordsDropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
                             ) {
                                 templateOptions.forEach { option ->
                                     DropdownMenuItem(

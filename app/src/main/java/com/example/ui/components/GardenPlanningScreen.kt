@@ -1429,9 +1429,13 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
+                        val ageDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
                             expanded = ageDropdownExpanded,
-                            onDismissRequest = { ageDropdownExpanded = false }
+                            onDismissRequest = { ageDropdownExpanded = false },
+                            shape = ageDropdownShape,
+                            containerColor = Color.Transparent,
+                            modifier = Modifier.recordsDropdownLiquidGlass(hazeState = effectiveHaze, shape = ageDropdownShape)
                         ) {
                             saplingAgeOptions.forEach { age ->
                                 DropdownMenuItem(
@@ -1474,9 +1478,13 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
+                        val originDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
                             expanded = originDropdownExpanded,
-                            onDismissRequest = { originDropdownExpanded = false }
+                            onDismissRequest = { originDropdownExpanded = false },
+                            shape = originDropdownShape,
+                            containerColor = Color.Transparent,
+                            modifier = Modifier.recordsDropdownLiquidGlass(hazeState = effectiveHaze, shape = originDropdownShape)
                         ) {
                             plantOriginOptions.forEach { originOption ->
                                 DropdownMenuItem(
