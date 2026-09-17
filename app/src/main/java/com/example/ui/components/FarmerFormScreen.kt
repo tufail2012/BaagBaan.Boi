@@ -193,6 +193,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -830,6 +831,7 @@ fun FarmerFormScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
         ) {
             Box(
@@ -1046,7 +1048,8 @@ fun FarmerFormScreen(
 
         FormSectionGlassCard(
             backdrop = backdrop,
-            isDark = isDark
+            isDark = isDark,
+            hazeState = hazeState
         ) {
             // Farmer Name
             OutlinedTextField(
@@ -1215,7 +1218,8 @@ fun FarmerFormScreen(
 
         FormSectionGlassCard(
             backdrop = backdrop,
-            isDark = isDark
+            isDark = isDark,
+            hazeState = hazeState
         ) {
             if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
                 Row(
@@ -2089,7 +2093,8 @@ fun FarmerFormScreen(
 
             FormSectionGlassCard(
                 backdrop = backdrop,
-                isDark = isDark
+                isDark = isDark,
+                hazeState = hazeState
             ) {
                 // Scion Variety (Manual Text Field)
                 OutlinedTextField(
@@ -2206,7 +2211,8 @@ fun FarmerFormScreen(
 
         FormSectionGlassCard(
             backdrop = backdrop,
-            isDark = isDark
+            isDark = isDark,
+            hazeState = hazeState
         ) {
             if (isStockApplicable && matchedInventoryItem != null) {
                 Surface(
@@ -2534,7 +2540,8 @@ fun FarmerFormScreen(
 
         FormSectionGlassCard(
             backdrop = backdrop,
-            isDark = isDark
+            isDark = isDark,
+            hazeState = hazeState
         ) {
             PaymentStatusSelector(
                 selectedStatus = paymentStatus,
@@ -2623,7 +2630,8 @@ fun FarmerFormScreen(
 
         FormSectionGlassCard(
             backdrop = backdrop,
-            isDark = isDark
+            isDark = isDark,
+            hazeState = hazeState
         ) {
             Row(
                 modifier = Modifier
@@ -4558,6 +4566,7 @@ private fun FormSectionGlassCard(
     isDark: Boolean,
     modifier: Modifier = Modifier,
     shape: CornerBasedShape = RoundedCornerShape(16.dp),
+    hazeState: HazeState? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
@@ -4572,17 +4581,14 @@ private fun FormSectionGlassCard(
                     Modifier.glassCardBackground(
                         isDark = isDark,
                         accentColor = MaterialTheme.colorScheme.primary,
-                        shape = shape
+                        shape = shape,
+                        hazeState = hazeState
                     )
                 } else {
                     Modifier
                 }
             )
-            .border(
-                1.dp,
-                Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                shape
-            )
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),

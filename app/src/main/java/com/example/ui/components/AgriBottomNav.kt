@@ -181,7 +181,7 @@ fun AgriBottomNav(
                     Modifier
                 }
             )
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), pillShape)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, pillShape)
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET)
     ) {
         if (tabWidthPx > 0f) {
