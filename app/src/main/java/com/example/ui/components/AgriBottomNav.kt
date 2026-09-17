@@ -1,13 +1,17 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -136,31 +140,25 @@ fun AgriBottomNav(
     val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
     val tabStepPx = if (rowSize.width > 0 && n > 0) (rowSize.width + gapPx) / n else 0f
 
-    val fallbackPillOffset by animateFloatAsState(
-        targetValue = if (tabStepPx > 0f) selectedIndex * tabStepPx + dragOffset else 0f,
-        animationSpec = GlassSpring,
-        label = "bottomNavPillOffset"
-    )
+    val pillOffsetAnimatable = remember { Animatable(0f) }
+    var isInitialized by remember { mutableStateOf(false) }
 
-    val pillOffsetPx = if (pagerState != null) {
-        val continuousPage = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
-            .coerceIn(0f, (n - 1).toFloat())
-        if (tabStepPx > 0f) continuousPage * tabStepPx + dragOffset else 0f
-    } else {
-        fallbackPillOffset
-    }
-
-    val lag = if (pagerState != null) {
-        if (pagerState.isScrollInProgress) {
-            (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f)
-        } else if (tabStepPx > 0f && dragOffset != 0f) {
-            (kotlin.math.abs(dragOffset) / tabStepPx).coerceIn(0f, 1f)
-        } else 0f
-    } else {
-        val pillTargetPx = if (tabStepPx > 0f) selectedIndex * tabStepPx + dragOffset else 0f
+    LaunchedEffect(selectedIndex, tabStepPx) {
         if (tabStepPx > 0f) {
-            (kotlin.math.abs(pillTargetPx - fallbackPillOffset) / tabStepPx).coerceIn(0f, 1f)
-        } else 0f
+            val targetPx = selectedIndex * tabStepPx
+            if (!isInitialized) {
+                pillOffsetAnimatable.snapTo(targetPx)
+                isInitialized = true
+            } else {
+                pillOffsetAnimatable.animateTo(
+                    targetValue = targetPx,
+                    animationSpec = spring(
+                        stiffness = 500f,
+                        dampingRatio = 1.0f
+                    )
+                )
+            }
+        }
     }
 
     var lastHapticTab by remember { mutableIntStateOf(selectedIndex) }
@@ -190,9 +188,19 @@ fun AgriBottomNav(
                     .width(with(density) { tabWidthPx.toDp() })
                     .height(with(density) { rowSize.height.toDp() })
                     .graphicsLayer {
-                        translationX = pillOffsetPx
-                        scaleX = 1f + lag * STRETCH
-                        scaleY = 1f - lag * STRETCH * SQUASH
+                        val baseOffset = if (!isInitialized && tabStepPx > 0f) {
+                            selectedIndex * tabStepPx
+                        } else {
+                            pillOffsetAnimatable.value
+                        }
+                        val currentOffset = baseOffset + dragOffset
+                        translationX = currentOffset
+                        val currentTarget = selectedIndex * tabStepPx
+                        val currentLag = if (tabStepPx > 0f) {
+                            (kotlin.math.abs(currentTarget - currentOffset) / tabStepPx).coerceIn(0f, 1f)
+                        } else 0f
+                        scaleX = 1f + currentLag * STRETCH
+                        scaleY = 1f - currentLag * STRETCH * SQUASH
                     }
                     .clip(pillShape)
                     .background(
@@ -272,11 +280,25 @@ fun AgriBottomNav(
                                     else -> 0
                                 }
                                 val newIndex = (currentSelectedIndex + shift).coerceIn(0, navItems.lastIndex)
-                                if (newIndex != currentSelectedIndex) {
-                                    onCategorySelected(navItems[newIndex].serviceCategory)
+                                val releasedOffset = pillOffsetAnimatable.value + dragOffset
+                                coroutineScope.launch {
+                                    pillOffsetAnimatable.snapTo(releasedOffset)
+                                    dragOffset = 0f
+                                    if (newIndex != currentSelectedIndex) {
+                                        onCategorySelected(navItems[newIndex].serviceCategory)
+                                    } else {
+                                        pillOffsetAnimatable.animateTo(
+                                            targetValue = currentSelectedIndex * tabStepPx,
+                                            animationSpec = spring(
+                                                stiffness = 500f,
+                                                dampingRatio = 1.0f
+                                            )
+                                        )
+                                    }
                                 }
+                            } else {
+                                dragOffset = 0f
                             }
-                            dragOffset = 0f
                         },
                         onHorizontalDrag = { _, delta ->
                             totalDrag += delta
@@ -299,17 +321,29 @@ fun AgriBottomNav(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val activeTabIndex = if (pagerState != null && pagerState.isScrollInProgress) {
-                pagerState.targetPage.coerceIn(0, navItems.lastIndex)
-            } else {
-                selectedIndex
-            }
+            val activeTabIndex = selectedIndex
             navItems.forEachIndexed { index, item ->
                 val isSelected = index == activeTabIndex
                 val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
+
+                val interactionSource = remember { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+
+                val pressedScale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.97f else 1.0f,
+                    animationSpec = spring(
+                        stiffness = 700f,
+                        dampingRatio = 1.0f
+                    ),
+                    label = "tabItemPressedScale"
+                )
+
                 val scale by animateFloatAsState(
                     targetValue = if (isSelected) 1.08f else 1f,
-                    animationSpec = GlassSpring,
+                    animationSpec = spring(
+                        stiffness = 500f,
+                        dampingRatio = 1.0f
+                    ),
                     label = "tabScale"
                 )
                 val iconColor by animateColorAsState(
@@ -322,9 +356,13 @@ fun AgriBottomNav(
                     modifier = Modifier
                         .weight(1f)
                         .testTag(item.testTag)
+                        .graphicsLayer {
+                            scaleX = pressedScale
+                            scaleY = pressedScale
+                        }
                         .clip(RoundedCornerShape(percent = 50))
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = interactionSource,
                             indication = null,
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
