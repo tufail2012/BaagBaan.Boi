@@ -695,6 +695,9 @@ fun AgriCropMainScreen(
                     com.example.ui.components.LocalAppGlassHazeState provides hazeState
                 ) {
                     var isHeaderBlurActive by remember { mutableStateOf(false) }
+                    LaunchedEffect(pagerState.currentPage) {
+                        isHeaderBlurActive = false
+                    }
 
                     Box(
                         modifier = modifier
