@@ -80,6 +80,7 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.example.util.rememberScrollHapticFeedback
 import androidx.compose.foundation.lazy.LazyColumn
@@ -759,7 +760,8 @@ fun GardenPlanningFormTab(
     onSaved: () -> Unit,
     customPaletteColor: Color? = null,
     hazeState: HazeState? = null,
-    backdrop: Backdrop? = null
+    backdrop: Backdrop? = null,
+    lazyListState: LazyListState = rememberLazyListState()
 ) {
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
@@ -997,36 +999,38 @@ fun GardenPlanningFormTab(
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
     val totalCostFormatted = currencyFormat.format(calculatedCost)
 
-    val scrollState = rememberScrollState()
-    scrollState.rememberScrollHapticFeedback()
+    val amountPaidDouble = viewModel.calculateAmountPaid()
+    val remainingBalance = viewModel.calculateRemainingBalance()
+    val previewMsg = viewModel.getGeneratedPreviewMessage()
 
-    Column(
+    lazyListState.rememberScrollHapticFeedback()
+
+    LazyColumn(
+        state = lazyListState,
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
-            .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .imePadding(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Liquid Glass Switcher (New Entry / Records)
-        val isEditing = editingEntryId != null
-        val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
-        AgriSegmentedControl(
-            selectedMode = 0,
-            onModeSelected = { viewModel.selectedTabIndex.value = it },
-            hazeState = effectiveHaze,
-            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-            recordsLabel = "Records (${allEntriesList.size})",
-            accentColor = gardenAccent,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        val amountPaidDouble = viewModel.calculateAmountPaid()
-        val remainingBalance = viewModel.calculateRemainingBalance()
-        val previewMsg = viewModel.getGeneratedPreviewMessage()
+        item(key = "view_mode_segmented_control") {
+            val isEditing = editingEntryId != null
+            val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
+            AgriSegmentedControl(
+                selectedMode = 0,
+                onModeSelected = { viewModel.selectedTabIndex.value = it },
+                hazeState = effectiveHaze,
+                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                recordsLabel = "Records (${allEntriesList.size})",
+                accentColor = gardenAccent,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         // Section 1: SERIAL NUMBER (Liquid Glass Card)
-        NestedLiquidGlassSection(
+        item(key = "section_serial_number") {
+            NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1092,8 +1096,10 @@ fun GardenPlanningFormTab(
                 }
             )
         }
+    }
 
-        // Section 2: FARMER DETAILS (Liquid Glass Card)
+    // Section 2: FARMER DETAILS (Liquid Glass Card)
+    item(key = "section_farmer_details") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1234,8 +1240,10 @@ fun GardenPlanningFormTab(
                 isDark = isDark
             )
         }
+    }
 
-        // Section 3: GARDEN PLANNING SPECIFICATION (Liquid Glass Card)
+    // Section 3: GARDEN PLANNING SPECIFICATION (Liquid Glass Card)
+    item(key = "section_garden_planning_specification") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1566,8 +1574,10 @@ fun GardenPlanningFormTab(
                 }
             }
         }
+    }
 
-        // Section 4: COST & QUANTITY DETAILS (Liquid Glass Card)
+    // Section 4: COST & QUANTITY DETAILS (Liquid Glass Card)
+    item(key = "section_cost_quantity_details") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1858,8 +1868,10 @@ fun GardenPlanningFormTab(
                 }
             }
         }
+    }
 
-        // Section 5: PAYMENT STATUS (Liquid Glass Card)
+    // Section 5: PAYMENT STATUS (Liquid Glass Card)
+    item(key = "section_payment_status") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -1956,8 +1968,10 @@ fun GardenPlanningFormTab(
                 }
             }
         }
+    }
 
-        // Section 6: SCHEDULE & DATES (Liquid Glass Card)
+    // Section 6: SCHEDULE & DATES (Liquid Glass Card)
+    item(key = "section_schedule_dates") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -2059,8 +2073,10 @@ fun GardenPlanningFormTab(
                 )
             }
         }
+    }
 
-        // Section 7: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
+    // Section 7: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
+    item(key = "section_special_instructions_notes") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -2122,8 +2138,10 @@ fun GardenPlanningFormTab(
                 isDark = isDark
             )
         }
+    }
 
-        // Section 8: ACTIONS (Liquid Glass Card)
+    // Section 8: ACTIONS (Liquid Glass Card)
+    item(key = "section_actions") {
         NestedLiquidGlassSection(
             backdrop = backdrop,
             hazeState = effectiveHaze,
@@ -2340,9 +2358,12 @@ fun GardenPlanningFormTab(
                 )
             }
         }
+    }
 
+    item(key = "bottom_spacer") {
         Spacer(modifier = Modifier.height(100.dp))
     }
+}
 
     if (showDatePickerDialog) {
         AppDatePickerDialog(
