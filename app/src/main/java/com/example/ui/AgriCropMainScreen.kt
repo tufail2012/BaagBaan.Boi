@@ -695,8 +695,10 @@ fun AgriCropMainScreen(
                     com.example.ui.components.LocalAppGlassHazeState provides hazeState
                 ) {
                     var isHeaderBlurActive by remember { mutableStateOf(false) }
+                    var activeHeaderScrollOffset by remember { mutableStateOf(0f) }
                     LaunchedEffect(pagerState.currentPage) {
                         isHeaderBlurActive = false
+                        activeHeaderScrollOffset = 0f
                     }
 
                     Box(
@@ -716,6 +718,7 @@ fun AgriCropMainScreen(
                             AgriHeader(
                                 title = displayHeaderTitle,
                                 isScrolling = isHeaderBlurActive,
+                                scrollOffset = activeHeaderScrollOffset,
                                 themeMode = themeMode,
                                 accentColor = sectionAccentColor,
                                 selectedColorHex = accentColorHex,
@@ -885,11 +888,20 @@ fun AgriCropMainScreen(
                                             LaunchedEffect(
                                                 formListState.canScrollBackward,
                                                 recordsListState.canScrollBackward,
+                                                formListState.firstVisibleItemScrollOffset,
+                                                recordsListState.firstVisibleItemScrollOffset,
                                                 pagerState.currentPage
                                             ) {
                                                 if (pagerState.currentPage == page) {
                                                     isHeaderBlurActive = formListState.canScrollBackward ||
                                                         recordsListState.canScrollBackward
+                                                    activeHeaderScrollOffset = if (formListState.canScrollBackward) {
+                                                        formListState.firstVisibleItemIndex * 260f +
+                                                            formListState.firstVisibleItemScrollOffset
+                                                    } else {
+                                                        recordsListState.firstVisibleItemIndex * 260f +
+                                                            recordsListState.firstVisibleItemScrollOffset
+                                                    }
                                                 }
                                             }
                                             if (tabCategory.equals("Garden Planning", ignoreCase = true)) {

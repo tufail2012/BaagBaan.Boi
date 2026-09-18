@@ -170,6 +170,7 @@ fun AgriHeader(
     backdrop: Backdrop? = null,
     profileBackdrop: Backdrop? = null,
     isScrolling: Boolean = false,
+    scrollOffset: Float = 0f,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -230,7 +231,9 @@ fun AgriHeader(
     ) {
         TopHeaderScrollScrim(
             isScrolling = isScrolling,
-            hazeState = hazeState
+            hazeState = hazeState,
+            scrollOffset = scrollOffset,
+            scrollOffsetProvider = { scrollOffset }
         )
 
         Box(
