@@ -1916,57 +1916,39 @@ fun GardenPlanningFormTab(
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
 
+            FormFieldDivider(isDark = isDark)
+
             // Calculated Payment Summary Box (Amount Breakdown)
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        gardenAccent.copy(alpha = if (isDark) 0.10f else 0.06f),
-                        RoundedCornerShape(16.dp)
-                    )
-                    .border(
-                        width = 0.8.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                gardenAccent.copy(alpha = if (!isDark) 0.40f else 0.25f),
-                                gardenAccent.copy(alpha = if (!isDark) 0.15f else 0.08f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Total Amount:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(calculatedCost.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
-                    }
+                    Text("Total Amount:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(calculatedCost.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
+                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Amount Paid:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) gardenAccent.copy(alpha = 0.90f) else gardenAccent)
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Amount Paid:", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(amountPaidDouble.toLong())}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = if (isDark) gardenAccent.copy(alpha = 0.90f) else gardenAccent)
+                }
 
-                    HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))
+                HorizontalDivider(color = if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.25f) else Color(0xFFCBD5E1).copy(alpha = 0.50f))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Remaining Balance:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
-                        Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = gardenAccent)
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Remaining Balance:", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = gardenAccent)
+                    Text("₹${java.text.NumberFormat.getNumberInstance(Locale("en", "IN")).format(remainingBalance.toLong())}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = gardenAccent)
                 }
             }
         }
