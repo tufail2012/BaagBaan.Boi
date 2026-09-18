@@ -144,7 +144,7 @@ fun AgriBottomNav(
     var isInitialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedIndex, tabStepPx) {
-        if (tabStepPx > 0f) {
+        if (pagerState == null && tabStepPx > 0f) {
             val targetPx = selectedIndex * tabStepPx
             if (!isInitialized) {
                 pillOffsetAnimatable.snapTo(targetPx)
@@ -188,17 +188,31 @@ fun AgriBottomNav(
                     .width(with(density) { tabWidthPx.toDp() })
                     .height(with(density) { rowSize.height.toDp() })
                     .graphicsLayer {
-                        val baseOffset = if (!isInitialized && tabStepPx > 0f) {
+                        val pagerOffset = if (pagerState != null && tabStepPx > 0f) {
+                            val continuousPage = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                                .coerceIn(0f, (n - 1).toFloat())
+                            continuousPage * tabStepPx
+                        } else null
+
+                        val baseOffset = pagerOffset ?: if (!isInitialized && tabStepPx > 0f) {
                             selectedIndex * tabStepPx
                         } else {
                             pillOffsetAnimatable.value
                         }
                         val currentOffset = baseOffset + dragOffset
                         translationX = currentOffset
-                        val currentTarget = selectedIndex * tabStepPx
-                        val currentLag = if (tabStepPx > 0f) {
+
+                        val currentLag = if (pagerState != null) {
+                            if (pagerState.isScrollInProgress) {
+                                (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f)
+                            } else if (tabStepPx > 0f && dragOffset != 0f) {
+                                (kotlin.math.abs(dragOffset) / tabStepPx).coerceIn(0f, 1f)
+                            } else 0f
+                        } else if (tabStepPx > 0f) {
+                            val currentTarget = selectedIndex * tabStepPx
                             (kotlin.math.abs(currentTarget - currentOffset) / tabStepPx).coerceIn(0f, 1f)
                         } else 0f
+
                         scaleX = 1f + currentLag * STRETCH
                         scaleY = 1f - currentLag * STRETCH * SQUASH
                     }
@@ -321,7 +335,11 @@ fun AgriBottomNav(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val activeTabIndex = selectedIndex
+            val activeTabIndex = if (pagerState != null && pagerState.isScrollInProgress) {
+                pagerState.targetPage.coerceIn(0, navItems.lastIndex)
+            } else {
+                selectedIndex
+            }
             navItems.forEachIndexed { index, item ->
                 val isSelected = index == activeTabIndex
                 val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)

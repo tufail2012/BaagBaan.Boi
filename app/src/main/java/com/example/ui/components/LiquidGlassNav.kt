@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
@@ -30,7 +31,12 @@ private const val LENS_MAX_DP = 48f
 private const val SURFACE_OPACITY = 0.4f
 
 internal val GLASS_EDGE_WIDTH = 0.5.dp
-internal val GLASS_EDGE_COLOR = Color.White.copy(alpha = 0.10f)
+internal val GLASS_EDGE_COLOR: Brush = Brush.verticalGradient(
+    colors = listOf(
+        Color.White.copy(alpha = 0.22f),
+        Color.White.copy(alpha = 0.06f)
+    )
+)
 
 @Composable
 fun glassContentColor(): Color =

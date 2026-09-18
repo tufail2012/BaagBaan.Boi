@@ -643,7 +643,7 @@ private fun NestedLiquidGlassSection(
             .border(
                 width = if (backdrop != null && isGlassSupported()) GLASS_EDGE_WIDTH else 0.7.dp,
                 brush = if (backdrop != null && isGlassSupported()) {
-                    androidx.compose.ui.graphics.SolidColor(GLASS_EDGE_COLOR)
+                    GLASS_EDGE_COLOR
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
