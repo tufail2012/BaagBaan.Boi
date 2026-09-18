@@ -1034,23 +1034,21 @@ fun FarmerFormScreen(
 
             // Section 1: FARMER DETAILS
             item(key = "section_farmer_details") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: FARMER DETAILS
-        Text(
-            text = "FARMER DETAILS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = "FARMER DETAILS",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-        FormSectionGlassCard(
-            backdrop = backdrop,
-            isDark = isDark,
-            hazeState = hazeState
-        ) {
-            // Farmer Name
+                    // Farmer Name
             OutlinedTextField(
                 value = farmerName,
                 onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
@@ -1188,7 +1186,6 @@ fun FarmerFormScreen(
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
         }
-                }
             }
 
             // Existing Bookings Lookup Section
@@ -1204,23 +1201,21 @@ fun FarmerFormScreen(
 
             // Section 2: CROP / PLANT / SITE VISIT SPECIFICATION
             item(key = "section_crop_specification") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: CROP / PLANT / SITE VISIT SPECIFICATION
-        Text(
-            text = specTitle,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = specTitle,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-        FormSectionGlassCard(
-            backdrop = backdrop,
-            isDark = isDark,
-            hazeState = hazeState
-        ) {
-            if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
+                    if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2082,30 +2077,26 @@ fun FarmerFormScreen(
                 }
             }
         }
-                }
             }
 
             // Section 3: GRAFTING DETAILS (Only for Imported Rootstocks)
             if (isImportedRootstocks) {
                 item(key = "section_grafting_details") {
-                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        // Section Title: GRAFTING DETAILS (Only for Imported Rootstocks)
-        if (isImportedRootstocks) {
-            Text(
-                text = "GRAFTING DETAILS",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(top = 12.dp)
-            )
+                    FormSectionGlassCard(
+                        backdrop = backdrop,
+                        isDark = isDark,
+                        hazeState = hazeState
+                    ) {
+                        Text(
+                            text = "GRAFTING DETAILS",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        )
 
-            FormSectionGlassCard(
-                backdrop = backdrop,
-                isDark = isDark,
-                hazeState = hazeState
-            ) {
-                // Scion Variety (Manual Text Field)
+                        // Scion Variety (Manual Text Field)
                 OutlinedTextField(
                     value = scionVariety,
                     onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
@@ -2184,51 +2175,47 @@ fun FarmerFormScreen(
                 }
             }
         }
+    }
+
+    // Section 4: PRICING & QUANTITY / PRICING & VISIT DETAILS
+            item(key = "section_pricing_details") {
+                val pillShape = textFieldShape
+
+                val sanitizeCurrencyInput: (String) -> String = { input ->
+                    val filtered = input.filter { it.isDigit() || it == '.' }
+                    val clean = if (filtered.count { it == '.' } <= 1) {
+                        filtered
+                    } else {
+                        val firstDotIndex = filtered.indexOf('.')
+                        val sb = StringBuilder()
+                        filtered.forEachIndexed { index, c ->
+                            if (c.isDigit() || index == firstDotIndex) sb.append(c)
+                        }
+                        sb.toString()
+                    }
+                    val parts = clean.split('.')
+                    if (parts.size == 2 && parts[1].length > 2) {
+                        parts[0] + "." + parts[1].take(2)
+                    } else {
+                        clean
                     }
                 }
-            }
 
-            // Section 4: PRICING & QUANTITY / PRICING & VISIT DETAILS
-            item(key = "section_pricing_details") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: PRICING & QUANTITY / PRICING & VISIT DETAILS
-        Text(
-            text = if (isSiteVisit) "PRICING & VISIT DETAILS" else "PRICING & QUANTITY",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = if (isSiteVisit) "PRICING & VISIT DETAILS" else "PRICING & QUANTITY",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-        val pillShape = textFieldShape
-
-        val sanitizeCurrencyInput: (String) -> String = { input ->
-            val filtered = input.filter { it.isDigit() || it == '.' }
-            val clean = if (filtered.count { it == '.' } <= 1) {
-                filtered
-            } else {
-                val firstDotIndex = filtered.indexOf('.')
-                val sb = StringBuilder()
-                filtered.forEachIndexed { index, c ->
-                    if (c.isDigit() || index == firstDotIndex) sb.append(c)
-                }
-                sb.toString()
-            }
-            val parts = clean.split('.')
-            if (parts.size == 2 && parts[1].length > 2) {
-                parts[0] + "." + parts[1].take(2)
-            } else {
-                clean
-            }
-        }
-
-        FormSectionGlassCard(
-            backdrop = backdrop,
-            isDark = isDark,
-            hazeState = hazeState
-        ) {
-            if (isStockApplicable && matchedInventoryItem != null) {
+                    if (isStockApplicable && matchedInventoryItem != null) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Color.Transparent,
@@ -2536,28 +2523,25 @@ fun FarmerFormScreen(
                 }
             }
         }
-                }
             }
 
             // Section 5: PAYMENT STATUS
             item(key = "section_payment_status") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: PAYMENT STATUS
-        Text(
-            text = "PAYMENT STATUS",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = formAccent,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = "PAYMENT STATUS",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = formAccent,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-        FormSectionGlassCard(
-            backdrop = backdrop,
-            isDark = isDark,
-            hazeState = hazeState
-        ) {
-            PaymentStatusSelector(
+                    PaymentStatusSelector(
                 selectedStatus = paymentStatus,
                 onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
                 accentColor = formAccent,
@@ -2626,28 +2610,25 @@ fun FarmerFormScreen(
                 }
             }
         }
-                }
             }
 
             // Section 6: SCHEDULE & DATES
             item(key = "section_schedule_dates") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: SCHEDULE & DATES
-        Text(
-            text = "SCHEDULE & DATES",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = "SCHEDULE & DATES",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-        FormSectionGlassCard(
-            backdrop = backdrop,
-            isDark = isDark,
-            hazeState = hazeState
-        ) {
-            Row(
+                    Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(IntrinsicSize.Min),
@@ -2749,87 +2730,70 @@ fun FarmerFormScreen(
                 )
             }
         }
-                }
             }
 
             // Section: ATTACH UPI PAYMENT PROOF
             item(key = "section_upi_payment_proof") {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Section Title: ATTACH UPI PAYMENT PROOF
-        Text(
-            text = "ATTACH UPI PAYMENT PROOF",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(top = 12.dp)
-        )
-
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color.Transparent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
-                    } else {
-                        Modifier
-                    }
-                )
-                .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
                     Text(
-                        text = "UPI Payment Proof / Screenshot",
+                        text = "ATTACH UPI PAYMENT PROOF",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
                     )
-                    Text(
-                        text = if (paymentProofUri.isNotBlank()) "Attached: ${paymentProofName.ifBlank { "UPI_Proof.jpg" }}" else "No file attached (Images / PDF)",
-                        fontSize = 11.sp,
-                        color = if (paymentProofUri.isNotBlank()) (if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (paymentProofUri.isNotBlank()) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "UPI Payment Proof / Screenshot",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (paymentProofUri.isNotBlank()) "Attached: ${paymentProofName.ifBlank { "UPI_Proof.jpg" }}" else "No file attached (Images / PDF)",
+                                fontSize = 11.sp,
+                                color = if (paymentProofUri.isNotBlank()) (if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (paymentProofUri.isNotBlank()) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
 
-                Button(
-                    onClick = { requestStoragePermissionAndUpload() },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.testTag("upload_proof_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FileUpload,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (paymentProofUri.isNotBlank()) "Change" else "Upload Proof",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = { requestStoragePermissionAndUpload() },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.testTag("upload_proof_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FileUpload,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (paymentProofUri.isNotBlank()) "Change" else "Upload Proof",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
 
