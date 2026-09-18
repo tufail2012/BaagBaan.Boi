@@ -890,20 +890,23 @@ fun AgriCropMainScreen(
                                             val isRecordsActive = if (isGarden) gardenTabIndex == 1 else viewMode != 0
                                             val activeTabListState = if (isRecordsActive) recordsListState else formListState
 
-                                            LaunchedEffect(
-                                                activeTabListState.canScrollBackward,
-                                                activeTabListState.firstVisibleItemScrollOffset,
-                                                activeTabListState.firstVisibleItemIndex,
-                                                isRecordsActive,
-                                                pagerState.currentPage
-                                            ) {
+                                            LaunchedEffect(activeTabListState, isRecordsActive, pagerState.currentPage, page) {
                                                 if (pagerState.currentPage == page) {
-                                                    isHeaderBlurActive = activeTabListState.canScrollBackward
-                                                    activeHeaderScrollOffset = if (activeTabListState.canScrollBackward) {
-                                                        activeTabListState.firstVisibleItemIndex * 260f +
+                                                    androidx.compose.runtime.snapshotFlow {
+                                                        Triple(
+                                                            activeTabListState.canScrollBackward,
+                                                            activeTabListState.firstVisibleItemIndex,
                                                             activeTabListState.firstVisibleItemScrollOffset
-                                                    } else {
-                                                        0f
+                                                        )
+                                                    }.collect { (canScroll, index, offset) ->
+                                                        if (pagerState.currentPage == page) {
+                                                            isHeaderBlurActive = canScroll
+                                                            activeHeaderScrollOffset = if (canScroll) {
+                                                                index * 260f + offset
+                                                            } else {
+                                                                0f
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }

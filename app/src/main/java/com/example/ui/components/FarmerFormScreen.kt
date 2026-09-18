@@ -831,7 +831,6 @@ fun FarmerFormScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
                 .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
         ) {
             Box(
