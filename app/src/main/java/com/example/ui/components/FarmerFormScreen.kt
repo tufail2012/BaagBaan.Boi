@@ -953,83 +953,86 @@ fun FarmerFormScreen(
 
             // Serial Number Field
             item(key = "serial_number_field") {
-                OutlinedTextField(
-            value = serialNumber,
-            onValueChange = { 
-                if (!isSerialLocked) {
-                    viewModel.updateSerialNumber(it)
-                }
-            },
-            readOnly = isSerialLocked,
-            label = { Text("Serial No. ($serviceType) *") },
-            placeholder = { Text("Type serial number (e.g. LP-1001)") },
-            shape = textFieldShape,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
+                ) {
+                    Text(
+                        text = "SERIAL NUMBER",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
 
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                    } else {
-                        Modifier
+                    OutlinedTextField(
+                        value = serialNumber,
+                        onValueChange = { 
+                            if (!isSerialLocked) {
+                                viewModel.updateSerialNumber(it)
+                            }
+                        },
+                        readOnly = isSerialLocked,
+                        label = { Text("Serial No. ($serviceType) *") },
+                        placeholder = { Text("Type serial number (e.g. LP-1001)") },
+                        shape = textFieldShape,
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                    }
-                )
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("serial_number_input"),
-            colors = elevatedInputFieldColors(isDark = isDark),
-            leadingIcon = {
-                Icon(
-                    imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
-                    contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            },
-            trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (!isSerialLocked) {
-                        IconButton(
-                            onClick = {
-                                val currentSerial = serialNumber
-                                if (currentSerial.isNotBlank()) {
-                                    coroutineScope.launch {
-                                        val key = stringPreferencesKey("saved_serial_number_$serviceType")
-                                        context.dataStore.edit { preferences ->
-                                            preferences[key] = currentSerial
-                                        }
+                            .testTag("serial_number_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                                contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!isSerialLocked) {
+                                    IconButton(
+                                        onClick = {
+                                            val currentSerial = serialNumber
+                                            if (currentSerial.isNotBlank()) {
+                                                coroutineScope.launch {
+                                                    val key = stringPreferencesKey("saved_serial_number_$serviceType")
+                                                    context.dataStore.edit { preferences ->
+                                                        preferences[key] = currentSerial
+                                                    }
+                                                }
+                                            }
+                                            viewModel.lockSerialNumber()
+                                        },
+                                        modifier = Modifier.testTag("save_serial_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Save,
+                                            contentDescription = "Save Serial Number",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
                                     }
                                 }
-                                viewModel.lockSerialNumber()
-                            },
-                            modifier = Modifier.testTag("save_serial_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Save Serial Number",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
+                                IconButton(
+                                    onClick = { viewModel.generateNewSerialNumber() },
+                                    modifier = Modifier.testTag("new_serial_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "New Serial",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
                         }
-                    }
-                    IconButton(
-                        onClick = { viewModel.generateNewSerialNumber() },
-                        modifier = Modifier.testTag("new_serial_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "New Serial",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+                    )
                 }
-            }
-        )
             }
 
             // Section 1: FARMER DETAILS
@@ -2797,324 +2800,312 @@ fun FarmerFormScreen(
                 }
             }
 
-            // Notes & Special Observations
-            item(key = "notes_field") {
-                // Notes & Special Observations
-        OutlinedTextField(
-            value = notes,
-            onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
-            label = { Text("Notes / Inspection Remarks") },
-            placeholder = { Text("Enter pruning history, soil treatment, disease status, or special requests...") },
-            shape = textFieldShape,
-            minLines = 2,
-            maxLines = 4,
-            keyboardOptions = AppDefaultWordKeyboardOptions,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                            launchSpeechToText()
-                        } else {
-                            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    },
-                    modifier = Modifier.testTag("notes_voice_input_button")
+            // Section 8: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
+            item(key = "section_special_instructions_notes") {
+                FormSectionGlassCard(
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    hazeState = hazeState
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Mic,
-                        contentDescription = "Voice Input",
-                        tint = MaterialTheme.colorScheme.primary
+                    Text(
+                        text = "SPECIAL INSTRUCTIONS / NOTES",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
                     )
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
 
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.boundedFormFieldRipple(shape = textFieldShape)
-                    } else {
-                        Modifier
-                            .bringIntoViewOnFocus()
-                            .border(1.dp, Color.White.copy(alpha = if (isDark) 0.15f else 0.35f), textFieldShape)
-                    }
-                )
-                .elevated3dShadow(shape = textFieldShape, isDark = isDark)
-                .testTag("farmer_notes_input"),
-            colors = elevatedInputFieldColors(isDark = isDark)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Collapsible Message Preview Section
-            item(key = "message_preview_section") {
-                // Collapsible Message Preview Section (Collapsed by default)
-        val messageCardShape = RoundedCornerShape(16.dp)
-
-        Surface(
-            shape = messageCardShape,
-            color = Color.Transparent,
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(
-                    elevation = if (isDark) 4.dp else 2.dp,
-                    shape = messageCardShape,
-                    ambientColor = if (isDark) Color.Black else Color(0x20000000),
-                    spotColor = if (isDark) Color.Black else Color(0x30000000)
-                )
-                .clip(messageCardShape)
-                .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
-
-                .then(
-
-                    if (backdrop == null || !isGlassSupported()) {
-                        Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
-                    } else {
-                        Modifier
-                    }
-                )
-                .border(0.5.dp, Color.White.copy(alpha = 0.10f), messageCardShape)
-                .testTag("new_entry_message_preview_card")
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Tappable Header Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { messagePreviewExpanded = !messagePreviewExpanded }
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                        .testTag("new_entry_message_preview_header"),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Message,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = "MESSAGE PREVIEW",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 1.sp
-                        )
-                    }
-
-                    Icon(
-                        imageVector = if (messagePreviewExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (messagePreviewExpanded) "Collapse Message Preview" else "Expand Message Preview",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                // Expandable Section Content
-                AnimatedVisibility(
-                    visible = messagePreviewExpanded,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        androidx.compose.material3.HorizontalDivider(
-                            color = if (isDark) Color(0xFF333540) else Color(0xFFE2E8F0),
-                            thickness = 1.dp
-                        )
-
-                        // Select Template Dropdown
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-
-                                .then(
-
-                                    if (backdrop == null || !isGlassSupported()) {
-                                        Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                    // Notes & Special Observations
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
+                        label = { Text("Notes / Inspection Remarks") },
+                        placeholder = { Text("Enter pruning history, soil treatment, disease status, or special requests...") },
+                        shape = textFieldShape,
+                        minLines = 2,
+                        maxLines = 4,
+                        keyboardOptions = AppDefaultWordKeyboardOptions,
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                        launchSpeechToText()
                                     } else {
-                                        Modifier.border(
-                                            1.dp,
-                                            Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                                            pillShape
-                                        )
-                                    }
-                                )
-                        ) {
-                            OutlinedTextField(
-                                value = selectedTemplate,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Select Template") },
-                                shape = pillShape,
-                                trailingIcon = {
-                                    IconButton(onClick = { templateMenuExpanded = true }) {
-                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                        recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }
                                 },
+                                modifier = Modifier.testTag("notes_voice_input_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Mic,
+                                    contentDescription = "Voice Input",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .bringIntoViewOnFocus()
+                            .testTag("farmer_notes_input"),
+                        colors = elevatedInputFieldColors(isDark = isDark)
+                    )
+
+                    // Collapsible Message Preview Section (Collapsed by default)
+                    val messageCardShape = RoundedCornerShape(16.dp)
+
+                    Surface(
+                        shape = messageCardShape,
+                        color = Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(
+                                elevation = if (isDark) 4.dp else 2.dp,
+                                shape = messageCardShape,
+                                ambientColor = if (isDark) Color.Black else Color(0x20000000),
+                                spotColor = if (isDark) Color.Black else Color(0x30000000)
+                            )
+                            .clip(messageCardShape)
+                            .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), messageCardShape)
+                            .testTag("new_entry_message_preview_card")
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Tappable Header Row
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .elevated3dShadow(shape = pillShape, isDark = isDark)
-                                    .testTag("select_template_dropdown"),
-                                colors = elevatedInputFieldColors(isDark = isDark)
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clickable { templateMenuExpanded = true }
-                            )
-
-                            val templateDropdownShape = RoundedCornerShape(16.dp)
-                            DropdownMenu(
-                                expanded = templateMenuExpanded,
-                                onDismissRequest = { templateMenuExpanded = false },
-                                shape = templateDropdownShape,
-                                containerColor = Color.Transparent,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.9f)
-                                    .recordsDropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
-                            ) {
-                                templateOptions.forEach { option ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = option,
-                                                fontWeight = if (option == selectedTemplate) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (option == selectedTemplate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                            )
-                                        },
-                                        onClick = {
-                                            selectedTemplate = option
-                                            templateMenuExpanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-
-                        // Preview Box Display
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.Transparent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(
-                                    elevation = if (isDark) 4.dp else 2.dp,
-                                    shape = RoundedCornerShape(14.dp),
-                                    ambientColor = if (isDark) Color.Black else Color(0x20000000),
-                                    spotColor = if (isDark) Color.Black else Color(0x30000000)
-                                )
-                                .clip(RoundedCornerShape(14.dp))
-                                .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
-
-                                .then(
-
-                                    if (backdrop == null || !isGlassSupported()) {
-                                        Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
-                                    } else {
-                                        Modifier
-                                    }
-                                )
-                                .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    .clickable { messagePreviewExpanded = !messagePreviewExpanded }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                                    .testTag("new_entry_message_preview_header"),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "Template Preview ($selectedTemplate)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                    Icon(
+                                        imageVector = Icons.Default.Message,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
                                     )
-
-                                    IconButton(
-                                        onClick = {
-                                            clipboardManager.setText(AnnotatedString(generatedMessage))
-                                            Toast.makeText(context, "Preview text copied!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        modifier = Modifier.size(28.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.ContentCopy,
-                                            contentDescription = "Copy Text",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                    Text(
+                                        text = "MESSAGE PREVIEW",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 1.sp
+                                    )
                                 }
 
-                                Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color.Transparent,
-                                    shadowElevation = if (isDark) 4.dp else 3.dp,
+                                Icon(
+                                    imageVector = if (messagePreviewExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (messagePreviewExpanded) "Collapse Message Preview" else "Expand Message Preview",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            // Expandable Section Content
+                            AnimatedVisibility(
+                                visible = messagePreviewExpanded,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .shadow(
-                                            elevation = 4.dp,
-                                            shape = RoundedCornerShape(12.dp),
-                                            ambientColor = if (isDark) Color.Black else Color(0x18000000),
-                                            spotColor = if (isDark) Color.Black else Color(0x25000000)
-                                        )
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
-
-                                        .then(
-
-                                            if (backdrop == null || !isGlassSupported()) {
-                                                Modifier.background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
-                                            } else {
-                                                Modifier
-                                            }
-                                        )
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                                        .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    Text(
-                                        text = generatedMessage,
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF111111),
-                                        lineHeight = 18.sp,
-                                        modifier = Modifier
-                                            .padding(14.dp)
-                                            .testTag("preview_message_text")
+                                    androidx.compose.material3.HorizontalDivider(
+                                        color = if (isDark) Color(0xFF333540) else Color(0xFFE2E8F0),
+                                        thickness = 1.dp
                                     )
+
+                                    // Select Template Dropdown
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                                                } else {
+                                                    Modifier.border(
+                                                        1.dp,
+                                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                                        pillShape
+                                                    )
+                                                }
+                                            )
+                                    ) {
+                                        OutlinedTextField(
+                                            value = selectedTemplate,
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            label = { Text("Select Template") },
+                                            shape = pillShape,
+                                            trailingIcon = {
+                                                IconButton(onClick = { templateMenuExpanded = true }) {
+                                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .elevated3dShadow(shape = pillShape, isDark = isDark)
+                                                .testTag("select_template_dropdown"),
+                                            colors = elevatedInputFieldColors(isDark = isDark)
+                                        )
+
+                                        Box(
+                                            modifier = Modifier
+                                                .matchParentSize()
+                                                .clickable { templateMenuExpanded = true }
+                                        )
+
+                                        val templateDropdownShape = RoundedCornerShape(16.dp)
+                                        DropdownMenu(
+                                            expanded = templateMenuExpanded,
+                                            onDismissRequest = { templateMenuExpanded = false },
+                                            shape = templateDropdownShape,
+                                            containerColor = Color.Transparent,
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.9f)
+                                                .recordsDropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
+                                        ) {
+                                            templateOptions.forEach { option ->
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = option,
+                                                            fontWeight = if (option == selectedTemplate) FontWeight.Bold else FontWeight.Normal,
+                                                            color = if (option == selectedTemplate) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        selectedTemplate = option
+                                                        templateMenuExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Preview Box Display
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = Color.Transparent,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .shadow(
+                                                elevation = if (isDark) 4.dp else 2.dp,
+                                                shape = RoundedCornerShape(14.dp),
+                                                ambientColor = if (isDark) Color.Black else Color(0x20000000),
+                                                spotColor = if (isDark) Color.Black else Color(0x30000000)
+                                            )
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
+                                                } else {
+                                                    Modifier
+                                                }
+                                            )
+                                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Template Preview ($selectedTemplate)",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+
+                                                IconButton(
+                                                    onClick = {
+                                                        clipboardManager.setText(AnnotatedString(generatedMessage))
+                                                        Toast.makeText(context, "Preview text copied!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.ContentCopy,
+                                                        contentDescription = "Copy Text",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color.Transparent,
+                                                shadowElevation = if (isDark) 4.dp else 3.dp,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .shadow(
+                                                        elevation = 4.dp,
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        ambientColor = if (isDark) Color.Black else Color(0x18000000),
+                                                        spotColor = if (isDark) Color.Black else Color(0x25000000)
+                                                    )
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
+                                                    .then(
+                                                        if (backdrop == null || !isGlassSupported()) {
+                                                            Modifier.background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
+                                                        } else {
+                                                            Modifier
+                                                        }
+                                                    )
+                                                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                                            ) {
+                                                Text(
+                                                    text = generatedMessage,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF111111),
+                                                    lineHeight = 18.sp,
+                                                    modifier = Modifier
+                                                        .padding(14.dp)
+                                                        .testTag("preview_message_text")
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Action Buttons
@@ -3156,10 +3147,20 @@ fun FarmerFormScreen(
             showReceiptDialog = true
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        FormSectionGlassCard(
+            backdrop = backdrop,
+            isDark = isDark,
+            hazeState = hazeState
         ) {
+            Text(
+                text = "ACTIONS",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+            )
+
             // 1. Save Booking Entry
             val saveButtonInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             Button(
