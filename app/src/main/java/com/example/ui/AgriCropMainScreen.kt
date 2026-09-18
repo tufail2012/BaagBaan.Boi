@@ -153,6 +153,7 @@ fun AgriCropMainScreen(
 
     val selectedService by viewModel.selectedService.collectAsState()
     val viewMode by viewModel.viewMode.collectAsState()
+    val gardenTabIndex by gardenPlanningViewModel.selectedTabIndex.collectAsState()
     val userMessage by viewModel.userMessage.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val isSystemDark = androidx.compose.foundation.isSystemInDarkTheme()
@@ -885,22 +886,24 @@ fun AgriCropMainScreen(
                                             val formListState = androidx.compose.foundation.lazy.rememberLazyListState()
                                             val recordsListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
+                                            val isGarden = tabCategory.equals("Garden Planning", ignoreCase = true)
+                                            val isRecordsActive = if (isGarden) gardenTabIndex == 1 else viewMode != 0
+                                            val activeTabListState = if (isRecordsActive) recordsListState else formListState
+
                                             LaunchedEffect(
-                                                formListState.canScrollBackward,
-                                                recordsListState.canScrollBackward,
-                                                formListState.firstVisibleItemScrollOffset,
-                                                recordsListState.firstVisibleItemScrollOffset,
+                                                activeTabListState.canScrollBackward,
+                                                activeTabListState.firstVisibleItemScrollOffset,
+                                                activeTabListState.firstVisibleItemIndex,
+                                                isRecordsActive,
                                                 pagerState.currentPage
                                             ) {
                                                 if (pagerState.currentPage == page) {
-                                                    isHeaderBlurActive = formListState.canScrollBackward ||
-                                                        recordsListState.canScrollBackward
-                                                    activeHeaderScrollOffset = if (formListState.canScrollBackward) {
-                                                        formListState.firstVisibleItemIndex * 260f +
-                                                            formListState.firstVisibleItemScrollOffset
+                                                    isHeaderBlurActive = activeTabListState.canScrollBackward
+                                                    activeHeaderScrollOffset = if (activeTabListState.canScrollBackward) {
+                                                        activeTabListState.firstVisibleItemIndex * 260f +
+                                                            activeTabListState.firstVisibleItemScrollOffset
                                                     } else {
-                                                        recordsListState.firstVisibleItemIndex * 260f +
-                                                            recordsListState.firstVisibleItemScrollOffset
+                                                        0f
                                                     }
                                                 }
                                             }

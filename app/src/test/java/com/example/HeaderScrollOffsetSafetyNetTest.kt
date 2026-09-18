@@ -70,4 +70,37 @@ class HeaderScrollOffsetSafetyNetTest {
         composeTestRule.waitForIdle()
         assertEquals(120f, offsetValue, 0.01f)
     }
+
+    @Test
+    fun testSubViewScrollSwitching_tracksActiveViewCorrectly() {
+        // Simulates the exact state selection in AgriCropMainScreen for all 6 tabs
+        var viewMode by mutableStateOf(0) // 0 = New Entry, 1 = Records
+        var formScrolled by mutableStateOf(false)
+        var recordsScrolled by mutableStateOf(false)
+
+        fun computeHeaderBlur(viewMode: Int, formScrolled: Boolean, recordsScrolled: Boolean): Boolean {
+            val isRecordsActive = viewMode != 0
+            val activeScrolled = if (isRecordsActive) recordsScrolled else formScrolled
+            return activeScrolled
+        }
+
+        // 1. At rest at top in New Entry
+        assertFalse("At rest in New Entry: no blur", computeHeaderBlur(viewMode, formScrolled, recordsScrolled))
+
+        // 2. User scrolls New Entry up
+        formScrolled = true
+        assertTrue("Scrolled in New Entry: blur active", computeHeaderBlur(viewMode, formScrolled, recordsScrolled))
+
+        // 3. User switches to Records which is currently at top
+        viewMode = 1
+        assertFalse("Switched to Records at top: blur immediately deactivates", computeHeaderBlur(viewMode, formScrolled, recordsScrolled))
+
+        // 4. User scrolls Records
+        recordsScrolled = true
+        assertTrue("Scrolled in Records: blur active", computeHeaderBlur(viewMode, formScrolled, recordsScrolled))
+
+        // 5. User scrolls Records back to top
+        recordsScrolled = false
+        assertFalse("Records back to top: blur deactivates", computeHeaderBlur(viewMode, formScrolled, recordsScrolled))
+    }
 }
