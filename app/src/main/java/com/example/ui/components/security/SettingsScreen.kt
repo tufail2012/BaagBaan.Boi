@@ -81,7 +81,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import com.example.ui.components.liquidGlassNav
+import com.example.ui.components.isGlassSupported
+import com.example.ui.components.GLASS_EDGE_WIDTH
+import com.example.ui.components.GLASS_EDGE_COLOR
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -365,6 +373,38 @@ fun SettingsScreen(
             }
         }
 
+        val settingsWindowBackground = MaterialTheme.colorScheme.surface
+        val settingsPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+            remember(settingsWindowBackground) {
+                {
+                    drawRect(settingsWindowBackground)
+                    drawContent()
+                }
+            }
+        val settingsBackdrop: LayerBackdrop = rememberLayerBackdrop(
+            onDraw = settingsPaintBackdrop
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = settingsHazeState)
+                .layerBackdrop(settingsBackdrop)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                settingsAccent.copy(alpha = if (isDark) 0.18f else 0.10f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        }
+
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -372,8 +412,7 @@ fun SettingsScreen(
             LazyColumn(
                 state = settingsListState,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(settingsHazeState),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -399,12 +438,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = Color(0xFF8B5CF6),
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFF8B5CF6),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -463,12 +512,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = Color(0xFF3B82F6),
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFF3B82F6),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -525,12 +584,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = Color(0xFF10B981),
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFF10B981),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -582,12 +651,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = Color(0xFFE11D48),
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFFE11D48),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -829,12 +908,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = Color(0xFF06B6D4),
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFF06B6D4),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -880,12 +969,22 @@ fun SettingsScreen(
                         border = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .glassCardBackground(
-                                cornerRadius = 20.dp,
-                                accentColor = settingsAccent,
-                                isDark = isDark,
-                                themeMode = themeMode
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = settingsAccent,
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
                             )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
