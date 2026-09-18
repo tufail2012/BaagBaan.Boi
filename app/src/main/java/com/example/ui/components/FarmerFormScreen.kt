@@ -3,6 +3,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.shape.CornerBasedShape
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 import android.content.Context
 import androidx.compose.material3.LocalTextStyle
@@ -2046,15 +2048,26 @@ fun FarmerFormScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(textFieldShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.15f else 0.10f))
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    val fallbackTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
+                                    if (hazeState != null) {
+                                        Modifier.hazeEffect(
+                                            state = hazeState,
+                                            style = HazeMaterials.regular(fallbackTint)
+                                        )
+                                    } else {
+                                        Modifier.background(fallbackTint.copy(alpha = if (isDark) 0.35f else 0.45f), textFieldShape)
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, textFieldShape)
                             .clickable {
                                 viewModel.enableMultiVarietyForCurrentTab()
                             }
-                            .border(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.35f else 0.25f),
-                                textFieldShape
-                            )
                             .testTag("add_multiple_varieties_button"),
                         contentAlignment = Alignment.Center
                     ) {

@@ -1531,27 +1531,21 @@ fun GardenPlanningFormTab(
                         .fillMaxWidth()
                         .height(48.dp)
                         .clip(textFieldShape)
-                        .background(
-                            gardenAccent.copy(alpha = if (isDark) 0.12f else 0.08f),
-                            textFieldShape
-                        )
-                        .border(
-                            width = 0.8.dp,
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    gardenAccent.copy(alpha = if (!isDark) 0.50f else 0.35f),
-                                    gardenAccent.copy(alpha = if (!isDark) 0.20f else 0.12f)
+                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                        .then(
+                            if (backdrop == null || !isGlassSupported()) {
+                                Modifier.hazeEffect(
+                                    state = effectiveHaze,
+                                    style = HazeMaterials.regular(if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF))
                                 )
-                            ),
-                            shape = textFieldShape
-                        )
-                        .boundedFormFieldRipple(
-                            shape = textFieldShape,
-                            accentColor = gardenAccent,
-                            onClick = {
-                                viewModel.enableMultiVariety()
+                            } else {
+                                Modifier
                             }
                         )
+                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, textFieldShape)
+                        .clickable {
+                            viewModel.enableMultiVariety()
+                        }
                         .testTag("add_multiple_varieties_button"),
                     contentAlignment = Alignment.Center
                 ) {
