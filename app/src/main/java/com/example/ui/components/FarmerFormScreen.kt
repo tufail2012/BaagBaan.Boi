@@ -3197,6 +3197,7 @@ fun FarmerFormScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 1. Save Booking Entry
+            val saveButtonInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
             Button(
                 onClick = {
                     viewModel.saveRecord()
@@ -3205,7 +3206,9 @@ fun FarmerFormScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
+                    .pressScale(saveButtonInteractionSource)
                     .testTag("save_booking_entry_button"),
+                interactionSource = saveButtonInteractionSource,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
