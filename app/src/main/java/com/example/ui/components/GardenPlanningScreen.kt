@@ -2137,7 +2137,9 @@ fun GardenPlanningFormTab(
                 selectedTemplate = selectedTemplate,
                 onSelectTemplate = { viewModel.selectedTemplate.value = it },
                 generatedMessage = previewMsg,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
         }
     }

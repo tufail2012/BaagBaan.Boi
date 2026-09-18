@@ -5,6 +5,8 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MessageTemplateRepository
+import com.example.ui.components.GLASS_EDGE_COLOR
+import com.example.ui.components.GLASS_EDGE_WIDTH
+import com.example.ui.components.isGlassSupported
+import com.example.ui.components.liquidGlassNav
+import com.kyant.backdrop.Backdrop
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.materials.HazeMaterials
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -109,7 +120,9 @@ fun MessagePreviewComponent(
     onSelectTemplate: (String) -> Unit,
     generatedMessage: String,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var templateMenuExpanded by remember { mutableStateOf(false) }
@@ -123,16 +136,44 @@ fun MessagePreviewComponent(
             .fillMaxWidth()
             .shadow(
                 elevation = if (isDark) 4.dp else 2.dp,
-                shape = cardShape
+                shape = cardShape,
+                ambientColor = if (isDark) Color.Black else Color(0x20000000),
+                spotColor = if (isDark) Color.Black else Color(0x30000000)
             )
             .clip(cardShape)
+            .liquidGlassNav(shape = cardShape, backdrop = backdrop)
+            .then(
+                if (backdrop == null || !isGlassSupported()) {
+                    if (hazeState != null) {
+                        Modifier.hazeEffect(
+                            state = hazeState,
+                            style = HazeMaterials.ultraThin(
+                                if (isDark) Color(0xFF1C1D22) else Color(0xFFF8F9FA)
+                            )
+                        )
+                    } else {
+                        Modifier.background(
+                            if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f)
+                        )
+                    }
+                } else {
+                    Modifier
+                }
+            )
+            .border(
+                width = if (backdrop != null && isGlassSupported()) GLASS_EDGE_WIDTH else 1.dp,
+                brush = if (backdrop != null && isGlassSupported()) {
+                    GLASS_EDGE_COLOR
+                } else {
+                    SolidColor(
+                        if (isDark) Color(0xFF333540) else Color(0xFFE2E8F0)
+                    )
+                },
+                shape = cardShape
+            )
             .testTag("message_preview_collapsible_card"),
         shape = cardShape,
-        color = if (isDark) Color(0xFF1C1D22) else Color(0xFFF8F9FA),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isDark) Color(0xFF333540) else Color(0xFFE2E8F0)
-        )
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -248,19 +289,34 @@ fun MessagePreviewComponent(
                     }
 
                     // Message Preview Box
+                    val innerPreviewShape = RoundedCornerShape(12.dp)
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(
                                 elevation = if (isDark) 2.dp else 1.dp,
-                                shape = RoundedCornerShape(12.dp)
+                                shape = innerPreviewShape
+                            )
+                            .clip(innerPreviewShape)
+                            .liquidGlassNav(shape = innerPreviewShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.background(if (isDark) Color(0xFF141518) else Color(0xFFFFFFFF))
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .border(
+                                width = if (backdrop != null && isGlassSupported()) GLASS_EDGE_WIDTH else 1.dp,
+                                brush = if (backdrop != null && isGlassSupported()) {
+                                    GLASS_EDGE_COLOR
+                                } else {
+                                    SolidColor(if (isDark) Color(0xFF2A2C36) else Color(0xFFE2E8F0))
+                                },
+                                shape = innerPreviewShape
                             ),
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (isDark) Color(0xFF141518) else Color(0xFFFFFFFF),
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (isDark) Color(0xFF2A2C36) else Color(0xFFE2E8F0)
-                        )
+                        shape = innerPreviewShape,
+                        color = Color.Transparent
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp),
