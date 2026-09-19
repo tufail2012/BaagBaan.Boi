@@ -55,7 +55,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -4556,11 +4558,71 @@ private fun DrawScope.drawTree(
 
 
 @Composable
+private fun Modifier.formLiquidGlassContainer(
+    shape: CornerBasedShape = RoundedCornerShape(26.dp),
+    backdrop: LayerBackdrop?,
+    hazeState: HazeState?,
+    isDark: Boolean
+): Modifier {
+    val container = MaterialTheme.colorScheme.surface
+    return this
+        .clip(shape)
+        .liquidGlassNav(shape = shape, backdrop = backdrop)
+        .then(
+            if (backdrop == null || !isGlassSupported()) {
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
+                } else {
+                    Modifier.background(
+                        if (isDark) Color(0xFF16181D).copy(alpha = 0.70f) else Color(0xFFF8FAFC).copy(alpha = 0.85f),
+                        shape
+                    )
+                }
+            } else {
+                Modifier
+            }
+        )
+        .border(
+            width = 0.8.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (!isDark) 0.45f else 0.28f),
+                    Color.White.copy(alpha = if (!isDark) 0.20f else 0.10f)
+                ),
+                start = Offset.Zero,
+                end = Offset.Infinite
+            ),
+            shape = shape
+        )
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+            val cornerRadiusPx = 26.dp.toPx()
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.35f else 0.55f),
+                        Color.White.copy(alpha = if (isDark) 0.08f else 0.16f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = minOf(h * 0.25f, 100.dp.toPx())
+                ),
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
+}
+
+@Composable
 private fun FormSectionGlassCard(
     backdrop: LayerBackdrop?,
     isDark: Boolean,
     modifier: Modifier = Modifier,
-    shape: CornerBasedShape = RoundedCornerShape(16.dp),
+    shape: CornerBasedShape = RoundedCornerShape(26.dp),
     hazeState: HazeState? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -4569,21 +4631,12 @@ private fun FormSectionGlassCard(
         color = Color.Transparent,
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .liquidGlassNav(shape = shape, backdrop = backdrop)
-            .then(
-                if (backdrop == null || !isGlassSupported()) {
-                    Modifier.glassCardBackground(
-                        isDark = isDark,
-                        accentColor = MaterialTheme.colorScheme.primary,
-                        shape = shape,
-                        hazeState = hazeState
-                    )
-                } else {
-                    Modifier
-                }
+            .formLiquidGlassContainer(
+                shape = shape,
+                backdrop = backdrop,
+                hazeState = hazeState,
+                isDark = isDark
             )
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
