@@ -115,6 +115,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import dev.chrisbanes.haze.materials.HazeMaterials
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -966,7 +967,9 @@ fun PaymentStatusSelector(
     accentColor: Color,
     isDark: Boolean,
     modifier: Modifier = Modifier,
-    testTagPrefix: String = "payment_status"
+    testTagPrefix: String = "payment_status",
+    backdrop: com.kyant.backdrop.Backdrop? = null,
+    hazeState: HazeState? = null
 ) {
     val paymentStatusOptions = listOf("Pending", "Advance Paid", "Fully Paid")
     
@@ -999,19 +1002,7 @@ fun PaymentStatusSelector(
                     )
                 )
             } else {
-                Brush.verticalGradient(
-                    colors = if (isDark) {
-                        listOf(
-                            Color(0xFF242127),
-                            Color(0xFF151318)
-                        )
-                    } else {
-                        listOf(
-                            Color.White.copy(alpha = 0.95f),
-                            Color(0xFFF1F5F9).copy(alpha = 0.85f)
-                        )
-                    }
-                )
+                null
             }
 
             val borderStroke = if (isSelected) {
@@ -1027,8 +1018,8 @@ fun PaymentStatusSelector(
                 )
             } else {
                 BorderStroke(
-                    width = 1.dp,
-                    color = if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFFCBD5E1)
+                    width = GLASS_EDGE_WIDTH,
+                    brush = GLASS_EDGE_COLOR
                 )
             }
 
@@ -1038,6 +1029,40 @@ fun PaymentStatusSelector(
                 if (isDark) Color(0xFFF1F5F9) else Color(0xFF1E293B)
             }
 
+            val glassModifier = if (isSelected) {
+                Modifier
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = buttonShape,
+                        spotColor = accentColor.copy(alpha = 0.45f),
+                        ambientColor = accentColor.copy(alpha = 0.25f)
+                    )
+                    .clip(buttonShape)
+                    .background(brush = backgroundBrush!!, shape = buttonShape)
+            } else {
+                val base = Modifier.clip(buttonShape)
+                if (backdrop != null && isGlassSupported()) {
+                    base.liquidGlassNav(shape = buttonShape, backdrop = backdrop)
+                } else if (hazeState != null) {
+                    val fallbackTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
+                    base.hazeEffect(
+                        state = hazeState,
+                        style = HazeMaterials.regular(fallbackTint)
+                    )
+                } else {
+                    base.background(
+                        brush = Brush.verticalGradient(
+                            colors = if (isDark) {
+                                listOf(Color(0xFF242127).copy(alpha = 0.6f), Color(0xFF151318).copy(alpha = 0.6f))
+                            } else {
+                                listOf(Color.White.copy(alpha = 0.8f), Color(0xFFF1F5F9).copy(alpha = 0.7f))
+                            }
+                        ),
+                        shape = buttonShape
+                    )
+                }
+            }
+
             Surface(
                 shape = buttonShape,
                 color = Color.Transparent,
@@ -1045,14 +1070,7 @@ fun PaymentStatusSelector(
                 modifier = Modifier
                     .weight(1f)
                     .height(44.dp)
-                    .shadow(
-                        elevation = if (isSelected) 4.dp else 1.dp,
-                        shape = buttonShape,
-                        spotColor = if (isSelected) accentColor.copy(alpha = 0.45f) else Color.Black.copy(alpha = 0.10f),
-                        ambientColor = if (isSelected) accentColor.copy(alpha = 0.25f) else Color.Black.copy(alpha = 0.05f)
-                    )
-                    .clip(buttonShape)
-                    .background(brush = backgroundBrush, shape = buttonShape)
+                    .then(glassModifier)
                     .clickable { onStatusSelected(statusOption) }
                     .testTag("${testTagPrefix}_$statusOption")
             ) {

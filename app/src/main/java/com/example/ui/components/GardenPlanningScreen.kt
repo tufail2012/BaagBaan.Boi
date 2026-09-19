@@ -1884,7 +1884,9 @@ fun GardenPlanningFormTab(
                 onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
                 accentColor = gardenAccent,
                 isDark = isDark,
-                testTagPrefix = "garden_payment_status"
+                testTagPrefix = "garden_payment_status",
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             // Amount Paid Input Field

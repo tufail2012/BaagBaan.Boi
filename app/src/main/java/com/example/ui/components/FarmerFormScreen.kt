@@ -2558,12 +2558,14 @@ fun FarmerFormScreen(
                     )
 
                     PaymentStatusSelector(
-                selectedStatus = paymentStatus,
-                onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
-                accentColor = formAccent,
-                isDark = isDark,
-                testTagPrefix = "payment_status"
-            )
+                        selectedStatus = paymentStatus,
+                        onStatusSelected = { viewModel.onPaymentStatusSelected(it) },
+                        accentColor = formAccent,
+                        isDark = isDark,
+                        testTagPrefix = "payment_status",
+                        backdrop = backdrop,
+                        hazeState = hazeState
+                    )
 
             FormFieldDivider(isDark = isDark)
 
