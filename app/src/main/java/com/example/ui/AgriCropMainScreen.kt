@@ -829,51 +829,11 @@ fun AgriCropMainScreen(
                                         ) {
                                             // Ambient background canvas: provides rich texture, ambient lighting, and depth
                                             // for the glass surfaces to blur, refract, and softly diffuse.
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(rootBgBrush)
+                                            PremiumGlassAmbientBackdrop(
+                                                accentColor = sectionAccentColor ?: Color(0xFF4CAF50),
+                                                isDark = isDark,
+                                                isAmoled = isAmoled
                                             )
-                                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                                val accent = sectionAccentColor ?: Color(0xFF4CAF50)
-                                                val isDarkTheme = isDark || isAmoled
-                                                // Top-right radiant ambient orb
-                                                drawCircle(
-                                                    brush = Brush.radialGradient(
-                                                        colors = listOf(
-                                                            accent.copy(alpha = if (isDarkTheme) 0.20f else 0.14f),
-                                                            accent.copy(alpha = if (isDarkTheme) 0.06f else 0.03f),
-                                                            Color.Transparent
-                                                        ),
-                                                        center = Offset(size.width * 0.75f, size.height * 0.18f),
-                                                        radius = size.width * 0.65f
-                                                    )
-                                                )
-                                                // Mid-left soft ambient glow
-                                                drawCircle(
-                                                    brush = Brush.radialGradient(
-                                                        colors = listOf(
-                                                            accent.copy(alpha = if (isDarkTheme) 0.15f else 0.09f),
-                                                            accent.copy(alpha = if (isDarkTheme) 0.04f else 0.01f),
-                                                            Color.Transparent
-                                                        ),
-                                                        center = Offset(size.width * 0.20f, size.height * 0.55f),
-                                                        radius = size.width * 0.70f
-                                                    )
-                                                )
-                                                // Bottom-right radiant ambient orb behind floating action controls (New Entry / Scroll-to-Top)
-                                                drawCircle(
-                                                    brush = Brush.radialGradient(
-                                                        colors = listOf(
-                                                            accent.copy(alpha = if (isDarkTheme) 0.18f else 0.12f),
-                                                            accent.copy(alpha = if (isDarkTheme) 0.05f else 0.02f),
-                                                            Color.Transparent
-                                                        ),
-                                                        center = Offset(size.width * 0.82f, size.height * 0.86f),
-                                                        radius = size.width * 0.55f
-                                                    )
-                                                )
-                                            }
                                         }
 
                                         HorizontalPager(
