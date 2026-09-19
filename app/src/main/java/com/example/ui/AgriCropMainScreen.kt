@@ -837,6 +837,20 @@ fun AgriCropMainScreen(
                                             )
                                         }
 
+                                        // Dedicated New Entry (FarmerFormScreen) backdrop source boundary:
+                                        // Declared once outside HorizontalPager to ensure a single stable writer to formContentBackdrop
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .layerBackdrop(formContentBackdrop)
+                                        ) {
+                                            PremiumGlassAmbientBackdrop(
+                                                accentColor = sectionAccentColor ?: Color(0xFF4CAF50),
+                                                isDark = isDark,
+                                                isAmoled = isAmoled
+                                            )
+                                        }
+
                                         HorizontalPager(
                                             state = pagerState,
                                             modifier = Modifier.fillMaxSize(),

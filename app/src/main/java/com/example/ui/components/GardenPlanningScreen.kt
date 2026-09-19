@@ -2863,19 +2863,25 @@ private fun SwipeableGardenPlanningItem(
                 val icon = if (isStartToEnd) Icons.Default.Chat else Icons.Default.DeleteOutline
                 val text = if (isStartToEnd) "WhatsApp" else "Delete"
 
-                val trayBrush = Brush.verticalGradient(
-                    if (isStartToEnd) {
+                val isDark = isAppInDarkMode()
+
+                val trayBrush = if (isStartToEnd) {
+                    Brush.horizontalGradient(
                         listOf(
-                            Color(0xFF16A34A).copy(alpha = 0.85f),
-                            Color(0xFF15803D).copy(alpha = 0.95f)
+                            Color(0xFF16A34A).copy(alpha = if (isDark) 0.35f else 0.25f),
+                            Color(0xFF16A34A).copy(alpha = if (isDark) 0.20f else 0.14f),
+                            Color.Transparent
                         )
-                    } else {
+                    )
+                } else {
+                    Brush.horizontalGradient(
                         listOf(
-                            Color(0xFFDC2626).copy(alpha = 0.85f),
-                            Color(0xFFB91C1C).copy(alpha = 0.95f)
+                            Color.Transparent,
+                            Color(0xFFDC2626).copy(alpha = if (isDark) 0.20f else 0.14f),
+                            Color(0xFFDC2626).copy(alpha = if (isDark) 0.35f else 0.25f)
                         )
-                    }
-                )
+                    )
+                }
 
                 val trayBorderBrush = Brush.verticalGradient(
                     listOf(
