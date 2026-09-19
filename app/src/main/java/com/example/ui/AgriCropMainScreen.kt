@@ -920,7 +920,7 @@ fun AgriCropMainScreen(
                                                     0 -> FarmerFormScreen(
                                                         viewModel = viewModel,
                                                         hazeState = hazeState,
-                                                        backdrop = recordsBackdrop,
+                                                        backdrop = formContentBackdrop,
                                                         lazyListState = formListState
                                                     )
                                                     else -> {

@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -141,7 +142,81 @@ fun PremiumGlassAmbientBackdrop(
             val density = this
 
             // =========================================================================
-            // DENSE SCATTER FIELD (Micro-details sampled by Liquid Glass)
+            // 1. SOFT RADIAL-GRADIENT GLOW LAYER (Color contrast for liquid glass refraction)
+            // =========================================================================
+            val orbAlphaPrimary = if (isAmoled) 0.22f else if (isDarkTheme) 0.25f else 0.20f
+            val orbAlphaSecondary = if (isAmoled) 0.16f else if (isDarkTheme) 0.19f else 0.14f
+
+            // Top-Right Ambient Glow (accent & coral tones)
+            val glowColorTopRight = activePalette[2 % activePalette.size] // Coral
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = orbAlphaPrimary),
+                        glowColorTopRight.copy(alpha = orbAlphaSecondary * 0.5f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.78f, h * 0.16f),
+                    radius = w * 0.70f
+                )
+            )
+
+            // Mid-Left Ambient Glow (teal / cyan tones)
+            val glowColorMidLeft = activePalette[9 % activePalette.size] // Teal
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        glowColorMidLeft.copy(alpha = orbAlphaSecondary),
+                        accentColor.copy(alpha = orbAlphaSecondary * 0.35f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.16f, h * 0.50f),
+                    radius = w * 0.72f
+                )
+            )
+
+            // Center-Right Diffuser (gold / amber tones)
+            val glowColorCenterRight = activePalette[6 % activePalette.size] // Gold
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        glowColorCenterRight.copy(alpha = orbAlphaSecondary * 0.8f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.65f, h * 0.68f),
+                    radius = w * 0.55f
+                )
+            )
+
+            // Bottom-Right Ambient Glow (indigo / violet tones)
+            val glowColorBottomRight = activePalette[12 % activePalette.size] // Indigo
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = orbAlphaPrimary * 0.9f),
+                        glowColorBottomRight.copy(alpha = orbAlphaSecondary * 0.6f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.82f, h * 0.86f),
+                    radius = w * 0.60f
+                )
+            )
+
+            // Bottom-Left Grounding Glow (emerald / green tones)
+            val glowColorBottomLeft = activePalette[8 % activePalette.size] // Green
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        glowColorBottomLeft.copy(alpha = orbAlphaSecondary * 0.7f),
+                        Color.Transparent
+                    ),
+                    center = Offset(w * 0.20f, h * 0.90f),
+                    radius = w * 0.50f
+                )
+            )
+
+            // =========================================================================
+            // 2. DENSE SCATTER FIELD (Micro-details sampled by Liquid Glass)
             // =========================================================================
             val baseShapeAlpha = if (isAmoled) 0.35f else if (isDarkTheme) 0.38f else 0.28f
 

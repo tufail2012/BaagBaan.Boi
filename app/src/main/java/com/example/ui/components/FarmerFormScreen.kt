@@ -913,6 +913,7 @@ fun FarmerFormScreen(
                         onSelectSubTab = { viewModel.selectPruningSubTab(it) },
                         accentColor = formAccent,
                         hazeState = hazeState,
+                        backdrop = backdrop,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -926,6 +927,7 @@ fun FarmerFormScreen(
                         },
                         accentColor = formAccent,
                         hazeState = hazeState,
+                        backdrop = backdrop,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -934,17 +936,16 @@ fun FarmerFormScreen(
             // Segmented Control (New Entry / Records)
             if (hazeState != null) {
                 item(key = "view_mode_segmented_control") {
-                    if (hazeState != null) {
-                AgriSegmentedControl(
-                    selectedMode = viewMode,
-                    onModeSelected = { viewModel.setViewMode(it) },
-                    hazeState = hazeState,
-                    newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                    recordsLabel = "Records ($cropRecordsCount)",
-                    accentColor = formAccent,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                    AgriSegmentedControl(
+                        selectedMode = viewMode,
+                        onModeSelected = { viewModel.setViewMode(it) },
+                        hazeState = hazeState,
+                        newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                        recordsLabel = "Records ($cropRecordsCount)",
+                        accentColor = formAccent,
+                        backdrop = backdrop,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
