@@ -209,10 +209,6 @@ fun AgriCropMainScreen(
         onDraw = paintBackdrop
     )
 
-    val formContentBackdrop = rememberLayerBackdrop(
-        onDraw = paintBackdrop
-    )
-
     val navBackdropCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
     val profileMenuBackdrop = rememberPopupBackdrop(
         backdrop = navBackdrop,
@@ -837,20 +833,6 @@ fun AgriCropMainScreen(
                                             )
                                         }
 
-                                        // Dedicated New Entry (FarmerFormScreen) backdrop source boundary:
-                                        // Declared once outside HorizontalPager to ensure a single stable writer to formContentBackdrop
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .layerBackdrop(formContentBackdrop)
-                                        ) {
-                                            PremiumGlassAmbientBackdrop(
-                                                accentColor = sectionAccentColor ?: Color(0xFF4CAF50),
-                                                isDark = isDark,
-                                                isAmoled = isAmoled
-                                            )
-                                        }
-
                                         HorizontalPager(
                                             state = pagerState,
                                             modifier = Modifier.fillMaxSize(),
@@ -934,7 +916,7 @@ fun AgriCropMainScreen(
                                                     0 -> FarmerFormScreen(
                                                         viewModel = viewModel,
                                                         hazeState = hazeState,
-                                                        backdrop = formContentBackdrop,
+                                                        backdrop = recordsBackdrop,
                                                         lazyListState = formListState
                                                     )
                                                     else -> {

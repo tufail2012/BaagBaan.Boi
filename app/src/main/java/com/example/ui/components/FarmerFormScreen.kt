@@ -28,7 +28,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import com.kyant.backdrop.backdrops.LayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -832,18 +831,6 @@ fun FarmerFormScreen(
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier)
-        ) {
-            PremiumGlassAmbientBackdrop(
-                accentColor = formAccent,
-                isDark = isDark,
-                isAmoled = isAmoled
-            )
-        }
-
         // Form States & Specifications Hoisted for LazyColumn
         // Liquid Glass Switcher (New Entry / Records)
             val viewMode by viewModel.viewMode.collectAsState()
