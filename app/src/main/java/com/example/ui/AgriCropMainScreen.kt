@@ -87,8 +87,6 @@ import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
 import com.example.ui.components.security.AppLockScreen
 import com.example.ui.components.security.SettingsScreen
-import com.example.ui.components.PermissionOnboardingScreen
-import com.example.util.PermissionOnboardingPreferences
 import com.google.firebase.auth.FirebaseAuth
 import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
@@ -125,11 +123,7 @@ fun AgriCropMainScreen(
         )
         GardenPlanningViewModel(repository)
     }
-    val permissionPreferences = remember { PermissionOnboardingPreferences(context) }
     var isLoginActive by remember { mutableStateOf(currentUser == null) }
-    var isPermissionOnboardingActive by remember {
-        mutableStateOf(currentUser != null && !permissionPreferences.isOnboardingCompleted())
-    }
     var showNotificationCenter by remember { mutableStateOf(false) }
     var showBackupRestoreDialog by remember { mutableStateOf(false) }
     var showContactDirectoryDialog by remember { mutableStateOf(false) }
@@ -238,7 +232,6 @@ fun AgriCropMainScreen(
             } finally {
                 currentUser = null
                 isLoginActive = true
-                isPermissionOnboardingActive = false
             }
         }
     }
@@ -352,7 +345,6 @@ fun AgriCropMainScreen(
 
     val currentRootScreen = when {
         isLoginActive -> "LOGIN"
-        isPermissionOnboardingActive -> "PERMISSION_ONBOARDING"
         showThemePreferencesDialog -> "THEME"
         showQrScannerDialog -> "SCAN_QR"
         showContactDirectoryDialog -> "CONTACTS"
@@ -371,13 +363,7 @@ fun AgriCropMainScreen(
         AnimatedContent(
             targetState = currentRootScreen,
         transitionSpec = {
-            if (initialState == "LOGIN" && targetState == "PERMISSION_ONBOARDING") {
-                (fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.95f, animationSpec = tween(400)))
-                    .togetherWith(fadeOut(animationSpec = tween(200)))
-            } else if (initialState == "PERMISSION_ONBOARDING") {
-                (fadeIn(animationSpec = tween(350)) + scaleIn(initialScale = 0.97f, animationSpec = tween(350)))
-                    .togetherWith(fadeOut(animationSpec = tween(200)))
-            } else if (initialState == "LOGIN") {
+            if (initialState == "LOGIN") {
                 (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.95f, animationSpec = tween(450)))
                     .togetherWith(fadeOut(animationSpec = tween(200)))
             } else if (targetState == "LOGIN") {
@@ -398,9 +384,6 @@ fun AgriCropMainScreen(
                         currentUser = auth?.currentUser
                         userDashboardViewModel.refreshUser()
                         isLoginActive = false
-                        if (!permissionPreferences.isOnboardingCompleted()) {
-                            isPermissionOnboardingActive = true
-                        }
                         coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                             try {
                                 com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
@@ -411,24 +394,7 @@ fun AgriCropMainScreen(
                     },
                     onContinueAsGuest = {
                         isLoginActive = false
-                        if (!permissionPreferences.isOnboardingCompleted()) {
-                            isPermissionOnboardingActive = true
-                        }
                     },
-                    modifier = modifier
-                )
-            }
-            "PERMISSION_ONBOARDING" -> {
-                PermissionOnboardingScreen(
-                    onOnboardingComplete = {
-                        permissionPreferences.setOnboardingCompleted(true)
-                        isPermissionOnboardingActive = false
-                    },
-                    onSkipAll = {
-                        permissionPreferences.setOnboardingCompleted(true)
-                        isPermissionOnboardingActive = false
-                    },
-                    isDark = isDark,
                     modifier = modifier
                 )
             }
@@ -439,10 +405,6 @@ fun AgriCropMainScreen(
                     currentUserEmail = currentUser?.email,
                     currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
                     onOpenThemeDialog = { showThemePreferencesDialog = true },
-                    onNavigateToPermissions = {
-                        isSettingsActive = false
-                        isPermissionOnboardingActive = true
-                    },
                     onNavigateToAccounts = {
                         isSettingsActive = false
                         isLoginActive = true

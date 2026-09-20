@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.ui.theme.getAppDimBackgroundColor
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.ExperimentalHazeApi
@@ -71,10 +72,11 @@ fun TopHeaderScrollScrim(
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current
 
     val themeBgColor = MaterialTheme.colorScheme.background
-    val baseColor = remember(isDark, isAmoled, themeBgColor) {
+    val scrimAccent = accentColor ?: MaterialTheme.colorScheme.primary
+    val baseColor = remember(isDark, isAmoled, themeBgColor, scrimAccent) {
         when {
             isAmoled -> Color.Black
-            isDark -> Color(0xFF0F172A)
+            isDark -> getAppDimBackgroundColor(scrimAccent, isDark = true, isAmoled = false)
             else -> themeBgColor
         }
     }

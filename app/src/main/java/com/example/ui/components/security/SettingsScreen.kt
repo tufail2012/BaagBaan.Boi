@@ -90,7 +90,7 @@ import com.example.ui.components.GLASS_EDGE_COLOR
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import androidx.compose.ui.graphics.Brush
+import com.example.ui.components.PremiumGlassAmbientBackdrop
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -116,7 +116,6 @@ fun SettingsScreen(
     currentUserEmail: String? = null,
     currentUserPhotoUrl: String? = null,
     onOpenThemeDialog: () -> Unit,
-    onNavigateToPermissions: () -> Unit = {},
     onNavigateToAccounts: () -> Unit = {},
     onLogout: () -> Unit = {},
     onNavigateToBackupRestore: () -> Unit,
@@ -391,17 +390,10 @@ fun SettingsScreen(
                 .hazeSource(state = settingsHazeState)
                 .layerBackdrop(settingsBackdrop)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                settingsAccent.copy(alpha = if (isDark) 0.18f else 0.10f),
-                                Color.Transparent
-                            )
-                        )
-                    )
+            PremiumGlassAmbientBackdrop(
+                accentColor = settingsAccent,
+                isDark = isDark,
+                isAmoled = isAmoled
             )
         }
 
@@ -474,19 +466,6 @@ fun SettingsScreen(
                                 subtitle = modeLabel,
                                 onClick = onOpenThemeDialog,
                                 testTag = "settings_theme_row"
-                            )
-
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-
-                            SettingsNavigationRow(
-                                icon = Icons.Default.Shield,
-                                title = "Device Permissions & Onboarding",
-                                subtitle = "Manage alerts, camera & location access",
-                                onClick = onNavigateToPermissions,
-                                testTag = "settings_permissions_row"
                             )
                         }
                     }
@@ -1036,6 +1015,22 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = settingsBackdrop)
+                    .then(
+                        if (!isGlassSupported()) {
+                            Modifier.glassCardBackground(
+                                cornerRadius = 30.dp,
+                                accentColor = settingsAccent,
+                                isDark = isDark,
+                                themeMode = themeMode,
+                                hazeState = settingsHazeState
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
                     .align(Alignment.TopCenter)
             ) {
                 Row(
