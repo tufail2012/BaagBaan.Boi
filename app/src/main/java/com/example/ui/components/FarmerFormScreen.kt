@@ -3143,40 +3143,16 @@ fun FarmerFormScreen(
                                                 }
                                             }
 
-                                            Surface(
-                                                shape = RoundedCornerShape(12.dp),
-                                                color = Color.Transparent,
-                                                shadowElevation = if (isDark) 4.dp else 3.dp,
+                                            Text(
+                                                text = generatedMessage,
+                                                fontSize = 12.sp,
+                                                lineHeight = 18.sp,
+                                                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .shadow(
-                                                        elevation = 4.dp,
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        ambientColor = if (isDark) Color.Black else Color(0x18000000),
-                                                        spotColor = if (isDark) Color.Black else Color(0x25000000)
-                                                    )
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .liquidGlassNav(shape = RoundedCornerShape(12.dp), backdrop = backdrop)
-                                                    .then(
-                                                        if (backdrop == null || !isGlassSupported()) {
-                                                            Modifier.background(if (isDark) Color(0xFF121316).copy(alpha = 0.50f) else Color.White.copy(alpha = 0.75f))
-                                                        } else {
-                                                            Modifier
-                                                        }
-                                                    )
-                                                    .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
-                                            ) {
-                                                Text(
-                                                    text = generatedMessage,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = if (isDark) Color(0xFFFAFAFA) else Color(0xFF111111),
-                                                    lineHeight = 18.sp,
-                                                    modifier = Modifier
-                                                        .padding(14.dp)
-                                                        .testTag("preview_message_text")
-                                                )
-                                            }
+                                                    .padding(top = 4.dp)
+                                                    .testTag("preview_message_text")
+                                            )
                                         }
                                     }
                                 }
