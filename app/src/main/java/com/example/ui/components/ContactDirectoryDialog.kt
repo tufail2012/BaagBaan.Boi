@@ -18,11 +18,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -43,6 +45,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -78,6 +85,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -503,220 +511,160 @@ fun ContactDirectoryDialog(
         getAppDimBackgroundBrush(contactAccent, isDark = isDark)
     }
 
+    val contactsIsAmoled = isAppInAmoledMode()
+    val contactsHazeState = remember { HazeState() }
+    val contactsWindowBackground = MaterialTheme.colorScheme.surface
+    val contactsPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(contactsWindowBackground) {
+            {
+                drawRect(contactsWindowBackground)
+                drawContent()
+            }
+        }
+    val contactsBackdrop = rememberLayerBackdrop(onDraw = contactsPaintBackdrop)
+    val contactListState = rememberLazyListState()
+    contactListState.rememberScrollHapticFeedback()
+    val contactScrollOffset by remember {
+        derivedStateOf {
+            contactListState.firstVisibleItemIndex * 200f + contactListState.firstVisibleItemScrollOffset
+        }
+    }
+
     BackHandler(onBack = onDismiss)
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(contactsBgBrush)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                // Wide Pill-Shaped Glass Header (Matching Dashboard & Inventory Header Style)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .frostedGlassChrome(
-                            isDark = isDark,
-                            accentColor = contactAccent,
-                            shape = RoundedCornerShape(percent = 50)
-                        )
-                ) {
-                    Row(
+    Box(modifier = modifier.fillMaxSize().background(contactsBgBrush)) {
+        Box(
+            modifier = Modifier.fillMaxSize().hazeSource(state = contactsHazeState).layerBackdrop(contactsBackdrop)
+        ) {
+            PremiumGlassAmbientBackdrop(accentColor = contactAccent, isDark = isDark, isAmoled = contactsIsAmoled)
+        }
+
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(contactsBackdrop, contactsHazeState, isDark)) {
+            Scaffold(
+                containerColor = Color.Transparent,
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = { showAddDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .navigationBarsPadding()
+                            .padding(bottom = 36.dp, end = 16.dp)
+                            .size(56.dp)
+                            .testTag("add_contact_fab")
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f, fill = false)
-                        ) {
-                            IconButton(
-                                onClick = onDismiss,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .testTag("contact_directory_back_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = contactAccent
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(contactAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Contacts,
-                                    contentDescription = "Contacts Icon",
-                                    tint = contactAccent,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = "Contact Directory",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp,
-                                        letterSpacing = (-0.3).sp
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = "${allContactsList.size} Saved Contacts",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium
-                                    ),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add Contact",
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
                 }
-            },
-            floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { showAddDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = 36.dp, end = 16.dp)
-                        .size(56.dp)
-                        .testTag("add_contact_fab")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Contact",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-        ) { innerPadding ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp)
-                ) {
-                    // Search Bar
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = capitalizeWordsNaturally(it) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        placeholder = { Text("Search farmer name, phone, or address...") },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
-                        trailingIcon = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(0.dp)
-                            ) {
-                                if (searchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+            ) { innerPadding ->
+                BrandedPullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        if (isRefreshing) return@BrandedPullToRefreshBox
+                        isRefreshing = true
+                        scope.launch {
+                            try {
+                                val deviceKeys = withContext(Dispatchers.IO) {
+                                    queryDeviceContactsKeys(context)
+                                }
+                                if (deviceKeys.isNotEmpty()) {
+                                    val updated = savedPhoneKeys + deviceKeys
+                                    savedPhoneKeys = updated
+                                    withContext(Dispatchers.IO) {
+                                        val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
+                                        prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
                                     }
                                 }
-                                VoiceSearchIconButton(
-                                    onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
-                                    accentColor = MaterialTheme.colorScheme.primary,
-                                    buttonSize = 34.dp,
-                                    iconSize = 18.dp,
-                                    testTag = "contact_directory_voice_btn"
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        keyboardOptions = AppDefaultWordKeyboardOptions
-                    )
-
-                    if (allContactsList.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.Contacts,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.outline
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = if (searchQuery.isNotEmpty()) "No matching contacts found" else "No contacts added yet",
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "Tap '+' to create a new entry manually.",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
+                                delay(400)
+                            } catch (_: Exception) {
+                            } finally {
+                                isRefreshing = false
                             }
                         }
-                    } else {
-                        val contactListState = rememberLazyListState()
-                        contactListState.rememberScrollHapticFeedback()
-
-                        BrandedPullToRefreshBox(
-                            isRefreshing = isRefreshing,
-                            onRefresh = {
-                                if (isRefreshing) return@BrandedPullToRefreshBox
-                                isRefreshing = true
-                                scope.launch {
-                                    try {
-                                        val deviceKeys = withContext(Dispatchers.IO) {
-                                            queryDeviceContactsKeys(context)
-                                        }
-                                        if (deviceKeys.isNotEmpty()) {
-                                            val updated = savedPhoneKeys + deviceKeys
-                                            savedPhoneKeys = updated
-                                            withContext(Dispatchers.IO) {
-                                                val prefs = context.getSharedPreferences(PREFS_SAVED_PHONE_CONTACTS, Context.MODE_PRIVATE)
-                                                prefs.edit().putStringSet(KEY_SAVED_PHONE_SET, updated).apply()
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    LazyColumn(
+                        state = contactListState,
+                        modifier = Modifier.fillMaxSize().hazeSource(state = contactsHazeState),
+                        contentPadding = PaddingValues(
+                            start = 16.dp, end = 16.dp,
+                            top = rememberScrollUnderHeaderTopPadding(),
+                            bottom = 120.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        item(key = "contact_search") {
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = capitalizeWordsNaturally(it) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .fieldGlass(shape = RoundedCornerShape(12.dp)),
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = contactAccent),
+                                placeholder = { Text("Search farmer name, phone, or address...") },
+                                leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                    ) {
+                                        if (searchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { searchQuery = "" }) {
+                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                                             }
                                         }
-                                        delay(400)
-                                    } catch (_: Exception) {
-                                    } finally {
-                                        isRefreshing = false
+                                        VoiceSearchIconButton(
+                                            onQueryChange = { searchQuery = capitalizeWordsNaturally(it) },
+                                            accentColor = MaterialTheme.colorScheme.primary,
+                                            buttonSize = 34.dp,
+                                            iconSize = 18.dp,
+                                            testTag = "contact_directory_voice_btn"
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                keyboardOptions = AppDefaultWordKeyboardOptions
+                            )
+                        }
+                        if (allContactsList.isEmpty()) {
+                            item(key = "contact_empty") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 80.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.Contacts,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(64.dp),
+                                            tint = MaterialTheme.colorScheme.outline
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = if (searchQuery.isNotEmpty()) "No matching contacts found" else "No contacts added yet",
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Tap '+' to create a new entry manually.",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.outline
+                                        )
                                     }
                                 }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            LazyColumn(
-                                state = contactListState,
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
+                            }
+                        } else {
                             items(allContactsList, key = { "${it.id}_${it.phone}_${it.name}" }) { item ->
                                 val isSavedInPhone = remember(item.name, item.phone, item.serialNumber, savedPhoneKeys) {
                                     getContactKeys(item.name, item.phone, item.serialNumber).any { savedPhoneKeys.contains(it) }
@@ -725,11 +673,10 @@ fun ContactDirectoryDialog(
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .glassCardBackground(
-                                            cornerRadius = 16.dp,
-                                            accentColor = contactAccent,
-                                            isDark = isDark
-                                        )
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = contactsBackdrop)
+                                        .then(if (!isGlassSupported()) Modifier.glassCardBackground(cornerRadius = 16.dp, accentColor = contactAccent, isDark = isDark) else Modifier)
+                                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(16.dp))
                                         .clickable { selectedContactForDetails = item },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
@@ -861,11 +808,94 @@ fun ContactDirectoryDialog(
                         }
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(16.dp))
+        TopHeaderScrollScrim(
+            scrollOffset = contactScrollOffset,
+            hazeState = contactsHazeState,
+            isDark = isDark,
+            isAmoled = contactsIsAmoled,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .align(Alignment.TopCenter)
+                .clip(RoundedCornerShape(percent = 50))
+                .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = contactsBackdrop)
+                .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("contact_directory_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = contactAccent
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(contactAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Contacts,
+                            contentDescription = "Contacts Icon",
+                            tint = contactAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Contact Directory",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${allContactsList.size} Saved Contacts",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
+    }
 
     // Modal to Enter Contact Details Manually
     if (showAddDialog) {
