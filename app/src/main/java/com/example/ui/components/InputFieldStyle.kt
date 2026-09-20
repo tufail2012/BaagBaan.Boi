@@ -122,6 +122,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.nativeCanvas
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.kyant.backdrop.Backdrop
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
  * Forwarding function to single source of truth in Color.kt
@@ -1358,6 +1362,104 @@ fun FrostedCircleActionButton(
         )
     }
 }
+
+@Composable
+fun Modifier.fieldLiquidGlass(
+    shape: CornerBasedShape = RoundedCornerShape(18.dp),
+    backdrop: Backdrop?,
+    hazeState: HazeState?,
+    isDark: Boolean,
+    accentColor: Color
+): Modifier {
+    var isFocused by remember { mutableStateOf(false) }
+    val fieldTint = if (isDark) Color(0xFF1E2129) else Color(0xFFFFFFFF)
+    val fallbackFillAlpha = if (isDark) 0.40f else 0.60f
+    val supportedFillAlpha = if (isDark) 0.18f else 0.28f
+
+    return this
+        .onFocusChanged { isFocused = it.isFocused }
+        .clip(shape)
+        .liquidGlassNav(shape = shape, backdrop = backdrop)
+        .then(
+            if (backdrop == null || !isGlassSupported()) {
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.ultraThin(fieldTint))
+                } else {
+                    Modifier.background(fieldTint.copy(alpha = fallbackFillAlpha), shape)
+                }
+            } else {
+                Modifier.background(fieldTint.copy(alpha = supportedFillAlpha), shape)
+            }
+        )
+        .border(
+            width = if (isFocused) 1.2.dp else 0.8.dp,
+            brush = if (isFocused) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = if (!isDark) 0.75f else 0.65f),
+                        accentColor.copy(alpha = if (!isDark) 0.45f else 0.35f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset.Infinite
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (!isDark) 0.42f else 0.24f),
+                        Color.White.copy(alpha = if (!isDark) 0.18f else 0.08f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset.Infinite
+                )
+            },
+            shape = shape
+        )
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+            val cornerRadiusPx = 18.dp.toPx()
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.28f else 0.45f),
+                        Color.White.copy(alpha = if (isDark) 0.04f else 0.12f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = h * 0.5f
+                ),
+                topLeft = Offset(0.8.dp.toPx(), 0.8.dp.toPx()),
+                size = Size(w - 1.6.dp.toPx(), h - 1.6.dp.toPx()),
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                style = Stroke(width = 0.8.dp.toPx())
+            )
+        }
+}
+
+internal const val FIELD_GLASS_ENABLED = true   // kill switch: set false to disable all per-field glass
+
+data class FieldGlassSpec(
+    val backdrop: Backdrop?,
+    val hazeState: HazeState?,
+    val isDark: Boolean
+)
+
+val LocalFieldGlassSpec = staticCompositionLocalOf<FieldGlassSpec?> { null }
+
+@Composable
+fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Modifier {
+    val spec = LocalFieldGlassSpec.current
+    if (!FIELD_GLASS_ENABLED || spec == null) return this
+    return this.fieldLiquidGlass(
+        shape = shape,
+        backdrop = spec.backdrop,
+        hazeState = spec.hazeState,
+        isDark = spec.isDark,
+        accentColor = MaterialTheme.colorScheme.primary
+    )
+}
+
 
 
 

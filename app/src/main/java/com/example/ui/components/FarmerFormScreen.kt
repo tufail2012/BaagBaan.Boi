@@ -967,6 +967,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("serial_number_input"),
                         colors = elevatedInputFieldColors(isDark = isDark),
@@ -1056,7 +1057,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .testTag("farmer_name_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1082,7 +1084,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .testTag("farmer_address_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1153,7 +1156,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {
                                         if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
@@ -1328,7 +1332,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("variety_line_name_${index}"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1357,7 +1362,8 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .bringIntoViewOnFocus()
+                                            .fieldGlass()
+                            .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1380,7 +1386,8 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .bringIntoViewOnFocus()
+                                            .fieldGlass()
+                            .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark)
                                     )
@@ -1415,7 +1422,8 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .bringIntoViewOnFocus()
+                                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                                         .testTag("variety_line_qty_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
@@ -1442,7 +1450,8 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .bringIntoViewOnFocus()
+                                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                                         .testTag("variety_line_price_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
                                 )
@@ -1534,6 +1543,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("visit_date_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1559,6 +1569,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("soil_health_observations_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1584,6 +1595,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("plant_health_observations_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1640,6 +1652,7 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("orchard_site_location_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1694,6 +1707,7 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("orchard_location_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -1718,7 +1732,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .testTag("plant_variety_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1751,7 +1766,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1776,7 +1792,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1811,6 +1828,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass()
                                     .clickable { saplingAgeMenuExpanded = true }
                                     .testTag("sapling_age_dropdown"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -1862,7 +1880,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1887,7 +1906,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1917,7 +1937,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -1948,6 +1969,7 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .fieldGlass()
                                         .clickable { saplingAgeMenuExpanded = true }
                                         .testTag("sapling_age_dropdown"),
                                     colors = elevatedInputFieldColors(isDark = isDark)
@@ -1994,7 +2016,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .testTag("rootstock_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -2023,7 +2046,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -2044,7 +2068,8 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .bringIntoViewOnFocus()
+                                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                                     .testTag("root_diameter_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark)
                             )
@@ -2143,7 +2168,8 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                         .testTag("scion_variety_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2176,6 +2202,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("graft_type_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2338,7 +2365,8 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                            .bringIntoViewOnFocus()
                                 .testTag("grafting_charges_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -2373,7 +2401,8 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                         .testTag("quantity_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2428,6 +2457,7 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2473,6 +2503,7 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("grafting_charges_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2519,6 +2550,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("quantity_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2545,6 +2577,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2600,7 +2633,8 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .bringIntoViewOnFocus()
+                    .fieldGlass()
+                            .bringIntoViewOnFocus()
                     .testTag("amount_paid_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
             )
@@ -2708,7 +2742,8 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                         .testTag("booking_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2755,7 +2790,8 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                            .bringIntoViewOnFocus()
                         .testTag("expected_delivery_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2881,6 +2917,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass()
                             .bringIntoViewOnFocus()
                             .testTag("farmer_notes_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
@@ -2999,6 +3036,7 @@ fun FarmerFormScreen(
                                             },
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .fieldGlass()
                                                 .elevated3dShadow(shape = pillShape, isDark = isDark)
                                                 .testTag("select_template_dropdown"),
                                             colors = elevatedInputFieldColors(isDark = isDark)
@@ -4656,11 +4694,15 @@ private fun FormSectionGlassCard(
                 isDark = isDark
             )
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            content = content
-        )
+        CompositionLocalProvider(
+            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                content = content
+            )
+        }
     }
 }
 
@@ -4669,9 +4711,4 @@ private fun FormFieldDivider(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.material3.HorizontalDivider(
-        modifier = modifier.fillMaxWidth(),
-        thickness = 0.5.dp,
-        color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
-    )
 }

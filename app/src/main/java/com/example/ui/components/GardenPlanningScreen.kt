@@ -605,11 +605,6 @@ private fun FormFieldDivider(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.material3.HorizontalDivider(
-        modifier = modifier.fillMaxWidth(),
-        thickness = 0.5.dp,
-        color = if (isDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f)
-    )
 }
 
 @Composable
@@ -657,87 +652,16 @@ private fun NestedLiquidGlassSection(
                 shape = shape
             )
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = content
-        )
-    }
-}
-
-@Composable
-private fun Modifier.fieldLiquidGlass(
-    shape: CornerBasedShape = RoundedCornerShape(18.dp),
-    backdrop: Backdrop?,
-    hazeState: HazeState?,
-    isDark: Boolean,
-    accentColor: Color
-): Modifier {
-    var isFocused by remember { mutableStateOf(false) }
-    val fieldTint = if (isDark) Color(0xFF1E2129) else Color(0xFFFFFFFF)
-    val fallbackFillAlpha = if (isDark) 0.40f else 0.60f
-    val supportedFillAlpha = if (isDark) 0.18f else 0.28f
-
-    return this
-        .bringIntoViewOnFocus()
-        .onFocusChanged { isFocused = it.isFocused }
-        .clip(shape)
-        .liquidGlassNav(shape = shape, backdrop = backdrop)
-        .then(
-            if (backdrop == null || !isGlassSupported()) {
-                if (hazeState != null) {
-                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.ultraThin(fieldTint))
-                } else {
-                    Modifier.background(fieldTint.copy(alpha = fallbackFillAlpha), shape)
-                }
-            } else {
-                Modifier.background(fieldTint.copy(alpha = supportedFillAlpha), shape)
-            }
-        )
-        .border(
-            width = if (isFocused) 1.2.dp else 0.8.dp,
-            brush = if (isFocused) {
-                Brush.linearGradient(
-                    colors = listOf(
-                        accentColor.copy(alpha = if (!isDark) 0.75f else 0.65f),
-                        accentColor.copy(alpha = if (!isDark) 0.45f else 0.35f)
-                    ),
-                    start = Offset.Zero,
-                    end = Offset.Infinite
-                )
-            } else {
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (!isDark) 0.42f else 0.24f),
-                        Color.White.copy(alpha = if (!isDark) 0.18f else 0.08f)
-                    ),
-                    start = Offset.Zero,
-                    end = Offset.Infinite
-                )
-            },
-            shape = shape
-        )
-        .drawWithContent {
-            drawContent()
-            val w = size.width
-            val h = size.height
-            val cornerRadiusPx = 18.dp.toPx()
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (isDark) 0.28f else 0.45f),
-                        Color.White.copy(alpha = if (isDark) 0.04f else 0.12f),
-                        Color.Transparent
-                    ),
-                    startY = 0f,
-                    endY = h * 0.5f
-                ),
-                topLeft = Offset(0.8.dp.toPx(), 0.8.dp.toPx()),
-                size = Size(w - 1.6.dp.toPx(), h - 1.6.dp.toPx()),
-                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                style = Stroke(width = 0.8.dp.toPx())
+        CompositionLocalProvider(
+            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = content
             )
         }
+    }
 }
 
 @Composable
@@ -1049,6 +973,7 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_serial_number_input"),
                 colors = elevatedInputFieldColors(isDark = isDark),
@@ -1123,6 +1048,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_name_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -1149,6 +1075,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_address_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -1211,6 +1138,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
@@ -1360,7 +1288,8 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .bringIntoViewOnFocus()
+                            .fieldGlass()
+                    .bringIntoViewOnFocus()
                             .testTag("garden_plant_variety_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1383,7 +1312,8 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .bringIntoViewOnFocus()
+                            .fieldGlass()
+                    .bringIntoViewOnFocus()
                             .testTag("garden_root_stock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1425,7 +1355,8 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { ageDropdownExpanded = true }
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                    .bringIntoViewOnFocus()
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1474,7 +1405,8 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { originDropdownExpanded = true }
-                                .bringIntoViewOnFocus()
+                                .fieldGlass()
+                    .bringIntoViewOnFocus()
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark)
                         )
@@ -1520,7 +1452,8 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_feathers_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -1669,7 +1602,8 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .bringIntoViewOnFocus()
+                            .fieldGlass()
+                    .bringIntoViewOnFocus()
                             .testTag("garden_kanal_area_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1719,7 +1653,8 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .bringIntoViewOnFocus()
+                            .fieldGlass()
+                    .bringIntoViewOnFocus()
                             .testTag("garden_plants_per_kanal_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1756,7 +1691,8 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .bringIntoViewOnFocus()
+                            .fieldGlass()
+                    .bringIntoViewOnFocus()
                             .testTag("garden_total_plants_input"),
                         colors = elevatedInputFieldColors(isDark = isDark)
                     )
@@ -1783,7 +1719,8 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_cost_per_plant_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -1907,6 +1844,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_amount_paid_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -2006,7 +1944,8 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_booking_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2047,7 +1986,8 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_expected_delivery_input"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -2105,6 +2045,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_notes_input"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -5089,6 +5030,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_variety_line_name_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
@@ -5114,7 +5056,8 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_rootstock_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5137,7 +5080,8 @@ fun GardenPlanningVarietyLineCard(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_feathers_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5183,7 +5127,8 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_kanal_area_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5254,7 +5199,8 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_plants_per_kanal_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5299,7 +5245,8 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     modifier = Modifier
                         .weight(1f)
-                        .bringIntoViewOnFocus()
+                        .fieldGlass()
+                    .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_total_plants_${index}"),
                     colors = elevatedInputFieldColors(isDark = isDark)
                 )
@@ -5322,6 +5269,7 @@ fun GardenPlanningVarietyLineCard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass()
                     .bringIntoViewOnFocus()
                     .testTag("garden_variety_line_price_${index}"),
                 colors = elevatedInputFieldColors(isDark = isDark)
