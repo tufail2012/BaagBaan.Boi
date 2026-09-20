@@ -100,6 +100,7 @@ import com.example.ui.components.frostedGlassChrome
 import com.example.ui.theme.getAppDimBackgroundBrush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -404,7 +405,8 @@ fun SettingsScreen(
             LazyColumn(
                 state = settingsListState,
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .hazeSource(state = settingsHazeState),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -936,67 +938,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // ==========================================
-                // SECURITY ENCRYPTION NOTE
-                // ==========================================
-                item {
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.Transparent
-                        ),
-                        border = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
-                            .then(
-                                if (!isGlassSupported()) {
-                                    Modifier.glassCardBackground(
-                                        cornerRadius = 20.dp,
-                                        accentColor = settingsAccent,
-                                        isDark = isDark,
-                                        themeMode = themeMode,
-                                        hazeState = settingsHazeState
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Shield,
-                                    contentDescription = null,
-                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = "Device-Bound Cryptographic Salt & SHA-256",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = "Credentials and security preferences are hashed with unique on-device cryptographic salts and stored securely on your local device.",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -1014,84 +955,24 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = settingsBackdrop)
-                    .then(
-                        if (!isGlassSupported()) {
-                            Modifier.glassCardBackground(
-                                cornerRadius = 30.dp,
-                                accentColor = settingsAccent,
-                                isDark = isDark,
-                                themeMode = themeMode,
-                                hazeState = settingsHazeState
-                            )
-                        } else {
-                            Modifier
-                        }
-                    )
-                    .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
-                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .align(Alignment.TopCenter),
+                contentAlignment = Alignment.Center
             ) {
-                Row(
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.3).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .testTag("settings_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = settingsAccent
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(settingsAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings Icon",
-                            tint = settingsAccent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Settings",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                letterSpacing = (-0.3).sp
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Appearance, Account, Security & Storage",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                        .testTag("settings_title")
+                )
             }
         }
     }

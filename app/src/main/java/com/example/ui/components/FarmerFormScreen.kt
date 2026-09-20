@@ -3866,21 +3866,29 @@ fun AppDatePickerDialog(
         mutableStateOf(TextFieldValue(text = initialStr, selection = TextRange(initialStr.length)))
     }
 
+    val dialogShape = RoundedCornerShape(24.dp)
+    val dialogIsDark = isAppInDarkMode()
+    val popupBackdrop = LocalDropdownGlassBackdrop.current
+    val glassActive = DROPDOWN_REAL_GLASS_ENABLED && popupBackdrop != null && isGlassSupported()
+
     Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Header Banner with Selected Date & Pencil Icon
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(popupBackdrop, null, dialogIsDark)) {
+            Surface(
+                shape = dialogShape,
+                color = if (glassActive) Color.Transparent else MaterialTheme.colorScheme.surface,
+                tonalElevation = if (glassActive) 0.dp else 6.dp,
+                shadowElevation = 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .then(if (glassActive) Modifier.dropdownLiquidGlass(hazeState = null, shape = dialogShape) else Modifier)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Header Banner with Selected Date & Pencil Icon
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (glassActive) 0.78f else 1f),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                    ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -3997,9 +4005,11 @@ fun AppDatePickerDialog(
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 },
+                                colors = if (glassActive) elevatedInputFieldColors(isDark = dialogIsDark, accentColor = MaterialTheme.colorScheme.primary) else OutlinedTextFieldDefaults.colors(),
                                 shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass(shape = RoundedCornerShape(12.dp))
                                     .testTag("dialog_manual_date_input")
                             )
                         }
@@ -4153,6 +4163,7 @@ fun AppDatePickerDialog(
                     }
                 }
             }
+        }
         }
     }
 }

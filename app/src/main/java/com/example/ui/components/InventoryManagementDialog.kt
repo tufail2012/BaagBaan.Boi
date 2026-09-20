@@ -43,6 +43,30 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.unit.Dp
+
+private val LocalInventoryBackdrop = staticCompositionLocalOf<Backdrop?> { null }
+
+@Composable
+private fun Modifier.inventoryGlass(cornerRadius: Dp, accentColor: Color, isDark: Boolean): Modifier {
+    val backdrop = LocalInventoryBackdrop.current
+    val shape = RoundedCornerShape(cornerRadius)
+    return if (backdrop != null && isGlassSupported()) {
+        this
+            .clip(shape)
+            .liquidGlassNav(shape = shape, backdrop = backdrop)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
+    } else {
+        this.glassCardBackground(cornerRadius = cornerRadius, accentColor = accentColor, isDark = isDark)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,26 +164,53 @@ fun InventoryManagementDialog(
         getAppDimBackgroundBrush(inventoryAccent, isDark = isDark)
     }
 
+    val inventoryIsAmoled = isAppInAmoledMode()
+    val inventoryHazeState = remember { HazeState() }
+    val inventoryWindowBackground = MaterialTheme.colorScheme.surface
+    val inventoryPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(inventoryWindowBackground) {
+            {
+                drawRect(inventoryWindowBackground)
+                drawContent()
+            }
+        }
+    val inventoryBackdrop = rememberLayerBackdrop(onDraw = inventoryPaintBackdrop)
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(inventoryBgBrush)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = inventoryHazeState)
+                .layerBackdrop(inventoryBackdrop)
         ) {
-            // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .frostedGlassChrome(
-                        isDark = isDark,
-                        accentColor = inventoryAccent,
-                        shape = RoundedCornerShape(percent = 50)
-                    )
+            PremiumGlassAmbientBackdrop(
+                accentColor = inventoryAccent,
+                isDark = isDark,
+                isAmoled = inventoryIsAmoled
+            )
+        }
+
+        CompositionLocalProvider(
+            LocalInventoryBackdrop provides inventoryBackdrop,
+            LocalFieldGlassSpec provides FieldGlassSpec(inventoryBackdrop, inventoryHazeState, isDark)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
+                // Wide Pill-Shaped Glass Header (Matching Dashboard Header Style)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = inventoryBackdrop)
+                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -272,10 +323,10 @@ fun InventoryManagementDialog(
                                 Card(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .glassCardBackground(
+                                        .inventoryGlass(
                                             cornerRadius = 16.dp,
                                             accentColor = Color(0xFF3B82F6),
-                                            isDark = isDark,
+                                            isDark = isDark
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -314,10 +365,10 @@ fun InventoryManagementDialog(
                                 Card(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .glassCardBackground(
+                                        .inventoryGlass(
                                             cornerRadius = 16.dp,
                                             accentColor = if (isDataReady && lowStockCount > 0) Color(0xFFF59E0B) else inventoryAccent,
-                                            isDark = isDark,
+                                            isDark = isDark
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -356,10 +407,10 @@ fun InventoryManagementDialog(
                                 Card(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .glassCardBackground(
+                                        .inventoryGlass(
                                             cornerRadius = 16.dp,
                                             accentColor = Color(0xFF10B981),
-                                            isDark = isDark,
+                                            isDark = isDark
                                         ),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -446,6 +497,7 @@ fun InventoryManagementDialog(
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = inventoryAccent),
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass(shape = RoundedCornerShape(14.dp))
                                     .boundedFormFieldRipple(shape = RoundedCornerShape(14.dp), accentColor = inventoryAccent)
                                     .testTag("inventory_search_input")
                             )
@@ -466,10 +518,10 @@ fun InventoryManagementDialog(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(44.dp)
-                                        .glassCardBackground(
+                                        .inventoryGlass(
                                             cornerRadius = 14.dp,
                                             accentColor = inventoryAccent,
-                                            isDark = isDark,
+                                            isDark = isDark
                                         )
                                         .testTag("recalculate_stock_button"),
                                     colors = ButtonDefaults.outlinedButtonColors(
@@ -546,13 +598,16 @@ fun InventoryManagementDialog(
                                             )
                                         },
                                         shape = RoundedCornerShape(16.dp),
+                                        border = null,
                                         colors = FilterChipDefaults.filterChipColors(
                                             selectedContainerColor = inventoryAccent,
                                             selectedLabelColor = Color.White,
-                                            containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFE2E8F0),
+                                            containerColor = Color.Transparent,
                                             labelColor = if (isDark) Color.White else Color(0xFF334155)
                                         ),
-                                        modifier = Modifier.testTag("inventory_filter_chip_${filterName.lowercase().replace(" ", "_")}")
+                                        modifier = Modifier
+                                            .then(if (!isSelected) Modifier.inventoryGlass(cornerRadius = 16.dp, accentColor = inventoryAccent, isDark = isDark) else Modifier)
+                                            .testTag("inventory_filter_chip_${filterName.lowercase().replace(" ", "_")}")
                                     )
                                 }
                             }
@@ -626,6 +681,7 @@ fun InventoryManagementDialog(
                 }
             }
         }
+    }
 
     // Modal Dialog for Add / Edit
     if (showAddEditModal) {
@@ -796,10 +852,10 @@ fun InventoryItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .glassCardBackground(
+            .inventoryGlass(
                 cornerRadius = 16.dp,
                 accentColor = if (isOut) Color(0xFFEF4444) else if (isLow) Color(0xFFF59E0B) else (parsedPaletteColor ?: MaterialTheme.colorScheme.primary),
-                isDark = isDark,
+                isDark = isDark
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -832,7 +888,7 @@ fun InventoryItemCard(
                     if (item.variety.isNotBlank()) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                            color = if (isDark) Color.White.copy(alpha = 0.10f) else Color(0xFFE2E8F0)
                         ) {
                             Text(
                                 text = item.variety,
@@ -888,7 +944,7 @@ fun InventoryItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9),
+                        if (isDark) Color.White.copy(alpha = 0.06f) else Color(0xFFF1F5F9),
                         RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -952,7 +1008,7 @@ fun InventoryItemCard(
                             .size(30.dp)
                             .testTag("decrease_stock_button_${item.id}"),
                         colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+                            containerColor = if (isDark) Color.White.copy(alpha = 0.10f) else Color(0xFFE2E8F0)
                         )
                     ) {
                         Text("-", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textPrimary)
