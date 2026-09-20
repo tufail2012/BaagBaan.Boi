@@ -1352,8 +1352,8 @@ fun FarmerFormScreen(
                                                 line.copy(rootstock = capitalizeWordsNaturally(newRoot))
                                             )
                                         },
-                                        label = { Text("Rootstock") },
-                                        placeholder = { Text("e.g. M9") },
+                                        label = { Text("Rootstock", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                        placeholder = { Text("e.g. M9", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                         shape = textFieldShape,
                                         singleLine = true,
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -1361,7 +1361,7 @@ fun FarmerFormScreen(
                                             Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                         },
                                         modifier = Modifier
-                                            .weight(1f)
+                                            .weight(1.1f)
                                             .fieldGlass()
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
@@ -1373,8 +1373,8 @@ fun FarmerFormScreen(
                                         onValueChange = { newF ->
                                             viewModel.updateVarietyLine(index, line.copy(feathers = newF))
                                         },
-                                        label = { Text("Feathers") },
-                                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                        label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                        placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                         shape = textFieldShape,
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(
@@ -1385,7 +1385,7 @@ fun FarmerFormScreen(
                                             Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                         },
                                         modifier = Modifier
-                                            .weight(1f)
+                                            .weight(0.9f)
                                             .fieldGlass()
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
@@ -1752,8 +1752,8 @@ fun FarmerFormScreen(
                             OutlinedTextField(
                                 value = rootstock,
                                 onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
-                                label = { Text("Rootstock *") },
-                                placeholder = { Text("e.g. M9, MM106") },
+                                label = { Text("Rootstock *", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("e.g. M9, MM106", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 shape = textFieldShape,
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -1765,7 +1765,7 @@ fun FarmerFormScreen(
                                     )
                                 },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1.1f)
                                     .fieldGlass()
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
@@ -1775,8 +1775,8 @@ fun FarmerFormScreen(
                             OutlinedTextField(
                                 value = feathers,
                                 onValueChange = { viewModel.feathers.value = it },
-                                label = { Text("Feathers") },
-                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 shape = textFieldShape,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
@@ -1791,7 +1791,7 @@ fun FarmerFormScreen(
                                     )
                                 },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(0.9f)
                                     .fieldGlass()
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
@@ -1866,8 +1866,8 @@ fun FarmerFormScreen(
                             OutlinedTextField(
                                 value = rootstock,
                                 onValueChange = { viewModel.rootstock.value = it },
-                                label = { Text("Rootstock *") },
-                                placeholder = { Text("e.g. M9, MM106") },
+                                label = { Text("Rootstock *", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("e.g. M9, MM106", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 shape = textFieldShape,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -1879,7 +1879,7 @@ fun FarmerFormScreen(
                                     )
                                 },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1.1f)
                                     .fieldGlass()
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
@@ -1889,8 +1889,8 @@ fun FarmerFormScreen(
                             OutlinedTextField(
                                 value = feathers,
                                 onValueChange = { viewModel.feathers.value = it },
-                                label = { Text("Feathers") },
-                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                                label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                                placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 shape = textFieldShape,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
@@ -1905,7 +1905,7 @@ fun FarmerFormScreen(
                                     )
                                 },
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(0.9f)
                                     .fieldGlass()
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),

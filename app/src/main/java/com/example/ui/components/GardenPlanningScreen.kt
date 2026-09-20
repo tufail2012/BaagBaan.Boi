@@ -5046,8 +5046,8 @@ fun GardenPlanningVarietyLineCard(
                     onValueChange = { newRs ->
                         onUpdate(line.copy(rootstock = capitalizeWordsNaturally(newRs)))
                     },
-                    label = { Text("Rootstock") },
-                    placeholder = { Text("e.g. M9, MM106") },
+                    label = { Text("Rootstock", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. M9, MM106", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                     shape = textFieldShape,
                     singleLine = true,
                     keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -5055,7 +5055,7 @@ fun GardenPlanningVarietyLineCard(
                         Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.1f)
                         .fieldGlass()
                     .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_rootstock_${index}"),
@@ -5067,8 +5067,8 @@ fun GardenPlanningVarietyLineCard(
                     onValueChange = { newF ->
                         onUpdate(line.copy(feathers = newF))
                     },
-                    label = { Text("Feathers") },
-                    placeholder = { Text("e.g. 3, 3F, 5A, 2-3") },
+                    label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                    placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                     shape = textFieldShape,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
@@ -5079,7 +5079,7 @@ fun GardenPlanningVarietyLineCard(
                         Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(0.9f)
                         .fieldGlass()
                     .bringIntoViewOnFocus()
                         .testTag("garden_variety_line_feathers_${index}"),
