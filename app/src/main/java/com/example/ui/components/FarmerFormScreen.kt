@@ -857,6 +857,7 @@ fun FarmerFormScreen(
         // Serial Number Manual Field with inner Save Icon & Full Width
         val isSerialLocked by viewModel.isSerialLocked.collectAsState()
 
+        val isLocalPlants = serviceType.equals("Local Plants", ignoreCase = true)
         val isImportedPlants = serviceType.equals("Imported", ignoreCase = true)
         val isImportedRootstocks = serviceType.equals("Rootstocks", ignoreCase = true)
         val isSiteVisit = serviceType.equals("Site Visit", ignoreCase = true)
@@ -1037,142 +1038,171 @@ fun FarmerFormScreen(
                     )
 
                     // Farmer Name
-            OutlinedTextField(
-                value = farmerName,
-                onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
-                label = { Text("Farmer Name *") },
-                placeholder = { Text("e.g. Mohammad Abdullah") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewOnFocus()
-                    .testTag("farmer_name_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            FormFieldDivider(isDark = isDark)
-
-            // Farmer Address
-            OutlinedTextField(
-                value = farmerAddress,
-                onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
-                label = { Text("Farmer Address *") },
-                placeholder = { Text("e.g. Village Green Valley, Sector 4") },
-                shape = textFieldShape,
-                singleLine = false,
-                maxLines = 2,
-                keyboardOptions = AppDefaultWordKeyboardOptions,
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewOnFocus()
-                    .testTag("farmer_address_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
-
-            FormFieldDivider(isDark = isDark)
-
-            // Contact Number
-            OutlinedTextField(
-                value = contactTextFieldValue,
-                onValueChange = { newValue ->
-                    val rawText = newValue.text
-
-                    // Extract digits typed after "+91 " prefix or from user input
-                    var cleanDigits = if (rawText.startsWith(prefix)) {
-                        rawText.substring(prefix.length).filter { it.isDigit() }
-                    } else {
-                        // If user tried to delete or backspace into "+91 "
-                        rawText.removePrefix("+91").removePrefix("+").filter { it.isDigit() }
-                    }
-
-                    if (cleanDigits.length > 10) {
-                        cleanDigits = cleanDigits.take(10)
-                    }
-
-                    val formattedText = prefix + cleanDigits
-
-                    // Prevent cursor from going before "+91 "
-                    val targetSelStart = maxOf(prefix.length, minOf(newValue.selection.start, formattedText.length))
-                    val targetSelEnd = maxOf(prefix.length, minOf(newValue.selection.end, formattedText.length))
-
-                    val updatedValue = TextFieldValue(
-                        text = formattedText,
-                        selection = TextRange(targetSelStart, targetSelEnd)
-                    )
-
-                    contactTextFieldValue = updatedValue
-                    viewModel.contactNumber.value = formattedText
-                },
-                label = { Text("Contact Number *") },
-                placeholder = { Text("e.g. 9876543210") },
-                shape = textFieldShape,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-                                launchContactPicker()
-                            } else {
-                                contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-                            }
-                        },
-                        modifier = Modifier.testTag("contacts_picker_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContactPhone,
-                            contentDescription = "Contact Picker",
-                            tint = MaterialTheme.colorScheme.primary
+                    val farmerNameField = @Composable {
+                        OutlinedTextField(
+                            value = farmerName,
+                            onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
+                            label = { Text("Farmer Name *") },
+                            placeholder = { Text("e.g. Mohammad Abdullah") },
+                            shape = textFieldShape,
+                            singleLine = true,
+                            keyboardOptions = AppDefaultWordKeyboardOptions,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnFocus()
+                                .testTag("farmer_name_input"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
                         )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewOnFocus()
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused) {
-                            if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
-                                val initialText = prefix
-                                viewModel.contactNumber.value = initialText
-                                contactTextFieldValue = TextFieldValue(
-                                    text = initialText,
-                                    selection = TextRange(initialText.length)
+
+                    // Farmer Address
+                    val farmerAddressField = @Composable {
+                        OutlinedTextField(
+                            value = farmerAddress,
+                            onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
+                            label = { Text("Farmer Address *") },
+                            placeholder = { Text("e.g. Village Green Valley, Sector 4") },
+                            shape = textFieldShape,
+                            singleLine = false,
+                            maxLines = 2,
+                            keyboardOptions = AppDefaultWordKeyboardOptions,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
-                            } else {
-                                val selStart = maxOf(prefix.length, contactTextFieldValue.selection.start)
-                                val selEnd = maxOf(prefix.length, contactTextFieldValue.selection.end)
-                                contactTextFieldValue = contactTextFieldValue.copy(
-                                    selection = TextRange(selStart, selEnd)
-                                )
-                            }
-                        }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnFocus()
+                                .testTag("farmer_address_input"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
                     }
-                    .testTag("contact_number_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
-            )
+
+                    // Contact Number
+                    val contactNumberField = @Composable {
+                        OutlinedTextField(
+                            value = contactTextFieldValue,
+                            onValueChange = { newValue ->
+                                val rawText = newValue.text
+
+                                // Extract digits typed after "+91 " prefix or from user input
+                                var cleanDigits = if (rawText.startsWith(prefix)) {
+                                    rawText.substring(prefix.length).filter { it.isDigit() }
+                                } else {
+                                    // If user tried to delete or backspace into "+91 "
+                                    rawText.removePrefix("+91").removePrefix("+").filter { it.isDigit() }
+                                }
+
+                                if (cleanDigits.length > 10) {
+                                    cleanDigits = cleanDigits.take(10)
+                                }
+
+                                val formattedText = prefix + cleanDigits
+
+                                // Prevent cursor from going before "+91 "
+                                val targetSelStart = maxOf(prefix.length, minOf(newValue.selection.start, formattedText.length))
+                                val targetSelEnd = maxOf(prefix.length, minOf(newValue.selection.end, formattedText.length))
+
+                                val updatedValue = TextFieldValue(
+                                    text = formattedText,
+                                    selection = TextRange(targetSelStart, targetSelEnd)
+                                )
+
+                                contactTextFieldValue = updatedValue
+                                viewModel.contactNumber.value = formattedText
+                            },
+                            label = { Text("Contact Number *") },
+                            placeholder = { Text("e.g. 9876543210") },
+                            shape = textFieldShape,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                                            launchContactPicker()
+                                        } else {
+                                            contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("contacts_picker_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContactPhone,
+                                        contentDescription = "Contact Picker",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewOnFocus()
+                                .onFocusChanged { focusState ->
+                                    if (focusState.isFocused) {
+                                        if (contactNumber.isEmpty() || !contactNumber.startsWith(prefix)) {
+                                            val initialText = prefix
+                                            viewModel.contactNumber.value = initialText
+                                            contactTextFieldValue = TextFieldValue(
+                                                text = initialText,
+                                                selection = TextRange(initialText.length)
+                                            )
+                                        } else {
+                                            val selStart = maxOf(prefix.length, contactTextFieldValue.selection.start)
+                                            val selEnd = maxOf(prefix.length, contactTextFieldValue.selection.end)
+                                            contactTextFieldValue = contactTextFieldValue.copy(
+                                                selection = TextRange(selStart, selEnd)
+                                            )
+                                        }
+                                    }
+                                }
+                                .testTag("contact_number_input"),
+                            colors = elevatedInputFieldColors(isDark = isDark)
+                        )
+                    }
+
+                    if (isLocalPlants) {
+                        val fieldBorderColor = if (isDark) {
+                            Color.White.copy(alpha = 0.16f)
+                        } else {
+                            Color.Black.copy(alpha = 0.12f)
+                        }
+                        val fieldOutlineModifier = Modifier
+                            .fillMaxWidth()
+                            .border(width = 0.8.dp, color = fieldBorderColor, shape = textFieldShape)
+
+                        Box(modifier = fieldOutlineModifier) {
+                            farmerNameField()
+                        }
+                        Box(modifier = fieldOutlineModifier) {
+                            farmerAddressField()
+                        }
+                        Box(modifier = fieldOutlineModifier) {
+                            contactNumberField()
+                        }
+                    } else {
+                        farmerNameField()
+                        FormFieldDivider(isDark = isDark)
+                        farmerAddressField()
+                        FormFieldDivider(isDark = isDark)
+                        contactNumberField()
+                    }
         }
             }
 
