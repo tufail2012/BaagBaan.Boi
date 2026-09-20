@@ -107,6 +107,7 @@ fun LiquidGlassSegmentedSwitcher(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     backdrop: Backdrop? = null
 ) {
+    val indicatorAccent = com.example.ui.theme.paletteSecondaryAccent()
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
@@ -277,7 +278,7 @@ fun LiquidGlassSegmentedSwitcher(
                     .bubblyGlassCapsuleIndicator(
                         hazeState = hazeState,
                         shape = itemShape,
-                        accentColor = accentColor,
+                        accentColor = indicatorAccent,
                         isDark = isDark,
                         isAmoled = isAmoled
                     )

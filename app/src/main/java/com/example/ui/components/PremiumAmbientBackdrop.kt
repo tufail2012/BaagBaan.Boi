@@ -12,8 +12,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.LocalAppPalette
 import com.example.ui.theme.getAppDimBackgroundBrush
+import com.example.ui.theme.getDynamicPaletteBackgroundBrush
 import java.util.Random
+
+private class BackdropRoles(
+    val orbAccent: Color,
+    val glows: List<Color>,   // order: TopRight, MidLeft, CenterRight, BottomRight, BottomLeft
+    val scatter: List<Color>
+)
 
 /**
  * Geometric shape definition for stable scatter rendering.
@@ -123,12 +131,33 @@ fun PremiumGlassAmbientBackdrop(
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isDark || isAmoled
-    val backgroundBrush = remember(accentColor, isDark, isAmoled) {
-        getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
+    val palette = LocalAppPalette.current
+    val usePalette = palette.isPredefinedPalette
+
+    val backgroundBrush = remember(accentColor, palette, usePalette, isDark, isAmoled) {
+        if (usePalette) getDynamicPaletteBackgroundBrush(palette, isDark = isDark, isAmoled = isAmoled)
+        else getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
     }
 
-    val activePalette = remember(accentColor) {
-        AMBIENT_PALETTE + listOf(accentColor)
+    val roles = remember(palette, usePalette, accentColor, isDark, isAmoled) {
+        if (usePalette) {
+            val p = palette.getPrimary(isDark, isAmoled)
+            val t = palette.getTertiary(isDark, isAmoled)
+            val s = if (palette.isTwoColor) t else palette.getSecondary(isDark, isAmoled)
+            val n = palette.getNeutral(isDark, isAmoled)
+            BackdropRoles(
+                orbAccent = if (palette.isTwoColor) t else p,
+                glows = listOf(s, t, s, t, s),
+                scatter = if (palette.isTwoColor) listOf(p, s, n, s) else listOf(p, s, t, p, s, t)
+            )
+        } else {
+            val rainbow = AMBIENT_PALETTE + listOf(accentColor)
+            BackdropRoles(
+                orbAccent = accentColor,
+                glows = listOf(rainbow[2], rainbow[9], rainbow[6], rainbow[12], rainbow[8]),
+                scatter = rainbow
+            )
+        }
     }
 
     Box(
@@ -147,12 +176,12 @@ fun PremiumGlassAmbientBackdrop(
             val orbAlphaPrimary = if (isAmoled) 0.22f else if (isDarkTheme) 0.25f else 0.20f
             val orbAlphaSecondary = if (isAmoled) 0.16f else if (isDarkTheme) 0.19f else 0.14f
 
-            // Top-Right Ambient Glow (accent & coral tones)
-            val glowColorTopRight = activePalette[2 % activePalette.size] // Coral
+            // Top-Right Ambient Glow
+            val glowColorTopRight = roles.glows[0]
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = orbAlphaPrimary),
+                        roles.orbAccent.copy(alpha = orbAlphaPrimary),
                         glowColorTopRight.copy(alpha = orbAlphaSecondary * 0.5f),
                         Color.Transparent
                     ),
@@ -161,13 +190,13 @@ fun PremiumGlassAmbientBackdrop(
                 )
             )
 
-            // Mid-Left Ambient Glow (teal / cyan tones)
-            val glowColorMidLeft = activePalette[9 % activePalette.size] // Teal
+            // Mid-Left Ambient Glow
+            val glowColorMidLeft = roles.glows[1]
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
                         glowColorMidLeft.copy(alpha = orbAlphaSecondary),
-                        accentColor.copy(alpha = orbAlphaSecondary * 0.35f),
+                        roles.orbAccent.copy(alpha = orbAlphaSecondary * 0.35f),
                         Color.Transparent
                     ),
                     center = Offset(w * 0.16f, h * 0.50f),
@@ -175,8 +204,8 @@ fun PremiumGlassAmbientBackdrop(
                 )
             )
 
-            // Center-Right Diffuser (gold / amber tones)
-            val glowColorCenterRight = activePalette[6 % activePalette.size] // Gold
+            // Center-Right Diffuser
+            val glowColorCenterRight = roles.glows[2]
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -188,12 +217,12 @@ fun PremiumGlassAmbientBackdrop(
                 )
             )
 
-            // Bottom-Right Ambient Glow (indigo / violet tones)
-            val glowColorBottomRight = activePalette[12 % activePalette.size] // Indigo
+            // Bottom-Right Ambient Glow
+            val glowColorBottomRight = roles.glows[3]
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = orbAlphaPrimary * 0.9f),
+                        roles.orbAccent.copy(alpha = orbAlphaPrimary * 0.9f),
                         glowColorBottomRight.copy(alpha = orbAlphaSecondary * 0.6f),
                         Color.Transparent
                     ),
@@ -202,8 +231,8 @@ fun PremiumGlassAmbientBackdrop(
                 )
             )
 
-            // Bottom-Left Grounding Glow (emerald / green tones)
-            val glowColorBottomLeft = activePalette[8 % activePalette.size] // Green
+            // Bottom-Left Grounding Glow
+            val glowColorBottomLeft = roles.glows[4]
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -222,7 +251,7 @@ fun PremiumGlassAmbientBackdrop(
 
             // 210 Hard-Edged Small & Medium Filled Dots
             for (dot in STABLE_AMBIENT_DOTS) {
-                val color = activePalette[dot.colorIndex % activePalette.size]
+                val color = roles.scatter[dot.colorIndex % roles.scatter.size]
                 val dotAlpha = (baseShapeAlpha * dot.alphaMultiplier).coerceIn(0f, 1f)
                 val radiusPx = density.run { dot.radiusDp.dp.toPx() }
                 drawCircle(
@@ -234,7 +263,7 @@ fun PremiumGlassAmbientBackdrop(
 
             // 46 Fine-Edged Ring Outlines
             for (ring in STABLE_AMBIENT_RINGS) {
-                val color = activePalette[ring.colorIndex % activePalette.size]
+                val color = roles.scatter[ring.colorIndex % roles.scatter.size]
                 val ringAlpha = (baseShapeAlpha * ring.alphaMultiplier * 0.9f).coerceIn(0f, 1f)
                 val radiusPx = density.run { ring.radiusDp.dp.toPx() }
                 val strokePx = density.run { ring.strokeWidthDp.dp.toPx() }

@@ -494,8 +494,8 @@ fun AgriHeader(
                                 badge = {
                                     if (unreadNotificationCount > 0) {
                                         Badge(
-                                            containerColor = animatedAccentColor,
-                                            contentColor = Color.White
+                                            containerColor = com.example.ui.theme.paletteTertiaryAccent(),
+                                            contentColor = com.example.ui.theme.getAccessibleTextColor(com.example.ui.theme.paletteTertiaryAccent())
                                         ) {
                                             Text(
                                                 text = if (unreadNotificationCount > 99) "99+" else "$unreadNotificationCount",

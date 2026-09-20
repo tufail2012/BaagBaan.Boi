@@ -81,6 +81,7 @@ fun PruningSubTabs(
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null
 ) {
+    val indicatorAccent = com.example.ui.theme.paletteSecondaryAccent()
     val subTabs = listOf("Summer Pruning", "Winter Pruning")
     val selectedIndex = if (selectedSubTab.contains("Winter", ignoreCase = true)) 1 else 0
     val haptic = LocalHapticFeedback.current
@@ -248,7 +249,7 @@ fun PruningSubTabs(
                     .bubblyGlassCapsuleIndicator(
                         hazeState = hazeState,
                         shape = itemShape,
-                        accentColor = accentColor,
+                        accentColor = indicatorAccent,
                         isDark = isDark,
                         isAmoled = isAmoled
                     )
@@ -371,6 +372,7 @@ fun RootstockSubTabs(
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null
 ) {
+    val indicatorAccent = com.example.ui.theme.paletteSecondaryAccent()
     var genevaMenuExpanded by remember { mutableStateOf(false) }
     val genevaOptions = listOf("G41", "G214", "G11", "G35", "G969", "G890")
     val haptic = LocalHapticFeedback.current
@@ -574,7 +576,7 @@ fun RootstockSubTabs(
                     .bubblyGlassCapsuleIndicator(
                         hazeState = hazeState,
                         shape = itemShape,
-                        accentColor = accentColor,
+                        accentColor = indicatorAccent,
                         isDark = isDark,
                         isAmoled = isAmoled
                     )

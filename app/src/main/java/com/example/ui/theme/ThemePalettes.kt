@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -339,4 +340,17 @@ fun resolveAppPalette(paletteId: String?, solidAccentHex: String): AppPalette {
 val LocalAppPalette = compositionLocalOf {
     PredefinedThemePalettes[0]
 }
+
+/** Contrast-safe accent for SECONDARY-role UI (selection indicators, chips, supporting highlights). */
+@Composable
+fun paletteSecondaryAccent(): Color {
+    val palette = LocalAppPalette.current
+    val cs = MaterialTheme.colorScheme
+    return if (palette.isTwoColor) cs.tertiary else cs.secondary
+}
+
+/** Contrast-safe accent for TERTIARY-role UI (badges, notification accents, small highlights). */
+@Composable
+fun paletteTertiaryAccent(): Color = MaterialTheme.colorScheme.tertiary
+
 
