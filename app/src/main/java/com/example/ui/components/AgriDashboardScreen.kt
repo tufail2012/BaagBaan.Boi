@@ -135,6 +135,11 @@ import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getDynamicPaletteBackgroundBrush
 import com.example.ui.theme.getSectionAccentColor
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.kyant.backdrop.Backdrop
+import androidx.compose.foundation.shape.CornerBasedShape
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -145,6 +150,8 @@ import dev.chrisbanes.haze.hazeSource
  * CompositionLocal providing HazeState across all etched glass surfaces on the dashboard.
  */
 val LocalDashboardHazeState = compositionLocalOf<HazeState?> { null }
+internal const val DASHBOARD_REAL_GLASS_ENABLED = true   // kill switch: false = old Haze look
+val LocalDashboardBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 
 /**
  * Inscribed / Etched Glass Typography Style.
@@ -250,6 +257,15 @@ fun Modifier.etchedGlassSurface(
     showTopGlint: Boolean = true,
     hazeState: HazeState? = LocalDashboardHazeState.current
 ): Modifier {
+    val dashBackdrop = LocalDashboardBackdrop.current
+    val realShape = shape as? CornerBasedShape
+    if (DASHBOARD_REAL_GLASS_ENABLED && dashBackdrop != null && realShape != null && isGlassSupported()) {
+        return this
+            .clip(realShape)
+            .liquidGlassNav(shape = realShape, backdrop = dashBackdrop)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, realShape)
+    }
+
     val spotShadowColor = if (isAmoled) {
         Color.Black.copy(alpha = 0.40f)
     } else if (isDark) {
@@ -762,10 +778,15 @@ fun AgriDashboardScreen(
 
     val paidRatio = if (totalRevenue > 0) (totalPaid / totalRevenue).toFloat().coerceIn(0f, 1f) else 0f
 
-    val appPalette = com.example.ui.theme.LocalAppPalette.current
-    val dashboardBgBrush = remember(appPalette, isDark, isAmoled) {
-        getDynamicPaletteBackgroundBrush(appPalette, isDark = isDark, isAmoled = isAmoled)
-    }
+    val dashboardWindowBackground = MaterialTheme.colorScheme.surface
+    val dashboardPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(dashboardWindowBackground) {
+            {
+                drawRect(dashboardWindowBackground)
+                drawContent()
+            }
+        }
+    val dashboardBackdrop = rememberLayerBackdrop(onDraw = dashboardPaintBackdrop)
 
     val dashboardListState = androidx.compose.foundation.lazy.rememberLazyListState()
     val scrollOffset by remember {
@@ -782,23 +803,20 @@ fun AgriDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(state = effectiveHazeState)
+                .layerBackdrop(dashboardBackdrop)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(dashboardBgBrush)
-            )
-
-            DashboardAmbientBackdrop(
+            PremiumGlassAmbientBackdrop(
                 accentColor = dashboardAccent,
                 isDark = isDark,
-                isAmoled = isAmoled,
-                scrollOffset = scrollOffset
+                isAmoled = isAmoled
             )
         }
 
         // 2. Foreground Glass Panels & Inscribed Content
-        CompositionLocalProvider(LocalDashboardHazeState provides effectiveHazeState) {
+        CompositionLocalProvider(
+            LocalDashboardHazeState provides effectiveHazeState,
+            LocalDashboardBackdrop provides dashboardBackdrop
+        ) {
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -1234,6 +1252,9 @@ fun AgriDashboardScreen(
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = dashboardBackdrop)
+                    .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
             ) {
                 Row(
                     modifier = Modifier
@@ -2647,6 +2668,15 @@ fun Modifier.frostedLiquidGlassSurface(
     isDark: Boolean = false,
     isAmoled: Boolean = false
 ): Modifier {
+    val dashBackdrop = LocalDashboardBackdrop.current
+    val realShape = shape as? CornerBasedShape
+    if (DASHBOARD_REAL_GLASS_ENABLED && dashBackdrop != null && realShape != null && isGlassSupported()) {
+        return this
+            .clip(realShape)
+            .liquidGlassNav(shape = realShape, backdrop = dashBackdrop)
+            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, realShape)
+    }
+
     val hazeStyle = remember(isDark, isAmoled) {
         HazeStyle(
             backgroundColor = Color.Transparent,
