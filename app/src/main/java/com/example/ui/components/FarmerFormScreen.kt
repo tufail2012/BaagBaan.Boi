@@ -1840,9 +1840,12 @@ fun FarmerFormScreen(
                                 onDismissRequest = { saplingAgeMenuExpanded = false },
                                 shape = saplingAgeDropdownShape,
                                 containerColor = Color.Transparent,
+                                border = null,
+                                shadowElevation = 0.dp,
+                                tonalElevation = 0.dp,
                                 modifier = Modifier
                                     .fillMaxWidth(0.9f)
-                                    .recordsDropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape)
+                                    .dropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape)
                             ) {
                                 saplingAgeOptions.forEach { age ->
                                     DropdownMenuItem(
@@ -1981,9 +1984,12 @@ fun FarmerFormScreen(
                                     onDismissRequest = { saplingAgeMenuExpanded = false },
                                     shape = saplingAgeDropdownShape2,
                                     containerColor = Color.Transparent,
+                                    border = null,
+                                    shadowElevation = 0.dp,
+                                    tonalElevation = 0.dp,
                                     modifier = Modifier
                                         .fillMaxWidth(0.9f)
-                                        .recordsDropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape2)
+                                        .dropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape2)
                                 ) {
                                     saplingAgeOptions.forEach { age ->
                                         DropdownMenuItem(
@@ -2214,9 +2220,12 @@ fun FarmerFormScreen(
                         onDismissRequest = { graftTypeMenuExpanded = false },
                         shape = graftTypeDropdownShape,
                         containerColor = Color.Transparent,
+                        border = null,
+                        shadowElevation = 0.dp,
+                        tonalElevation = 0.dp,
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
-                            .recordsDropdownLiquidGlass(hazeState = hazeState, shape = graftTypeDropdownShape)
+                            .dropdownLiquidGlass(hazeState = hazeState, shape = graftTypeDropdownShape)
                     ) {
                         graftTypeOptions.forEach { typeOption ->
                             DropdownMenuItem(
@@ -3054,9 +3063,12 @@ fun FarmerFormScreen(
                                             onDismissRequest = { templateMenuExpanded = false },
                                             shape = templateDropdownShape,
                                             containerColor = Color.Transparent,
+                                            border = null,
+                                            shadowElevation = 0.dp,
+                                            tonalElevation = 0.dp,
                                             modifier = Modifier
                                                 .fillMaxWidth(0.9f)
-                                                .recordsDropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
+                                                .dropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
                                         ) {
                                             templateOptions.forEach { option ->
                                                 DropdownMenuItem(

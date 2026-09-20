@@ -1366,7 +1366,10 @@ fun GardenPlanningFormTab(
                             onDismissRequest = { ageDropdownExpanded = false },
                             shape = ageDropdownShape,
                             containerColor = Color.Transparent,
-                            modifier = Modifier.recordsDropdownLiquidGlass(hazeState = effectiveHaze, shape = ageDropdownShape)
+                            border = null,
+                            shadowElevation = 0.dp,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = ageDropdownShape)
                         ) {
                             saplingAgeOptions.forEach { age ->
                                 DropdownMenuItem(
@@ -1416,7 +1419,10 @@ fun GardenPlanningFormTab(
                             onDismissRequest = { originDropdownExpanded = false },
                             shape = originDropdownShape,
                             containerColor = Color.Transparent,
-                            modifier = Modifier.recordsDropdownLiquidGlass(hazeState = effectiveHaze, shape = originDropdownShape)
+                            border = null,
+                            shadowElevation = 0.dp,
+                            tonalElevation = 0.dp,
+                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = originDropdownShape)
                         ) {
                             plantOriginOptions.forEach { originOption ->
                                 DropdownMenuItem(

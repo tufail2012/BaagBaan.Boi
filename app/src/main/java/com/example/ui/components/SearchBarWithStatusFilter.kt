@@ -358,8 +358,7 @@ fun SearchBarWithStatusFilter(
                     modifier = Modifier
                         .widthIn(min = 210.dp, max = 245.dp)
                         .padding(vertical = 4.dp)
-                        .recordsDropdownLiquidGlass(
-                            backdrop = backdrop,
+                        .dropdownLiquidGlass(
                             hazeState = hazeState,
                             shape = dropdownShape
                         )

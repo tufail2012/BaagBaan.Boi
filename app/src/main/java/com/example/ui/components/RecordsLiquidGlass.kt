@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -105,4 +106,21 @@ fun Modifier.recordsDropdownLiquidGlass(
             shape = shape
         )
         .border(0.8.dp, rimBrush, shape)
+}
+
+internal const val DROPDOWN_REAL_GLASS_ENABLED = true   // kill switch: false = old Haze-only look everywhere
+
+val LocalDropdownGlassBackdrop = staticCompositionLocalOf<Backdrop?> { null }
+
+@Composable
+fun Modifier.dropdownLiquidGlass(
+    hazeState: HazeState? = null,
+    shape: CornerBasedShape = RoundedCornerShape(16.dp)
+): Modifier {
+    val popupBackdrop = LocalDropdownGlassBackdrop.current
+    return if (DROPDOWN_REAL_GLASS_ENABLED && popupBackdrop != null && isGlassSupported()) {
+        this.profileMenuLiquidGlass(backdrop = popupBackdrop, hazeState = hazeState, shape = shape)
+    } else {
+        this.recordsDropdownLiquidGlass(hazeState = hazeState, shape = shape)
+    }
 }

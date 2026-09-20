@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
@@ -772,9 +773,16 @@ fun RootstockSubTabs(
                         )
                     }
 
+                    val genevaMenuShape = RoundedCornerShape(20.dp)
                     DropdownMenu(
                         expanded = genevaMenuExpanded,
-                        onDismissRequest = { genevaMenuExpanded = false }
+                        onDismissRequest = { genevaMenuExpanded = false },
+                        shape = genevaMenuShape,
+                        containerColor = Color.Transparent,
+                        border = null,
+                        shadowElevation = 0.dp,
+                        tonalElevation = 0.dp,
+                        modifier = Modifier.widthIn(min = 200.dp).dropdownLiquidGlass(hazeState = hazeState, shape = genevaMenuShape)
                     ) {
                         Text(
                             text = "Geneva Rootstocks",

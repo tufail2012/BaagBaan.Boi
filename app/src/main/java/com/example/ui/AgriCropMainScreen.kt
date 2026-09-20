@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.example.ui.components.AgriSegmentedControl
+import com.example.ui.components.LocalDropdownGlassBackdrop
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.PremiumGlassAmbientBackdrop
@@ -803,13 +804,14 @@ fun AgriCropMainScreen(
                                     .zIndex(20f)
                             )
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
-                                    .hazeSource(state = hazeState)
-                                    .layerBackdrop(navBackdrop)
-                            ) {
+                            CompositionLocalProvider(LocalDropdownGlassBackdrop provides profileMenuBackdrop) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
+                                        .hazeSource(state = hazeState)
+                                        .layerBackdrop(navBackdrop)
+                                ) {
                                 if (selectedService.equals("Bookings", ignoreCase = true)) {
                                     UserBookingsSection(viewModel = userDashboardViewModel)
                                 } else if (selectedService.equals("Attendance", ignoreCase = true)) {
@@ -936,6 +938,7 @@ fun AgriCropMainScreen(
                                     }
                                 }
                             }
+                        }
 
                             // Floating Bottom Navigation Bar with Liquid-Glass Lens
                             AgriBottomNav(
