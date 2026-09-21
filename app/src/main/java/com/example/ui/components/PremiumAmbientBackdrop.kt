@@ -1,128 +1,76 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.os.PowerManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.LocalAppPalette
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getDynamicPaletteBackgroundBrush
+import kotlinx.coroutines.delay
 import java.util.Random
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.sin
 
-private class BackdropRoles(
-    val orbAccent: Color,
-    val glows: List<Color>,   // order: TopRight, MidLeft, CenterRight, BottomRight, BottomLeft
-    val scatter: List<Color>
+/** Global strength of every coloured layer (0.7 = calmer, 1.3 = bolder). */
+private const val BACKDROP_INTENSITY = 1.0f
+/** Very slow drift (10 fps). Automatically disabled in battery-saver mode. */
+private const val BACKDROP_ANIMATED = true
+
+private class BackdropTriad(val p: Color, val s: Color, val t: Color)
+
+private class Bokeh(
+    val x: Float,
+    val y: Float,
+    val rDp: Float,
+    val colorIdx: Int,
+    val ring: Boolean,
+    val phaseOffset: Float
 )
 
-/**
- * Geometric shape definition for stable scatter rendering.
- */
-private data class AmbientDot(
-    val relX: Float,
-    val relY: Float,
-    val radiusDp: Float,
-    val colorIndex: Int,
-    val alphaMultiplier: Float
-)
-
-private data class AmbientRing(
-    val relX: Float,
-    val relY: Float,
-    val radiusDp: Float,
-    val strokeWidthDp: Float,
-    val colorIndex: Int,
-    val alphaMultiplier: Float
-)
-
-/**
- * Comprehensive, premium color palette for ambient micro-details:
- * Red, crimson, coral, orange, amber, yellow, gold, lime, green, teal,
- * cyan, blue, indigo, violet, pink, rose, grey, silver, cream, and soft neutral.
- * All tones are calibrated for soft, elegant light diffusion through Liquid Glass.
- */
-private val AMBIENT_PALETTE = listOf(
-    Color(0xFFE57373), // Red
-    Color(0xFFE53935), // Crimson
-    Color(0xFFFF8A65), // Coral
-    Color(0xFFFFB74D), // Orange
-    Color(0xFFFFCA28), // Amber
-    Color(0xFFFFF176), // Yellow
-    Color(0xFFFFD54F), // Gold
-    Color(0xFFDCE775), // Lime
-    Color(0xFF81C784), // Green
-    Color(0xFF4DB6AC), // Teal
-    Color(0xFF4DD0E1), // Cyan
-    Color(0xFF64B5F6), // Blue
-    Color(0xFF7986CB), // Indigo
-    Color(0xFF9575CD), // Violet
-    Color(0xFFF06292), // Pink
-    Color(0xFFFF80AB), // Rose
-    Color(0xFF90A4AE), // Grey
-    Color(0xFFCFD8DC), // Silver
-    Color(0xFFFFF8E1), // Cream
-    Color(0xFFECEFF1)  // Soft Neutral
-)
-
-/**
- * Precomputed, deterministic scattering of hard-edged elements (210 dots + 46 rings).
- * Using a fixed seed ensures layout is 100% stable across recompositions and config changes.
- * Consists of mostly small circles with some medium circles, and zero oversized dominant orbs.
- */
-private val STABLE_AMBIENT_DOTS: List<AmbientDot> by lazy {
-    val rng = Random(42L)
-    val list = ArrayList<AmbientDot>(210)
-    for (i in 0 until 210) {
-        val relX = 0.02f + rng.nextFloat() * 0.96f
-        val relY = 0.02f + rng.nextFloat() * 0.96f
-        val isMedium = (i % 4 == 0)
-        val radiusDp = if (isMedium) {
-            7.0f + rng.nextFloat() * 9.0f // 7dp to 16dp (medium)
-        } else {
-            2.0f + rng.nextFloat() * 4.8f // 2dp to 6.8dp (small)
-        }
-        val colorIdx = rng.nextInt(AMBIENT_PALETTE.size)
-        val alphaMul = if (isMedium) {
-            0.30f + rng.nextFloat() * 0.35f
-        } else {
-            0.45f + rng.nextFloat() * 0.45f
-        }
-        list.add(AmbientDot(relX, relY, radiusDp, colorIdx, alphaMul))
+private val BOKEH: List<Bokeh> by lazy {
+    val rnd = Random(20260921L)
+    List(11) { i ->
+        Bokeh(
+            x = 0.06f + rnd.nextFloat() * 0.88f,
+            y = 0.05f + rnd.nextFloat() * 0.90f,
+            rDp = 12f + rnd.nextFloat() * 34f,
+            colorIdx = i % 4,
+            ring = i % 3 == 0,
+            phaseOffset = rnd.nextFloat()
+        )
     }
-    list
 }
 
-private val STABLE_AMBIENT_RINGS: List<AmbientRing> by lazy {
-    val rng = Random(1337L)
-    val list = ArrayList<AmbientRing>(46)
-    for (i in 0 until 46) {
-        val relX = 0.03f + rng.nextFloat() * 0.94f
-        val relY = 0.03f + rng.nextFloat() * 0.94f
-        val radiusDp = 8f + rng.nextFloat() * 14f // 8dp to 22dp (medium rings)
-        val strokeWidthDp = 0.8f + rng.nextFloat() * 1.0f // 0.8dp to 1.8dp
-        val colorIdx = rng.nextInt(AMBIENT_PALETTE.size)
-        val alphaMul = 0.30f + rng.nextFloat() * 0.35f
-        list.add(AmbientRing(relX, relY, radiusDp, strokeWidthDp, colorIdx, alphaMul))
-    }
-    list
+private fun hueShifted(base: Color, dh: Float, ds: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(base.toArgb(), hsv)
+    hsv[0] = (hsv[0] + dh + 360f) % 360f
+    hsv[1] = (hsv[1] * ds).coerceIn(0f, 1f)
+    return Color(android.graphics.Color.HSVToColor(hsv))
 }
 
-/**
- * Shared premium ambient background composable for all 6 tabs:
- * Local Plants, Imported Plants, Rootstocks, Site Visit, Pruning, and Garden Planning/Records.
- *
- * Provides a rich, dense field of colorful micro-details (dots & rings) behind the glass,
- * allowing Liquid Glass surfaces to produce vibrant, organic light refraction without
- * large blob-like orbs dominating the visual canvas.
- */
 @Composable
 fun PremiumGlassAmbientBackdrop(
     accentColor: Color,
@@ -130,33 +78,52 @@ fun PremiumGlassAmbientBackdrop(
     isAmoled: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val isDarkTheme = isDark || isAmoled
     val palette = LocalAppPalette.current
     val usePalette = palette.isPredefinedPalette
+    val darkish = isDark || isAmoled
 
     val backgroundBrush = remember(accentColor, palette, usePalette, isDark, isAmoled) {
         if (usePalette) getDynamicPaletteBackgroundBrush(palette, isDark = isDark, isAmoled = isAmoled)
         else getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
     }
 
-    val roles = remember(palette, usePalette, accentColor, isDark, isAmoled) {
+    val triad = remember(palette, usePalette, accentColor, isDark, isAmoled) {
         if (usePalette) {
-            val p = palette.getPrimary(isDark, isAmoled)
-            val t = palette.getTertiary(isDark, isAmoled)
-            val s = if (palette.isTwoColor) t else palette.getSecondary(isDark, isAmoled)
-            val n = palette.getNeutral(isDark, isAmoled)
-            BackdropRoles(
-                orbAccent = if (palette.isTwoColor) t else p,
-                glows = listOf(s, t, s, t, s),
-                scatter = if (palette.isTwoColor) listOf(p, s, n, s) else listOf(p, s, t, p, s, t)
-            )
+            val tert = palette.getTertiary(isDark, isAmoled)
+            if (palette.isTwoColor) {
+                BackdropTriad(
+                    tert,
+                    if (darkish) Color(0xFFE4E4E7) else Color(0xFF52525B),
+                    Color(0xFF71717A)
+                )
+            } else {
+                BackdropTriad(
+                    palette.getPrimary(isDark, isAmoled),
+                    palette.getSecondary(isDark, isAmoled),
+                    tert
+                )
+            }
         } else {
-            val rainbow = AMBIENT_PALETTE + listOf(accentColor)
-            BackdropRoles(
-                orbAccent = accentColor,
-                glows = listOf(rainbow[2], rainbow[9], rainbow[6], rainbow[12], rainbow[8]),
-                scatter = rainbow
+            BackdropTriad(
+                accentColor,
+                hueShifted(accentColor, 38f, 0.95f),
+                hueShifted(accentColor, -42f, 0.90f)
             )
+        }
+    }
+
+    val context = LocalContext.current
+    val animate = remember {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        BACKDROP_ANIMATED && pm?.isPowerSaveMode != true
+    }
+    var phase by remember { mutableFloatStateOf(0f) }
+    if (animate) {
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(100)
+                phase = (phase + 0.0012f) % 1f
+            }
         }
     }
 
@@ -168,110 +135,128 @@ fun PremiumGlassAmbientBackdrop(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val density = this
+            val big = max(w, h)
+            val ph = phase
+            val k = BACKDROP_INTENSITY
+            val tone = if (darkish) 1f else 0.62f
+            val twoPi = (2.0 * PI).toFloat()
+            val p = triad.p
+            val s = triad.s
+            val t = triad.t
 
-            // =========================================================================
-            // 1. SOFT RADIAL-GRADIENT GLOW LAYER (Color contrast for liquid glass refraction)
-            // =========================================================================
-            val orbAlphaPrimary = if (isAmoled) 0.22f else if (isDarkTheme) 0.25f else 0.20f
-            val orbAlphaSecondary = if (isAmoled) 0.16f else if (isDarkTheme) 0.19f else 0.14f
+            fun wave(offset: Float): Float = sin(twoPi * (ph + offset))
 
-            // Top-Right Ambient Glow
-            val glowColorTopRight = roles.glows[0]
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        roles.orbAccent.copy(alpha = orbAlphaPrimary),
-                        glowColorTopRight.copy(alpha = orbAlphaSecondary * 0.5f),
-                        Color.Transparent
-                    ),
-                    center = Offset(w * 0.78f, h * 0.16f),
-                    radius = w * 0.70f
+            // 1. AURORA FIELDS
+            fun aurora(color: Color, cx: Float, cy: Float, radius: Float, alpha: Float) {
+                val al = (alpha * tone * k).coerceIn(0f, 1f)
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colors = listOf(color.copy(alpha = al), color.copy(alpha = al * 0.45f), Color.Transparent),
+                        center = Offset(cx, cy),
+                        radius = radius
+                    )
                 )
-            )
+            }
+            aurora(p, w * (0.10f + 0.05f * wave(0.00f)), h * (0.10f + 0.03f * wave(0.25f)), big * 0.85f, 0.42f)
+            aurora(s, w * (0.95f + 0.04f * wave(0.33f)), h * (0.36f + 0.05f * wave(0.58f)), big * 0.75f, 0.34f)
+            aurora(t, w * (0.05f + 0.05f * wave(0.66f)), h * (0.68f + 0.04f * wave(0.10f)), big * 0.80f, 0.36f)
+            aurora(p, w * (0.85f + 0.05f * wave(0.80f)), h * (0.95f + 0.02f * wave(0.45f)), big * 0.70f, 0.30f)
 
-            // Mid-Left Ambient Glow
-            val glowColorMidLeft = roles.glows[1]
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        glowColorMidLeft.copy(alpha = orbAlphaSecondary),
-                        roles.orbAccent.copy(alpha = orbAlphaSecondary * 0.35f),
-                        Color.Transparent
-                    ),
-                    center = Offset(w * 0.16f, h * 0.50f),
-                    radius = w * 0.72f
+            // 2. SILK RIBBONS (glow + mid band + bright core + fine echo lines)
+            val ribbonBrush = Brush.linearGradient(
+                colors = listOf(p, s, t, p),
+                start = Offset(0f, 0f),
+                end = Offset(w, h)
+            )
+            val ribbons = listOf(
+                floatArrayOf(0.18f, 0.62f, 0.02f, 0.95f),
+                floatArrayOf(0.55f, 0.20f, 0.85f, 0.05f),
+                floatArrayOf(0.82f, 0.88f, 0.45f, 1.05f)
+            )
+            ribbons.forEachIndexed { i, r ->
+                val shift = w * 0.05f * wave(i / 3f)
+                val path = Path().apply {
+                    moveTo(-0.15f * w, h * r[0])
+                    cubicTo(0.28f * w + shift, h * r[2], 0.72f * w - shift, h * r[3], 1.15f * w, h * r[1])
+                }
+                val widthScale = 1f - i * 0.18f
+                drawPath(
+                    path = path, brush = ribbonBrush, alpha = (0.16f * tone * k).coerceIn(0f, 1f),
+                    style = Stroke(width = 96.dp.toPx() * widthScale, cap = StrokeCap.Round)
                 )
-            )
-
-            // Center-Right Diffuser
-            val glowColorCenterRight = roles.glows[2]
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        glowColorCenterRight.copy(alpha = orbAlphaSecondary * 0.8f),
-                        Color.Transparent
-                    ),
-                    center = Offset(w * 0.65f, h * 0.68f),
-                    radius = w * 0.55f
+                drawPath(
+                    path = path, brush = ribbonBrush, alpha = (0.22f * tone * k).coerceIn(0f, 1f),
+                    style = Stroke(width = 34.dp.toPx() * widthScale, cap = StrokeCap.Round)
                 )
-            )
-
-            // Bottom-Right Ambient Glow
-            val glowColorBottomRight = roles.glows[3]
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        roles.orbAccent.copy(alpha = orbAlphaPrimary * 0.9f),
-                        glowColorBottomRight.copy(alpha = orbAlphaSecondary * 0.6f),
-                        Color.Transparent
-                    ),
-                    center = Offset(w * 0.82f, h * 0.86f),
-                    radius = w * 0.60f
+                val core = if (darkish) Color.White else p
+                drawPath(
+                    path = path, color = core, alpha = (0.55f * k).coerceIn(0f, 1f),
+                    style = Stroke(width = 2.2f.dp.toPx(), cap = StrokeCap.Round)
                 )
-            )
+                for (n in -3..3) {
+                    if (n == 0) continue
+                    translate(top = n * 9.dp.toPx()) {
+                        drawPath(
+                            path = path, brush = ribbonBrush,
+                            alpha = ((0.20f - abs(n) * 0.04f) * tone * k).coerceIn(0f, 1f),
+                            style = Stroke(width = 1.dp.toPx(), cap = StrokeCap.Round)
+                        )
+                    }
+                }
+            }
 
-            // Bottom-Left Grounding Glow
-            val glowColorBottomLeft = roles.glows[4]
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        glowColorBottomLeft.copy(alpha = orbAlphaSecondary * 0.7f),
-                        Color.Transparent
-                    ),
-                    center = Offset(w * 0.20f, h * 0.90f),
-                    radius = w * 0.50f
-                )
-            )
-
-            // =========================================================================
-            // 2. DENSE SCATTER FIELD (Micro-details sampled by Liquid Glass)
-            // =========================================================================
-            val baseShapeAlpha = if (isAmoled) 0.35f else if (isDarkTheme) 0.38f else 0.28f
-
-            // 210 Hard-Edged Small & Medium Filled Dots
-            for (dot in STABLE_AMBIENT_DOTS) {
-                val color = roles.scatter[dot.colorIndex % roles.scatter.size]
-                val dotAlpha = (baseShapeAlpha * dot.alphaMultiplier).coerceIn(0f, 1f)
-                val radiusPx = density.run { dot.radiusDp.dp.toPx() }
+            // 3. BOKEH ORBS + RINGS
+            BOKEH.forEach { b ->
+                val cx = w * b.x + 10.dp.toPx() * wave(b.phaseOffset)
+                val cy = h * b.y + 14.dp.toPx() * wave(b.phaseOffset + 0.25f)
+                val r = b.rDp.dp.toPx()
+                val c = when (b.colorIdx) {
+                    0 -> p
+                    1 -> s
+                    2 -> t
+                    else -> if (darkish) Color.White else p
+                }
+                val al = (0.34f * tone * k).coerceIn(0f, 1f)
                 drawCircle(
-                    color = color.copy(alpha = dotAlpha),
-                    radius = radiusPx,
-                    center = Offset(w * dot.relX, h * dot.relY)
+                    brush = Brush.radialGradient(
+                        colors = listOf(c.copy(alpha = al), c.copy(alpha = al * 0.35f), Color.Transparent),
+                        center = Offset(cx, cy),
+                        radius = r * 1.6f
+                    ),
+                    radius = r * 1.6f,
+                    center = Offset(cx, cy)
+                )
+                if (b.ring) {
+                    drawCircle(
+                        color = c.copy(alpha = (0.45f * tone * k).coerceIn(0f, 1f)),
+                        radius = r,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = 1.4f.dp.toPx())
+                    )
+                }
+            }
+
+            // 4. SHEEN (dark only)
+            if (darkish) {
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.055f * k), Color.Transparent),
+                        start = Offset(w * (0.0f + 0.2f * wave(0.5f)), 0f),
+                        end = Offset(w * (0.8f + 0.2f * wave(0.5f)), h * 0.7f)
+                    )
                 )
             }
 
-            // 46 Fine-Edged Ring Outlines
-            for (ring in STABLE_AMBIENT_RINGS) {
-                val color = roles.scatter[ring.colorIndex % roles.scatter.size]
-                val ringAlpha = (baseShapeAlpha * ring.alphaMultiplier * 0.9f).coerceIn(0f, 1f)
-                val radiusPx = density.run { ring.radiusDp.dp.toPx() }
-                val strokePx = density.run { ring.strokeWidthDp.dp.toPx() }
-                drawCircle(
-                    color = color.copy(alpha = ringAlpha),
-                    radius = radiusPx,
-                    center = Offset(w * ring.relX, h * ring.relY),
-                    style = Stroke(width = strokePx)
+            // 5. VIGNETTE (dark only)
+            if (darkish) {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        0.0f to Color.Transparent,
+                        0.55f to Color.Transparent,
+                        1.0f to Color.Black.copy(alpha = 0.38f),
+                        center = Offset(w / 2f, h / 2f),
+                        radius = big * 0.75f
+                    )
                 )
             }
         }

@@ -840,7 +840,9 @@ fun AgriDashboardScreen(
             ) {
                 LazyColumn(
                     state = dashboardListState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(state = effectiveHazeState),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
@@ -1251,124 +1253,44 @@ fun AgriDashboardScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(percent = 50))
-                    .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = dashboardBackdrop)
-                    .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .align(Alignment.TopCenter),
+                contentAlignment = Alignment.Center
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f, fill = false)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(dashboardAccent.copy(alpha = 0.16f))
+                            .border(
+                                1.dp,
+                                Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.70f), dashboardAccent.copy(alpha = 0.40f))),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Glass button well for Back button
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
-                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
-                                .clickable { onBack() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = dashboardAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        // Glass Emblem Pod
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(dashboardAccent.copy(alpha = 0.16f))
-                                .border(1.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.70f), dashboardAccent.copy(alpha = 0.40f))), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Dashboard,
-                                contentDescription = "Dashboard Icon",
-                                tint = dashboardAccent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "AgriCrop Operations Dashboard",
-                                style = glassEtchedTextStyle(
-                                    isDark = isDark,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    isProminent = true
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Comprehensive Operations & Financial Overview",
-                                style = glassEtchedTextStyle(
-                                    isDark = isDark,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    isSecondary = true
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Dashboard,
+                            contentDescription = "Dashboard Icon",
+                            tint = dashboardAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        if (onNavigateToSettings != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(34.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
-                                    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
-                                    .clickable { onNavigateToSettings() },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "Settings & Security",
-                                    tint = if (isDark) Color.White else Color(0xFF0F172A),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.45f))
-                                .border(1.dp, if (isDark) Color.White.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.70f), CircleShape)
-                            .clickable { userDashboardViewModel.refreshUser() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh Data",
-                                tint = if (isDark) Color.White else Color(0xFF0F172A),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = "Dashboard",
+                        style = glassEtchedTextStyle(
+                            isDark = isDark,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            isProminent = true
+                        ),
+                        maxLines = 1,
+                        modifier = Modifier.testTag("dashboard_title")
+                    )
                 }
             }
 
