@@ -1418,7 +1418,7 @@ fun Modifier.fieldLiquidGlass(
             drawContent()
             val w = size.width
             val h = size.height
-            val cornerRadiusPx = 18.dp.toPx()
+            val cornerRadiusPx = shape.topStart.toPx(size, this)
             drawRoundRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(

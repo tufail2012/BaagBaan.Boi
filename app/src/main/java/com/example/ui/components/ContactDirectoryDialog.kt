@@ -118,6 +118,7 @@ import com.example.util.SerialNumberUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+private const val CONTACT_DIALOG_REAL_GLASS = true
 private const val PREFS_SAVED_PHONE_CONTACTS = "agri_saved_phone_contacts"
 private const val KEY_SAVED_PHONE_SET = "saved_contacts_keys"
 
@@ -543,15 +544,19 @@ fun ContactDirectoryDialog(
             Scaffold(
                 containerColor = Color.Transparent,
                 floatingActionButton = {
+                    val fabShape = RoundedCornerShape(percent = 50)
                     FloatingActionButton(
                         onClick = { showAddDialog = true },
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(14.dp),
+                        containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        shape = fabShape,
                         modifier = Modifier
                             .navigationBarsPadding()
                             .padding(bottom = 36.dp, end = 16.dp)
                             .size(56.dp)
+                            .clip(fabShape)
+                            .liquidGlassNav(shape = fabShape, backdrop = contactsBackdrop)
+                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, fabShape)
                             .testTag("add_contact_fab")
                     ) {
                         Icon(
@@ -606,7 +611,7 @@ fun ContactDirectoryDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
-                                    .fieldGlass(shape = RoundedCornerShape(12.dp)),
+                                    .fieldGlass(shape = RoundedCornerShape(percent = 50)),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = contactAccent),
                                 placeholder = { Text("Search farmer name, phone, or address...") },
                                 leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
@@ -629,7 +634,7 @@ fun ContactDirectoryDialog(
                                         )
                                     }
                                 },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(percent = 50),
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions
                             )
@@ -718,7 +723,9 @@ fun ContactDirectoryDialog(
                                                     text = item.name,
                                                     query = searchQuery,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 16.sp
+                                                    fontSize = 16.sp,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    isDark = isDark
                                                 )
 
                                                 Spacer(modifier = Modifier.height(2.dp))
@@ -823,11 +830,8 @@ fun ContactDirectoryDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
                 .align(Alignment.TopCenter)
-                .clip(RoundedCornerShape(percent = 50))
-                .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = contactsBackdrop)
-                .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
         ) {
             Row(
                 modifier = Modifier
