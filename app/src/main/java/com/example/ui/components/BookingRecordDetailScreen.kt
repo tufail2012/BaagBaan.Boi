@@ -63,6 +63,7 @@ import androidx.compose.material.icons.filled.Place
 import com.example.util.MapHelper
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -1233,216 +1234,244 @@ fun BookingRecordDetailDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 5. Bottom Action Buttons
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                // 5. Actions Section
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bookingDetailLiquidGlass(
+                            backdrop = effectiveBackdrop,
+                            shape = RoundedCornerShape(24.dp)
+                        )
                 ) {
-                    val generatedRecordMsg = com.example.util.MessageTemplateHelper.generateMessage(
-                        template = selectedTemplate,
-                        farmerName = record.farmerName,
-                        contactNumber = record.contactNumber,
-                        address = record.farmerAddress,
-                        location = record.location,
-                        serviceCategory = record.serviceType,
-                        plantVariety = record.plantVariety,
-                        quantity = "${record.quantity}",
-                        totalAmount = totalRecordValue,
-                        amountPaid = totalPaidSoFar,
-                        remainingBalance = remainingBalance,
-                        paymentStatus = record.paymentStatus,
-                        bookingDate = record.bookingDate,
-                        expectedDelivery = record.expectedDelivery,
-                        serialNumber = record.serialNumber
-                    )
-
-                    // Message Preview Section with Select Template Dropdown
-                    com.example.util.MessagePreviewComponent(
-                        selectedTemplate = selectedTemplate,
-                        onSelectTemplate = { selectedTemplate = it },
-                        generatedMessage = generatedRecordMsg,
-                        isDark = isDark,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-
-                    // Button 1: Preview & Send Digital Receipt Image
-                    Button(
-                        onClick = {
-                            val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.contains("Rootstock", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
-                                    record.serviceType.equals("Imported Rootstock", ignoreCase = true)
-
-                            val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
-                            val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
-
-                            val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
-                            val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
-                            val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "" } }
-
-                            val rData = ReceiptData(
-                                serialNumber = record.serialNumber,
-                                bookingDate = record.bookingDate.ifBlank { todayStr },
-                                farmerName = record.farmerName,
-                                contactNumber = record.contactNumber,
-                                address = record.farmerAddress,
-                                orchardLocation = record.location,
-                                serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
-                                plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
-                                quantity = "${record.quantity}",
-                                totalAmount = totalRecordValue,
-                                amountPaid = totalPaidSoFar,
-                                remainingBalance = remainingBalance,
-                                paymentStatus = record.paymentStatus,
-                                expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
-                                rootstock = actualRs,
-                                feathers = record.feathers,
-                                rootDiameter = actualDiam,
-                                scionVariety = actualScion,
-                                recordType = "croprecord",
-                                recordId = record.id,
-                                varietyLinesJson = record.varietyLinesJson
-                            )
-                            val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
-                            receiptPreviewBitmap = bmp
-                        },
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                    }
-
-                    // Button 2: Send WhatsApp Confirmation
-                    Button(
-                        onClick = {
-                            showWhatsAppConfirm = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF16A34A) else Color(0xFF22C55E))
-                    ) {
-                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send WhatsApp Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                    }
-
-                    // Button 3: Send SMS Confirmation
-                    Button(
-                        onClick = {
-                            showSmsConfirm = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
-                    ) {
-                        Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send SMS Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
-                    }
-
-                    // Button 4: Send Tracking Details on WhatsApp
-                    OutlinedButton(
-                        onClick = {
-                            showTrackingWaConfirm = true
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E))
-                    ) {
-                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-
-                    // Actions: Received & Cancel Booking (Visible only when booking is not cancelled and not received)
-                    if (!record.isCancelled && !record.isReceived) {
+                        // Header Title: ACTIONS
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Button: Received
-                            OutlinedButton(
-                                onClick = {
-                                    showReceivedConfirm = true
-                                },
-                                enabled = !isCancelling && !isMarkingReceived,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(52.dp)
-                                    .testTag("received_booking_button"),
-                                shape = RoundedCornerShape(26.dp),
-                                border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
-                                )
-                            ) {
-                                if (isMarkingReceived) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
-                                        strokeWidth = 2.dp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Received", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                }
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Send,
+                                contentDescription = null,
+                                tint = sectionAccentColor,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = "ACTIONS",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = sectionAccentColor
+                            )
+                        }
 
-                            // Button: Cancel Booking
-                            OutlinedButton(
-                                onClick = {
-                                    showCancelConfirm = true
-                                },
-                                enabled = !isCancelling && !isMarkingReceived,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(52.dp)
-                                    .testTag("cancel_booking_button"),
-                                shape = RoundedCornerShape(26.dp),
-                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.error
+                        val generatedRecordMsg = com.example.util.MessageTemplateHelper.generateMessage(
+                            template = selectedTemplate,
+                            farmerName = record.farmerName,
+                            contactNumber = record.contactNumber,
+                            address = record.farmerAddress,
+                            location = record.location,
+                            serviceCategory = record.serviceType,
+                            plantVariety = record.plantVariety,
+                            quantity = "${record.quantity}",
+                            totalAmount = totalRecordValue,
+                            amountPaid = totalPaidSoFar,
+                            remainingBalance = remainingBalance,
+                            paymentStatus = record.paymentStatus,
+                            bookingDate = record.bookingDate,
+                            expectedDelivery = record.expectedDelivery,
+                            serialNumber = record.serialNumber
+                        )
+
+                        // Message Preview Section with Select Template Dropdown
+                        com.example.util.MessagePreviewComponent(
+                            selectedTemplate = selectedTemplate,
+                            onSelectTemplate = { selectedTemplate = it },
+                            generatedMessage = generatedRecordMsg,
+                            isDark = isDark,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+
+                        // Button 1: Preview & Send Digital Receipt Image
+                        Button(
+                            onClick = {
+                                val isRootstockRec = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.contains("Rootstock", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstocks", ignoreCase = true) ||
+                                        record.serviceType.equals("Imported Rootstock", ignoreCase = true)
+
+                                val extDiameter = Regex("Root Diameter:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extScion = Regex("Scion:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: ""
+                                val extRootstock = if (record.rootstock.isNotBlank()) record.rootstock else (Regex("Rootstock:\\s*([^|\\]\n]+)").find(record.notes)?.groupValues?.get(1)?.trim() ?: "")
+
+                                val actualRs = if (isRootstockRec) extRootstock.ifBlank { "M9-T337" } else extRootstock
+                                val actualDiam = extDiameter.ifBlank { "9 to 12 mm" }
+                                val actualScion = extScion.ifBlank { record.plantVariety.ifBlank { "" } }
+
+                                val rData = ReceiptData(
+                                    serialNumber = record.serialNumber,
+                                    bookingDate = record.bookingDate.ifBlank { todayStr },
+                                    farmerName = record.farmerName,
+                                    contactNumber = record.contactNumber,
+                                    address = record.farmerAddress,
+                                    orchardLocation = record.location,
+                                    serviceCategory = if (isRootstockRec) "Imported Rootstocks" else record.serviceType,
+                                    plantVariety = if (isRootstockRec) actualScion else record.plantVariety,
+                                    quantity = "${record.quantity}",
+                                    totalAmount = totalRecordValue,
+                                    amountPaid = totalPaidSoFar,
+                                    remainingBalance = remainingBalance,
+                                    paymentStatus = record.paymentStatus,
+                                    expectedDelivery = record.expectedDelivery.ifBlank { "Not set" },
+                                    rootstock = actualRs,
+                                    feathers = record.feathers,
+                                    rootDiameter = actualDiam,
+                                    scionVariety = actualScion,
+                                    recordType = "croprecord",
+                                    recordId = record.id,
+                                    varietyLinesJson = record.varietyLinesJson
                                 )
+                                val bmp = ReceiptGenerator.generateReceiptBitmap(rData, context)
+                                receiptPreviewBitmap = bmp
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
+                        ) {
+                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+
+                        // Button 2: Send WhatsApp Confirmation
+                        Button(
+                            onClick = {
+                                showWhatsAppConfirm = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF16A34A) else Color(0xFF22C55E))
+                        ) {
+                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Send WhatsApp Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+
+                        // Button 3: Send SMS Confirmation
+                        Button(
+                            onClick = {
+                                showSmsConfirm = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
+                        ) {
+                            Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Send SMS Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+                        }
+
+                        // Button 4: Send Tracking Details on WhatsApp
+                        OutlinedButton(
+                            onClick = {
+                                showTrackingWaConfirm = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(26.dp),
+                            border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E))
+                        ) {
+                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        // Actions: Received & Cancel Booking (Visible only when booking is not cancelled and not received)
+                        if (!record.isCancelled && !record.isReceived) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (isCancelling) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.error,
-                                        strokeWidth = 2.dp
+                                // Button: Received
+                                OutlinedButton(
+                                    onClick = {
+                                        showReceivedConfirm = true
+                                    },
+                                    enabled = !isCancelling && !isMarkingReceived,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(52.dp)
+                                        .testTag("received_booking_button"),
+                                    shape = RoundedCornerShape(26.dp),
+                                    border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Cancel,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
+                                ) {
+                                    if (isMarkingReceived) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Received", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
+                                }
+
+                                // Button: Cancel Booking
+                                OutlinedButton(
+                                    onClick = {
+                                        showCancelConfirm = true
+                                    },
+                                    enabled = !isCancelling && !isMarkingReceived,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(52.dp)
+                                        .testTag("cancel_booking_button"),
+                                    shape = RoundedCornerShape(26.dp),
+                                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                ) {
+                                    if (isCancelling) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = MaterialTheme.colorScheme.error,
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Cancel,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
                                 }
                             }
                         }
