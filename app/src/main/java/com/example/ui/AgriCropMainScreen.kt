@@ -1,11 +1,15 @@
 package com.example.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -370,14 +374,45 @@ fun AgriCropMainScreen(
                 fadeIn(animationSpec = tween(300))
                     .togetherWith(fadeOut(animationSpec = tween(200)))
             } else {
-                (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.97f, animationSpec = tween(300)))
-                    .togetherWith(fadeOut(animationSpec = tween(150)))
+                val rootRank = { s: String ->
+                    when (s) {
+                        "MAIN" -> 0
+                        "SEARCH" -> 1
+                        "ATTENDANCE" -> 2
+                        "DASHBOARD" -> 3
+                        "SETTINGS" -> 4
+                        "TEMPLATES" -> 5
+                        "SEASONAL_REMINDERS" -> 6
+                        "PAYMENT_REMINDERS" -> 7
+                        "INVENTORY" -> 8
+                        "CONTACTS" -> 9
+                        "SCAN_QR" -> 10
+                        "THEME" -> 11
+                        "PERMISSION_ONBOARDING" -> 12
+                        else -> 13
+                    }
+                }
+                val slideSpec = tween<IntOffset>(
+                    durationMillis = 380,
+                    easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
+                )
+                val forward = rootRank(targetState) > rootRank(initialState)
+                if (forward) {
+                    (slideInHorizontally(slideSpec) { fullWidth -> fullWidth } togetherWith
+                        slideOutHorizontally(slideSpec) { fullWidth -> -fullWidth / 4 })
+                        .apply { targetContentZIndex = 1f }
+                } else {
+                    (slideInHorizontally(slideSpec) { fullWidth -> -fullWidth / 4 } togetherWith
+                        slideOutHorizontally(slideSpec) { fullWidth -> fullWidth })
+                        .apply { targetContentZIndex = -1f }
+                }
             }
         },
         label = "RootScreenTransition",
         modifier = modifier.fillMaxSize()
     ) { targetScreen ->
-        when (targetScreen) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            when (targetScreen) {
             "LOGIN" -> {
                 LoginScreen(
                     onLoginSuccess = { userEmail ->
@@ -944,6 +979,7 @@ fun AgriCropMainScreen(
                 }
                 }
             }
+        }
         }
     }
 
