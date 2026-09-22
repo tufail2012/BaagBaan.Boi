@@ -263,7 +263,7 @@ fun Modifier.etchedGlassSurface(
         return this
             .clip(realShape)
             .liquidGlassNav(shape = realShape, backdrop = dashBackdrop)
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, realShape)
+            .glassEdge(realShape)
     }
 
     val spotShadowColor = if (isAmoled) {
@@ -2596,7 +2596,7 @@ fun Modifier.frostedLiquidGlassSurface(
         return this
             .clip(realShape)
             .liquidGlassNav(shape = realShape, backdrop = dashBackdrop)
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, realShape)
+            .glassEdge(realShape)
     }
 
     val hazeStyle = remember(isDark, isAmoled) {

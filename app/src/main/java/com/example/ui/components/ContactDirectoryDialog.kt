@@ -556,7 +556,7 @@ fun ContactDirectoryDialog(
                             .size(56.dp)
                             .clip(fabShape)
                             .liquidGlassNav(shape = fabShape, backdrop = contactsBackdrop)
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, fabShape)
+                            .glassEdge(fabShape)
                             .testTag("add_contact_fab")
                     ) {
                         Icon(
@@ -681,7 +681,7 @@ fun ContactDirectoryDialog(
                                         .clip(RoundedCornerShape(16.dp))
                                         .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = contactsBackdrop)
                                         .then(if (!isGlassSupported()) Modifier.glassCardBackground(cornerRadius = 16.dp, accentColor = contactAccent, isDark = isDark) else Modifier)
-                                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(16.dp))
+                                        .glassEdge(RoundedCornerShape(16.dp))
                                         .clickable { selectedContactForDetails = item },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(

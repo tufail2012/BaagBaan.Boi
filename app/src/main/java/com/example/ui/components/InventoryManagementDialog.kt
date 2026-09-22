@@ -62,7 +62,7 @@ private fun Modifier.inventoryGlass(cornerRadius: Dp, accentColor: Color, isDark
         this
             .clip(shape)
             .liquidGlassNav(shape = shape, backdrop = backdrop)
-            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
+            .glassEdge(shape)
     } else {
         this.glassCardBackground(cornerRadius = cornerRadius, accentColor = accentColor, isDark = isDark)
     }
@@ -209,7 +209,7 @@ fun InventoryManagementDialog(
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .clip(RoundedCornerShape(percent = 50))
                         .liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = inventoryBackdrop)
-                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(percent = 50))
+                        .glassEdge(RoundedCornerShape(percent = 50))
                 ) {
                     Row(
                         modifier = Modifier

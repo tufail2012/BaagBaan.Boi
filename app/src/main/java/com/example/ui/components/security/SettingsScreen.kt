@@ -87,8 +87,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import com.example.ui.components.liquidGlassNav
 import com.example.ui.components.isGlassSupported
-import com.example.ui.components.GLASS_EDGE_WIDTH
-import com.example.ui.components.GLASS_EDGE_COLOR
+import com.example.ui.components.glassEdge
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -449,7 +448,7 @@ fun SettingsScreen(
                                     Modifier
                                 }
                             )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
+                            .glassEdge(RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -572,7 +571,7 @@ fun SettingsScreen(
                                     Modifier
                                 }
                             )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
+                            .glassEdge(RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -644,7 +643,7 @@ fun SettingsScreen(
                                     Modifier
                                 }
                             )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
+                            .glassEdge(RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -711,7 +710,7 @@ fun SettingsScreen(
                                     Modifier
                                 }
                             )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
+                            .glassEdge(RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier
@@ -968,7 +967,7 @@ fun SettingsScreen(
                                     Modifier
                                 }
                             )
-                            .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, RoundedCornerShape(20.dp))
+                            .glassEdge(RoundedCornerShape(20.dp))
                     ) {
                         Column(
                             modifier = Modifier

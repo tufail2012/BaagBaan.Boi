@@ -3,7 +3,10 @@ package com.example.ui.components
 import android.content.Context
 import android.os.PowerManager
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +36,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import com.example.ui.theme.LiquidGlassPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -63,12 +67,12 @@ private fun smooth(a: Float, b: Float, x: Float): Float {
  */
 @Suppress("UNUSED_PARAMETER")
 @Composable
-fun PremiumGlassAmbientBackdrop(
-    accentColor: Color,
-    isDark: Boolean,
-    isAmoled: Boolean = false,
-    modifier: Modifier = Modifier
-) {
+fun PremiumGlassAmbientBackdrop(accentColor: Color, isDark: Boolean, isAmoled: Boolean = false, modifier: Modifier = Modifier) {
+    if (!LiquidGlassPreference.enabled) {
+        val solid = if (isAmoled) Color.Black else MaterialTheme.colorScheme.background
+        Box(modifier = modifier.fillMaxSize().background(solid))
+        return
+    }
     val dark = isDark || isAmoled
     val context = LocalContext.current
     val animate = remember {

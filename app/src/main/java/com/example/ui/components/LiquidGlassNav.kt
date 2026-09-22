@@ -26,6 +26,9 @@ import com.kyant.backdrop.shadow.Shadow
 fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
     sdkInt >= Build.VERSION_CODES.S && LiquidGlassPreference.enabled
 
+fun Modifier.glassEdge(shape: CornerBasedShape): Modifier =
+    if (isGlassSupported()) border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape) else this
+
 private const val BLUR_RADIUS_DP = 8f
 private const val LENS_HEIGHT = 0.5f
 private const val LENS_AMOUNT = 0.5f

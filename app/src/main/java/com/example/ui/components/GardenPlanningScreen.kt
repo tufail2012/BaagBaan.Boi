@@ -1481,7 +1481,7 @@ fun GardenPlanningFormTab(
                                 Modifier
                             }
                         )
-                        .border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, textFieldShape)
+                        .glassEdge(textFieldShape)
                         .clickable {
                             viewModel.enableMultiVariety()
                         }
