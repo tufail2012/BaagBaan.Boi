@@ -485,130 +485,6 @@ fun SettingsScreen(
                                 onClick = onOpenThemeDialog,
                                 testTag = "settings_theme_row"
                             )
-
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (com.example.ui.theme.LiquidGlassPreference.enabled) {
-                                                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                                                    else MaterialTheme.colorScheme.primary
-                                                } else MaterialTheme.colorScheme.surfaceVariant
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.BlurOn,
-                                            contentDescription = null,
-                                            tint = if (com.example.ui.theme.LiquidGlassPreference.enabled) Color.White
-                                                   else if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    }
-                                    Column {
-                                        Text(
-                                            text = "Liquid Glass",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Text(
-                                            text = if (com.example.ui.theme.LiquidGlassPreference.enabled)
-                                                "Real blur & refraction on cards, menus and fields"
-                                            else
-                                                "Off — flat cards, useful on older or low-power devices",
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                Switch(
-                                    checked = com.example.ui.theme.LiquidGlassPreference.enabled,
-                                    onCheckedChange = { checked ->
-                                        com.example.ui.theme.LiquidGlassPreference.setEnabled(context, checked)
-                                    },
-                                    modifier = Modifier.testTag("liquid_glass_switch"),
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text("Custom Background", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                            Text(
-                                "Use your own photo instead of the default scene, one per theme",
-                                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(8.dp))
-
-                            val coroutineScope = rememberCoroutineScope()
-                            val lightPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-                                uri?.let {
-                                    coroutineScope.launch {
-                                        val ok = withContext(Dispatchers.IO) {
-                                            CustomBackgroundPreference.setLightImage(context, it)
-                                        }
-                                        if (!ok) {
-                                            android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            }
-                            val darkPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-                                uri?.let {
-                                    coroutineScope.launch {
-                                        val ok = withContext(Dispatchers.IO) {
-                                            CustomBackgroundPreference.setDarkImage(context, it)
-                                        }
-                                        if (!ok) {
-                                            android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            }
-
-                            CustomBackgroundPickerRow(
-                                label = "Light Mode Background",
-                                hasImage = CustomBackgroundPreference.hasLight(context),
-                                previewFile = CustomBackgroundPreference.lightFile(context),
-                                version = CustomBackgroundPreference.lightVersion,
-                                onPick = { lightPickerLauncher.launch("image/*") },
-                                onRemove = { CustomBackgroundPreference.clearLight(context) },
-                                testTagPrefix = "custom_bg_light"
-                            )
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                            CustomBackgroundPickerRow(
-                                label = "Dark Mode Background",
-                                hasImage = CustomBackgroundPreference.hasDark(context),
-                                previewFile = CustomBackgroundPreference.darkFile(context),
-                                version = CustomBackgroundPreference.darkVersion,
-                                onPick = { darkPickerLauncher.launch("image/*") },
-                                onRemove = { CustomBackgroundPreference.clearDark(context) },
-                                testTagPrefix = "custom_bg_dark"
-                            )
                         }
                     }
                 }
@@ -1285,7 +1161,7 @@ private fun SettingsToggleRow(
 }
 
 @Composable
-private fun CustomBackgroundPickerRow(
+fun CustomBackgroundPickerRow(
     label: String,
     hasImage: Boolean,
     previewFile: java.io.File,

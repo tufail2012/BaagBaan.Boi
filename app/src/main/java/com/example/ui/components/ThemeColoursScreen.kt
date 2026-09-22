@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.AppThemeMode
 import com.example.ui.components.glassCardBackground
+import com.example.ui.components.security.CustomBackgroundPickerRow
 import com.example.ui.theme.AppPalette
 import com.example.ui.theme.PredefinedThemePalettes
 import com.example.ui.theme.getAppDimBackgroundBrush
@@ -506,7 +508,142 @@ fun ThemeColoursContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // SECTION 3: Liquid Glass & Custom Background
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            border = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassCardBackground(
+                    cornerRadius = 20.dp,
+                    accentColor = currentAccentColor,
+                    isDark = isDark,
+                    themeMode = themeModeState
+                )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                val bgContext = androidx.compose.ui.platform.LocalContext.current
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (com.example.ui.theme.LiquidGlassPreference.enabled) {
+                                        if (isDark) currentAccentColor.copy(alpha = 0.35f) else currentAccentColor
+                                    } else if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BlurOn,
+                                contentDescription = null,
+                                tint = if (com.example.ui.theme.LiquidGlassPreference.enabled) Color.White
+                                       else if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Liquid Glass",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = if (com.example.ui.theme.LiquidGlassPreference.enabled)
+                                    "Real blur & refraction on cards, menus and fields"
+                                else
+                                    "Off — flat cards, useful on older or low-power devices",
+                                fontSize = 12.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = com.example.ui.theme.LiquidGlassPreference.enabled,
+                        onCheckedChange = { checked ->
+                            com.example.ui.theme.LiquidGlassPreference.setEnabled(bgContext, checked)
+                        },
+                        modifier = Modifier.testTag("liquid_glass_switch"),
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = currentAccentColor
+                        )
+                    )
+                }
+
+                HorizontalDivider(
+                    color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.1f),
+                    modifier = Modifier.padding(vertical = 14.dp)
+                )
+
+                Text(
+                    text = "Custom Background",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "Use your own photo instead of the default scene, one per theme",
+                    fontSize = 12.sp,
+                    color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val lightPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
+                    uri?.let {
+                        val ok = com.example.ui.theme.CustomBackgroundPreference.setLightImage(bgContext, it)
+                        if (!ok) {
+                            android.widget.Toast.makeText(bgContext, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                val darkPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
+                    uri?.let {
+                        val ok = com.example.ui.theme.CustomBackgroundPreference.setDarkImage(bgContext, it)
+                        if (!ok) {
+                            android.widget.Toast.makeText(bgContext, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+
+                CustomBackgroundPickerRow(
+                    label = "Light Mode Background",
+                    hasImage = com.example.ui.theme.CustomBackgroundPreference.hasLight(bgContext),
+                    previewFile = com.example.ui.theme.CustomBackgroundPreference.lightFile(bgContext),
+                    version = com.example.ui.theme.CustomBackgroundPreference.lightVersion,
+                    onPick = { lightPickerLauncher.launch("image/*") },
+                    onRemove = { com.example.ui.theme.CustomBackgroundPreference.clearLight(bgContext) },
+                    testTagPrefix = "custom_bg_light"
+                )
+                HorizontalDivider(color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.1f))
+                CustomBackgroundPickerRow(
+                    label = "Dark Mode Background",
+                    hasImage = com.example.ui.theme.CustomBackgroundPreference.hasDark(bgContext),
+                    previewFile = com.example.ui.theme.CustomBackgroundPreference.darkFile(bgContext),
+                    version = com.example.ui.theme.CustomBackgroundPreference.darkVersion,
+                    onPick = { darkPickerLauncher.launch("image/*") },
+                    onRemove = { com.example.ui.theme.CustomBackgroundPreference.clearDark(bgContext) },
+                    testTagPrefix = "custom_bg_dark"
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Bottom Action Button
         Card(
