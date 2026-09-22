@@ -77,10 +77,23 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material.icons.filled.Image
+import com.example.ui.theme.CustomBackgroundPreference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.border
@@ -532,6 +545,49 @@ fun SettingsScreen(
                                     )
                                 )
                             }
+                        }
+                    }
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text("Custom Background", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(
+                                "Use your own photo instead of the default scene, one per theme",
+                                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            val lightPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+                                uri?.let { CustomBackgroundPreference.setLightImage(context, it) }
+                            }
+                            val darkPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+                                uri?.let { CustomBackgroundPreference.setDarkImage(context, it) }
+                            }
+
+                            CustomBackgroundPickerRow(
+                                label = "Light Mode Background",
+                                hasImage = CustomBackgroundPreference.hasLight(context),
+                                previewFile = CustomBackgroundPreference.lightFile(context),
+                                version = CustomBackgroundPreference.lightVersion,
+                                onPick = { lightPickerLauncher.launch("image/*") },
+                                onRemove = { CustomBackgroundPreference.clearLight(context) },
+                                testTagPrefix = "custom_bg_light"
+                            )
+                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                            CustomBackgroundPickerRow(
+                                label = "Dark Mode Background",
+                                hasImage = CustomBackgroundPreference.hasDark(context),
+                                previewFile = CustomBackgroundPreference.darkFile(context),
+                                version = CustomBackgroundPreference.darkVersion,
+                                onPick = { darkPickerLauncher.launch("image/*") },
+                                onRemove = { CustomBackgroundPreference.clearDark(context) },
+                                testTagPrefix = "custom_bg_dark"
+                            )
                         }
                     }
                 }
@@ -1204,5 +1260,58 @@ private fun SettingsToggleRow(
                 checkedTrackColor = MaterialTheme.colorScheme.primary
             )
         )
+    }
+}
+
+@Composable
+private fun CustomBackgroundPickerRow(
+    label: String,
+    hasImage: Boolean,
+    previewFile: java.io.File,
+    version: Long,
+    onPick: () -> Unit,
+    onRemove: () -> Unit,
+    testTagPrefix: String
+) {
+    var thumb by remember(version) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(version, hasImage) {
+        thumb = if (hasImage) withContext(Dispatchers.IO) {
+            BitmapFactory.decodeFile(previewFile.absolutePath)?.asImageBitmap()
+        } else null
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            val t = thumb
+            if (t != null) {
+                Image(bitmap = t, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                if (hasImage) "Custom image set" else "Using default background",
+                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        val chooseTag = when (testTagPrefix) {
+            "custom_bg_light" -> "custom_bg_light_choose"
+            "custom_bg_dark" -> "custom_bg_dark_choose"
+            else -> "${testTagPrefix}_choose"
+        }
+        TextButton(onClick = onPick, modifier = Modifier.testTag(chooseTag)) { Text("Choose") }
+        if (hasImage) {
+            IconButton(onClick = onRemove, modifier = Modifier.testTag("${testTagPrefix}_remove")) {
+                Icon(Icons.Default.Close, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
+            }
+        }
     }
 }
