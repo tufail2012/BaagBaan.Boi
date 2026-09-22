@@ -563,10 +563,20 @@ fun SettingsScreen(
                             Spacer(Modifier.height(8.dp))
 
                             val lightPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-                                uri?.let { CustomBackgroundPreference.setLightImage(context, it) }
+                                uri?.let {
+                                    val ok = CustomBackgroundPreference.setLightImage(context, it)
+                                    if (!ok) {
+                                        android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
                             }
                             val darkPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-                                uri?.let { CustomBackgroundPreference.setDarkImage(context, it) }
+                                uri?.let {
+                                    val ok = CustomBackgroundPreference.setDarkImage(context, it)
+                                    if (!ok) {
+                                        android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
                             }
 
                             CustomBackgroundPickerRow(

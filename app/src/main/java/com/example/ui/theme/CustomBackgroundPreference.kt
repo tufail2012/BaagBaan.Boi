@@ -75,12 +75,17 @@ object CustomBackgroundPreference {
 
     private fun saveImage(context: Context, uri: Uri, dest: File, onSuccess: (Long) -> Unit): Boolean {
         return try {
-            val bitmap = decodeSampled(context, uri, MAX_DIMENSION, MAX_DIMENSION) ?: return false
+            val bitmap = decodeSampled(context, uri, MAX_DIMENSION, MAX_DIMENSION)
+            if (bitmap == null) {
+                android.util.Log.e("CustomBackground", "decodeSampled returned null for uri=$uri")
+                return false
+            }
             dest.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out) }
             bitmap.recycle()
             onSuccess(System.currentTimeMillis())
             true
         } catch (e: Exception) {
+            android.util.Log.e("CustomBackground", "Failed to save custom background, uri=$uri", e)
             false
         }
     }
