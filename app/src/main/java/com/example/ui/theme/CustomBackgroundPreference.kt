@@ -80,6 +80,7 @@ object CustomBackgroundPreference {
                 android.util.Log.e("CustomBackground", "decodeSampled returned null for uri=$uri")
                 return false
             }
+            dest.parentFile?.mkdirs()
             dest.outputStream().use { out -> bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out) }
             bitmap.recycle()
             onSuccess(System.currentTimeMillis())
@@ -92,13 +93,43 @@ object CustomBackgroundPreference {
 
     private fun decodeSampled(context: Context, uri: Uri, reqWidth: Int, reqHeight: Int): Bitmap? {
         val resolver = context.applicationContext.contentResolver
-        val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, boundsOptions) } ?: return null
-        var sample = 1
-        var halfW = boundsOptions.outWidth / 2
-        var halfH = boundsOptions.outHeight / 2
-        while (halfW / sample >= reqWidth && halfH / sample >= reqHeight) sample *= 2
-        val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sample }
-        return resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, decodeOptions) }
+
+        // 1. Try file descriptor first (handles seekable streams & avoids re-opening content stream)
+        try {
+            resolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                val fd = pfd.fileDescriptor
+                val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFileDescriptor(fd, null, boundsOptions)
+                if (boundsOptions.outWidth > 0 && boundsOptions.outHeight > 0) {
+                    var sample = 1
+                    var halfW = boundsOptions.outWidth / 2
+                    var halfH = boundsOptions.outHeight / 2
+                    while (halfW / sample >= reqWidth && halfH / sample >= reqHeight) sample *= 2
+                    val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sample }
+                    val bitmap = BitmapFactory.decodeFileDescriptor(fd, null, decodeOptions)
+                    if (bitmap != null) return bitmap
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("CustomBackground", "decodeFileDescriptor failed, falling back to stream", e)
+        }
+
+        // 2. Fallback to reading bytes once so we don't reopen the content stream
+        return try {
+            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+            val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOptions)
+            var sample = 1
+            if (boundsOptions.outWidth > 0 && boundsOptions.outHeight > 0) {
+                var halfW = boundsOptions.outWidth / 2
+                var halfH = boundsOptions.outHeight / 2
+                while (halfW / sample >= reqWidth && halfH / sample >= reqHeight) sample *= 2
+            }
+            val decodeOptions = BitmapFactory.Options().apply { inSampleSize = sample }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOptions)
+        } catch (e: Exception) {
+            android.util.Log.e("CustomBackground", "decodeByteArray failed for uri=$uri", e)
+            null
+        }
     }
 }

@@ -81,6 +81,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -93,6 +94,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.filled.Image
 import com.example.ui.theme.CustomBackgroundPreference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -562,19 +564,28 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.height(8.dp))
 
+                            val coroutineScope = rememberCoroutineScope()
                             val lightPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
                                 uri?.let {
-                                    val ok = CustomBackgroundPreference.setLightImage(context, it)
-                                    if (!ok) {
-                                        android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                    coroutineScope.launch {
+                                        val ok = withContext(Dispatchers.IO) {
+                                            CustomBackgroundPreference.setLightImage(context, it)
+                                        }
+                                        if (!ok) {
+                                            android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
                             }
                             val darkPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
                                 uri?.let {
-                                    val ok = CustomBackgroundPreference.setDarkImage(context, it)
-                                    if (!ok) {
-                                        android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                    coroutineScope.launch {
+                                        val ok = withContext(Dispatchers.IO) {
+                                            CustomBackgroundPreference.setDarkImage(context, it)
+                                        }
+                                        if (!ok) {
+                                            android.widget.Toast.makeText(context, "Couldn't set that image, check Logcat tag CustomBackground", android.widget.Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 }
                             }
