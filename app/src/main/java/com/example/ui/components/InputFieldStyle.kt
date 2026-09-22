@@ -1450,7 +1450,7 @@ val LocalFieldGlassSpec = staticCompositionLocalOf<FieldGlassSpec?> { null }
 @Composable
 fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Modifier {
     val spec = LocalFieldGlassSpec.current
-    if (!FIELD_GLASS_ENABLED || spec == null) return this
+    if (!FIELD_GLASS_ENABLED || spec == null || !isGlassSupported()) return this
     return this.fieldLiquidGlass(
         shape = shape,
         backdrop = spec.backdrop,

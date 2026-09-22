@@ -47,6 +47,7 @@ class MainActivity : FragmentActivity() {
         com.example.util.SafeFirebase.init(this)
 
         appLockManager = AppLockManager.getInstance(applicationContext)
+        com.example.ui.theme.LiquidGlassPreference.init(applicationContext)
         appLockManager.applySecureWindowFlag(this)
 
         enableEdgeToEdge()

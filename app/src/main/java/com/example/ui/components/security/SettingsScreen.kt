@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -61,6 +62,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.HorizontalDivider as Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -469,6 +471,68 @@ fun SettingsScreen(
                                 onClick = onOpenThemeDialog,
                                 testTag = "settings_theme_row"
                             )
+
+                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (com.example.ui.theme.LiquidGlassPreference.enabled) {
+                                                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.primary
+                                                } else MaterialTheme.colorScheme.surfaceVariant
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.BlurOn,
+                                            contentDescription = null,
+                                            tint = if (com.example.ui.theme.LiquidGlassPreference.enabled) Color.White
+                                                   else if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "Liquid Glass",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (com.example.ui.theme.LiquidGlassPreference.enabled)
+                                                "Real blur & refraction on cards, menus and fields"
+                                            else
+                                                "Off — flat cards, useful on older or low-power devices",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Switch(
+                                    checked = com.example.ui.theme.LiquidGlassPreference.enabled,
+                                    onCheckedChange = { checked ->
+                                        com.example.ui.theme.LiquidGlassPreference.setEnabled(context, checked)
+                                    },
+                                    modifier = Modifier.testTag("liquid_glass_switch"),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
                         }
                     }
                 }

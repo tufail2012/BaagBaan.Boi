@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.LiquidGlassPreference
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -22,7 +23,8 @@ import com.kyant.backdrop.highlight.HighlightStyle
 import com.kyant.backdrop.shadow.Shadow
 
 /** RenderEffect/RenderNode backdrop blur requires Android 12 (API 31). */
-fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean = sdkInt >= Build.VERSION_CODES.S
+fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
+    sdkInt >= Build.VERSION_CODES.S && LiquidGlassPreference.enabled
 
 private const val BLUR_RADIUS_DP = 8f
 private const val LENS_HEIGHT = 0.5f
