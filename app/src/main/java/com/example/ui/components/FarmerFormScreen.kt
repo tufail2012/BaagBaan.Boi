@@ -164,8 +164,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
@@ -213,6 +215,10 @@ fun FarmerFormScreen(
     backdrop: LayerBackdrop? = null,
     lazyListState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState()
 ) {
+    val density = LocalDensity.current
+    var floatingControlsHeightPx by remember { mutableStateOf(0) }
+    val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -885,55 +891,18 @@ fun FarmerFormScreen(
 
         val pillShape = textFieldShape
 
-        Column(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                if (selectedService.equals("Pruning", ignoreCase = true)) {
-                    PruningSubTabs(
-                        selectedSubTab = selectedPruningSubTab,
-                        onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                        accentColor = formAccent,
-                        hazeState = hazeState,
-                        backdrop = backdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                    RootstockSubTabs(
-                        selectedSubTab = selectedRootstockSubTab,
-                        selectedGenevaOption = selectedGenevaOption,
-                        onSelectSubTab = { subTab, genevaOpt ->
-                            viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                        },
-                        accentColor = formAccent,
-                        hazeState = hazeState,
-                        backdrop = backdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                if (hazeState != null) {
-                    AgriSegmentedControl(
-                        selectedMode = viewMode,
-                        onModeSelected = { viewModel.setViewMode(it) },
-                        hazeState = hazeState,
-                        newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                        recordsLabel = "Records ($cropRecordsCount)",
-                        accentColor = formAccent,
-                        backdrop = backdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-
+        Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .imePadding(),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = rememberScrollUnderHeaderTopPadding() + floatingControlsHeightDp,
+                    bottom = 110.dp
+                ),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
@@ -3371,6 +3340,50 @@ fun FarmerFormScreen(
         // Bottom Spacer for navigation bar clearance
         item(key = "bottom_spacer") {
             Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding())
+            .onSizeChanged { floatingControlsHeightPx = it.height },
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        if (selectedService.equals("Pruning", ignoreCase = true)) {
+            PruningSubTabs(
+                selectedSubTab = selectedPruningSubTab,
+                onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                accentColor = formAccent,
+                hazeState = hazeState,
+                backdrop = backdrop,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+            RootstockSubTabs(
+                selectedSubTab = selectedRootstockSubTab,
+                selectedGenevaOption = selectedGenevaOption,
+                onSelectSubTab = { subTab, genevaOpt ->
+                    viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                },
+                accentColor = formAccent,
+                hazeState = hazeState,
+                backdrop = backdrop,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        if (hazeState != null) {
+            AgriSegmentedControl(
+                selectedMode = viewMode,
+                onModeSelected = { viewModel.setViewMode(it) },
+                hazeState = hazeState,
+                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                recordsLabel = "Records ($cropRecordsCount)",
+                accentColor = formAccent,
+                backdrop = backdrop,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

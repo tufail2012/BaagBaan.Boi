@@ -16,9 +16,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -88,6 +90,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AppNotification
 import com.example.notifications.NotificationHelper
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -143,19 +150,47 @@ fun NotificationCenterSheet(
         }
     }
 
+    val sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val notifIsDark = isAppInDarkMode()
+    val notifIsAmoled = isAppInAmoledMode()
+    val notifAccent = MaterialTheme.colorScheme.primary
+    val notifHazeState = remember { HazeState() }
+    val notifWindowBackground = MaterialTheme.colorScheme.surface
+    val notifPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(notifWindowBackground) {
+            {
+                drawRect(notifWindowBackground)
+                drawContent()
+            }
+        }
+    val notifBackdrop = rememberLayerBackdrop(onDraw = notifPaintBackdrop)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp,
+        shape = sheetShape
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.88f)
-                .padding(horizontal = 16.dp)
+                .clip(sheetShape)
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(state = notifHazeState)
+                    .layerBackdrop(notifBackdrop)
+            ) {
+                PremiumGlassAmbientBackdrop(accentColor = notifAccent, isDark = notifIsDark, isAmoled = notifIsAmoled)
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
             // Header Bar
             Row(
                 modifier = Modifier
@@ -341,40 +376,50 @@ fun NotificationCenterSheet(
             }
 
             // Filter Tabs
-            TabRow(
-                selectedTabIndex = selectedFilterTab,
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.primary,
-                indicator = { tabPositions ->
-                    if (selectedFilterTab in tabPositions.indices) {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedFilterTab]),
-                            height = 3.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                modifier = Modifier.padding(vertical = 4.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = notifBackdrop)
+                    .then(if (!isGlassSupported()) Modifier.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp)) else Modifier)
+                    .glassEdge(RoundedCornerShape(16.dp))
             ) {
-                tabs.forEachIndexed { index, title ->
-                    val isSelected = selectedFilterTab == index
-                    Tab(
-                        selected = isSelected,
-                        onClick = { selectedFilterTab = index },
-                        selectedContentColor = MaterialTheme.colorScheme.primary,
-                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        text = {
-                            Text(
-                                text = title,
-                                fontSize = 10.5.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                softWrap = false,
-                                overflow = TextOverflow.Ellipsis
+                TabRow(
+                    selectedTabIndex = selectedFilterTab,
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    indicator = { tabPositions ->
+                        if (selectedFilterTab in tabPositions.indices) {
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedFilterTab]),
+                                height = 3.dp,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
-                    )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        val isSelected = selectedFilterTab == index
+                        Tab(
+                            selected = isSelected,
+                            onClick = { selectedFilterTab = index },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = {
+                                Text(
+                                    text = title,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        )
+                    }
                 }
             }
 
@@ -422,13 +467,15 @@ fun NotificationCenterSheet(
                         NotificationItemRow(
                             notification = notification,
                             onMarkAsRead = { onMarkAsRead(notification.id) },
-                            onDelete = { onDeleteNotification(notification.id) }
+                            onDelete = { onDeleteNotification(notification.id) },
+                            backdrop = notifBackdrop
                         )
                     }
                 }
             }
         }
     }
+}
 
     // Schedule Task Reminder Dialog
     if (showCreateReminderDialog) {
@@ -713,7 +760,8 @@ fun NotificationCenterSheet(
 fun NotificationItemRow(
     notification: AppNotification,
     onMarkAsRead: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    backdrop: com.kyant.backdrop.Backdrop?
 ) {
     val dateStr = remember(notification.timestamp) {
         val sdf = SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault())
@@ -744,103 +792,123 @@ fun NotificationItemRow(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 
+    val itemShape = RoundedCornerShape(12.dp)
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(itemShape)
+            .liquidGlassNav(shape = itemShape, backdrop = backdrop)
+            .then(
+                if (!isGlassSupported()) Modifier.background(
+                    if (!notification.isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.surface,
+                    itemShape
+                ) else Modifier
+            )
+            .glassEdge(itemShape)
             .clickable { onMarkAsRead() }
             .testTag("notification_item_${notification.id}"),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (!notification.isRead) 2.dp else 0.dp)
+        shape = itemShape,
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                .height(IntrinsicSize.Min)
         ) {
-            // Icon
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(iconBgColor),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
+            if (!notification.isRead) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(4.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .align(Alignment.CenterStart)
                 )
             }
-
-            // Text info
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Icon
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(iconBgColor),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = notification.title,
-                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.SemiBold,
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(20.dp)
                     )
-
-                    if (!notification.isRead) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
-                    }
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                // Text info
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = notification.title,
+                            fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                Text(
-                    text = notification.message,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
+                        if (!notification.isRead) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                        }
+                    }
 
-                Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
-                Text(
-                    text = dateStr,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
+                    Text(
+                        text = notification.message,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
+                    )
 
-            // Action Buttons (Delete individual notification)
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier
-                    .size(32.dp)
-                    .testTag("delete_notification_button_${notification.id}")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete notification",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
-                )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = dateStr,
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
+                // Action Buttons (Delete individual notification)
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .testTag("delete_notification_button_${notification.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete notification",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }

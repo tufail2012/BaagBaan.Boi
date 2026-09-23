@@ -675,6 +675,10 @@ fun GardenPlanningFormTab(
     lazyListState: LazyListState = rememberLazyListState(),
     showHeader: Boolean = true
 ) {
+    val density = LocalDensity.current
+    var floatingControlsHeightPx by remember { mutableStateOf(0) }
+    val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
+
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
@@ -917,30 +921,7 @@ fun GardenPlanningFormTab(
 
     lazyListState.rememberScrollHapticFeedback()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp
-                )
-        ) {
-            val isEditing = editingEntryId != null
-            val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
-            AgriSegmentedControl(
-                selectedMode = 0,
-                onModeSelected = { viewModel.selectedTabIndex.value = it },
-                hazeState = effectiveHaze,
-                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                recordsLabel = "Records (${allEntriesList.size})",
-                accentColor = gardenAccent,
-                backdrop = backdrop,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -949,7 +930,7 @@ fun GardenPlanningFormTab(
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = 14.dp,
+                top = (if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp) + floatingControlsHeightDp,
                 bottom = 110.dp
             ),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -2302,6 +2283,31 @@ fun GardenPlanningFormTab(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    Column(
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp
+            )
+            .onSizeChanged { floatingControlsHeightPx = it.height }
+    ) {
+        val isEditing = editingEntryId != null
+        val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
+        AgriSegmentedControl(
+            selectedMode = 0,
+            onModeSelected = { viewModel.selectedTabIndex.value = it },
+            hazeState = effectiveHaze,
+            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+            recordsLabel = "Records (${allEntriesList.size})",
+            accentColor = gardenAccent,
+            backdrop = backdrop,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
     if (showDatePickerDialog) {
@@ -2340,6 +2346,9 @@ fun GardenPlanningRecordsTab(
 
     val fallbackHazeState = remember { HazeState() }
     val effectiveHazeState = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHazeState
+    val density = LocalDensity.current
+    var floatingControlsHeightPx by remember { mutableStateOf(0) }
+    val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
 
     // Dynamic Computation of 4 Summary Metrics across garden planning records
     val totalPayment = remember(entries) { entries.sumOf { it.totalCost } }
@@ -2450,51 +2459,27 @@ fun GardenPlanningRecordsTab(
                         } else Modifier
                     )
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                start = 16.dp,
-                                end = 16.dp,
-                                top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp
-                            )
-                    ) {
-                        val isEditing = viewModel.editingEntryId.collectAsState().value != null
-                        val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
-                        AgriSegmentedControl(
-                            selectedMode = 1,
-                            onModeSelected = { viewModel.selectedTabIndex.value = it },
-                            hazeState = effectiveHazeState,
-                            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                            recordsLabel = "Records (${allEntriesList.size})",
-                            accentColor = paletteAccent,
-                            backdrop = backdrop,
-                            modifier = Modifier.fillMaxWidth()
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (contentBackdrop != null) {
+                                Modifier.layerBackdrop(contentBackdrop)
+                            } else Modifier
                         )
-                    }
-
-                    LazyColumn(
-                        state = lazyListState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (contentBackdrop != null) {
-                                    Modifier.layerBackdrop(contentBackdrop)
-                                } else Modifier
-                            )
-                            .onGloballyPositioned {
-                                if (!isBackdropReady) {
-                                    isBackdropReady = true
-                                }
+                        .onGloballyPositioned {
+                            if (!isBackdropReady) {
+                                isBackdropReady = true
                             }
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(
-                            top = 10.dp,
-                            bottom = 110.dp
-                        )
-                    ) {
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(
+                        top = (if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp) + floatingControlsHeightDp,
+                        bottom = 110.dp
+                    )
+                ) {
                     // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
                     // Sits directly on the single continuous background canvas and scrolls together with records
                     item(key = "garden_records_header_controls") {
@@ -2611,6 +2596,31 @@ fun GardenPlanningRecordsTab(
                         }
                     }
                 }
+            }
+
+            val isEditing = viewModel.editingEntryId.collectAsState().value != null
+            val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp
+                    )
+                    .onSizeChanged { floatingControlsHeightPx = it.height }
+            ) {
+                AgriSegmentedControl(
+                    selectedMode = 1,
+                    onModeSelected = { viewModel.selectedTabIndex.value = it },
+                    hazeState = effectiveHazeState,
+                    newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                    recordsLabel = "Records (${allEntriesList.size})",
+                    accentColor = paletteAccent,
+                    backdrop = backdrop,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
@@ -2777,7 +2787,6 @@ fun GardenPlanningRecordsTab(
             }
         }
     }
-}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
