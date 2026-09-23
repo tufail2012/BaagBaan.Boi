@@ -885,17 +885,14 @@ fun FarmerFormScreen(
 
         val pillShape = textFieldShape
 
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding(), bottom = 110.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Sub-Tabs for Pruning & Rootstocks
-            if (selectedService.equals("Pruning", ignoreCase = true)) {
-                item(key = "pruning_sub_tabs") {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (selectedService.equals("Pruning", ignoreCase = true)) {
                     PruningSubTabs(
                         selectedSubTab = selectedPruningSubTab,
                         onSelectSubTab = { viewModel.selectPruningSubTab(it) },
@@ -904,9 +901,7 @@ fun FarmerFormScreen(
                         backdrop = backdrop,
                         modifier = Modifier.fillMaxWidth()
                     )
-                }
-            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                item(key = "rootstock_sub_tabs") {
+                } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
                     RootstockSubTabs(
                         selectedSubTab = selectedRootstockSubTab,
                         selectedGenevaOption = selectedGenevaOption,
@@ -919,11 +914,7 @@ fun FarmerFormScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-            }
-
-            // Segmented Control (New Entry / Records)
-            if (hazeState != null) {
-                item(key = "view_mode_segmented_control") {
+                if (hazeState != null) {
                     AgriSegmentedControl(
                         selectedMode = viewMode,
                         onModeSelected = { viewModel.setViewMode(it) },
@@ -936,6 +927,15 @@ fun FarmerFormScreen(
                     )
                 }
             }
+
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
 
             // Serial Number Field
             item(key = "serial_number_field") {
@@ -3368,9 +3368,10 @@ fun FarmerFormScreen(
         }
     }
 
-    // Bottom Spacer for navigation bar clearance
-    item(key = "bottom_spacer") {
-        Spacer(modifier = Modifier.height(16.dp))
+        // Bottom Spacer for navigation bar clearance
+        item(key = "bottom_spacer") {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 

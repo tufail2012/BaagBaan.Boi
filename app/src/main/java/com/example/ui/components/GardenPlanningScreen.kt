@@ -917,21 +917,16 @@ fun GardenPlanningFormTab(
 
     lazyListState.rememberScrollHapticFeedback()
 
-    LazyColumn(
-        state = lazyListState,
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
-        contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
-            top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp,
-            bottom = 110.dp
-        ),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        // Liquid Glass Switcher (New Entry / Records)
-        item(key = "view_mode_segmented_control") {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 12.dp
+                )
+        ) {
             val isEditing = editingEntryId != null
             val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
             AgriSegmentedControl(
@@ -945,6 +940,20 @@ fun GardenPlanningFormTab(
                 modifier = Modifier.fillMaxWidth()
             )
         }
+
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 14.dp,
+                bottom = 110.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
 
         // Section 1: SERIAL NUMBER (Liquid Glass Card)
         item(key = "section_serial_number") {
@@ -2289,8 +2298,9 @@ fun GardenPlanningFormTab(
         }
     }
 
-    item(key = "bottom_spacer") {
-        Spacer(modifier = Modifier.height(16.dp))
+        item(key = "bottom_spacer") {
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
@@ -2440,35 +2450,16 @@ fun GardenPlanningRecordsTab(
                         } else Modifier
                     )
             ) {
-                LazyColumn(
-                    state = lazyListState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(
-                            if (contentBackdrop != null) {
-                                Modifier.layerBackdrop(contentBackdrop)
-                            } else Modifier
-                        )
-                        .onGloballyPositioned {
-                            if (!isBackdropReady) {
-                                isBackdropReady = true
-                            }
-                        }
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(
-                        top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp,
-                        bottom = 110.dp
-                    )
-                ) {
-                // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
-                // Sits directly on the single continuous background canvas and scrolls together with records
-                item(key = "garden_records_header_controls") {
+                Column(modifier = Modifier.fillMaxSize()) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = if (!showHeader) rememberScrollUnderHeaderTopPadding() else 10.dp
+                            )
                     ) {
-                        // 1. Liquid Glass Switcher (New Entry / Records)
                         val isEditing = viewModel.editingEntryId.collectAsState().value != null
                         val allEntriesList by viewModel.allEntries.collectAsState(initial = emptyList())
                         AgriSegmentedControl(
@@ -2481,8 +2472,37 @@ fun GardenPlanningRecordsTab(
                             backdrop = backdrop,
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
 
-                        // 2. Sub-Header Recording Book Pill
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(
+                                if (contentBackdrop != null) {
+                                    Modifier.layerBackdrop(contentBackdrop)
+                                } else Modifier
+                            )
+                            .onGloballyPositioned {
+                                if (!isBackdropReady) {
+                                    isBackdropReady = true
+                                }
+                            }
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(
+                            top = 10.dp,
+                            bottom = 110.dp
+                        )
+                    ) {
+                    // Unified Controls Header: Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
+                    // Sits directly on the single continuous background canvas and scrolls together with records
+                    item(key = "garden_records_header_controls") {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // 2. Sub-Header Recording Book Pill
                         RecordingBookHeader(
                             title = "Garden Planning Recording Book",
                             count = entries.size,
@@ -2592,6 +2612,7 @@ fun GardenPlanningRecordsTab(
                     }
                 }
             }
+        }
 
             // Floating Action Button (New Entry)
             Box(

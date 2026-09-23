@@ -274,76 +274,84 @@ fun FarmerRecordsScreen(
                 )
         ) {
             android.util.Log.d("RECORDS_DEBUG", "Creating Records LazyColumn")
-            // Scrollable content (Entire screen in unified scroll flow)
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(
-                        if (contentBackdrop != null) {
-                            Modifier.layerBackdrop(contentBackdrop)
-                        } else Modifier
-                    )
-                    .onGloballyPositioned {
-                        if (!isBackdropReady) {
-                            isBackdropReady = true
-                        }
+            Column(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = rememberScrollUnderHeaderTopPadding()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // 1. Dedicated Sub-Tabs for Pruning & Rootstocks
+                    if (selectedService.equals("Pruning", ignoreCase = true)) {
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
+                        PruningSubTabs(
+                            selectedSubTab = selectedPruningSubTab,
+                            onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                            accentColor = paletteColor,
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Rootstocks)")
+                        RootstockSubTabs(
+                            selectedSubTab = selectedRootstockSubTab,
+                            selectedGenevaOption = selectedGenevaOption,
+                            onSelectSubTab = { subTab, genevaOpt ->
+                                viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                            },
+                            accentColor = paletteColor,
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = rememberScrollUnderHeaderTopPadding(), bottom = 110.dp)
-            ) {
-                // Unified Controls Header: Sub-Tabs, Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
-                // Sits directly on the single continuous background canvas and scrolls together with records
-                item(key = "records_header_controls") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // 1. Dedicated Sub-Tabs for Pruning & Rootstocks
-                        if (selectedService.equals("Pruning", ignoreCase = true)) {
-                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
-                            PruningSubTabs(
-                                selectedSubTab = selectedPruningSubTab,
-                                onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                                accentColor = paletteColor,
-                                hazeState = effectiveHazeState,
-                                backdrop = recordsBackdrop,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Rootstocks)")
-                            RootstockSubTabs(
-                                selectedSubTab = selectedRootstockSubTab,
-                                selectedGenevaOption = selectedGenevaOption,
-                                onSelectSubTab = { subTab, genevaOpt ->
-                                    viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                                },
-                                accentColor = paletteColor,
-                                hazeState = effectiveHazeState,
-                                backdrop = recordsBackdrop,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
 
-                        // 2. Liquid Glass Switcher (New Entry / Records)
-                        val viewMode by viewModel.viewMode.collectAsState()
-                        val isEditing = viewModel.editingRecordId.collectAsState().value != null
-                        if (effectiveHazeState != null) {
-                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records AgriSegmentedControl")
-                            AgriSegmentedControl(
-                                selectedMode = viewMode,
-                                onModeSelected = { viewModel.setViewMode(it) },
-                                hazeState = effectiveHazeState,
-                                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                                recordsLabel = "Records (${records.size})",
-                                accentColor = paletteColor,
-                                backdrop = recordsBackdrop,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+                    // 2. Liquid Glass Switcher (New Entry / Records)
+                    val viewMode by viewModel.viewMode.collectAsState()
+                    val isEditing = viewModel.editingRecordId.collectAsState().value != null
+                    if (effectiveHazeState != null) {
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records AgriSegmentedControl")
+                        AgriSegmentedControl(
+                            selectedMode = viewMode,
+                            onModeSelected = { viewModel.setViewMode(it) },
+                            hazeState = effectiveHazeState,
+                            newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                            recordsLabel = "Records (${records.size})",
+                            accentColor = paletteColor,
+                            backdrop = recordsBackdrop,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
 
-                        // 3. Sub-Header Recording Book Pill
+                // Scrollable content (Entire screen in unified scroll flow)
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (contentBackdrop != null) {
+                                Modifier.layerBackdrop(contentBackdrop)
+                            } else Modifier
+                        )
+                        .onGloballyPositioned {
+                            if (!isBackdropReady) {
+                                isBackdropReady = true
+                            }
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 110.dp)
+                ) {
+                    // Unified Controls Header: Sub-Tabs, Switcher, Header Pill, Search Bar, and 4 Summary Metric Cards
+                    // Sits directly on the single continuous background canvas and scrolls together with records
+                    item(key = "records_header_controls") {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // 3. Sub-Header Recording Book Pill
                         android.util.Log.d("RECORDS_DEBUG", "Rendering Records RecordingBookHeader")
                         RecordingBookHeader(
                             title = bookTitle,
@@ -468,6 +476,7 @@ fun FarmerRecordsScreen(
                     }
                 }
             }
+        }
 
             // Target Component 4: Floating Action Button (FAB)
             android.util.Log.d("RECORDS_DEBUG", "Rendering Records FAB")
