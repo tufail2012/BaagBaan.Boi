@@ -58,7 +58,11 @@ import com.example.ui.components.glassCardBackground
 import com.example.ui.components.security.CustomBackgroundPickerRow
 import com.example.ui.theme.AppPalette
 import com.example.ui.theme.PredefinedThemePalettes
-import com.example.ui.theme.getAppDimBackgroundBrush
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 
 // 16 Distinct theme color options in HEX (Preserved exactly)
 val ThemeColorPalette16 = listOf(
@@ -121,127 +125,147 @@ fun ThemeColoursDialog(
         }
     }
 
-    val themeBgBrush = remember(isDark, isAmoled, currentAccentColor) {
-        getAppDimBackgroundBrush(currentAccentColor, isDark = isDark, isAmoled = isAmoled)
-    }
+    val themeScrollState = rememberScrollState()
+    val themeHazeState = remember { HazeState() }
+    val themeWindowBackground = MaterialTheme.colorScheme.surface
+    val themePaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(themeWindowBackground) {
+            {
+                drawRect(themeWindowBackground)
+                drawContent()
+            }
+        }
+    val themeBackdrop = rememberLayerBackdrop(onDraw = themePaintBackdrop)
+    val headerShape = RoundedCornerShape(percent = 50)
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(themeBgBrush)
             .testTag("theme_colours_screen")
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = themeHazeState)
+                .layerBackdrop(themeBackdrop)
         ) {
-            // Wide Pill-Shaped Glass Header (Matching Reference & App Design System)
-            Box(
+            PremiumGlassAmbientBackdrop(accentColor = currentAccentColor, isDark = isDark, isAmoled = isAmoled)
+        }
+
+        ThemeColoursContent(
+            themeMode = themeMode,
+            selectedColorHex = selectedColorHex,
+            selectedPaletteId = selectedPaletteId,
+            onSelectThemeMode = onSelectThemeMode,
+            onSelectColorHex = onSelectColorHex,
+            onSelectPaletteId = onSelectPaletteId,
+            onClose = onDismissRequest,
+            isDark = isDark,
+            themeModeState = themeMode,
+            currentAccentColor = currentAccentColor,
+            backdrop = themeBackdrop,
+            hazeState = themeHazeState,
+            scrollState = themeScrollState,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        TopHeaderScrollScrim(
+            scrollOffset = themeScrollState.value.toFloat(),
+            hazeState = themeHazeState,
+            isDark = isDark,
+            isAmoled = isAmoled,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .align(Alignment.TopCenter)
+                .clip(headerShape)
+                .liquidGlassNav(shape = headerShape, backdrop = themeBackdrop)
+                .glassEdge(headerShape)
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .frostedGlassChrome(
-                        isDark = isDark,
-                        accentColor = currentAccentColor,
-                        shape = RoundedCornerShape(percent = 50)
-                    )
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    IconButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("theme_colours_back_button")
                     ) {
-                        IconButton(
-                            onClick = onDismissRequest,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("theme_colours_back_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = currentAccentColor
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = currentAccentColor
+                        )
+                    }
 
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Palette,
-                                contentDescription = "Theme Icon",
-                                tint = currentAccentColor,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Palette,
+                            contentDescription = "Theme Icon",
+                            tint = currentAccentColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
 
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = "Theme Colors",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                    letterSpacing = (-0.3).sp
-                                ),
-                                color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "Choose a solid color or a pre-designed color palette for your app.",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Theme Colors",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "Choose a solid color or a pre-designed color palette for your app.",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-                        IconButton(
-                            onClick = onDismissRequest,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("theme_colours_close_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = if (isDark) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.6f)
-                            )
-                        }
+                    IconButton(
+                        onClick = onDismissRequest,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("theme_colours_close_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = if (isDark) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.6f)
+                        )
                     }
                 }
             }
-
-            ThemeColoursContent(
-                themeMode = themeMode,
-                selectedColorHex = selectedColorHex,
-                selectedPaletteId = selectedPaletteId,
-                onSelectThemeMode = onSelectThemeMode,
-                onSelectColorHex = onSelectColorHex,
-                onSelectPaletteId = onSelectPaletteId,
-                onClose = onDismissRequest,
-                isDark = isDark,
-                themeModeState = themeMode,
-                currentAccentColor = currentAccentColor,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            )
         }
     }
 }
@@ -258,29 +282,35 @@ fun ThemeColoursContent(
     isDark: Boolean = false,
     themeModeState: AppThemeMode = AppThemeMode.SYSTEM,
     currentAccentColor: Color = MaterialTheme.colorScheme.primary,
+    backdrop: com.kyant.backdrop.Backdrop? = null,
+    hazeState: HazeState? = null,
+    scrollState: androidx.compose.foundation.ScrollState = rememberScrollState(),
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(top = rememberScrollUnderHeaderTopPadding())
     ) {
         // SECTION 1: Theme Mode Selection Card
+        val themeModeCardShape = RoundedCornerShape(20.dp)
         Card(
-            shape = RoundedCornerShape(20.dp),
+            shape = themeModeCardShape,
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .glassCardBackground(
-                    cornerRadius = 20.dp,
-                    accentColor = currentAccentColor,
-                    isDark = isDark,
-                    themeMode = themeModeState
+                .clip(themeModeCardShape)
+                .liquidGlassNav(shape = themeModeCardShape, backdrop = backdrop)
+                .then(
+                    if (!isGlassSupported()) {
+                        Modifier.background(MaterialTheme.colorScheme.surface, themeModeCardShape)
+                    } else Modifier
                 )
+                .glassEdge(themeModeCardShape)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -325,18 +355,22 @@ fun ThemeColoursContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         // SECTION 2: Theme Colors Card (Divided into Solid Colors & Color Palettes)
+        val themeColorsCardShape = RoundedCornerShape(20.dp)
         Card(
-            shape = RoundedCornerShape(20.dp),
+            shape = themeColorsCardShape,
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .glassCardBackground(
-                    cornerRadius = 20.dp,
-                    accentColor = currentAccentColor,
-                    isDark = isDark,
-                    themeMode = themeModeState
+                .clip(themeColorsCardShape)
+                .liquidGlassNav(shape = themeColorsCardShape, backdrop = backdrop)
+                .then(
+                    if (!isGlassSupported()) {
+                        Modifier.background(MaterialTheme.colorScheme.surface, themeColorsCardShape)
+                    } else Modifier
                 )
+                .glassEdge(themeColorsCardShape)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 // Main Header inside the Theme Colors Card
@@ -510,19 +544,23 @@ fun ThemeColoursContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // SECTION 3: Liquid Glass & Custom Background
+        // SECTION 3: Liquid Glass Toggle Card
+        val liquidGlassCardShape = RoundedCornerShape(20.dp)
         Card(
-            shape = RoundedCornerShape(20.dp),
+            shape = liquidGlassCardShape,
             colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
             border = null,
             modifier = Modifier
                 .fillMaxWidth()
-                .glassCardBackground(
-                    cornerRadius = 20.dp,
-                    accentColor = currentAccentColor,
-                    isDark = isDark,
-                    themeMode = themeModeState
+                .clip(liquidGlassCardShape)
+                .liquidGlassNav(shape = liquidGlassCardShape, backdrop = backdrop)
+                .then(
+                    if (!isGlassSupported()) {
+                        Modifier.background(MaterialTheme.colorScheme.surface, liquidGlassCardShape)
+                    } else Modifier
                 )
+                .glassEdge(liquidGlassCardShape)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 val bgContext = androidx.compose.ui.platform.LocalContext.current
@@ -585,11 +623,31 @@ fun ThemeColoursContent(
                         )
                     )
                 }
+            }
+        }
 
-                HorizontalDivider(
-                    color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.1f),
-                    modifier = Modifier.padding(vertical = 14.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // SECTION 4: Custom Background Card
+        val customBgCardShape = RoundedCornerShape(20.dp)
+        Card(
+            shape = customBgCardShape,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(customBgCardShape)
+                .liquidGlassNav(shape = customBgCardShape, backdrop = backdrop)
+                .then(
+                    if (!isGlassSupported()) {
+                        Modifier.background(MaterialTheme.colorScheme.surface, customBgCardShape)
+                    } else Modifier
                 )
+                .glassEdge(customBgCardShape)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                val bgContext = androidx.compose.ui.platform.LocalContext.current
 
                 Text(
                     text = "Custom Background",

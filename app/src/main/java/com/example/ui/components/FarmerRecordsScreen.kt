@@ -442,7 +442,22 @@ fun FarmerRecordsScreen(
                     .onSizeChanged { floatingControlsHeightPx = it.height },
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // 1. Dedicated Sub-Tabs for Pruning & Rootstocks
+                // 1. Liquid Glass Switcher (New Entry / Records)
+                if (effectiveHazeState != null) {
+                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records AgriSegmentedControl")
+                    AgriSegmentedControl(
+                        selectedMode = viewMode,
+                        onModeSelected = { viewModel.setViewMode(it) },
+                        hazeState = effectiveHazeState,
+                        newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                        recordsLabel = "Records (${records.size})",
+                        accentColor = paletteColor,
+                        backdrop = recordsBackdrop,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // 2. Dedicated Sub-Tabs for Pruning & Rootstocks
                 if (selectedService.equals("Pruning", ignoreCase = true)) {
                     android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
                     PruningSubTabs(
@@ -463,21 +478,6 @@ fun FarmerRecordsScreen(
                         },
                         accentColor = paletteColor,
                         hazeState = effectiveHazeState,
-                        backdrop = recordsBackdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // 2. Liquid Glass Switcher (New Entry / Records)
-                if (effectiveHazeState != null) {
-                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records AgriSegmentedControl")
-                    AgriSegmentedControl(
-                        selectedMode = viewMode,
-                        onModeSelected = { viewModel.setViewMode(it) },
-                        hazeState = effectiveHazeState,
-                        newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                        recordsLabel = "Records (${records.size})",
-                        accentColor = paletteColor,
                         backdrop = recordsBackdrop,
                         modifier = Modifier.fillMaxWidth()
                     )

@@ -3351,6 +3351,18 @@ fun FarmerFormScreen(
             .onSizeChanged { floatingControlsHeightPx = it.height },
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (hazeState != null) {
+            AgriSegmentedControl(
+                selectedMode = viewMode,
+                onModeSelected = { viewModel.setViewMode(it) },
+                hazeState = hazeState,
+                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
+                recordsLabel = "Records ($cropRecordsCount)",
+                accentColor = formAccent,
+                backdrop = backdrop,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         if (selectedService.equals("Pruning", ignoreCase = true)) {
             PruningSubTabs(
                 selectedSubTab = selectedPruningSubTab,
@@ -3369,18 +3381,6 @@ fun FarmerFormScreen(
                 },
                 accentColor = formAccent,
                 hazeState = hazeState,
-                backdrop = backdrop,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        if (hazeState != null) {
-            AgriSegmentedControl(
-                selectedMode = viewMode,
-                onModeSelected = { viewModel.setViewMode(it) },
-                hazeState = hazeState,
-                newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                recordsLabel = "Records ($cropRecordsCount)",
-                accentColor = formAccent,
                 backdrop = backdrop,
                 modifier = Modifier.fillMaxWidth()
             )
