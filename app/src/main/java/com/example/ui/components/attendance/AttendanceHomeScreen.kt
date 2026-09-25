@@ -11,11 +11,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -43,10 +45,18 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.AppDefaultWordKeyboardOptions
 import com.example.ui.components.capitalizeWordsNaturally
+import com.example.ui.components.PremiumGlassAmbientBackdrop
+import com.example.ui.components.isAppInDarkMode
+import com.example.ui.components.isAppInAmoledMode
+import com.example.ui.components.rememberScrollUnderHeaderTopPadding
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
@@ -59,7 +69,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -160,100 +169,292 @@ fun AttendanceHomeScreen(
     val attendanceHomeListState = rememberLazyListState()
     attendanceHomeListState.rememberScrollHapticFeedback()
 
-    Scaffold(
-        topBar = {
-            Column {
-                AgriHeader(
-                    title = "Worker Attendance",
-                    themeMode = themeMode,
-                    onSelectThemeMode = onSelectThemeMode,
-                    selectedColorHex = selectedColorHex,
-                    onSelectColorHex = onSelectColorHex,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = onSearchQueryChange,
-                    isSearchActive = isSearchActive,
-                    onSearchActiveChange = onSearchActiveChange,
-                    onToggleSearch = onToggleSearch,
-                    onNavigateToAttendance = onNavigateToAttendance,
-                    onNavigateToBookings = onNavigateToBookings,
-                    onNavigateToBackupRestore = onNavigateToBackupRestore,
-                    onNavigateToContactDirectory = onNavigateToContactDirectory,
-                    onNavigateToPaymentReminders = onNavigateToPaymentReminders,
-                    onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
-                    onNavigateToDashboard = onNavigateToDashboard,
-                    onNavigateToInventory = onNavigateToInventory,
-                    onOpenRecycleBin = onOpenRecycleBin,
-                    onNavigateToLogin = onNavigateToLogin,
-                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
-                    onNavigateToSettings = onNavigateToSettings,
-                    unreadNotificationCount = unreadNotificationCount,
-                    onOpenNotifications = onOpenNotifications,
-                    currentUserEmail = currentUserEmail,
-                    currentUserPhotoUrl = currentUserPhotoUrl,
-                    onLogout = onLogout,
-                    onManualSync = onManualSync,
-                    onBack = onNavigateBack,
-                    hazeState = hazeState,
-                    isScrolling = attendanceHomeListState.canScrollBackward
-                )
+    val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
+    val accentColor = remember(selectedColorHex) {
+        runCatching { Color(android.graphics.Color.parseColor(selectedColorHex)) }.getOrDefault(Color(0xFFD32F2F))
+    }
+    val attendanceWindowBackground = MaterialTheme.colorScheme.surface
+    val attendancePaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(attendanceWindowBackground) {
+            {
+                drawRect(attendanceWindowBackground)
+                drawContent()
+            }
+        }
+    val attendanceBackdrop = rememberLayerBackdrop(onDraw = attendancePaintBackdrop)
+    val density = LocalDensity.current
+    var floatingControlsHeightPx by remember { mutableStateOf(0) }
+    val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 1.dp
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = hazeState)
+                .layerBackdrop(attendanceBackdrop)
+        ) {
+            PremiumGlassAmbientBackdrop(accentColor = accentColor, isDark = isDark, isAmoled = isAmoled)
+        }
+
+        if (activeWorkers.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = rememberScrollUnderHeaderTopPadding() + 16.dp)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .glassCardBackground(
+                            cornerRadius = 16.dp,
+                            accentColor = accentColor,
+                            isDark = isDark
+                        ),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Transparent
+                    ),
+                    border = null
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.EventAvailable,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Text(
-                            text = "Worker Roster & Summary",
-                            style = MaterialTheme.typography.labelMedium,
+                            text = "No Active Workers Registered",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Add workers to your roster to start tracking daily attendance.",
+                            fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
                         Button(
-                            onClick = onOpenDailyMarking,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            modifier = Modifier.testTag("daily_marking_button")
+                            onClick = { showAddWorkerDialog = true },
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Event,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Mark Today", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Add First Worker")
                         }
                     }
                 }
             }
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddWorkerDialog = true },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.testTag("add_worker_fab")
+        } else {
+            BrandedPullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    if (isRefreshing) return@BrandedPullToRefreshBox
+                    isRefreshing = true
+                    scope.launch {
+                        try {
+                            delay(500)
+                        } catch (_: Exception) {
+                        } finally {
+                            isRefreshing = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
             ) {
-                Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "Add Worker")
+                LazyColumn(
+                    state = attendanceHomeListState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(state = hazeState),
+                    contentPadding = PaddingValues(
+                        start = 16.dp, end = 16.dp,
+                        top = rememberScrollUnderHeaderTopPadding() + floatingControlsHeightDp + 12.dp,
+                        bottom = 110.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Active Roster (${activeWorkers.size})",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            TextButton(onClick = { showAddWorkerDialog = true }) {
+                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Add Worker", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+
+                    if (activeWorkers.isNotEmpty()) {
+                        item {
+                            OutlinedTextField(
+                                value = workerSearchQuery,
+                                onValueChange = { workerSearchQuery = it },
+                                placeholder = { Text("Search worker by name or phone...", fontSize = 13.sp) },
+                                leadingIcon = {
+                                    Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                },
+                                trailingIcon = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                                    ) {
+                                        if (workerSearchQuery.isNotEmpty()) {
+                                            IconButton(onClick = { workerSearchQuery = "" }) {
+                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                        com.example.ui.components.VoiceSearchIconButton(
+                                            onQueryChange = { workerSearchQuery = it },
+                                            accentColor = MaterialTheme.colorScheme.primary,
+                                            buttonSize = 34.dp,
+                                            iconSize = 18.dp,
+                                            testTag = "worker_voice_search_btn"
+                                        )
+                                    }
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("worker_search_input")
+                            )
+                        }
+                    }
+
+                    if (filteredWorkers.isEmpty() && workerSearchQuery.isNotBlank()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No workers match \"$workerSearchQuery\"",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        items(filteredWorkers, key = { it.workerId }) { worker ->
+                            val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
+                            val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
+                            val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
+
+                            WorkerSummaryCard(
+                                worker = worker,
+                                presentCount = presentCount,
+                                absentCount = absentCount,
+                                onClick = { onSelectWorker(worker) },
+                                onEditClick = { workerToEdit = worker }
+                            )
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(72.dp))
+                    }
+                }
             }
         }
-    ) { innerPadding ->
+
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-                .hazeSource(state = hazeState)
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .onSizeChanged { floatingControlsHeightPx = it.height }
         ) {
+            AgriHeader(
+                title = "Worker Attendance",
+                themeMode = themeMode,
+                onSelectThemeMode = onSelectThemeMode,
+                selectedColorHex = selectedColorHex,
+                onSelectColorHex = onSelectColorHex,
+                searchQuery = searchQuery,
+                onSearchQueryChange = onSearchQueryChange,
+                isSearchActive = isSearchActive,
+                onSearchActiveChange = onSearchActiveChange,
+                onToggleSearch = onToggleSearch,
+                onNavigateToAttendance = onNavigateToAttendance,
+                onNavigateToBookings = onNavigateToBookings,
+                onNavigateToBackupRestore = onNavigateToBackupRestore,
+                onNavigateToContactDirectory = onNavigateToContactDirectory,
+                onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
+                onNavigateToDashboard = onNavigateToDashboard,
+                onNavigateToInventory = onNavigateToInventory,
+                onOpenRecycleBin = onOpenRecycleBin,
+                onNavigateToLogin = onNavigateToLogin,
+                onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                onNavigateToSettings = onNavigateToSettings,
+                unreadNotificationCount = unreadNotificationCount,
+                onOpenNotifications = onOpenNotifications,
+                currentUserEmail = currentUserEmail,
+                currentUserPhotoUrl = currentUserPhotoUrl,
+                onLogout = onLogout,
+                onManualSync = onManualSync,
+                onBack = onNavigateBack,
+                hazeState = hazeState,
+                isScrolling = attendanceHomeListState.canScrollBackward
+            )
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 1.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Worker Roster & Summary",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = onOpenDailyMarking,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.testTag("daily_marking_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Mark Today", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
             // Month Selector Bar
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -317,173 +518,19 @@ fun AttendanceHomeScreen(
                     }
                 }
             }
+        }
 
-            if (activeWorkers.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EventAvailable,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "No Active Workers Registered",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Add workers to your roster to start tracking daily attendance.",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Button(
-                                onClick = { showAddWorkerDialog = true },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Add First Worker")
-                            }
-                        }
-                    }
-                }
-            } else {
-                BrandedPullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = {
-                        if (isRefreshing) return@BrandedPullToRefreshBox
-                        isRefreshing = true
-                        scope.launch {
-                            try {
-                                delay(500)
-                            } catch (_: Exception) {
-                            } finally {
-                                isRefreshing = false
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    LazyColumn(
-                        state = attendanceHomeListState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Active Roster (${activeWorkers.size})",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-
-                                TextButton(onClick = { showAddWorkerDialog = true }) {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Add Worker", fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-
-                        if (activeWorkers.isNotEmpty()) {
-                            item {
-                                OutlinedTextField(
-                                    value = workerSearchQuery,
-                                    onValueChange = { workerSearchQuery = it },
-                                    placeholder = { Text("Search worker by name or phone...", fontSize = 13.sp) },
-                                    leadingIcon = {
-                                        Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    },
-                                    trailingIcon = {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(0.dp)
-                                        ) {
-                                            if (workerSearchQuery.isNotEmpty()) {
-                                                IconButton(onClick = { workerSearchQuery = "" }) {
-                                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
-                                                }
-                                            }
-                                            com.example.ui.components.VoiceSearchIconButton(
-                                                onQueryChange = { workerSearchQuery = it },
-                                                accentColor = MaterialTheme.colorScheme.primary,
-                                                buttonSize = 34.dp,
-                                                iconSize = 18.dp,
-                                                testTag = "worker_voice_search_btn"
-                                            )
-                                        }
-                                    },
-                                    singleLine = true,
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .testTag("worker_search_input")
-                                )
-                            }
-                        }
-
-                        if (filteredWorkers.isEmpty() && workerSearchQuery.isNotBlank()) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No workers match \"$workerSearchQuery\"",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        } else {
-                            items(filteredWorkers, key = { it.workerId }) { worker ->
-                                val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
-                                val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
-                                val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
-
-                                WorkerSummaryCard(
-                                    worker = worker,
-                                    presentCount = presentCount,
-                                    absentCount = absentCount,
-                                    onClick = { onSelectWorker(worker) },
-                                    onEditClick = { workerToEdit = worker }
-                                )
-                            }
-                        }
-
-                        item {
-                            Spacer(modifier = Modifier.height(72.dp))
-                        }
-                    }
-                }
-            }
+        FloatingActionButton(
+            onClick = { showAddWorkerDialog = true },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp, end = 16.dp)
+                .testTag("add_worker_fab")
+        ) {
+            Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "Add Worker")
         }
     }
 
