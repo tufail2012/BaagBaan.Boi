@@ -147,7 +147,7 @@ fun FarmerRecordsScreen(
     var floatingControlsHeightPx by remember { mutableStateOf(0) }
     val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
     val recordsBackdrop = backdrop
-    val fabEffectiveBackdrop = recordsBackdrop
+    val fabEffectiveBackdrop = contentBackdrop ?: recordsBackdrop
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
