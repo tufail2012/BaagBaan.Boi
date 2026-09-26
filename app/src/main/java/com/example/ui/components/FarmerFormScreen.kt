@@ -893,6 +893,7 @@ fun FarmerFormScreen(
         val pillShape = textFieldShape
 
         Box(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
@@ -938,12 +939,10 @@ fun FarmerFormScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("serial_number_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent),
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
                             Icon(
@@ -1034,12 +1033,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_name_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1065,12 +1062,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_address_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1141,9 +1136,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {
@@ -1164,7 +1157,7 @@ fun FarmerFormScreen(
                                     }
                                 }
                                 .testTag("contact_number_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1321,12 +1314,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("variety_line_name_${index}"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             // Rootstock & Feathers Row (if not imported rootstocks and not site visit/pruning)
@@ -1355,12 +1346,10 @@ fun FarmerFormScreen(
                     },
                                         modifier = Modifier
                                             .weight(1.1f)
-                                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
-                                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                     )
 
                                     TextField(
@@ -1383,12 +1372,10 @@ fun FarmerFormScreen(
                     },
                                         modifier = Modifier
                                             .weight(0.9f)
-                                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
-                                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                     )
                                 }
                             }
@@ -1423,12 +1410,10 @@ fun FarmerFormScreen(
                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_qty_${index}"),
-                                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
                                 TextField(
@@ -1455,12 +1440,10 @@ fun FarmerFormScreen(
                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_price_${index}"),
-                                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
                             }
 
@@ -1552,12 +1535,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("visit_date_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1582,12 +1563,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("soil_health_observations_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1612,12 +1591,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("plant_health_observations_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1673,12 +1650,10 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_site_location_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 } else if (isPruning) {
                     // Orchard Location (Single field for Pruning Specification)
@@ -1732,12 +1707,10 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_location_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 } else {
                     // 1. Plant Variety (Removed for Imported Rootstocks)
@@ -1761,12 +1734,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("plant_variety_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1799,12 +1770,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1.1f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -1829,12 +1798,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(0.9f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
 
@@ -1869,12 +1836,10 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                     .clickable { saplingAgeMenuExpanded = true }
                                     .testTag("sapling_age_dropdown"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             val saplingAgeDropdownShape = RoundedCornerShape(16.dp)
@@ -1928,12 +1893,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1.1f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -1958,12 +1921,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(0.9f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
 
@@ -1993,12 +1954,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             Box(
@@ -2029,12 +1988,10 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                         .clickable { saplingAgeMenuExpanded = true }
                                         .testTag("sapling_age_dropdown"),
-                                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
                                 val saplingAgeDropdownShape2 = RoundedCornerShape(16.dp)
@@ -2083,12 +2040,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("rootstock_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
 
                         FormFieldDivider(isDark = isDark)
@@ -2117,12 +2072,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -2143,12 +2096,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("root_diameter_input"),
-                                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
                     }
@@ -2247,12 +2198,10 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("scion_variety_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 FormFieldDivider(isDark = isDark)
@@ -2285,12 +2234,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("graft_type_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     val graftTypeDropdownShape = RoundedCornerShape(16.dp)
@@ -2455,12 +2402,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("grafting_charges_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
                 }
@@ -2495,12 +2440,10 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("quantity_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 FormFieldDivider(isDark = isDark)
@@ -2555,12 +2498,10 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // Graft Charge / Unit
@@ -2605,12 +2546,10 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("grafting_charges_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 }
 
@@ -2656,12 +2595,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("quantity_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // 2. Unit Price / Visit Charge
@@ -2687,12 +2624,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 }
             }
@@ -2747,12 +2682,10 @@ fun FarmerFormScreen(
                     },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                     .testTag("amount_paid_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -2860,12 +2793,10 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("booking_date_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 // 2. Expected Delivery
@@ -2912,12 +2843,10 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("expected_delivery_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
             }
         }
@@ -3043,12 +2972,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("farmer_notes_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // Collapsible Message Preview Section (Collapsed by default)
@@ -3164,12 +3091,10 @@ fun FarmerFormScreen(
                                             },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE)
+                                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                                 .elevated3dShadow(shape = CLAY_FIELD_SHAPE, isDark = isDark)
                                                 .testTag("select_template_dropdown"),
-                                            colors = clayFieldColors(isDark = isDark, accentColor = formAccent)
+                                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                         )
 
                                         Box(
@@ -3494,6 +3419,7 @@ fun FarmerFormScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+            }
 
     Column(
         modifier = Modifier
@@ -3952,11 +3878,9 @@ fun FarmerFormScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = CLAY_FIELD_SHAPE,
-                    colors = clayFieldColors(isDark = isDark, accentColor = formAccent),
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                     modifier = Modifier.fillMaxWidth()
-                            .clip(CLAY_FIELD_SHAPE)
-                            .background(clayFieldBrush(isDark))
-                            .clayInset(CLAY_FIELD_SHAPE).testTag("manual_date_entry_input")
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE).testTag("manual_date_entry_input")
                     )
                 }
             },
@@ -4043,7 +3967,8 @@ fun AppDatePickerDialog(
     val glassActive = DROPDOWN_REAL_GLASS_ENABLED && popupBackdrop != null && isGlassSupported()
 
     Dialog(onDismissRequest = onDismissRequest) {
-        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(popupBackdrop, null, dialogIsDark)) {
+        val dialogFieldSpec = FieldGlassSpec(popupBackdrop, null, dialogIsDark)
+        CompositionLocalProvider(LocalFieldGlassSpec provides dialogFieldSpec) {
             Surface(
                 shape = dialogShape,
                 color = if (glassActive) Color.Transparent else MaterialTheme.colorScheme.surface,
@@ -4178,13 +4103,11 @@ fun AppDatePickerDialog(
                                     )
                         }
                     },
-                                colors = clayFieldColors(isDark = dialogIsDark, accentColor = MaterialTheme.colorScheme.primary),
+                                colors = elevatedInputFieldColors(isDark = dialogIsDark, accentColor = MaterialTheme.colorScheme.primary),
                                 shape = CLAY_FIELD_SHAPE,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(CLAY_FIELD_SHAPE)
-                                    .background(clayFieldBrush(dialogIsDark))
-                                    .clayInset(CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                     .testTag("dialog_manual_date_input")
                             )
                         }
@@ -4868,8 +4791,9 @@ private fun FormSectionGlassCard (
                 isDark = isDark
             )
     ) {
+        val sectionFieldSpec = FieldGlassSpec(backdrop, hazeState, isDark)
         CompositionLocalProvider(
-            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+            LocalFieldGlassSpec provides sectionFieldSpec
         ) {
             Column(
                 modifier = Modifier.padding(14.dp),

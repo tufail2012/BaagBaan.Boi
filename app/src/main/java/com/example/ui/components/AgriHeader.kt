@@ -454,7 +454,7 @@ fun AgriHeader(
                     } else {
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(44.dp)
                                 .then(
                                     if (isScrolling) {
                                         if (backdrop != null && isGlassSupported()) {
@@ -480,7 +480,7 @@ fun AgriHeader(
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
@@ -505,7 +505,22 @@ fun AgriHeader(
                     ) {
                         IconButton(
                             onClick = onOpenNotifications,
-                            modifier = Modifier.testTag("header_notifications_button")
+                            modifier = Modifier
+                                .size(44.dp)
+                                .then(
+                                    if (isScrolling) {
+                                        if (backdrop != null && isGlassSupported()) {
+                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                        } else {
+                                            Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        }
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .testTag("header_notifications_button")
                         ) {
                             BadgedBox(
                                 badge = {
@@ -526,7 +541,13 @@ fun AgriHeader(
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = "Notification Center",
-                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                    tint = if (isScrolling) {
+                                        glassContentColor()
+                                    } else if (isDark) {
+                                        Color.White
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
                                 )
                             }
                         }
@@ -536,12 +557,33 @@ fun AgriHeader(
                                 onSearchActiveChange(true)
                                 onToggleSearch()
                             },
-                            modifier = Modifier.testTag("header_search_button")
+                            modifier = Modifier
+                                .size(44.dp)
+                                .then(
+                                    if (isScrolling) {
+                                        if (backdrop != null && isGlassSupported()) {
+                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                        } else {
+                                            Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        }
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .testTag("header_search_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search Records",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                tint = if (isScrolling) {
+                                    glassContentColor()
+                                } else if (isDark) {
+                                    Color.White
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
                             )
                         }
 
@@ -1026,7 +1068,7 @@ private fun HeaderProfileAvatar(
     IconButton(
         onClick = onClick,
         modifier = modifier
-            .size(38.dp)
+            .size(44.dp)
             .then(
                 if (isScrolling) {
                     if (backdrop != null && isGlassSupported()) {
@@ -1048,7 +1090,7 @@ private fun HeaderProfileAvatar(
                 contentDescription = "Profile Options",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .border(
                         width = 1.5.dp,
@@ -1060,7 +1102,7 @@ private fun HeaderProfileAvatar(
             val initial = currentUserEmail.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "U"
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
@@ -1075,7 +1117,7 @@ private fun HeaderProfileAvatar(
         } else {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
@@ -1084,7 +1126,7 @@ private fun HeaderProfileAvatar(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = "Profile Options",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

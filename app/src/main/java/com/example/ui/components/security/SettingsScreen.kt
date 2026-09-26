@@ -102,6 +102,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
 import com.example.ui.components.liquidGlassNav
 import com.example.ui.components.isGlassSupported
+import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassEdge
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -975,20 +976,66 @@ fun SettingsScreen(
                     .align(Alignment.TopCenter),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        letterSpacing = (-0.3).sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .then(
+                                if (isGlassSupported()) {
+                                    Modifier.liquidGlassNav(shape = CircleShape, backdrop = settingsBackdrop)
+                                } else {
+                                    Modifier
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = null,
+                            tint = if (isGlassSupported()) glassContentColor() else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            letterSpacing = (-0.3).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        modifier = Modifier.testTag("settings_title")
+                    )
+                }
+
+                IconButton(
+                    onClick = onBack,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("settings_title")
-                )
+                        .align(Alignment.CenterStart)
+                        .size(44.dp)
+                        .then(
+                            if (isGlassSupported()) {
+                                Modifier.liquidGlassNav(shape = CircleShape, backdrop = settingsBackdrop)
+                            } else {
+                                Modifier
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                            }
+                        )
+                        .testTag("settings_back_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (isGlassSupported()) glassContentColor() else MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }

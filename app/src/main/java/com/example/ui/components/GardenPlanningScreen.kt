@@ -653,8 +653,9 @@ private fun NestedLiquidGlassSection(
                 shape = shape
             )
     ) {
+        val sectionFieldSpec = FieldGlassSpec(backdrop, hazeState, isDark)
         CompositionLocalProvider(
-            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+            LocalFieldGlassSpec provides sectionFieldSpec
         ) {
             Column(
                 modifier = Modifier.padding(14.dp),
@@ -923,6 +924,7 @@ fun GardenPlanningFormTab(
     lazyListState.rememberScrollHapticFeedback()
 
     Box(modifier = Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -965,12 +967,10 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_serial_number_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent),
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent),
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
                         Icon(
@@ -1046,12 +1046,10 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_name_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -1077,12 +1075,10 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_address_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -1144,9 +1140,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
@@ -1161,7 +1155,7 @@ fun GardenPlanningFormTab(
                         }
                     }
                     .testTag("garden_contact_number_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             // Existing Booking(s) Lookup Result Section (Shared Component)
@@ -1298,12 +1292,10 @@ fun GardenPlanningFormTab(
                 },
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_plant_variety_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Rootstock
@@ -1326,12 +1318,10 @@ fun GardenPlanningFormTab(
                 },
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_root_stock_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
                 }
 
@@ -1373,12 +1363,10 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { ageDropdownExpanded = true }
-                                .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_sapling_age_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
                         val ageDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
@@ -1430,12 +1418,10 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { originDropdownExpanded = true }
-                                .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_plant_origin_input"),
-                            colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
                         val originDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
@@ -1484,12 +1470,10 @@ fun GardenPlanningFormTab(
                 },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_feathers_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
                 // Switch to Multi-Variety Button
@@ -1636,12 +1620,10 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_kanal_area_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Field 2: Plants per Kanal
@@ -1689,12 +1671,10 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_plants_per_kanal_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Field 3: Total Plants
@@ -1729,12 +1709,10 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_total_plants_input"),
-                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
                 }
 
@@ -1761,12 +1739,10 @@ fun GardenPlanningFormTab(
                 },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_cost_per_plant_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
                 // Computed Total Cost & Summary Box
@@ -1890,12 +1866,10 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_amount_paid_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -1994,12 +1968,10 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_booking_date_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
                 TextField(
@@ -2040,12 +2012,10 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_expected_delivery_input"),
-                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
             }
         }
@@ -2103,12 +2073,10 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(CLAY_FIELD_SHAPE)
-                    .background(clayFieldBrush(isDark))
-                    .clayInset(CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_notes_input"),
-                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             // Message Preview Component
@@ -2347,6 +2315,7 @@ fun GardenPlanningFormTab(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+        }
 
     Column(
         modifier = Modifier
