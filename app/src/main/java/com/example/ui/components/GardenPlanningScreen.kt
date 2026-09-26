@@ -682,6 +682,7 @@ fun GardenPlanningFormTab(
     val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
 
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
+    val isAmoled = isAppInAmoledMode()
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
@@ -929,7 +930,7 @@ fun GardenPlanningFormTab(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .claySheetBackground(isDark)
+                .claySheetBackground(accentColor = gardenAccent, isDark = isDark, isAmoled = isAmoled)
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,

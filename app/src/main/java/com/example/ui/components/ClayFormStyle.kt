@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
+import com.example.ui.theme.getAppDimBackgroundColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -188,6 +189,12 @@ fun ClaySectionCard(
 val CLAY_SHEET_SHAPE = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
 
 /** One continuous "sheet" background for the whole scrolling form, instead of separate floating cards. */
-fun Modifier.claySheetBackground(isDark: Boolean): Modifier = this
-    .background(color = if (isDark) Color(0xFF281F30) else Color(0xFFF7F3FC), shape = CLAY_SHEET_SHAPE)
+fun Modifier.claySheetBackground(accentColor: Color, isDark: Boolean, isAmoled: Boolean): Modifier {
+    val sheetColor = when {
+        isAmoled -> Color.Black
+        isDark -> getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = false)
+        else -> Color.White
+    }
+    return this.background(color = sheetColor, shape = CLAY_SHEET_SHAPE)
+}
 
