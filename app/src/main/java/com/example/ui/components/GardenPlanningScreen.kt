@@ -170,6 +170,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -938,7 +939,7 @@ fun GardenPlanningFormTab(
 
         // Section 1: SERIAL NUMBER (Liquid Glass Card)
         item(key = "section_serial_number") {
-            NestedLiquidGlassSection(
+            ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -949,7 +950,7 @@ fun GardenPlanningFormTab(
                 isDark = isDark
             )
 
-            OutlinedTextField(
+            TextField(
                 value = serialNumber,
                 onValueChange = { 
                     if (!isSerialLocked) {
@@ -959,21 +960,25 @@ fun GardenPlanningFormTab(
                 readOnly = isSerialLocked,
                 label = { Text("Serial No. (Garden Planning) *") },
                 placeholder = { Text("Type serial number (e.g. GP-1001)") },
-                shape = textFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_serial_number_input"),
-                colors = elevatedInputFieldColors(isDark = isDark),
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent),
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
                         contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
-                        tint = gardenAccent,
+                        tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
+                    }
                 },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1009,7 +1014,7 @@ fun GardenPlanningFormTab(
 
     // Section 2: FARMER DETAILS (Liquid Glass Card)
     item(key = "section_farmer_details") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1021,60 +1026,68 @@ fun GardenPlanningFormTab(
             )
 
             // Farmer Name
-            OutlinedTextField(
+            TextField(
                 value = farmerName,
                 onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
                 label = { Text("Farmer Name *") },
                 placeholder = { Text("e.g. Mohammad Abdullah") },
-                shape = textFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
-                        tint = gardenAccent
+                        tint = Color.White
                     )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_name_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
 
             // Farmer Address
-            OutlinedTextField(
+            TextField(
                 value = farmerAddress,
                 onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
                 label = { Text("Farmer Address *") },
                 placeholder = { Text("e.g. Village Green Valley, Sector 4") },
-                shape = textFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = false,
                 maxLines = 2,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = gardenAccent
+                        tint = Color.White
                     )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_address_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
 
             // Contact Number Field Pattern (+91 Prefix + Contact Picker)
-            OutlinedTextField(
+            TextField(
                 value = contactTextFieldValue,
                 onValueChange = { newValue ->
                     val rawText = newValue.text
@@ -1104,15 +1117,17 @@ fun GardenPlanningFormTab(
                 },
                 label = { Text("Contact Number *") },
                 placeholder = { Text("e.g. 9876543210") },
-                shape = textFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = null,
-                        tint = gardenAccent
+                        tint = Color.White
                     )
+                    }
                 },
                 trailingIcon = {
                     IconButton(
@@ -1128,7 +1143,9 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
@@ -1143,7 +1160,7 @@ fun GardenPlanningFormTab(
                         }
                     }
                     .testTag("garden_contact_number_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             // Existing Booking(s) Lookup Result Section (Shared Component)
@@ -1156,7 +1173,7 @@ fun GardenPlanningFormTab(
 
     // Section 3: GARDEN PLANNING SPECIFICATION (Liquid Glass Card)
     item(key = "section_garden_planning_specification") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1261,51 +1278,59 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Plant Variety
-                    OutlinedTextField(
+                    TextField(
                         value = plantVariety,
                         onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
                         label = { Text("Plant Variety", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         placeholder = { Text("e.g. Gala") },
-                        shape = textFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                                 imageVector = Icons.Outlined.LocalFlorist,
                                 contentDescription = null,
-                                tint = gardenAccent
+                                tint = Color.White
                             )
-                        },
+                    }
+                },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass()
+                            .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_plant_variety_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Rootstock
-                    OutlinedTextField(
+                    TextField(
                         value = rootStock,
                         onValueChange = { viewModel.rootStock.value = capitalizeWordsNaturally(it) },
                         label = { Text("Rootstock", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         placeholder = { Text("e.g. M9") },
-                        shape = textFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                                 imageVector = Icons.Default.Spa,
                                 contentDescription = null,
-                                tint = gardenAccent
+                                tint = Color.White
                             )
-                        },
+                    }
+                },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass()
+                            .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_root_stock_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
                 }
 
@@ -1322,33 +1347,37 @@ fun GardenPlanningFormTab(
                 ) {
                     // Sapling Age Dropdown
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
+                        TextField(
                             value = saplingAge,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Age") },
                             leadingIcon = {
-                                Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                                     imageVector = Icons.Default.HourglassTop,
                                     contentDescription = null,
-                                    tint = gardenAccent
+                                    tint = Color.White
                                 )
-                            },
+                    }
+                },
                             trailingIcon = {
                                 IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
                                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
                                 }
                             },
-                            shape = textFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { ageDropdownExpanded = true }
-                                .fieldGlass()
+                                .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_sapling_age_input"),
-                            colors = elevatedInputFieldColors(isDark = isDark)
+                            colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
                         val ageDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
@@ -1375,33 +1404,37 @@ fun GardenPlanningFormTab(
 
                     // Plant Origin Dropdown
                     Box(modifier = Modifier.weight(1f)) {
-                        OutlinedTextField(
+                        TextField(
                             value = plantOrigin,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Origin") },
                             leadingIcon = {
-                                Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                                     imageVector = Icons.Default.Yard,
                                     contentDescription = null,
-                                    tint = gardenAccent
+                                    tint = Color.White
                                 )
-                            },
+                    }
+                },
                             trailingIcon = {
                                 IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
                                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
                                 }
                             },
-                            shape = textFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { originDropdownExpanded = true }
-                                .fieldGlass()
+                                .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_plant_origin_input"),
-                            colors = elevatedInputFieldColors(isDark = isDark)
+                            colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
                         val originDropdownShape = RoundedCornerShape(16.dp)
                         DropdownMenu(
@@ -1428,30 +1461,34 @@ fun GardenPlanningFormTab(
                 }
 
                 // Feathers (Full-Width Standard Text Specification Field)
-                OutlinedTextField(
+                TextField(
                     value = feathers,
                     onValueChange = { viewModel.feathers.value = it },
                     label = { Text("Feathers", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     placeholder = { Text("Branches / shoots (e.g. 3, 3F, 5A, 2-3, 3+)") },
-                    shape = textFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         capitalization = KeyboardCapitalization.Characters
                     ),
                     leadingIcon = {
+                    ClayFieldIcon(accentColor = gardenAccent) {
                         Icon(
                             imageVector = Icons.Default.Nature,
                             contentDescription = null,
-                            tint = gardenAccent
+                            tint = Color.White
                         )
-                    },
+                    }
+                },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass()
+                        .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_feathers_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
+                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
                 // Switch to Multi-Variety Button
@@ -1503,7 +1540,7 @@ fun GardenPlanningFormTab(
 
     // Section 4: COST & QUANTITY DETAILS (Liquid Glass Card)
     item(key = "section_cost_quantity_details") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1572,7 +1609,7 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Field 1: Total Kanal Area
-                    OutlinedTextField(
+                    TextField(
                         value = totalKanalArea,
                         onValueChange = { newArea ->
                             viewModel.totalKanalArea.value = newArea
@@ -1594,18 +1631,20 @@ fun GardenPlanningFormTab(
                         label = { Text("Kanal Area *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         placeholder = { Text("e.g. 1.2") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = textFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass()
+                            .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_kanal_area_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Field 2: Plants per Kanal
-                    OutlinedTextField(
+                    TextField(
                         value = plantsPerKanal,
                         onValueChange = { newDensityStr ->
                             viewModel.plantsPerKanal.value = newDensityStr
@@ -1645,18 +1684,20 @@ fun GardenPlanningFormTab(
                         label = { Text("Plants/Kanal *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         placeholder = { Text("e.g. 100") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = textFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass()
+                            .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_plants_per_kanal_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Field 3: Total Plants
-                    OutlinedTextField(
+                    TextField(
                         value = totalPlants,
                         onValueChange = { newPlantsStr ->
                             viewModel.totalPlants.value = newPlantsStr
@@ -1683,19 +1724,21 @@ fun GardenPlanningFormTab(
                         label = { Text("Total Plants *", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         placeholder = { Text("e.g. 120") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = textFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass()
+                            .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                             .testTag("garden_total_plants_input"),
-                        colors = elevatedInputFieldColors(isDark = isDark)
+                        colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
                 }
 
                 // Field 4: Unit Price per Plant
-                OutlinedTextField(
+                TextField(
                     value = costPerPlant,
                     onValueChange = { 
                         viewModel.costPerPlant.value = it
@@ -1704,21 +1747,25 @@ fun GardenPlanningFormTab(
                     label = { Text("Unit Price per Plant *") },
                     placeholder = { Text("e.g. 150") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = textFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     leadingIcon = {
+                    ClayFieldIcon(accentColor = gardenAccent) {
                         Icon(
                             imageVector = Icons.Default.CurrencyRupee,
                             contentDescription = null,
-                            tint = gardenAccent
+                            tint = Color.White
                         )
-                    },
+                    }
+                },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass()
+                        .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_cost_per_plant_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
+                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
                 // Computed Total Cost & Summary Box
@@ -1801,7 +1848,7 @@ fun GardenPlanningFormTab(
 
     // Section 5: PAYMENT STATUS (Liquid Glass Card)
     item(key = "section_payment_status") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1823,27 +1870,31 @@ fun GardenPlanningFormTab(
             )
 
             // Amount Paid Input Field
-            OutlinedTextField(
+            TextField(
                 value = amountPaid,
                 onValueChange = { viewModel.onAmountPaidChanged(it) },
                 label = { Text("Amount Paid (₹) *") },
                 placeholder = { Text("0") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = pillShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = Icons.Default.Payments,
                         contentDescription = null,
-                        tint = gardenAccent
+                        tint = Color.White
                     )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_amount_paid_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -1886,7 +1937,7 @@ fun GardenPlanningFormTab(
 
     // Section 6: SCHEDULE & DATES (Liquid Glass Card)
     item(key = "section_schedule_dates") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -1904,7 +1955,7 @@ fun GardenPlanningFormTab(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedTextField(
+                TextField(
                     value = bookingDateTFV,
                     onValueChange = { newVal ->
                         val formatted = formatAutoSlashDate(bookingDateTFV.text, newVal.text)
@@ -1921,10 +1972,11 @@ fun GardenPlanningFormTab(
                     textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                     label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     placeholder = { Text("DD/MM/YYYY") },
-                    shape = textFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
+                    ClayFieldIcon(accentColor = gardenAccent) {
                         IconButton(
                             onClick = { openDatePicker(true) },
                             modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
@@ -1932,21 +1984,24 @@ fun GardenPlanningFormTab(
                             Icon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = "Select Booking Date",
-                                tint = gardenAccent,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                    },
+                    }
+                },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass()
+                        .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_booking_date_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
+                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
-                OutlinedTextField(
+                TextField(
                     value = expectedDeliveryTFV,
                     onValueChange = { newVal ->
                         val formatted = formatAutoSlashDate(expectedDeliveryTFV.text, newVal.text)
@@ -1963,10 +2018,11 @@ fun GardenPlanningFormTab(
                     textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                     label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     placeholder = { Text("DD/MM/YYYY") },
-                    shape = textFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
+                    ClayFieldIcon(accentColor = gardenAccent) {
                         IconButton(
                             onClick = { openDatePicker(false) },
                             modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
@@ -1974,18 +2030,21 @@ fun GardenPlanningFormTab(
                             Icon(
                                 imageVector = Icons.Default.LocalShipping,
                                 contentDescription = "Select Expected Delivery Date",
-                                tint = gardenAccent,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                    },
+                    }
+                },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass()
+                        .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                         .testTag("garden_expected_delivery_input"),
-                    colors = elevatedInputFieldColors(isDark = isDark)
+                    colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
             }
         }
@@ -1993,7 +2052,7 @@ fun GardenPlanningFormTab(
 
     // Section 7: SPECIAL INSTRUCTIONS / NOTES (Liquid Glass Card)
     item(key = "section_special_instructions_notes") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
@@ -2005,21 +2064,23 @@ fun GardenPlanningFormTab(
             )
 
             // Notes
-            OutlinedTextField(
+            TextField(
                 value = notes,
                 onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
                 label = { Text("Notes / Inspection Remarks") },
                 placeholder = { Text("Enter any special instructions or land conditions...") },
                 minLines = 2,
                 maxLines = 4,
-                shape = textFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    Icon(
+                    ClayFieldIcon(accentColor = gardenAccent) {
+                        Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = null,
-                        tint = gardenAccent
+                        tint = Color.White
                     )
+                    }
                 },
                 trailingIcon = {
                     IconButton(
@@ -2041,10 +2102,12 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass()
+                    .clip(CLAY_FIELD_SHAPE)
+                    .background(clayFieldBrush(isDark))
+                    .clayInset(CLAY_FIELD_SHAPE)
                     .bringIntoViewOnFocus()
                     .testTag("garden_notes_input"),
-                colors = elevatedInputFieldColors(isDark = isDark)
+                colors = clayFieldColors(isDark = isDark, accentColor = gardenAccent)
             )
 
             // Message Preview Component
@@ -2061,7 +2124,7 @@ fun GardenPlanningFormTab(
 
     // Section 8: ACTIONS (Liquid Glass Card)
     item(key = "section_actions") {
-        NestedLiquidGlassSection(
+        ClaySectionCard(
             backdrop = backdrop,
             hazeState = effectiveHaze,
             isDark = isDark
