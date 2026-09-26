@@ -27,7 +27,7 @@ fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
     sdkInt >= Build.VERSION_CODES.S && LiquidGlassPreference.enabled
 
 fun Modifier.glassEdge(shape: CornerBasedShape): Modifier =
-    if (isGlassSupported()) border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape) else this
+    border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
 
 private const val BLUR_RADIUS_DP = 8f
 private const val LENS_HEIGHT = 0.5f
@@ -46,6 +46,10 @@ internal val GLASS_EDGE_COLOR: Brush = Brush.verticalGradient(
 @Composable
 fun glassContentColor(): Color =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
+
+@Composable
+fun glassIndicatorColor(): Color =
+    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.White else Color.Black
 
 /**
  * True liquid glass surface sampling [backdrop]: vibrancy, blur, and lens
