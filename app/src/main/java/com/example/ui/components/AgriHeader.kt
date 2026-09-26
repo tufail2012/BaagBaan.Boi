@@ -1084,6 +1084,7 @@ private fun HeaderProfileAvatar(
             )
             .testTag("overflow_menu_button")
     ) {
+        val onGlass = isScrolling && backdrop != null && isGlassSupported()
         if (!photoUrl.isNullOrBlank()) {
             AsyncImage(
                 model = photoUrl,
@@ -1092,10 +1093,16 @@ private fun HeaderProfileAvatar(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .border(
-                        width = 1.5.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = CircleShape
+                    .then(
+                        if (!onGlass) {
+                            Modifier.border(
+                                width = 1.5.dp,
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape
+                            )
+                        } else {
+                            Modifier
+                        }
                     )
             )
         } else if (!currentUserEmail.isNullOrBlank()) {
@@ -1103,29 +1110,41 @@ private fun HeaderProfileAvatar(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+                    .then(
+                        if (!onGlass) {
+                            Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary)
+                        } else {
+                            Modifier
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = initial,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = if (onGlass) glassContentColor() else MaterialTheme.colorScheme.onPrimary
                 )
             }
         } else {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape)
-                    .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer),
+                    .then(
+                        if (!onGlass) {
+                            Modifier
+                                .clip(CircleShape)
+                                .background(if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.primaryContainer)
+                        } else {
+                            Modifier
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = "Profile Options",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (onGlass) glassContentColor() else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
