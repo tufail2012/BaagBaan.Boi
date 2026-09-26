@@ -534,6 +534,8 @@ fun AgriHeader(
                                 photoUrl = effectivePhotoUrl,
                                 currentUserEmail = currentUserEmail,
                                 isDark = isDark,
+                                backdrop = backdrop,
+                                isScrolling = isScrolling,
                                 onClick = { menuExpanded = true }
                             )
 
@@ -1000,12 +1002,27 @@ private fun HeaderProfileAvatar(
     currentUserEmail: String?,
     isDark: Boolean,
     onClick: () -> Unit,
+    backdrop: Backdrop? = null,
+    isScrolling: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     IconButton(
         onClick = onClick,
         modifier = modifier
             .size(38.dp)
+            .then(
+                if (isScrolling) {
+                    if (backdrop != null && isGlassSupported()) {
+                        Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                    } else {
+                        Modifier
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                    }
+                } else {
+                    Modifier
+                }
+            )
             .testTag("overflow_menu_button")
     ) {
         if (!photoUrl.isNullOrBlank()) {
