@@ -927,6 +927,7 @@ fun GardenPlanningFormTab(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .claySheetBackground(isDark)
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,

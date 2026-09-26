@@ -455,14 +455,31 @@ fun AgriHeader(
                         Box(
                             modifier = Modifier
                                 .size(38.dp)
-                                .clip(CircleShape)
-                                .background(animatedAccentColor),
+                                .then(
+                                    if (isScrolling) {
+                                        if (backdrop != null && isGlassSupported()) {
+                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                        } else {
+                                            Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        }
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = headerBadgeIcon,
                                 contentDescription = "$title Icon",
-                                tint = Color.White,
+                                tint = if (isScrolling) {
+                                    glassContentColor()
+                                } else if (isDark) {
+                                    Color.White
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                                 modifier = Modifier.size(20.dp)
                             )
                         }

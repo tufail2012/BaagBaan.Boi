@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -160,26 +161,33 @@ fun ClaySectionCard(
     hazeState: dev.chrisbanes.haze.HazeState? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Box(modifier = modifier.fillMaxWidth().padding(6.dp)) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clayRaised(CLAY_CARD_SHAPE, isDark)
-                .clip(CLAY_CARD_SHAPE)
-                .background(clayCardBrush(isDark))
-                .padding(20.dp)
-        ) {
-            if (title.isNotEmpty()) {
-                Text(
-                    text = title.uppercase(),
-                    color = claySectionTitleColor(if (accentColor != Color.Unspecified) accentColor else MaterialTheme.colorScheme.primary, isDark),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.5.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-            content()
+    Column(modifier = modifier.fillMaxWidth().padding(top = 22.dp, bottom = 6.dp)) {
+        if (title.isNotEmpty()) {
+            Text(
+                text = title.uppercase(),
+                color = claySectionTitleColor(if (accentColor != Color.Unspecified) accentColor else MaterialTheme.colorScheme.primary, isDark),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.5.sp
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp, bottom = 18.dp)
+                    .height(2.dp)
+                    .background(clayAccentGradient(if (accentColor != Color.Unspecified) accentColor else MaterialTheme.colorScheme.primary), RoundedCornerShape(1.dp))
+            )
         }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            content = content
+        )
     }
 }
+
+val CLAY_SHEET_SHAPE = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+
+/** One continuous "sheet" background for the whole scrolling form, instead of separate floating cards. */
+fun Modifier.claySheetBackground(isDark: Boolean): Modifier = this
+    .background(color = if (isDark) Color(0xFF281F30) else Color(0xFFF7F3FC), shape = CLAY_SHEET_SHAPE)
+
