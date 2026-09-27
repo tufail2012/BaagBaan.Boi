@@ -507,11 +507,15 @@ fun AgriHeader(
                             onClick = onOpenNotifications,
                             modifier = Modifier
                                 .size(38.dp)
-                                .bubblyGlassCapsuleIndicator(
-                                    shape = CircleShape,
-                                    hazeState = hazeState,
-                                    accentColor = animatedAccentColor,
-                                    isDark = isDark
+                                .then(
+                                    if (isScrolling) {
+                                        Modifier.bubblyGlassCapsuleIndicator(
+                                            shape = CircleShape,
+                                            hazeState = hazeState,
+                                            accentColor = Color.Gray,
+                                            isDark = isDark
+                                        )
+                                    } else Modifier
                                 )
                                 .testTag("header_notifications_button")
                         ) {
@@ -546,11 +550,15 @@ fun AgriHeader(
                             },
                             modifier = Modifier
                                 .size(38.dp)
-                                .bubblyGlassCapsuleIndicator(
-                                    shape = CircleShape,
-                                    hazeState = hazeState,
-                                    accentColor = animatedAccentColor,
-                                    isDark = isDark
+                                .then(
+                                    if (isScrolling) {
+                                        Modifier.bubblyGlassCapsuleIndicator(
+                                            shape = CircleShape,
+                                            hazeState = hazeState,
+                                            accentColor = Color.Gray,
+                                            isDark = isDark
+                                        )
+                                    } else Modifier
                                 )
                                 .testTag("header_search_button")
                         ) {
@@ -568,11 +576,15 @@ fun AgriHeader(
                                 currentUserEmail = currentUserEmail,
                                 isDark = isDark,
                                 onClick = { menuExpanded = true },
-                                modifier = Modifier.bubblyGlassCapsuleIndicator(
-                                    shape = CircleShape,
-                                    hazeState = hazeState,
-                                    accentColor = animatedAccentColor,
-                                    isDark = isDark
+                                modifier = Modifier.then(
+                                    if (isScrolling) {
+                                        Modifier.bubblyGlassCapsuleIndicator(
+                                            shape = CircleShape,
+                                            hazeState = hazeState,
+                                            accentColor = Color.Gray,
+                                            isDark = isDark
+                                        )
+                                    } else Modifier
                                 )
                             )
 
