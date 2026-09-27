@@ -528,14 +528,13 @@ fun AgriHeader(
                             onClick = onOpenNotifications,
                             modifier = Modifier
                                 .size(38.dp)
+                                .clip(CircleShape)
                                 .then(
                                     if (isScrolling) {
                                         if (backdrop != null && isGlassSupported()) {
                                             Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
                                         } else {
-                                            Modifier
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                                         }
                                     } else Modifier
                                 )
@@ -572,14 +571,13 @@ fun AgriHeader(
                             },
                             modifier = Modifier
                                 .size(38.dp)
+                                .clip(CircleShape)
                                 .then(
                                     if (isScrolling) {
                                         if (backdrop != null && isGlassSupported()) {
                                             Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
                                         } else {
-                                            Modifier
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
                                         }
                                     } else Modifier
                                 )

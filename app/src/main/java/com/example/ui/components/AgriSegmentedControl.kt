@@ -225,6 +225,29 @@ fun LiquidGlassSegmentedSwitcher(
             val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
             val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
 
+            // Neutral "glass" base for every tab slot, so the unselected tab also
+            // has a glass look (not just flat/plain). The accent-colored indicator
+            // below still renders on top of this for the selected tab.
+            Row(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(1.dp)
+                            .bubblyGlassCapsuleIndicator(
+                                hazeState = hazeState,
+                                shape = itemShape,
+                                accentColor = Color.White,
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+                    )
+                }
+            }
+
             // Subtle water droplet expanding ripple wave
             if (dropletRipple.value < 0.99f) {
                 val rippleProgress = dropletRipple.value
