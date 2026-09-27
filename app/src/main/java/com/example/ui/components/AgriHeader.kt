@@ -501,24 +501,17 @@ fun AgriHeader(
                     // Right Action Buttons
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         IconButton(
                             onClick = onOpenNotifications,
                             modifier = Modifier
-                                .size(44.dp)
-                                .then(
-                                    if (isScrolling) {
-                                        if (backdrop != null && isGlassSupported()) {
-                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                        } else {
-                                            Modifier
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        }
-                                    } else {
-                                        Modifier
-                                    }
+                                .size(38.dp)
+                                .bubblyGlassCapsuleIndicator(
+                                    shape = CircleShape,
+                                    hazeState = hazeState,
+                                    accentColor = animatedAccentColor,
+                                    isDark = isDark
                                 )
                                 .testTag("header_notifications_button")
                         ) {
@@ -541,13 +534,7 @@ fun AgriHeader(
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = "Notification Center",
-                                    tint = if (isScrolling) {
-                                        glassContentColor()
-                                    } else if (isDark) {
-                                        Color.White
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurface
-                                    }
+                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -558,32 +545,19 @@ fun AgriHeader(
                                 onToggleSearch()
                             },
                             modifier = Modifier
-                                .size(44.dp)
-                                .then(
-                                    if (isScrolling) {
-                                        if (backdrop != null && isGlassSupported()) {
-                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                        } else {
-                                            Modifier
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        }
-                                    } else {
-                                        Modifier
-                                    }
+                                .size(38.dp)
+                                .bubblyGlassCapsuleIndicator(
+                                    shape = CircleShape,
+                                    hazeState = hazeState,
+                                    accentColor = animatedAccentColor,
+                                    isDark = isDark
                                 )
                                 .testTag("header_search_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search Records",
-                                tint = if (isScrolling) {
-                                    glassContentColor()
-                                } else if (isDark) {
-                                    Color.White
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                }
+                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -593,9 +567,13 @@ fun AgriHeader(
                                 photoUrl = effectivePhotoUrl,
                                 currentUserEmail = currentUserEmail,
                                 isDark = isDark,
-                                backdrop = backdrop,
-                                isScrolling = isScrolling,
-                                onClick = { menuExpanded = true }
+                                onClick = { menuExpanded = true },
+                                modifier = Modifier.bubblyGlassCapsuleIndicator(
+                                    shape = CircleShape,
+                                    hazeState = hazeState,
+                                    accentColor = animatedAccentColor,
+                                    isDark = isDark
+                                )
                             )
 
                             DropdownMenu(

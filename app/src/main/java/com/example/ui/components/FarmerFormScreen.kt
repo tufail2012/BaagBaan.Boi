@@ -191,7 +191,9 @@ import com.example.util.ReceiptData
 import com.example.util.ReceiptGenerator
 import com.example.ui.CropViewModel
 import com.example.ui.theme.getAppDimBackgroundBrush
+import com.example.ui.theme.getAppDimBackgroundColor
 import com.example.ui.theme.getSectionAccentColor
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -835,6 +837,19 @@ fun FarmerFormScreen(
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
+    val entryWindowColor = when {
+        isAmoled -> Color.Black
+        else -> getAppDimBackgroundColor(formAccent, isDark = isDark, isAmoled = false)
+    }
+    val entryPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(entryWindowColor) {
+            {
+                drawRect(entryWindowColor)
+                drawContent()
+            }
+        }
+    val entryBackdrop = rememberLayerBackdrop(onDraw = entryPaintBackdrop)
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -893,7 +908,7 @@ fun FarmerFormScreen(
         val pillShape = textFieldShape
 
         Box(modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(entryBackdrop, hazeState, isDark)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier

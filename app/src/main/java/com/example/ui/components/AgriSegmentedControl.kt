@@ -142,13 +142,10 @@ fun LiquidGlassSegmentedSwitcher(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .height(48.dp)
+            .clip(containerShape)
+            .liquidGlassNav(shape = containerShape, backdrop = backdrop)
             .then(
-                if (backdrop != null && isGlassSupported()) {
-                    Modifier.recordsLiquidGlass(
-                        backdrop = backdrop,
-                        shape = containerShape
-                    )
-                } else {
+                if (!isGlassSupported() || backdrop == null) {
                     Modifier
                         .shadow(
                             elevation = 3.dp,
@@ -171,8 +168,11 @@ fun LiquidGlassSegmentedSwitcher(
                         )
                         .background(trackBgBrush, shape = containerShape)
                         .border(BorderStroke(1.dp, trackBorderBrush), shape = containerShape)
+                } else {
+                    Modifier
                 }
             )
+            .glassEdge(containerShape)
             .padding(4.dp)
     ) {
         BoxWithConstraints(
