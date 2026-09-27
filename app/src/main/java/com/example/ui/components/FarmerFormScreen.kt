@@ -913,7 +913,6 @@ fun FarmerFormScreen(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .claySheetBackground(accentColor = formAccent, isDark = isDark, isAmoled = isAmoled)
                     .imePadding(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
