@@ -530,12 +530,13 @@ fun AgriHeader(
                                 .size(38.dp)
                                 .then(
                                     if (isScrolling) {
-                                        Modifier.bubblyGlassCapsuleIndicator(
-                                            shape = CircleShape,
-                                            hazeState = hazeState,
-                                            accentColor = Color.Gray,
-                                            isDark = isDark
-                                        )
+                                        if (backdrop != null && isGlassSupported()) {
+                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                        } else {
+                                            Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        }
                                     } else Modifier
                                 )
                                 .testTag("header_notifications_button")
@@ -559,7 +560,7 @@ fun AgriHeader(
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = "Notification Center",
-                                    tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                    tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -573,12 +574,13 @@ fun AgriHeader(
                                 .size(38.dp)
                                 .then(
                                     if (isScrolling) {
-                                        Modifier.bubblyGlassCapsuleIndicator(
-                                            shape = CircleShape,
-                                            hazeState = hazeState,
-                                            accentColor = Color.Gray,
-                                            isDark = isDark
-                                        )
+                                        if (backdrop != null && isGlassSupported()) {
+                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                        } else {
+                                            Modifier
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                        }
                                     } else Modifier
                                 )
                                 .testTag("header_search_button")
@@ -586,7 +588,7 @@ fun AgriHeader(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search Records",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -597,16 +599,19 @@ fun AgriHeader(
                                 currentUserEmail = currentUserEmail,
                                 isDark = isDark,
                                 onClick = { menuExpanded = true },
-                                modifier = Modifier.then(
-                                    if (isScrolling) {
-                                        Modifier.bubblyGlassCapsuleIndicator(
-                                            shape = CircleShape,
-                                            hazeState = hazeState,
-                                            accentColor = Color.Gray,
-                                            isDark = isDark
-                                        )
-                                    } else Modifier
-                                )
+                                backdrop = backdrop,
+                                isScrolling = isScrolling,
+                                modifier = if (isScrolling) {
+                                    if (backdrop != null && isGlassSupported()) {
+                                        Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
+                                    } else {
+                                        Modifier
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                    }
+                                } else {
+                                    Modifier
+                                }
                             )
 
                             DropdownMenu(
