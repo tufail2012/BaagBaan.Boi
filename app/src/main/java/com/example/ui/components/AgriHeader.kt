@@ -493,7 +493,28 @@ fun AgriHeader(
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                        color = if (isScrolling && !isAppLogo && headerBadgeIcon != null) {
+                            glassContentColor()
+                        } else if (isDark) {
+                            Color.White
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = if (isScrolling && !isAppLogo && headerBadgeIcon != null) {
+                            Modifier
+                                .then(
+                                    if (backdrop != null && isGlassSupported()) {
+                                        Modifier.liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = backdrop)
+                                    } else {
+                                        Modifier
+                                            .clip(RoundedCornerShape(percent = 50))
+                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                    }
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        } else {
+                            Modifier
+                        }
                     )
                 }
 
@@ -1059,19 +1080,6 @@ private fun HeaderProfileAvatar(
         onClick = onClick,
         modifier = modifier
             .size(44.dp)
-            .then(
-                if (isScrolling) {
-                    if (backdrop != null && isGlassSupported()) {
-                        Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                    } else {
-                        Modifier
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                    }
-                } else {
-                    Modifier
-                }
-            )
             .testTag("overflow_menu_button")
     ) {
         val onGlass = isScrolling && backdrop != null && isGlassSupported()
