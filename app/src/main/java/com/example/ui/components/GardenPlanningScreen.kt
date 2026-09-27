@@ -685,18 +685,6 @@ fun GardenPlanningFormTab(
 
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
     val isAmoled = isAppInAmoledMode()
-    val entryWindowColor = when {
-        isAmoled -> Color.Black
-        else -> getAppDimBackgroundColor(gardenAccent, isDark = isDark, isAmoled = false)
-    }
-    val entryPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
-        remember(entryWindowColor) {
-            {
-                drawRect(entryWindowColor)
-                drawContent()
-            }
-        }
-    val entryBackdrop = rememberLayerBackdrop(onDraw = entryPaintBackdrop)
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
@@ -939,7 +927,7 @@ fun GardenPlanningFormTab(
     lazyListState.rememberScrollHapticFeedback()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(entryBackdrop, hazeState, isDark)) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier

@@ -837,19 +837,6 @@ fun FarmerFormScreen(
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    val entryWindowColor = when {
-        isAmoled -> Color.Black
-        else -> getAppDimBackgroundColor(formAccent, isDark = isDark, isAmoled = false)
-    }
-    val entryPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
-        remember(entryWindowColor) {
-            {
-                drawRect(entryWindowColor)
-                drawContent()
-            }
-        }
-    val entryBackdrop = rememberLayerBackdrop(onDraw = entryPaintBackdrop)
-
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -908,7 +895,7 @@ fun FarmerFormScreen(
         val pillShape = textFieldShape
 
         Box(modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(entryBackdrop, hazeState, isDark)) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
