@@ -917,13 +917,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "SERIAL NUMBER",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     TextField(
@@ -1004,13 +1003,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "FARMER DETAILS",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     // Farmer Name
@@ -1209,13 +1207,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = specTitle,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     if (isMultiVarietyApplicable && varietyLines.isNotEmpty()) {
@@ -2170,13 +2167,12 @@ fun FarmerFormScreen(
                         isDark = isDark,
                         hazeState = hazeState
                     ) {
-                        Text(
+                        GlassSectionHeaderLabel(
                             text = "GRAFTING DETAILS",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                            backdrop = backdrop,
+                            hazeState = hazeState,
+                            isDark = isDark,
+                            accentColor = MaterialTheme.colorScheme.primary
                         )
 
                         // Scion Variety (Manual Text Field)
@@ -2298,13 +2294,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = if (isSiteVisit) "PRICING & VISIT DETAILS" else "PRICING & QUANTITY",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     if (isStockApplicable && matchedInventoryItem != null) {
@@ -2642,13 +2637,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "PAYMENT STATUS",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = formAccent,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = formAccent
                     )
 
                     PaymentStatusSelector(
@@ -2734,13 +2728,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "SCHEDULE & DATES",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     Row(
@@ -2860,13 +2853,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "ATTACH UPI PAYMENT PROOF",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     Row(
@@ -2925,13 +2917,12 @@ fun FarmerFormScreen(
                     isDark = isDark,
                     hazeState = hazeState
                 ) {
-                    Text(
+                    GlassSectionHeaderLabel(
                         text = "SPECIAL INSTRUCTIONS / NOTES",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                        backdrop = backdrop,
+                        hazeState = hazeState,
+                        isDark = isDark,
+                        accentColor = MaterialTheme.colorScheme.primary
                     )
 
                     // Notes & Special Observations
@@ -3028,12 +3019,12 @@ fun FarmerFormScreen(
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp)
                                     )
-                                    Text(
+                                    GlassSectionHeaderLabel(
                                         text = "MESSAGE PREVIEW",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 1.sp
+                                        backdrop = backdrop,
+                                        hazeState = hazeState,
+                                        isDark = isDark,
+                                        accentColor = MaterialTheme.colorScheme.primary
                                     )
                                 }
 
@@ -3253,13 +3244,12 @@ fun FarmerFormScreen(
             isDark = isDark,
             hazeState = hazeState
         ) {
-            Text(
+            GlassSectionHeaderLabel(
                 text = "ACTIONS",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                backdrop = backdrop,
+                hazeState = hazeState,
+                isDark = isDark,
+                accentColor = MaterialTheme.colorScheme.primary
             )
 
             // 1. Save Booking Entry

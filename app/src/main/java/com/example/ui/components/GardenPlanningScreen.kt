@@ -531,15 +531,17 @@ private fun FormSectionHeader(
     title: String,
     accentColor: Color,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = null
 ) {
-    Text(
+    GlassSectionHeaderLabel(
         text = title,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Bold,
-        color = accentColor,
-        letterSpacing = 1.sp,
-        modifier = modifier.padding(top = 2.dp, bottom = 2.dp)
+        backdrop = backdrop,
+        hazeState = hazeState,
+        isDark = isDark,
+        accentColor = accentColor,
+        modifier = modifier
     )
 }
 
@@ -952,7 +954,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "SERIAL NUMBER",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             TextField(
@@ -1025,7 +1029,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "FARMER DETAILS",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             // Farmer Name
@@ -1178,7 +1184,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "GARDEN PLANNING SPECIFICATION",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             if (isMultiVarietyEnabled) {
@@ -1535,7 +1543,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "COST & QUANTITY DETAILS",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             if (isMultiVarietyEnabled && varietyLines.isNotEmpty()) {
@@ -1835,7 +1845,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "PAYMENT STATUS",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             PaymentStatusSelector(
@@ -1922,7 +1934,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "SCHEDULE & DATES",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             Row(
@@ -2033,7 +2047,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "SPECIAL INSTRUCTIONS / NOTES",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             // Notes
@@ -2103,7 +2119,9 @@ fun GardenPlanningFormTab(
             FormSectionHeader(
                 title = "ACTIONS",
                 accentColor = gardenAccent,
-                isDark = isDark
+                isDark = isDark,
+                backdrop = backdrop,
+                hazeState = effectiveHaze
             )
 
             // 1. New Booking Entry / Update Booking Entry

@@ -6,8 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -23,15 +25,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.ui.theme.LocalAppPalette
 import com.example.ui.theme.getDynamicPaletteBackgroundBrush
+import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
+import dev.chrisbanes.haze.materials.HazeMaterials
 
 /**
  * CompositionLocal providing HazeState across all frosted liquid glass surfaces throughout the app.
@@ -430,4 +437,50 @@ fun Modifier.frostedGlassChrome(
         }
         .border(width = borderWidth, brush = borderBrush, shape = shape)
 }
+
+private val GLASS_SECTION_HEADER_SHAPE = RoundedCornerShape(percent = 50)
+
+/**
+ * New Entry form section-heading label, rendered as a floating glass pill using
+ * the exact same material as the bottom nav bar: real liquidGlassNav backdrop
+ * blur where the device/backdrop supports it, falling back to Haze
+ * HazeMaterials.regular with a glassEdge rim otherwise.
+ */
+@OptIn(ExperimentalHazeMaterialsApi::class)
+@Composable
+fun GlassSectionHeaderLabel(
+    text: String,
+    backdrop: Backdrop?,
+    hazeState: HazeState?,
+    isDark: Boolean = isAppInDarkMode(),
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    modifier: Modifier = Modifier
+) {
+    val container = MaterialTheme.colorScheme.surface
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Bold,
+        color = accentColor,
+        letterSpacing = 1.sp,
+        modifier = modifier
+            .clip(GLASS_SECTION_HEADER_SHAPE)
+            .liquidGlassNav(shape = GLASS_SECTION_HEADER_SHAPE, backdrop = backdrop)
+            .then(
+                if (backdrop == null || !isGlassSupported()) {
+                    if (hazeState != null) {
+                        Modifier
+                            .hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
+                            .glassEdge(GLASS_SECTION_HEADER_SHAPE)
+                    } else {
+                        Modifier
+                    }
+                } else {
+                    Modifier
+                }
+            )
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    )
+}
+
 
