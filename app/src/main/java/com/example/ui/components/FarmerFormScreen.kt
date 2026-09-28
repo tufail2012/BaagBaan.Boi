@@ -194,16 +194,6 @@ import com.example.ui.theme.getAppDimBackgroundBrush
 import com.example.ui.theme.getAppDimBackgroundColor
 import com.example.ui.theme.getSectionAccentColor
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import androidx.compose.foundation.Canvas
-import androidx.compose.material3.TextFieldDefaults
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.vibrancy
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -218,8 +208,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "agri_crop_preferences")
-
-private val SHEET_FIELD_SHAPE = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -849,44 +837,6 @@ fun FarmerFormScreen(
         getAppDimBackgroundBrush(formAccent, isDark = isDark, isAmoled = isAmoled)
     }
 
-    val newEntryBackdrop = rememberLayerBackdrop()
-    val isGlassApiSupported = Build.VERSION.SDK_INT >= 33
-
-    val hairlineUnfocused = if (isDark) Color.White.copy(alpha = 0.30f) else Color.Black.copy(alpha = 0.25f)
-    val hairlineFocused = if (isDark) Color.White.copy(alpha = 0.90f) else Color.Black.copy(alpha = 0.85f)
-    val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-    val labelUnfocused = if (isDark) Color(0xFFCBD5E1) else Color(0xFF1E293B)
-    val sheetFieldShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
-
-    val sheetFieldColors = TextFieldDefaults.colors(
-        focusedContainerColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-        disabledContainerColor = Color.Transparent,
-        errorContainerColor = Color.Transparent,
-        focusedTextColor = textPrimary,
-        unfocusedTextColor = textPrimary,
-        disabledTextColor = textPrimary.copy(alpha = 0.5f),
-        errorTextColor = textPrimary,
-        focusedIndicatorColor = hairlineFocused,
-        unfocusedIndicatorColor = hairlineUnfocused,
-        disabledIndicatorColor = Color.Transparent,
-        errorIndicatorColor = MaterialTheme.colorScheme.error,
-        focusedLabelColor = formAccent,
-        unfocusedLabelColor = labelUnfocused,
-        disabledLabelColor = labelUnfocused.copy(alpha = 0.5f),
-        errorLabelColor = MaterialTheme.colorScheme.error,
-        cursorColor = formAccent,
-        errorCursorColor = MaterialTheme.colorScheme.error,
-        focusedLeadingIconColor = formAccent,
-        unfocusedLeadingIconColor = labelUnfocused,
-        disabledLeadingIconColor = labelUnfocused.copy(alpha = 0.5f),
-        errorLeadingIconColor = MaterialTheme.colorScheme.error,
-        focusedTrailingIconColor = formAccent,
-        unfocusedTrailingIconColor = labelUnfocused,
-        disabledTrailingIconColor = labelUnfocused.copy(alpha = 0.5f),
-        errorTrailingIconColor = MaterialTheme.colorScheme.error
-    )
-
     Box(
         modifier = modifier.fillMaxSize()
     ) {
@@ -944,115 +894,14 @@ fun FarmerFormScreen(
 
         val pillShape = textFieldShape
 
-        // (i) Static background layer (the backdrop)
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .layerBackdrop(newEntryBackdrop)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-
-                // Soft base background gradient using app's brand colors
-                val bgTop = if (isDark) Color(0xFF13151A) else Color(0xFFF1F5F9)
-                val bgBottom = if (isDark) Color(0xFF0D0F12) else Color(0xFFE2E8F0)
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(bgTop, bgBottom)
-                    )
-                )
-
-                // 2 or 3 large soft color blobs so the glass has something to refract
-                // Blob 1: soft brand green (orchard foliage)
-                val blob1Color = if (isDark) Color(0xFF1B4D2E).copy(alpha = 0.35f) else Color(0xFF66BB6A).copy(alpha = 0.28f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(blob1Color, Color.Transparent),
-                        center = Offset(w * 0.22f, h * 0.25f),
-                        radius = w * 0.55f
-                    ),
-                    center = Offset(w * 0.22f, h * 0.25f),
-                    radius = w * 0.55f
-                )
-
-                // Blob 2: soft orchard amber / warm harvest gold
-                val blob2Color = if (isDark) Color(0xFF5D4018).copy(alpha = 0.30f) else Color(0xFFFFB74D).copy(alpha = 0.25f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(blob2Color, Color.Transparent),
-                        center = Offset(w * 0.85f, h * 0.55f),
-                        radius = w * 0.50f
-                    ),
-                    center = Offset(w * 0.85f, h * 0.55f),
-                    radius = w * 0.50f
-                )
-
-                // Blob 3: soft ripe apple crimson
-                val blob3Color = if (isDark) Color(0xFF4A1A24).copy(alpha = 0.28f) else Color(0xFFEF9A9A).copy(alpha = 0.22f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(blob3Color, Color.Transparent),
-                        center = Offset(w * 0.35f, h * 0.82f),
-                        radius = w * 0.48f
-                    ),
-                    center = Offset(w * 0.35f, h * 0.82f),
-                    radius = w * 0.48f
-                )
-            }
-        }
-
-        // (ii) ONE glass sheet, fillMaxSize, sibling of the form and NOT inside the scroll container
-        // True edge-to-edge: draws behind status bar and navigation bar.
-        // It must NOT resize or move when the keyboard opens (no imePadding, statusBarsPadding, navigationBarsPadding).
-        // Uniform tint: scrim of roughly 12-20% alpha (dark in dark theme, light in light theme).
-        val sheetScrimColor = if (isDark) Color(0xFF0F1115).copy(alpha = 0.16f) else Color(0xFFFFFFFF).copy(alpha = 0.16f)
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (isGlassApiSupported) {
-                        val blurPx = with(density) { 16.dp.toPx() }
-                        Modifier.drawBackdrop(
-                            backdrop = newEntryBackdrop,
-                            shape = { RoundedCornerShape(0.dp) },
-                            effects = {
-                                vibrancy()
-                                blur(blurPx)
-                            },
-                            highlight = { Highlight.Default },
-                            shadow = { Shadow.Default },
-                            onDrawSurface = {
-                                drawRect(sheetScrimColor)
-                            }
-                        )
-                    } else {
-                        Modifier.background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    sheetScrimColor,
-                                    sheetScrimColor.copy(alpha = sheetScrimColor.alpha * 1.25f)
-                                )
-                            )
-                        )
-                    }
-                )
-        )
-
-        // (iii) The scrolling form on top
-        // Form content gets statusBarsPadding, navigationBarsPadding and imePadding
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .imePadding()
-        ) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides null) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
             LazyColumn(
                 state = lazyListState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .scrollGlassSource()
+                    .imePadding(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
@@ -1087,13 +936,14 @@ fun FarmerFormScreen(
                         readOnly = isSerialLocked,
                         label = { Text("Serial No. ($serviceType) *") },
                         placeholder = { Text("Type serial number (e.g. LP-1001)") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("serial_number_input"),
-                        colors = sheetFieldColors,
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
                             Icon(
@@ -1169,7 +1019,7 @@ fun FarmerFormScreen(
                             onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
                             label = { Text("Farmer Name *") },
                             placeholder = { Text("e.g. Mohammad Abdullah") },
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
@@ -1183,9 +1033,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_name_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1196,7 +1047,7 @@ fun FarmerFormScreen(
                             onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
                             label = { Text("Farmer Address *") },
                             placeholder = { Text("e.g. Village Green Valley, Sector 4") },
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = false,
                             maxLines = 2,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -1211,9 +1062,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_address_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1252,7 +1104,7 @@ fun FarmerFormScreen(
                             },
                             label = { Text("Contact Number *") },
                             placeholder = { Text("e.g. 9876543210") },
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             leadingIcon = {
@@ -1284,6 +1136,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {
@@ -1304,12 +1157,12 @@ fun FarmerFormScreen(
                                     }
                                 }
                                 .testTag("contact_number_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
                     if (isLocalPlants) {
-                        
+                        // fieldGlass() already draws the rim border on each field,
                         // so no extra outline wrapper here (it caused a double line).
                         farmerNameField()
                         farmerAddressField()
@@ -1433,7 +1286,7 @@ fun FarmerFormScreen(
                                 },
                                 label = { Text(if (isImportedRootstocks) "Rootstock *" else "Variety Name *") },
                                 placeholder = { Text(if (isImportedRootstocks) "e.g. M9, MM106" else "e.g. Gala Apple, Red Delicious") },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
@@ -1447,9 +1300,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("variety_line_name_${index}"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             // Rootstock & Feathers Row (if not imported rootstocks and not site visit/pruning)
@@ -1468,7 +1322,7 @@ fun FarmerFormScreen(
                                         },
                                         label = { Text("Rootstock", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                         placeholder = { Text("e.g. M9", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                        shape = sheetFieldShape,
+                                        shape = CLAY_FIELD_SHAPE,
                                         singleLine = true,
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
                                         leadingIcon = {
@@ -1478,9 +1332,10 @@ fun FarmerFormScreen(
                     },
                                         modifier = Modifier
                                             .weight(1.1f)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
-                                        colors = sheetFieldColors
+                                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                     )
 
                                     TextField(
@@ -1490,7 +1345,7 @@ fun FarmerFormScreen(
                                         },
                                         label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                         placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                        shape = sheetFieldShape,
+                                        shape = CLAY_FIELD_SHAPE,
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Text,
@@ -1503,9 +1358,10 @@ fun FarmerFormScreen(
                     },
                                         modifier = Modifier
                                             .weight(0.9f)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
-                                        colors = sheetFieldColors
+                                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                     )
                                 }
                             }
@@ -1530,7 +1386,7 @@ fun FarmerFormScreen(
                                     },
                                     label = { Text("Quantity *") },
                                     placeholder = { Text("Qty") },
-                                    shape = sheetFieldShape,
+                                    shape = CLAY_FIELD_SHAPE,
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     leadingIcon = {
@@ -1540,9 +1396,10 @@ fun FarmerFormScreen(
                     },
                                     modifier = Modifier
                                         .weight(1f)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_qty_${index}"),
-                                    colors = sheetFieldColors
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
                                 TextField(
@@ -1559,7 +1416,7 @@ fun FarmerFormScreen(
                                     },
                                     label = { Text("Rate (₹) *") },
                                     placeholder = { Text("Price") },
-                                    shape = sheetFieldShape,
+                                    shape = CLAY_FIELD_SHAPE,
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     leadingIcon = {
@@ -1569,9 +1426,10 @@ fun FarmerFormScreen(
                     },
                                     modifier = Modifier
                                         .weight(1f)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_price_${index}"),
-                                    colors = sheetFieldColors
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
                             }
 
@@ -1638,7 +1496,7 @@ fun FarmerFormScreen(
                         textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                         label = { Text("Visit Date *") },
                         placeholder = { Text("DD/MM/YYYY") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = {
@@ -1663,9 +1521,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("visit_date_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1676,7 +1535,7 @@ fun FarmerFormScreen(
                         onValueChange = { viewModel.soilHealthObservations.value = it },
                         label = { Text("Soil Health Observations") },
                         placeholder = { Text("e.g. Moisture, pH, texture") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = false,
                         maxLines = 3,
                         leadingIcon = {
@@ -1690,9 +1549,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("soil_health_observations_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1703,7 +1563,7 @@ fun FarmerFormScreen(
                         onValueChange = { viewModel.plantHealthObservations.value = it },
                         label = { Text("Plant Health Observations") },
                         placeholder = { Text("e.g. Pests, diseases, growth") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = false,
                         maxLines = 3,
                         leadingIcon = {
@@ -1717,9 +1577,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("plant_health_observations_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     FormFieldDivider(isDark = isDark)
@@ -1741,7 +1602,7 @@ fun FarmerFormScreen(
                         },
                         label = { Text("Orchard/Site Location *") },
                         placeholder = { Text("e.g. Block A, North Field or Maps link") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = false,
                         maxLines = 3,
                         keyboardOptions = KeyboardOptions(
@@ -1775,9 +1636,10 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_site_location_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 } else if (isPruning) {
                     // Orchard Location (Single field for Pruning Specification)
@@ -1797,7 +1659,7 @@ fun FarmerFormScreen(
                         },
                         label = { Text("Orchard Location *") },
                         placeholder = { Text("e.g. Block A, North Field or Maps link") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = false,
                         maxLines = 3,
                         keyboardOptions = KeyboardOptions(
@@ -1831,9 +1693,10 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_location_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 } else {
                     // 1. Plant Variety (Removed for Imported Rootstocks)
@@ -1843,7 +1706,7 @@ fun FarmerFormScreen(
                             onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
                             label = { Text("Plant Variety *") },
                             placeholder = { Text("Type plant variety (e.g. Gala Apple, Cherry, Wheat)") },
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
@@ -1857,9 +1720,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("plant_variety_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
 
@@ -1878,7 +1742,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
                                 label = { Text("Rootstock *", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 placeholder = { Text("e.g. M9, MM106", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
@@ -1892,9 +1756,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1.1f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -1902,7 +1767,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.feathers.value = it },
                                 label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
@@ -1919,9 +1784,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(0.9f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
 
@@ -1938,7 +1804,7 @@ fun FarmerFormScreen(
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Sapling Age *") },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -1956,9 +1822,10 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                     .clickable { saplingAgeMenuExpanded = true }
                                     .testTag("sapling_age_dropdown"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             val saplingAgeDropdownShape = RoundedCornerShape(16.dp)
@@ -1998,7 +1865,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.rootstock.value = it },
                                 label = { Text("Rootstock *", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 placeholder = { Text("e.g. M9, MM106", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
@@ -2012,9 +1879,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1.1f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -2022,7 +1890,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.feathers.value = it },
                                 label = { Text("Feathers", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
                                 placeholder = { Text("e.g. 3, 3F, 5A, 2-3", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Text,
@@ -2039,9 +1907,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(0.9f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
 
@@ -2057,7 +1926,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.importCountry.value = it },
                                 label = { Text("Country / Source *") },
                                 placeholder = { Text("e.g. Italy") },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
@@ -2071,9 +1940,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             Box(
@@ -2086,7 +1956,7 @@ fun FarmerFormScreen(
                                     onValueChange = {},
                                     readOnly = true,
                                     label = { Text("Sapling Age *") },
-                                    shape = sheetFieldShape,
+                                    shape = CLAY_FIELD_SHAPE,
                                     singleLine = true,
                                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2104,9 +1974,10 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                         .clickable { saplingAgeMenuExpanded = true }
                                         .testTag("sapling_age_dropdown"),
-                                    colors = sheetFieldColors
+                                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
                                 val saplingAgeDropdownShape2 = RoundedCornerShape(16.dp)
@@ -2141,7 +2012,7 @@ fun FarmerFormScreen(
                             onValueChange = { viewModel.rootstock.value = it },
                             label = { Text("Rootstock *") },
                             placeholder = { Text("Type rootstock (e.g. M9, MM106, Seedling)") },
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             leadingIcon = {
@@ -2155,9 +2026,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("rootstock_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
 
                         FormFieldDivider(isDark = isDark)
@@ -2172,7 +2044,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.importCountry.value = it },
                                 label = { Text("Country / Source *") },
                                 placeholder = { Text("e.g. Italy") },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
@@ -2186,9 +2058,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
                             TextField(
@@ -2196,7 +2069,7 @@ fun FarmerFormScreen(
                                 onValueChange = { viewModel.rootDiameter.value = it },
                                 label = { Text("Root Dia (mm) *") },
                                 placeholder = { Text("e.g. 9-12 mm") },
-                                shape = sheetFieldShape,
+                                shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2209,9 +2082,10 @@ fun FarmerFormScreen(
                     },
                                 modifier = Modifier
                                     .weight(1f)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                     .testTag("root_diameter_input"),
-                                colors = sheetFieldColors
+                                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
                         }
                     }
@@ -2226,8 +2100,23 @@ fun FarmerFormScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .clip(textFieldShape)
-                            .background(if (isDark) Color(0xFF1E2026).copy(alpha = 0.5f) else Color(0xFFF1F5F9))
-                            .border(1.dp, if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.12f), textFieldShape)
+                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    val fallbackTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
+                                    if (hazeState != null) {
+                                        Modifier.hazeEffect(
+                                            state = hazeState,
+                                            style = HazeMaterials.regular(fallbackTint)
+                                        )
+                                    } else {
+                                        Modifier.background(fallbackTint.copy(alpha = if (isDark) 0.35f else 0.45f), textFieldShape)
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .glassEdge(textFieldShape)
                             .clickable {
                                 viewModel.enableMultiVarietyForCurrentTab()
                             }
@@ -2280,7 +2169,7 @@ fun FarmerFormScreen(
                     onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
                     label = { Text("Scion Variety") },
                     placeholder = { Text("Enter scion variety (e.g. Honeycrisp, Gala)") },
-                    shape = sheetFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
@@ -2294,9 +2183,10 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("scion_variety_input"),
-                    colors = sheetFieldColors
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 FormFieldDivider(isDark = isDark)
@@ -2310,7 +2200,7 @@ fun FarmerFormScreen(
                         onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
                         label = { Text("Graft Type") },
                         placeholder = { Text("Type or select graft type (e.g. Bench Grafting)") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
@@ -2329,9 +2219,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("graft_type_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     val graftTypeDropdownShape = RoundedCornerShape(16.dp)
@@ -2486,7 +2377,7 @@ fun FarmerFormScreen(
                             label = { Text("Graft Charge / Unit (₹)") },
                             placeholder = { Text("Per unit charge") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = sheetFieldShape,
+                            shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2495,9 +2386,10 @@ fun FarmerFormScreen(
                     },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                                 .testTag("grafting_charges_input"),
-                            colors = sheetFieldColors
+                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                         )
                     }
                 }
@@ -2519,7 +2411,7 @@ fun FarmerFormScreen(
                         { Text("Insufficient stock. Only $effectiveAvailableStock units are available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                     } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = sheetFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2532,9 +2424,10 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("quantity_input"),
-                    colors = sheetFieldColors
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 FormFieldDivider(isDark = isDark)
@@ -2575,7 +2468,7 @@ fun FarmerFormScreen(
                             { Text("Must be > 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
                         } else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2589,9 +2482,10 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // Graft Charge / Unit
@@ -2622,7 +2516,7 @@ fun FarmerFormScreen(
                             { Text("Must be ≥ 0", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
                         } else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2636,9 +2530,10 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("grafting_charges_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 }
 
@@ -2671,7 +2566,7 @@ fun FarmerFormScreen(
                             { Text("Insufficient stock. Only $effectiveAvailableStock units available.", color = MaterialTheme.colorScheme.error, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) }
                         } else null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
                             ClayFieldIcon(accentColor = formAccent) {
@@ -2684,9 +2579,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("quantity_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // 2. Unit Price / Visit Charge
@@ -2699,7 +2595,7 @@ fun FarmerFormScreen(
                         label = { Text(if (isSiteVisit) "Visit Fee (₹) *" else "Unit Price (₹) *") },
                         placeholder = { Text("Enter price") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2712,9 +2608,10 @@ fun FarmerFormScreen(
                     },
                         modifier = Modifier
                             .weight(1f)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 }
             }
@@ -2755,7 +2652,7 @@ fun FarmerFormScreen(
                 label = { Text("Amount Paid (₹)") },
                 placeholder = { Text("Enter amount paid") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = sheetFieldShape,
+                shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
@@ -2768,9 +2665,10 @@ fun FarmerFormScreen(
                     },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                     .testTag("amount_paid_input"),
-                colors = sheetFieldColors
+                colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
             )
 
             FormFieldDivider(isDark = isDark)
@@ -2779,6 +2677,7 @@ fun FarmerFormScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -2851,7 +2750,7 @@ fun FarmerFormScreen(
                     textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                     label = { Text("Booking Date", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     placeholder = { Text("DD/MM/YYYY") },
-                    shape = sheetFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
@@ -2877,9 +2776,10 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("booking_date_input"),
-                    colors = sheetFieldColors
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 // 2. Expected Delivery
@@ -2900,7 +2800,7 @@ fun FarmerFormScreen(
                     textStyle = LocalTextStyle.current.copy(fontSize = 12.5.sp),
                     label = { Text("Expected Delivery", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     placeholder = { Text("DD/MM/YYYY") },
-                    shape = sheetFieldShape,
+                    shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
@@ -2926,9 +2826,10 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                         .testTag("expected_delivery_input"),
-                    colors = sheetFieldColors
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
             }
         }
@@ -2952,6 +2853,7 @@ fun FarmerFormScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -3019,7 +2921,7 @@ fun FarmerFormScreen(
                         onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
                         label = { Text("Notes / Inspection Remarks") },
                         placeholder = { Text("Enter pruning history, soil treatment, disease status, or special requests...") },
-                        shape = sheetFieldShape,
+                        shape = CLAY_FIELD_SHAPE,
                         minLines = 2,
                         maxLines = 4,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
@@ -3052,9 +2954,10 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
                             .bringIntoViewOnFocus()
                             .testTag("farmer_notes_input"),
-                        colors = sheetFieldColors
+                        colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // Collapsible Message Preview Section (Collapsed by default)
@@ -3072,7 +2975,14 @@ fun FarmerFormScreen(
                                 spotColor = if (isDark) Color.Black else Color(0x30000000)
                             )
                             .clip(messageCardShape)
-                            .background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.60f) else Color(0xFFF8F9FA).copy(alpha = 0.75f))
+                            .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
+                            .then(
+                                if (backdrop == null || !isGlassSupported()) {
+                                    Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
+                                } else {
+                                    Modifier
+                                }
+                            )
                             .border(0.5.dp, Color.White.copy(alpha = 0.10f), messageCardShape)
                             .testTag("new_entry_message_preview_card")
                     ) {
@@ -3137,19 +3047,25 @@ fun FarmerFormScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .border(
-                                                1.dp,
-                                                if (isDark) Color.White.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.20f),
-                                                pillShape
+                                            .liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
+                                                } else {
+                                                    Modifier.border(
+                                                        1.dp,
+                                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
+                                                        pillShape
+                                                    )
+                                                }
                                             )
-                                            .boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
                                     ) {
                                         TextField(
                                             value = selectedTemplate,
                                             onValueChange = {},
                                             readOnly = true,
                                             label = { Text("Select Template") },
-                                            shape = sheetFieldShape,
+                                            shape = CLAY_FIELD_SHAPE,
                                             trailingIcon = {
                                                 IconButton(onClick = { templateMenuExpanded = true }) {
                                                     Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
@@ -3157,9 +3073,10 @@ fun FarmerFormScreen(
                                             },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .elevated3dShadow(shape = sheetFieldShape, isDark = isDark)
+                                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                                .elevated3dShadow(shape = CLAY_FIELD_SHAPE, isDark = isDark)
                                                 .testTag("select_template_dropdown"),
-                                            colors = sheetFieldColors
+                                            colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                         )
 
                                         Box(
@@ -3212,7 +3129,14 @@ fun FarmerFormScreen(
                                                 spotColor = if (isDark) Color.Black else Color(0x30000000)
                                             )
                                             .clip(RoundedCornerShape(14.dp))
-                                            .background(if (isDark) Color(0xFF141518).copy(alpha = 0.60f) else Color.White.copy(alpha = 0.75f))
+                                            .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
+                                            .then(
+                                                if (backdrop == null || !isGlassSupported()) {
+                                                    Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
+                                                } else {
+                                                    Modifier
+                                                }
+                                            )
                                             .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
                                     ) {
                                         Column(
@@ -3940,10 +3864,10 @@ fun FarmerFormScreen(
                         placeholder = { Text("DD/MM/YYYY") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = sheetFieldShape,
-                    colors = sheetFieldColors,
+                        shape = CLAY_FIELD_SHAPE,
+                    colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                     modifier = Modifier.fillMaxWidth()
-                            .testTag("manual_date_entry_input")
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE).testTag("manual_date_entry_input")
                     )
                 }
             },
@@ -4167,9 +4091,10 @@ fun AppDatePickerDialog(
                         }
                     },
                                 colors = elevatedInputFieldColors(isDark = dialogIsDark, accentColor = MaterialTheme.colorScheme.primary),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = CLAY_FIELD_SHAPE,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                     .testTag("dialog_manual_date_input")
                             )
                         }
@@ -4771,6 +4696,100 @@ private fun DrawScope.drawTree(
     }
 }
 
+
+@Composable
+private fun Modifier.formLiquidGlassContainer(
+    shape: CornerBasedShape = RoundedCornerShape(26.dp),
+    backdrop: LayerBackdrop?,
+    hazeState: HazeState?,
+    isDark: Boolean
+): Modifier {
+    val container = MaterialTheme.colorScheme.surface
+    return this
+        .clip(shape)
+        .liquidGlassNav(shape = shape, backdrop = backdrop)
+        .then(
+            if (backdrop == null || !isGlassSupported()) {
+                if (hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
+                } else {
+                    Modifier.background(
+                        if (isDark) Color(0xFF16181D).copy(alpha = 0.70f) else Color(0xFFF8FAFC).copy(alpha = 0.85f),
+                        shape
+                    )
+                }
+            } else {
+                Modifier
+            }
+        )
+        .border(
+            width = 0.8.dp,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (!isDark) 0.45f else 0.28f),
+                    Color.White.copy(alpha = if (!isDark) 0.20f else 0.10f)
+                ),
+                start = Offset.Zero,
+                end = Offset.Infinite
+            ),
+            shape = shape
+        )
+        .drawWithContent {
+            drawContent()
+            val w = size.width
+            val h = size.height
+            val cornerRadiusPx = 26.dp.toPx()
+            drawRoundRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.35f else 0.55f),
+                        Color.White.copy(alpha = if (isDark) 0.08f else 0.16f),
+                        Color.Transparent
+                    ),
+                    startY = 0f,
+                    endY = minOf(h * 0.25f, 100.dp.toPx())
+                ),
+                topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
+                size = Size(w - 2.dp.toPx(), h - 2.dp.toPx()),
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
+}
+
+@Composable
+private fun FormSectionGlassCard (
+    backdrop: LayerBackdrop?,
+    isDark: Boolean,
+    modifier: Modifier = Modifier,
+    shape: CornerBasedShape = RoundedCornerShape(26.dp),
+    hazeState: HazeState? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        shape = shape,
+        color = Color.Transparent,
+        modifier = modifier
+            .fillMaxWidth()
+            .formLiquidGlassContainer(
+                shape = shape,
+                backdrop = backdrop,
+                hazeState = hazeState,
+                isDark = isDark
+            )
+    ) {
+        val sectionFieldSpec = FieldGlassSpec(backdrop, hazeState, isDark)
+        CompositionLocalProvider(
+            LocalFieldGlassSpec provides sectionFieldSpec
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                content = content
+            )
+        }
+    }
+}
 
 @Composable
 private fun FormFieldDivider(
