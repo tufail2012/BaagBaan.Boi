@@ -41,6 +41,10 @@ import com.example.ui.components.AgriBottomNav
 import com.example.ui.components.AgriHeader
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.example.ui.components.ScrollGlassSource
+import com.example.ui.components.LocalScrollGlassSource
+import com.example.ui.components.SCROLL_GLASS_ENABLED
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
@@ -846,6 +850,12 @@ fun AgriCropMainScreen(
                                             val isRecordsActive = if (isGarden) gardenTabIndex == 1 else viewMode != 0
                                             val activeTabListState = if (isRecordsActive) recordsListState else formListState
 
+                                            val pageScrollLayer = rememberLayerBackdrop()   // NO onDraw argument: must stay transparent
+                                            val pageCombinedBackdrop = rememberCombinedBackdrop(recordsBackdrop, pageScrollLayer)
+                                            val pageScrollGlass = remember(pageScrollLayer, pageCombinedBackdrop) {
+                                                ScrollGlassSource(pageScrollLayer, pageCombinedBackdrop)
+                                            }
+
                                             LaunchedEffect(activeTabListState, isRecordsActive, pagerState.currentPage, page) {
                                                 if (pagerState.currentPage == page) {
                                                     androidx.compose.runtime.snapshotFlow {
@@ -866,68 +876,71 @@ fun AgriCropMainScreen(
                                                     }
                                                 }
                                             }
-                                            if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
-                                                com.example.ui.components.GardenPlanningScreen(
-                                                    viewModel = gardenPlanningViewModel,
-                                                    onBack = null,
-                                                    showHeader = false,
-                                                    formListState = formListState,
-                                                    recordsListState = recordsListState,
-                                                    isDark = isDark,
-                                                    themeMode = themeMode,
-                                                    selectedColorHex = accentColorHex,
-                                                    hazeState = hazeState,
-                                                    backdrop = recordsBackdrop,
-                                                    contentBackdrop = gardenContentBackdrop,
-                                                    onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
-                                                    onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
-                                                    searchQuery = searchQuery,
-                                                    onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
-                                                    isSearchActive = isGlobalSearchActive,
-                                                    onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
-                                                    onToggleSearch = { viewModel.openGlobalSearch() },
-                                                    onNavigateToAttendance = { isAttendanceActive = true },
-                                                    onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
-                                                    onNavigateToBackupRestore = { showBackupRestoreDialog = true },
-                                                    onNavigateToContactDirectory = { showContactDirectoryDialog = true },
-                                                    onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
-                                                    onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
-                                                    onNavigateToInventory = { showInventoryDialog = true },
-                                                    onOpenRecycleBin = { showRecycleBinDialog = true },
-                                                    onNavigateToDashboard = { isDashboardActive = true },
-                                                    onNavigateToLogin = { isLoginActive = true },
-                                                    onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
-                                                    unreadNotificationCount = unreadCount,
-                                                    onOpenNotifications = { showNotificationCenter = true },
-                                                    currentUserEmail = currentUser?.email,
-                                                    currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
-                                                    onLogout = performLogout,
-                                                    onManualSync = {
-                                                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                                            com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
-                                                        }
-                                                    },
-                                                    onNavigateToSettings = { isSettingsActive = true },
-                                                    modifier = Modifier.fillMaxSize()
-                                                )
-                                            } else {
-                                                when (viewMode) {
-                                                    0 -> FarmerFormScreen(
-                                                        viewModel = viewModel,
+
+                                            CompositionLocalProvider(LocalScrollGlassSource provides (if (SCROLL_GLASS_ENABLED) pageScrollGlass else null)) {
+                                                if (tabCategory.equals("Garden Planning", ignoreCase = true)) {
+                                                    com.example.ui.components.GardenPlanningScreen(
+                                                        viewModel = gardenPlanningViewModel,
+                                                        onBack = null,
+                                                        showHeader = false,
+                                                        formListState = formListState,
+                                                        recordsListState = recordsListState,
+                                                        isDark = isDark,
+                                                        themeMode = themeMode,
+                                                        selectedColorHex = accentColorHex,
                                                         hazeState = hazeState,
                                                         backdrop = recordsBackdrop,
-                                                        lazyListState = formListState
+                                                        contentBackdrop = gardenContentBackdrop,
+                                                        onSelectThemeMode = { mode -> viewModel.setThemeMode(context, mode) },
+                                                        onSelectColorHex = { hex -> viewModel.setAccentColorHex(context, hex) },
+                                                        searchQuery = searchQuery,
+                                                        onSearchQueryChange = { newQuery -> viewModel.setSearchQuery(newQuery) },
+                                                        isSearchActive = isGlobalSearchActive,
+                                                        onSearchActiveChange = { active -> if (active) viewModel.openGlobalSearch() else viewModel.closeGlobalSearch() },
+                                                        onToggleSearch = { viewModel.openGlobalSearch() },
+                                                        onNavigateToAttendance = { isAttendanceActive = true },
+                                                        onNavigateToBookings = { viewModel.selectServiceCategory("Bookings") },
+                                                        onNavigateToBackupRestore = { showBackupRestoreDialog = true },
+                                                        onNavigateToContactDirectory = { showContactDirectoryDialog = true },
+                                                        onNavigateToPaymentReminders = { showPaymentRemindersDialog = true },
+                                                        onNavigateToSeasonalReminders = { showSeasonalRemindersDialog = true },
+                                                        onNavigateToInventory = { showInventoryDialog = true },
+                                                        onOpenRecycleBin = { showRecycleBinDialog = true },
+                                                        onNavigateToDashboard = { isDashboardActive = true },
+                                                        onNavigateToLogin = { isLoginActive = true },
+                                                        onNavigateToGardenPlanning = { viewModel.selectServiceCategory("Garden Planning") },
+                                                        unreadNotificationCount = unreadCount,
+                                                        onOpenNotifications = { showNotificationCenter = true },
+                                                        currentUserEmail = currentUser?.email,
+                                                        currentUserPhotoUrl = currentUser?.photoUrl?.toString(),
+                                                        onLogout = performLogout,
+                                                        onManualSync = {
+                                                            coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                                                com.example.data.FirestoreSyncManager().syncFromCloudToLocal(db.cropRecordDao(), db.attendanceDao(), db.gardenPlanningDao())
+                                                            }
+                                                        },
+                                                        onNavigateToSettings = { isSettingsActive = true },
+                                                        modifier = Modifier.fillMaxSize()
                                                     )
-                                                    else -> {
-                                                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
-                                                        com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
-                                                        FarmerRecordsScreen(
+                                                } else {
+                                                    when (viewMode) {
+                                                        0 -> FarmerFormScreen(
                                                             viewModel = viewModel,
                                                             hazeState = hazeState,
                                                             backdrop = recordsBackdrop,
-                                                            contentBackdrop = recordsContentBackdrop,
-                                                            listState = recordsListState
+                                                            lazyListState = formListState
                                                         )
+                                                        else -> {
+                                                            android.util.Log.d("RECORDS_DEBUG", "Rendering Records with parent backdrop source boundary")
+                                                            com.example.util.CrashReporter.currentScreenName = "Records (FarmerRecordsScreen)"
+                                                            FarmerRecordsScreen(
+                                                                viewModel = viewModel,
+                                                                hazeState = hazeState,
+                                                                backdrop = recordsBackdrop,
+                                                                contentBackdrop = recordsContentBackdrop,
+                                                                listState = recordsListState
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }

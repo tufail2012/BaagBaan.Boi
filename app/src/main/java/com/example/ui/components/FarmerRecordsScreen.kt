@@ -287,6 +287,7 @@ fun FarmerRecordsScreen(
                             Modifier.layerBackdrop(contentBackdrop)
                         } else Modifier
                     )
+                    .scrollGlassSource()
                     .onGloballyPositioned {
                         if (!isBackdropReady) {
                             isBackdropReady = true

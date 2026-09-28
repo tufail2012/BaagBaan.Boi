@@ -88,6 +88,10 @@ fun PruningSubTabs(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val scrollGlass = LocalScrollGlassSource.current
+    val glassBackdrop: Backdrop? = scrollGlass?.combined ?: backdrop
+    val useRealGlass = glassBackdrop != null && isGlassSupported()
+    val realGlassIndicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
 
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
@@ -118,9 +122,9 @@ fun PruningSubTabs(
             .padding(vertical = 4.dp)
             .height(48.dp)
             .then(
-                if (backdrop != null && isGlassSupported()) {
+                if (useRealGlass) {
                     Modifier.recordsLiquidGlass(
-                        backdrop = backdrop,
+                        backdrop = glassBackdrop,
                         shape = containerShape
                     )
                 } else {
@@ -247,12 +251,20 @@ fun PruningSubTabs(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubblyGlassCapsuleIndicator(
-                        hazeState = hazeState,
-                        shape = itemShape,
-                        accentColor = indicatorAccent,
-                        isDark = isDark,
-                        isAmoled = isAmoled
+                    .then(
+                        if (useRealGlass) {
+                            Modifier
+                                .clip(itemShape)
+                                .background(realGlassIndicatorColor, itemShape)
+                        } else {
+                            Modifier.bubblyGlassCapsuleIndicator(
+                                hazeState = hazeState,
+                                shape = itemShape,
+                                accentColor = indicatorAccent,
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+                        }
                     )
             )
 
@@ -379,6 +391,10 @@ fun RootstockSubTabs(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val scrollGlass = LocalScrollGlassSource.current
+    val glassBackdrop: Backdrop? = scrollGlass?.combined ?: backdrop
+    val useRealGlass = glassBackdrop != null && isGlassSupported()
+    val realGlassIndicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
 
     val containerShape = RoundedCornerShape(percent = 50)
     val itemShape = RoundedCornerShape(percent = 50)
@@ -422,9 +438,9 @@ fun RootstockSubTabs(
             .padding(vertical = 4.dp)
             .height(48.dp)
             .then(
-                if (backdrop != null && isGlassSupported()) {
+                if (useRealGlass) {
                     Modifier.recordsLiquidGlass(
-                        backdrop = backdrop,
+                        backdrop = glassBackdrop,
                         shape = containerShape
                     )
                 } else {
@@ -574,12 +590,20 @@ fun RootstockSubTabs(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubblyGlassCapsuleIndicator(
-                        hazeState = hazeState,
-                        shape = itemShape,
-                        accentColor = indicatorAccent,
-                        isDark = isDark,
-                        isAmoled = isAmoled
+                    .then(
+                        if (useRealGlass) {
+                            Modifier
+                                .clip(itemShape)
+                                .background(realGlassIndicatorColor, itemShape)
+                        } else {
+                            Modifier.bubblyGlassCapsuleIndicator(
+                                hazeState = hazeState,
+                                shape = itemShape,
+                                accentColor = indicatorAccent,
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+                        }
                     )
             )
 

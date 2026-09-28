@@ -111,7 +111,9 @@ fun LiquidGlassSegmentedSwitcher(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
-    val useRealGlass = backdrop != null && isGlassSupported()
+    val scrollGlass = LocalScrollGlassSource.current
+    val glassBackdrop: Backdrop? = scrollGlass?.combined ?: backdrop
+    val useRealGlass = glassBackdrop != null && isGlassSupported()
     val realGlassIndicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
 
     // Fully rounded pill (Border Radius: 9999px / 30px)
@@ -145,9 +147,9 @@ fun LiquidGlassSegmentedSwitcher(
             .padding(vertical = 4.dp)
             .height(48.dp)
             .clip(containerShape)
-            .liquidGlassNav(shape = containerShape, backdrop = backdrop)
+            .liquidGlassNav(shape = containerShape, backdrop = glassBackdrop)
             .then(
-                if (!isGlassSupported() || backdrop == null) {
+                if (!isGlassSupported() || glassBackdrop == null) {
                     Modifier
                         .shadow(
                             elevation = 3.dp,

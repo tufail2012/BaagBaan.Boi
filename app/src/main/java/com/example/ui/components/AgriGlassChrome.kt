@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.theme.LocalAppPalette
 import com.example.ui.theme.getDynamicPaletteBackgroundBrush
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -482,5 +485,22 @@ fun GlassSectionHeaderLabel(
             .padding(horizontal = 14.dp, vertical = 6.dp)
     )
 }
+
+const val SCROLL_GLASS_ENABLED = true   // kill switch: false disables scroll-content glass everywhere
+
+class ScrollGlassSource(
+    val scrollLayer: LayerBackdrop, // records ONLY the page's scrolling list, transparent (no opaque base)
+    val combined: Backdrop          // ambient backdrop first, scrollLayer on top
+)
+
+val LocalScrollGlassSource = staticCompositionLocalOf<ScrollGlassSource?> { null }
+
+/** Apply to the scrolling LazyColumn only. Never to a parent of the floating toggle. */
+@Composable
+fun Modifier.scrollGlassSource(): Modifier {
+    val source = LocalScrollGlassSource.current ?: return this
+    return this.layerBackdrop(source.scrollLayer)
+}
+
 
 

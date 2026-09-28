@@ -934,6 +934,7 @@ fun GardenPlanningFormTab(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .scrollGlassSource()
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -2521,6 +2522,7 @@ fun GardenPlanningRecordsTab(
                                 Modifier.layerBackdrop(contentBackdrop)
                             } else Modifier
                         )
+                        .scrollGlassSource()
                         .onGloballyPositioned {
                             if (!isBackdropReady) {
                                 isBackdropReady = true

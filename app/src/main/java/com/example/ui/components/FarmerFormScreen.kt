@@ -900,6 +900,7 @@ fun FarmerFormScreen(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .scrollGlassSource()
                     .imePadding(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
