@@ -1893,7 +1893,8 @@ fun GardenPlanningFormTab(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Row(
