@@ -198,11 +198,9 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.graphics.RectangleShape
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -1016,20 +1014,12 @@ fun FarmerFormScreen(
                 .then(
                     if (isGlassApiSupported) {
                         val blurPx = with(density) { 16.dp.toPx() }
-                        val lensHeightPx = with(density) { 24.dp.toPx() }
-                        val lensAmountPx = with(density) { 24.dp.toPx() }
                         Modifier.drawBackdrop(
                             backdrop = newEntryBackdrop,
-                            shape = { RectangleShape },
+                            shape = { RoundedCornerShape(0.dp) },
                             effects = {
                                 vibrancy()
                                 blur(blurPx)
-                                lens(
-                                    refractionHeight = lensHeightPx,
-                                    refractionAmount = lensAmountPx,
-                                    depthEffect = true,
-                                    chromaticAberration = true
-                                )
                             },
                             highlight = { Highlight.Default },
                             shadow = { Shadow.Default },
