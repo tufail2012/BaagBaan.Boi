@@ -52,6 +52,9 @@ import com.example.ui.components.glassCardBackground
 import com.example.ui.components.AppDefaultWordKeyboardOptions
 import com.example.ui.components.capitalizeWordsNaturally
 import com.example.ui.components.PremiumGlassAmbientBackdrop
+import com.example.ui.components.StaggeredEntranceWrapper
+import com.example.ui.components.pressScale
+import com.example.ui.animation.iosPressable
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.rememberScrollUnderHeaderTopPadding
@@ -168,6 +171,7 @@ fun AttendanceHomeScreen(
     val hazeState = remember { HazeState() }
     val attendanceHomeListState = rememberLazyListState()
     attendanceHomeListState.rememberScrollHapticFeedback()
+    val animatedWorkerIds = remember { mutableSetOf<Any>() }
 
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
@@ -359,14 +363,22 @@ fun AttendanceHomeScreen(
                             val workerRecords = monthRecords.filter { it.workerId == worker.workerId }
                             val presentCount = workerRecords.count { it.status == AttendanceStatus.PRESENT }
                             val absentCount = workerRecords.count { it.status == AttendanceStatus.ABSENT }
+                            val workerIndex = filteredWorkers.indexOf(worker)
 
-                            WorkerSummaryCard(
-                                worker = worker,
-                                presentCount = presentCount,
-                                absentCount = absentCount,
-                                onClick = { onSelectWorker(worker) },
-                                onEditClick = { workerToEdit = worker }
-                            )
+                            StaggeredEntranceWrapper(
+                                itemId = worker.workerId,
+                                index = workerIndex,
+                                animatedItemIds = animatedWorkerIds,
+                                modifier = Modifier.animateItem()
+                            ) {
+                                WorkerSummaryCard(
+                                    worker = worker,
+                                    presentCount = presentCount,
+                                    absentCount = absentCount,
+                                    onClick = { onSelectWorker(worker) },
+                                    onEditClick = { workerToEdit = worker }
+                                )
+                            }
                         }
                     }
 
@@ -520,14 +532,17 @@ fun AttendanceHomeScreen(
             }
         }
 
+        val addWorkerFabInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
         FloatingActionButton(
             onClick = { showAddWorkerDialog = true },
+            interactionSource = addWorkerFabInteractionSource,
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .navigationBarsPadding()
                 .padding(bottom = 16.dp, end = 16.dp)
+                .pressScale(addWorkerFabInteractionSource)
                 .testTag("add_worker_fab")
         ) {
             Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "Add Worker")
@@ -581,7 +596,7 @@ fun WorkerSummaryCard(
                 accentColor = MaterialTheme.colorScheme.primary,
                 isDark = isDark
             )
-            .clickable { onClick() }
+            .iosPressable { onClick() }
             .testTag("worker_card_${worker.workerId}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(

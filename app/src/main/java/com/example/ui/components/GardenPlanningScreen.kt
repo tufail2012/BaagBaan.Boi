@@ -2628,7 +2628,8 @@ fun GardenPlanningRecordsTab(
                         StaggeredEntranceWrapper(
                             itemId = entry.id,
                             index = index,
-                            animatedItemIds = animatedItemIds
+                            animatedItemIds = animatedItemIds,
+                            modifier = Modifier.animateItem()
                         ) {
                             SwipeableGardenPlanningItem(
                                 entry = entry,

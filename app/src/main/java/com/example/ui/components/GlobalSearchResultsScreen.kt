@@ -451,7 +451,8 @@ fun GlobalSearchResultsScreen(
                         StaggeredEntranceWrapper(
                             itemId = itemId,
                             index = index,
-                            animatedItemIds = animatedItemIds
+                            animatedItemIds = animatedItemIds,
+                            modifier = Modifier.animateItem()
                         ) {
                             val onDeleteItem: () -> Unit = {
                                 when (item) {

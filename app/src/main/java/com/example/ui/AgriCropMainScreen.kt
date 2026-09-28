@@ -100,6 +100,8 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.exceptions.ClearCredentialException
 
+import com.example.ui.animation.IosMotion
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgriCropMainScreen(
@@ -371,44 +373,38 @@ fun AgriCropMainScreen(
         AnimatedContent(
             targetState = currentRootScreen,
         transitionSpec = {
-            if (initialState == "LOGIN") {
-                (fadeIn(animationSpec = tween(450)) + scaleIn(initialScale = 0.95f, animationSpec = tween(450)))
-                    .togetherWith(fadeOut(animationSpec = tween(200)))
-            } else if (targetState == "LOGIN") {
-                fadeIn(animationSpec = tween(300))
-                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            val isReduced = IosMotion.isReducedMotion(context)
+            val topLevelScreens = setOf("MAIN", "DASHBOARD", "ATTENDANCE")
+            val isTopLevelTransition = initialState in topLevelScreens && targetState in topLevelScreens
+
+            if (isTopLevelTransition) {
+                IosMotion.tabCrossfade(isReduced)
+            } else if (initialState == "LOGIN" || targetState == "LOGIN") {
+                IosMotion.tabCrossfade(isReduced)
             } else {
                 val rootRank = { s: String ->
                     when (s) {
                         "MAIN" -> 0
+                        "DASHBOARD" -> 0
+                        "ATTENDANCE" -> 0
                         "SEARCH" -> 1
-                        "ATTENDANCE" -> 2
-                        "DASHBOARD" -> 3
-                        "SETTINGS" -> 4
-                        "TEMPLATES" -> 5
-                        "SEASONAL_REMINDERS" -> 6
-                        "PAYMENT_REMINDERS" -> 7
-                        "INVENTORY" -> 8
-                        "CONTACTS" -> 9
-                        "SCAN_QR" -> 10
-                        "THEME" -> 11
-                        "PERMISSION_ONBOARDING" -> 12
-                        else -> 13
+                        "SETTINGS" -> 2
+                        "TEMPLATES" -> 3
+                        "SEASONAL_REMINDERS" -> 2
+                        "PAYMENT_REMINDERS" -> 2
+                        "INVENTORY" -> 2
+                        "CONTACTS" -> 2
+                        "SCAN_QR" -> 2
+                        "THEME" -> 3
+                        "PERMISSION_ONBOARDING" -> 4
+                        else -> 5
                     }
                 }
-                val slideSpec = tween<IntOffset>(
-                    durationMillis = 380,
-                    easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
-                )
-                val forward = rootRank(targetState) > rootRank(initialState)
+                val forward = rootRank(targetState) >= rootRank(initialState)
                 if (forward) {
-                    (slideInHorizontally(slideSpec) { fullWidth -> fullWidth } togetherWith
-                        slideOutHorizontally(slideSpec) { fullWidth -> -fullWidth / 4 })
-                        .apply { targetContentZIndex = 1f }
+                    IosMotion.forwardTransition(isReduced)
                 } else {
-                    (slideInHorizontally(slideSpec) { fullWidth -> -fullWidth / 4 } togetherWith
-                        slideOutHorizontally(slideSpec) { fullWidth -> fullWidth })
-                        .apply { targetContentZIndex = -1f }
+                    IosMotion.backTransition(isReduced)
                 }
             }
         },

@@ -15,10 +15,14 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.platform.LocalContext
+import com.example.ui.animation.IosMotion
+
 /**
  * Shared staggered entrance animation wrapper for list records.
- * Animates opacity (0f -> 1f), subtle scale (0.95f -> 1f), and downward vertical translation (48dp -> 0dp)
- * with a smooth spring motion and a staggered delay based on list item index.
+ * Animates opacity (0f -> 1f) and vertical translation (24dp -> 0dp)
+ * with iOS spring motion (dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium)
+ * and a 40ms stagger delay for the first 8 items.
  *
  * Tracks already-animated item IDs to ensure the animation plays smoothly once on initial appearance
  * and preserves stability during scroll recycling and state updates.
@@ -29,17 +33,20 @@ fun StaggeredEntranceWrapper(
     index: Int,
     animatedItemIds: MutableSet<Any>,
     modifier: Modifier = Modifier,
-    initialOffsetY: Float = 48f,
-    initialScale: Float = 0.95f,
-    staggerDelayMillis: Long = 45L,
-    maxStaggerIndex: Int = 12,
-    dampingRatio: Float = 0.78f,
-    stiffness: Float = 260f,
+    initialOffsetY: Float = 24f,
+    initialScale: Float = 1.0f,
+    staggerDelayMillis: Long = 40L,
+    maxStaggerIndex: Int = 8,
+    dampingRatio: Float = IosMotion.EnterDampingRatio,
+    stiffness: Float = IosMotion.EnterStiffness,
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
+    val isReducedMotion = remember(context) { IosMotion.isReducedMotion(context) }
     val isAlreadyAnimated = remember(itemId) { itemId in animatedItemIds }
 
-    if (isAlreadyAnimated) {
+    if (isAlreadyAnimated || isReducedMotion || index >= maxStaggerIndex) {
+        animatedItemIds.add(itemId)
         Box(modifier = modifier) {
             content()
         }
@@ -59,20 +66,22 @@ fun StaggeredEntranceWrapper(
             launch {
                 alphaAnim.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(
-                        durationMillis = 320,
-                        easing = FastOutSlowInEasing
-                    )
-                )
-            }
-            launch {
-                scaleAnim.animateTo(
-                    targetValue = 1f,
                     animationSpec = spring(
                         dampingRatio = dampingRatio,
                         stiffness = stiffness
                     )
                 )
+            }
+            if (initialScale != 1.0f) {
+                launch {
+                    scaleAnim.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = dampingRatio,
+                            stiffness = stiffness
+                        )
+                    )
+                }
             }
             slideAnim.animateTo(
                 targetValue = 0f,

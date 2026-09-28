@@ -1,6 +1,7 @@
 package com.example.ui.components.attendance
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHost
@@ -14,8 +15,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.example.data.Worker
 import com.example.ui.AttendanceViewModel
+import com.example.ui.animation.IosMotion
 
 enum class AttendanceViewScreen {
     HOME,
@@ -81,68 +84,85 @@ fun AttendanceMainScreen(
         }
     }
 
+    val context = LocalContext.current
+    val isReducedMotion = remember(context) { IosMotion.isReducedMotion(context) }
+
     Box(modifier = modifier.fillMaxSize()) {
-        when (currentScreen) {
-            AttendanceViewScreen.HOME -> {
-                AttendanceHomeScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = onNavigateBackToMain,
-                    onOpenDailyMarking = {
-                        currentScreen = AttendanceViewScreen.DAILY_MARKING
-                    },
-                    onSelectWorker = { worker ->
-                        viewModel.setSelectedWorker(worker)
-                        currentScreen = AttendanceViewScreen.WORKER_DETAIL
-                    },
-                    themeMode = themeMode,
-                    selectedColorHex = selectedColorHex,
-                    onSelectThemeMode = onSelectThemeMode,
-                    onSelectColorHex = onSelectColorHex,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = onSearchQueryChange,
-                    isSearchActive = isSearchActive,
-                    onSearchActiveChange = onSearchActiveChange,
-                    onToggleSearch = onToggleSearch,
-                    onNavigateToAttendance = onNavigateToAttendance,
-                    onNavigateToBookings = onNavigateToBookings,
-                    onNavigateToBackupRestore = onNavigateToBackupRestore,
-                    onNavigateToContactDirectory = onNavigateToContactDirectory,
-                    onNavigateToPaymentReminders = onNavigateToPaymentReminders,
-                    onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
-                    onNavigateToDashboard = onNavigateToDashboard,
-                    onNavigateToInventory = onNavigateToInventory,
-                    onOpenRecycleBin = onOpenRecycleBin,
-                    onNavigateToLogin = onNavigateToLogin,
-                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
-                    unreadNotificationCount = unreadNotificationCount,
-                    onOpenNotifications = onOpenNotifications,
-                    currentUserEmail = currentUserEmail,
-                    currentUserPhotoUrl = currentUserPhotoUrl,
-                    onLogout = onLogout,
-                    onManualSync = onManualSync,
-                    onNavigateToSettings = onNavigateToSettings
-                )
-            }
-            AttendanceViewScreen.DAILY_MARKING -> {
-                DailyMarkingScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = {
-                        currentScreen = AttendanceViewScreen.HOME
-                    }
-                )
-            }
-            AttendanceViewScreen.WORKER_DETAIL -> {
-                selectedWorker?.let { worker ->
-                    WorkerDetailCalendarScreen(
+        AnimatedContent(
+            targetState = currentScreen,
+            transitionSpec = {
+                val forward = targetState != AttendanceViewScreen.HOME && initialState == AttendanceViewScreen.HOME
+                if (forward) {
+                    IosMotion.forwardTransition(isReducedMotion)
+                } else {
+                    IosMotion.backTransition(isReducedMotion)
+                }
+            },
+            label = "AttendanceScreenTransition",
+            modifier = Modifier.fillMaxSize()
+        ) { targetViewScreen ->
+            when (targetViewScreen) {
+                AttendanceViewScreen.HOME -> {
+                    AttendanceHomeScreen(
                         viewModel = viewModel,
-                        worker = worker,
+                        onNavigateBack = onNavigateBackToMain,
+                        onOpenDailyMarking = {
+                            currentScreen = AttendanceViewScreen.DAILY_MARKING
+                        },
+                        onSelectWorker = { worker ->
+                            viewModel.setSelectedWorker(worker)
+                            currentScreen = AttendanceViewScreen.WORKER_DETAIL
+                        },
+                        themeMode = themeMode,
+                        selectedColorHex = selectedColorHex,
+                        onSelectThemeMode = onSelectThemeMode,
+                        onSelectColorHex = onSelectColorHex,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = onSearchQueryChange,
+                        isSearchActive = isSearchActive,
+                        onSearchActiveChange = onSearchActiveChange,
+                        onToggleSearch = onToggleSearch,
+                        onNavigateToAttendance = onNavigateToAttendance,
+                        onNavigateToBookings = onNavigateToBookings,
+                        onNavigateToBackupRestore = onNavigateToBackupRestore,
+                        onNavigateToContactDirectory = onNavigateToContactDirectory,
+                        onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                        onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
+                        onNavigateToDashboard = onNavigateToDashboard,
+                        onNavigateToInventory = onNavigateToInventory,
+                        onOpenRecycleBin = onOpenRecycleBin,
+                        onNavigateToLogin = onNavigateToLogin,
+                        onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                        unreadNotificationCount = unreadNotificationCount,
+                        onOpenNotifications = onOpenNotifications,
+                        currentUserEmail = currentUserEmail,
+                        currentUserPhotoUrl = currentUserPhotoUrl,
+                        onLogout = onLogout,
+                        onManualSync = onManualSync,
+                        onNavigateToSettings = onNavigateToSettings
+                    )
+                }
+                AttendanceViewScreen.DAILY_MARKING -> {
+                    DailyMarkingScreen(
+                        viewModel = viewModel,
                         onNavigateBack = {
                             currentScreen = AttendanceViewScreen.HOME
                         }
                     )
-                } ?: run {
-                    LaunchedEffect(Unit) {
-                        currentScreen = AttendanceViewScreen.HOME
+                }
+                AttendanceViewScreen.WORKER_DETAIL -> {
+                    selectedWorker?.let { worker ->
+                        WorkerDetailCalendarScreen(
+                            viewModel = viewModel,
+                            worker = worker,
+                            onNavigateBack = {
+                                currentScreen = AttendanceViewScreen.HOME
+                            }
+                        )
+                    } ?: run {
+                        LaunchedEffect(Unit) {
+                            currentScreen = AttendanceViewScreen.HOME
+                        }
                     }
                 }
             }

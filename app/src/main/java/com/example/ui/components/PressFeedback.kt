@@ -11,23 +11,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 
+import androidx.compose.ui.platform.LocalContext
+import com.example.ui.animation.IosMotion
+
 /**
  * Apple-style press feedback: responds on pointer-down (not release),
- * scales down instantly using a critically-damped spring (no bounce,
- * this isn't a momentum-driven gesture, just direct press feedback).
+ * scales down using iOS spring specs (dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium).
  */
 @Composable
 fun Modifier.pressScale(
     interactionSource: MutableInteractionSource,
     pressedScale: Float = 0.96f
 ): Modifier {
+    val context = LocalContext.current
+    val isReducedMotion = remember(context) { IosMotion.isReducedMotion(context) }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) pressedScale else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = 700f
-        ),
+        targetValue = if (!isReducedMotion && isPressed) pressedScale else 1f,
+        animationSpec = IosMotion.PressSpring,
         label = "pressScale"
     )
     return this.graphicsLayer {

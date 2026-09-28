@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.example.ui.animation.iosPressable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1986,7 +1987,7 @@ private fun CategorySummaryCard(
                 elevation = 2.5.dp,
                 borderWidth = 1.dp
             )
-            .clickable { onClick() }
+            .iosPressable { onClick() }
             .padding(14.dp)
     ) {
         Row(
@@ -2866,7 +2867,7 @@ fun FrostedLiquidModuleTile(
                 isAmoled = isAmoled,
                 elevation = 1.dp
             )
-            .clickable(onClick = data.onClick)
+            .iosPressable(onClick = data.onClick)
             .padding(12.dp)
             .testTag(data.tag)
     ) {
@@ -2964,7 +2965,7 @@ fun FrostedLiquidInventoryCard(
                 isDark = isDark,
                 isAmoled = isAmoled
             )
-            .clickable(onClick = onOpenInventory)
+            .iosPressable(onClick = onOpenInventory)
             .padding(18.dp)
             .testTag("dashboard_module_inventory")
     ) {
@@ -3180,7 +3181,7 @@ fun FrostedLiquidContractDirectorCard(
                 isDark = isDark,
                 isAmoled = isAmoled
             )
-            .clickable(onClick = onOpenContractDirector)
+            .iosPressable(onClick = onOpenContractDirector)
             .padding(18.dp)
             .testTag("dashboard_module_contract_director")
     ) {
@@ -3400,7 +3401,7 @@ fun FrostedLiquidAttendanceCard(
                 isDark = isDark,
                 isAmoled = isAmoled
             )
-            .clickable(onClick = onOpenAttendance)
+            .iosPressable(onClick = onOpenAttendance)
             .padding(18.dp)
             .testTag("dashboard_module_attendance")
     ) {
@@ -3606,7 +3607,7 @@ fun FrostedLiquidPaymentReminderCard(
                 isDark = isDark,
                 isAmoled = isAmoled
             )
-            .clickable(onClick = onOpenPaymentReminders)
+            .iosPressable(onClick = onOpenPaymentReminders)
             .padding(18.dp)
             .testTag("dashboard_module_payment_reminder")
     ) {

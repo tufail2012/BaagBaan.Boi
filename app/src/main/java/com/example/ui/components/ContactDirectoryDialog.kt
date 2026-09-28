@@ -50,6 +50,8 @@ import com.kyant.backdrop.backdrops.layerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import com.example.ui.animation.iosPressable
+import com.example.ui.components.pressScale
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -545,8 +547,10 @@ fun ContactDirectoryDialog(
                 containerColor = Color.Transparent,
                 floatingActionButton = {
                     val fabShape = RoundedCornerShape(percent = 50)
+                    val fabInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                     FloatingActionButton(
                         onClick = { showAddDialog = true },
+                        interactionSource = fabInteractionSource,
                         containerColor = Color.Transparent,
                         contentColor = MaterialTheme.colorScheme.primary,
                         shape = fabShape,
@@ -557,6 +561,7 @@ fun ContactDirectoryDialog(
                             .clip(fabShape)
                             .liquidGlassNav(shape = fabShape, backdrop = contactsBackdrop)
                             .glassEdge(fabShape)
+                            .pressScale(fabInteractionSource)
                             .testTag("add_contact_fab")
                     ) {
                         Icon(
@@ -682,7 +687,7 @@ fun ContactDirectoryDialog(
                                         .liquidGlassNav(shape = RoundedCornerShape(16.dp), backdrop = contactsBackdrop)
                                         .then(if (!isGlassSupported()) Modifier.glassCardBackground(cornerRadius = 16.dp, accentColor = contactAccent, isDark = isDark) else Modifier)
                                         .glassEdge(RoundedCornerShape(16.dp))
-                                        .clickable { selectedContactForDetails = item },
+                                        .iosPressable { selectedContactForDetails = item },
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color.Transparent

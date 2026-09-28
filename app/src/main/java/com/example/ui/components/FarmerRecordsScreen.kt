@@ -17,6 +17,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.example.ui.animation.iosPressable
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -402,7 +403,8 @@ fun FarmerRecordsScreen(
                         StaggeredEntranceWrapper(
                             itemId = record.id,
                             index = index,
-                            animatedItemIds = animatedItemIds
+                            animatedItemIds = animatedItemIds,
+                            modifier = Modifier.animateItem()
                         ) {
                             SwipeableRecordItem(
                                 record = record,
@@ -1119,7 +1121,7 @@ private fun FarmerRecordCard(
                             ),
                             CircleShape
                         )
-                        .clickable {
+                        .iosPressable {
                             if (record.contactNumber.isNotBlank()) {
                                 showCardWhatsAppConfirm = true
                             } else {
@@ -1162,7 +1164,7 @@ private fun FarmerRecordCard(
                             ),
                             RoundedCornerShape(percent = 50)
                         )
-                        .clickable { onOpenDetail() }
+                        .iosPressable { onOpenDetail() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
@@ -1200,7 +1202,7 @@ private fun FarmerRecordCard(
                             ),
                             CircleShape
                         )
-                        .clickable { onEdit() },
+                        .iosPressable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1232,7 +1234,7 @@ private fun FarmerRecordCard(
                             ),
                             CircleShape
                         )
-                        .clickable { onDelete() },
+                        .iosPressable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

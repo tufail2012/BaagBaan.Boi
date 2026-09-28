@@ -4,6 +4,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.TopHeaderScrollScrim
 import com.example.ui.components.rememberScrollUnderHeaderTopPadding
+import com.example.ui.animation.iosPressable
 import androidx.compose.foundation.layout.PaddingValues
 import android.app.Activity
 import androidx.activity.compose.BackHandler
@@ -1069,11 +1070,11 @@ private fun SettingsNavigationRow(
     val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
 
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         color = Color.Transparent,
         modifier = modifier
             .fillMaxWidth()
+            .iosPressable(onClick = onClick)
             .testTag(testTag)
     ) {
         Row(

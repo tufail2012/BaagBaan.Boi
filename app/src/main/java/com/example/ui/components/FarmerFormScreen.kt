@@ -3278,6 +3278,7 @@ fun FarmerFormScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Send Text via WhatsApp
+                val waButtonInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 Button(
                     onClick = {
                         if (contactNumber.isBlank()) {
@@ -3286,9 +3287,11 @@ fun FarmerFormScreen(
                             showWaFormConfirmDialog = true
                         }
                     },
+                    interactionSource = waButtonInteractionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp)
+                        .pressScale(waButtonInteractionSource)
                         .testTag("send_text_via_whatsapp_button"),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                     shape = RoundedCornerShape(14.dp),
@@ -3313,6 +3316,7 @@ fun FarmerFormScreen(
                 }
 
                 // Send Text via SMS
+                val smsButtonInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
                 Button(
                     onClick = {
                         if (contactNumber.isBlank()) {
@@ -3321,9 +3325,11 @@ fun FarmerFormScreen(
                             showSmsFormConfirmDialog = true
                         }
                     },
+                    interactionSource = smsButtonInteractionSource,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp)
+                        .pressScale(smsButtonInteractionSource)
                         .testTag("send_text_via_sms_button"),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
                     shape = RoundedCornerShape(14.dp),
