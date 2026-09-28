@@ -1161,24 +1161,11 @@ fun FarmerFormScreen(
                     }
 
                     if (isLocalPlants) {
-                        val fieldBorderColor = if (isDark) {
-                            Color.White.copy(alpha = 0.16f)
-                        } else {
-                            Color.Black.copy(alpha = 0.12f)
-                        }
-                        val fieldOutlineModifier = Modifier
-                            .fillMaxWidth()
-                            .border(width = 0.8.dp, color = fieldBorderColor, shape = textFieldShape)
-
-                        Box(modifier = fieldOutlineModifier) {
-                            farmerNameField()
-                        }
-                        Box(modifier = fieldOutlineModifier) {
-                            farmerAddressField()
-                        }
-                        Box(modifier = fieldOutlineModifier) {
-                            contactNumberField()
-                        }
+                        // fieldGlass() already draws the rim border on each field,
+                        // so no extra outline wrapper here (it caused a double line).
+                        farmerNameField()
+                        farmerAddressField()
+                        contactNumberField()
                     } else {
                         farmerNameField()
                         FormFieldDivider(isDark = isDark)

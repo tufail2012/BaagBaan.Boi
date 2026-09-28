@@ -111,6 +111,8 @@ fun LiquidGlassSegmentedSwitcher(
     val haptic = LocalHapticFeedback.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val useRealGlass = backdrop != null && isGlassSupported()
+    val realGlassIndicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
 
     // Fully rounded pill (Border Radius: 9999px / 30px)
     val containerShape = RoundedCornerShape(percent = 50)
@@ -228,23 +230,25 @@ fun LiquidGlassSegmentedSwitcher(
             // Neutral "glass" base for every tab slot, so the unselected tab also
             // has a glass look (not just flat/plain). The accent-colored indicator
             // below still renders on top of this for the selected tab.
-            Row(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items.forEachIndexed { index, _ ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .padding(1.dp)
-                            .bubblyGlassCapsuleIndicator(
-                                hazeState = hazeState,
-                                shape = itemShape,
-                                accentColor = Color.White,
-                                isDark = isDark,
-                                isAmoled = isAmoled
-                            )
-                    )
+            if (!useRealGlass) {
+                Row(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items.forEachIndexed { index, _ ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(1.dp)
+                                .bubblyGlassCapsuleIndicator(
+                                    hazeState = hazeState,
+                                    shape = itemShape,
+                                    accentColor = Color.White,
+                                    isDark = isDark,
+                                    isAmoled = isAmoled
+                                )
+                        )
+                    }
                 }
             }
 
@@ -298,12 +302,20 @@ fun LiquidGlassSegmentedSwitcher(
                         scaleX = dynamicScaleX
                         scaleY = dynamicScaleY
                     }
-                    .bubblyGlassCapsuleIndicator(
-                        hazeState = hazeState,
-                        shape = itemShape,
-                        accentColor = indicatorAccent,
-                        isDark = isDark,
-                        isAmoled = isAmoled
+                    .then(
+                        if (useRealGlass) {
+                            Modifier
+                                .clip(itemShape)
+                                .background(realGlassIndicatorColor, itemShape)
+                        } else {
+                            Modifier.bubblyGlassCapsuleIndicator(
+                                hazeState = hazeState,
+                                shape = itemShape,
+                                accentColor = indicatorAccent,
+                                isDark = isDark,
+                                isAmoled = isAmoled
+                            )
+                        }
                     )
             )
 
