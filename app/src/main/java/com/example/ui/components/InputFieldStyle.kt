@@ -1388,7 +1388,7 @@ fun Modifier.fieldLiquidGlass(
                     Modifier.background(fieldTint.copy(alpha = fallbackFillAlpha), shape)
                 }
             } else {
-                Modifier.background(fieldTint.copy(alpha = supportedFillAlpha), shape)
+                Modifier
             }
         )
         .border(

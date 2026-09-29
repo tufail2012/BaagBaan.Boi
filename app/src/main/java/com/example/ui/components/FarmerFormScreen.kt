@@ -899,7 +899,7 @@ fun FarmerFormScreen(
                 .fillMaxSize()
                 .claySheetBackground(accentColor = formAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
         ) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides null) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier

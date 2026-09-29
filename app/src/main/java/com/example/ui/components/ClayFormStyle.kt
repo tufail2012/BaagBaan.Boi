@@ -18,6 +18,7 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -179,10 +180,14 @@ fun ClaySectionCard(
                     .background(clayAccentGradient(if (accentColor != Color.Unspecified) accentColor else MaterialTheme.colorScheme.primary), RoundedCornerShape(1.dp))
             )
         }
-        Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            content = content
-        )
+        CompositionLocalProvider(
+            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                content = content
+            )
+        }
     }
 }
 
