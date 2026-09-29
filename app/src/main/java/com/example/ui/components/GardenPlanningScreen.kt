@@ -493,7 +493,8 @@ fun GardenPlanningScreen(
                                 hazeState = effectiveHazeState,
                                 backdrop = backdrop,
                                 lazyListState = formListState,
-                                showHeader = showHeader
+                                showHeader = showHeader,
+                                themeMode = themeMode
                             )
                         }
                         1 -> {
@@ -679,14 +680,15 @@ fun GardenPlanningFormTab(
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
     lazyListState: LazyListState = rememberLazyListState(),
-    showHeader: Boolean = true
+    showHeader: Boolean = true,
+    themeMode: com.example.ui.AppThemeMode = com.example.ui.AppThemeMode.SYSTEM
 ) {
     val density = LocalDensity.current
     var floatingControlsHeightPx by remember { mutableStateOf(0) }
     val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
 
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
-    val isAmoled = isAppInAmoledMode()
+    val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
     val context = LocalContext.current
@@ -938,6 +940,7 @@ fun GardenPlanningFormTab(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
+                .scrollGlassSource()
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
