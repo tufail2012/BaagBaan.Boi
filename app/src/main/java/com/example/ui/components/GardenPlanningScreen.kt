@@ -928,13 +928,16 @@ fun GardenPlanningFormTab(
 
     lazyListState.rememberScrollHapticFeedback()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .claySheetBackground(accentColor = gardenAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
+    ) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides null) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .scrollGlassSource()
                 .imePadding(),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -1893,7 +1896,7 @@ fun GardenPlanningFormTab(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldLiquidGlass(shape = CLAY_FIELD_SHAPE, backdrop = backdrop, hazeState = hazeState, isDark = isDark, accentColor = gardenAccent)
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {

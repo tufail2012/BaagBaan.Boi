@@ -186,14 +186,27 @@ fun ClaySectionCard(
     }
 }
 
-val CLAY_SHEET_SHAPE = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+val CLAY_SHEET_SHAPE = RoundedCornerShape(0.dp)
 
 /** One continuous "sheet" background for the whole scrolling form, instead of separate floating cards. */
-fun Modifier.claySheetBackground(accentColor: Color, isDark: Boolean, isAmoled: Boolean): Modifier {
-    val sheetColor = when {
-        isAmoled -> Color.Black
-        isDark -> getAppDimBackgroundColor(accentColor, isDark = true, isAmoled = false)
-        else -> Color.White
+@Composable
+fun Modifier.claySheetBackground(accentColor: Color, isDark: Boolean, isAmoled: Boolean, backdrop: com.kyant.backdrop.Backdrop? = null): Modifier {
+    if (isAmoled) {
+        return this.background(color = Color.Black, shape = CLAY_SHEET_SHAPE)
+    }
+    if (backdrop != null && isGlassSupported()) {
+        return this.liquidGlassNav(shape = CLAY_SHEET_SHAPE, backdrop = backdrop)
+    }
+    val sheetColor = if (isDark) {
+        // Dark shade of the selected accent color itself
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(accentColor.toArgb(), hsv)
+        Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.55f, 0.16f)))
+    } else {
+        // Secondary (light, muted) shade of the selected accent color
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(accentColor.toArgb(), hsv)
+        Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], 0.16f, 0.96f)))
     }
     return this.background(color = sheetColor, shape = CLAY_SHEET_SHAPE)
 }

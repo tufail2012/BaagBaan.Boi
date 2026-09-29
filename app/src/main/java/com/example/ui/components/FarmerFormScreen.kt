@@ -894,13 +894,16 @@ fun FarmerFormScreen(
 
         val pillShape = textFieldShape
 
-        Box(modifier = Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .claySheetBackground(accentColor = formAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
+        ) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides null) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
-                    .scrollGlassSource()
                     .imePadding(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -2677,7 +2680,7 @@ fun FarmerFormScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldLiquidGlass(shape = CLAY_FIELD_SHAPE, backdrop = backdrop, hazeState = hazeState, isDark = isDark, accentColor = formAccent)
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -2853,7 +2856,7 @@ fun FarmerFormScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldLiquidGlass(shape = CLAY_FIELD_SHAPE, backdrop = backdrop, hazeState = hazeState, isDark = isDark, accentColor = formAccent)
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
