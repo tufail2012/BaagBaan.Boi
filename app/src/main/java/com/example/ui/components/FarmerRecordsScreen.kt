@@ -461,29 +461,36 @@ fun FarmerRecordsScreen(
                 }
 
                 // 2. Dedicated Sub-Tabs for Pruning & Rootstocks
-                if (selectedService.equals("Pruning", ignoreCase = true)) {
-                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
-                    PruningSubTabs(
-                        selectedSubTab = selectedPruningSubTab,
-                        onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                        accentColor = paletteColor,
-                        hazeState = effectiveHazeState,
-                        backdrop = recordsBackdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-                    android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Rootstocks)")
-                    RootstockSubTabs(
-                        selectedSubTab = selectedRootstockSubTab,
-                        selectedGenevaOption = selectedGenevaOption,
-                        onSelectSubTab = { subTab, genevaOpt ->
-                            viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                        },
-                        accentColor = paletteColor,
-                        hazeState = effectiveHazeState,
-                        backdrop = recordsBackdrop,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                AnimatedVisibility(
+                    visible = selectedService.equals("Pruning", ignoreCase = true) ||
+                        selectedService.equals("Rootstocks", ignoreCase = true),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    if (selectedService.equals("Pruning", ignoreCase = true)) {
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Pruning)")
+                        PruningSubTabs(
+                            selectedSubTab = selectedPruningSubTab,
+                            onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                            accentColor = paletteColor,
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                        android.util.Log.d("RECORDS_DEBUG", "Rendering Records SubTabs (Rootstocks)")
+                        RootstockSubTabs(
+                            selectedSubTab = selectedRootstockSubTab,
+                            selectedGenevaOption = selectedGenevaOption,
+                            onSelectSubTab = { subTab, genevaOpt ->
+                                viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                            },
+                            accentColor = paletteColor,
+                            hazeState = effectiveHazeState,
+                            backdrop = recordsBackdrop,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
 

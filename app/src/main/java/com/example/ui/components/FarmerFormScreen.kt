@@ -3432,27 +3432,34 @@ fun FarmerFormScreen(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        if (selectedService.equals("Pruning", ignoreCase = true)) {
-            PruningSubTabs(
-                selectedSubTab = selectedPruningSubTab,
-                onSelectSubTab = { viewModel.selectPruningSubTab(it) },
-                accentColor = formAccent,
-                hazeState = hazeState,
-                backdrop = backdrop,
-                modifier = Modifier.fillMaxWidth()
-            )
-        } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
-            RootstockSubTabs(
-                selectedSubTab = selectedRootstockSubTab,
-                selectedGenevaOption = selectedGenevaOption,
-                onSelectSubTab = { subTab, genevaOpt ->
-                    viewModel.selectRootstockSubTab(subTab, genevaOpt)
-                },
-                accentColor = formAccent,
-                hazeState = hazeState,
-                backdrop = backdrop,
-                modifier = Modifier.fillMaxWidth()
-            )
+        AnimatedVisibility(
+            visible = selectedService.equals("Pruning", ignoreCase = true) ||
+                selectedService.equals("Rootstocks", ignoreCase = true),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            if (selectedService.equals("Pruning", ignoreCase = true)) {
+                PruningSubTabs(
+                    selectedSubTab = selectedPruningSubTab,
+                    onSelectSubTab = { viewModel.selectPruningSubTab(it) },
+                    accentColor = formAccent,
+                    hazeState = hazeState,
+                    backdrop = backdrop,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else if (selectedService.equals("Rootstocks", ignoreCase = true)) {
+                RootstockSubTabs(
+                    selectedSubTab = selectedRootstockSubTab,
+                    selectedGenevaOption = selectedGenevaOption,
+                    onSelectSubTab = { subTab, genevaOpt ->
+                        viewModel.selectRootstockSubTab(subTab, genevaOpt)
+                    },
+                    accentColor = formAccent,
+                    hazeState = hazeState,
+                    backdrop = backdrop,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
