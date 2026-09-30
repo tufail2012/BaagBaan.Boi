@@ -549,9 +549,9 @@ fun elevatedInputFieldColors(
     isDark: Boolean = isAppInDarkMode(),
     accentColor: Color = MaterialTheme.colorScheme.primary
 ): TextFieldColors {
-    val textPrimary = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-    val textSecondary = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569)
-    val labelUnfocused = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B)
+    val textPrimary = if (isDark) Color.White else Color.Black
+    val textSecondary = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B)
+    val labelUnfocused = if (isDark) Color(0xFFF1F5F9) else Color(0xFF334155)
 
     return OutlinedTextFieldDefaults.colors(
         focusedContainerColor = Color.Transparent,
