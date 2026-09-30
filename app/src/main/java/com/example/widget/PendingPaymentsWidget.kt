@@ -3,6 +3,7 @@ package com.example.widget
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.RemoteViews
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -11,6 +12,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
@@ -121,44 +123,48 @@ class PendingPaymentsWidget : GlanceAppWidget() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
 
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(ColorProvider(Color(0xFF1E293B)))
-                .cornerRadius(16.dp)
-                .padding(14.dp)
-                .clickable(actionStartActivity(clickIntent)),
-            contentAlignment = Alignment.Center
+        AndroidRemoteViews(
+            remoteViews = RemoteViews(context.packageName, R.layout.widget_glass_container),
+            containerViewId = R.id.glance_widget_content
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .cornerRadius(16.dp)
+                    .padding(14.dp)
+                    .clickable(actionStartActivity(clickIntent)),
+                contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_apple_logo),
-                        contentDescription = "App Icon",
-                        modifier = GlanceModifier.size(24.dp)
-                    )
-                    Spacer(modifier = GlanceModifier.width(8.dp))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            provider = ImageProvider(R.drawable.ic_apple_logo),
+                            contentDescription = "App Icon",
+                            modifier = GlanceModifier.size(24.dp)
+                        )
+                        Spacer(modifier = GlanceModifier.width(8.dp))
+                        Text(
+                            text = "BAAGBAAN BOI",
+                            style = TextStyle(
+                                color = ColorProvider(Color(0xFF86EFAC)),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                    Spacer(modifier = GlanceModifier.height(8.dp))
                     Text(
-                        text = "BAAGBAAN BOI",
+                        text = "Sign in to Baagbaan Boi to see updates",
                         style = TextStyle(
-                            color = ColorProvider(Color(0xFF86EFAC)),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
+                            color = ColorProvider(Color.White),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
                         )
                     )
                 }
-                Spacer(modifier = GlanceModifier.height(8.dp))
-                Text(
-                    text = "Sign in to Baagbaan Boi to see updates",
-                    style = TextStyle(
-                        color = ColorProvider(Color.White),
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center
-                    )
-                )
             }
         }
     }
@@ -177,158 +183,162 @@ class PendingPaymentsWidget : GlanceAppWidget() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
 
-        val bgColor = if (pendingCount > 0) Color(0xFF131D24) else Color(0xFF0F201B)
+        val layoutId = if (pendingCount > 0) R.layout.widget_glass_container_pending else R.layout.widget_glass_container_nopending
         val accentColor = if (pendingCount > 0) Color(0xFFFF6B6B) else Color(0xFF4ADE80)
 
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .background(ColorProvider(bgColor))
-                .cornerRadius(18.dp)
-                .padding(14.dp)
-                .clickable(actionStartActivity(clickIntent))
+        AndroidRemoteViews(
+            remoteViews = RemoteViews(context.packageName, layoutId),
+            containerViewId = R.id.glance_widget_content
         ) {
-            Column(
-                modifier = GlanceModifier.fillMaxSize()
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .cornerRadius(18.dp)
+                    .padding(14.dp)
+                    .clickable(actionStartActivity(clickIntent))
             ) {
-                // Header: Branding + Status Chip
-                Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = GlanceModifier.fillMaxSize()
                 ) {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_apple_logo),
-                        contentDescription = "App Icon",
-                        modifier = GlanceModifier.size(22.dp)
-                    )
-                    Spacer(modifier = GlanceModifier.width(6.dp))
-                    Text(
-                        text = "BAAGBAAN BOI",
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFFE2E8F0)),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                    Box(
-                        modifier = GlanceModifier
-                            .background(ColorProvider(if (pendingCount > 0) Color(0x33FF6B6B) else Color(0x334ADE80)))
-                            .cornerRadius(10.dp)
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    // Header: Branding + Status Chip
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Image(
+                            provider = ImageProvider(R.drawable.ic_apple_logo),
+                            contentDescription = "App Icon",
+                            modifier = GlanceModifier.size(22.dp)
+                        )
+                        Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
-                            text = if (pendingCount > 0) "$pendingCount Pending" else "All Clear",
+                            text = "BAAGBAAN BOI",
                             style = TextStyle(
-                                color = ColorProvider(accentColor),
-                                fontSize = 10.sp,
+                                color = ColorProvider(Color(0xFFE2E8F0)),
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         )
-                    }
-                }
-
-                Spacer(modifier = GlanceModifier.height(8.dp))
-
-                // Body: Main Amount & Description or Empty State
-                if (pendingCount > 0) {
-                    Row(
-                        modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        Column(modifier = GlanceModifier.defaultWeight()) {
+                        Spacer(modifier = GlanceModifier.defaultWeight())
+                        Box(
+                            modifier = GlanceModifier
+                                .background(ColorProvider(if (pendingCount > 0) Color(0x33FF6B6B) else Color(0x334ADE80)))
+                                .cornerRadius(10.dp)
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
                             Text(
-                                text = "Pending Dues",
+                                text = if (pendingCount > 0) "$pendingCount Pending" else "All Clear",
                                 style = TextStyle(
-                                    color = ColorProvider(Color(0xFF94A3B8)),
-                                    fontSize = 11.sp
-                                )
-                            )
-                            Text(
-                                text = formattedTotal,
-                                style = TextStyle(
-                                    color = ColorProvider(Color.White),
-                                    fontSize = 22.sp,
+                                    color = ColorProvider(accentColor),
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             )
                         }
+                    }
 
-                        if (nearestUpcomingDate != null) {
-                            Column(
-                                horizontalAlignment = Alignment.End
-                            ) {
+                    Spacer(modifier = GlanceModifier.height(8.dp))
+
+                    // Body: Main Amount & Description or Empty State
+                    if (pendingCount > 0) {
+                        Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column(modifier = GlanceModifier.defaultWeight()) {
                                 Text(
-                                    text = "Next Delivery",
+                                    text = "Pending Dues",
                                     style = TextStyle(
                                         color = ColorProvider(Color(0xFF94A3B8)),
-                                        fontSize = 10.sp
+                                        fontSize = 11.sp
                                     )
                                 )
                                 Text(
-                                    text = nearestUpcomingDate,
+                                    text = formattedTotal,
                                     style = TextStyle(
-                                        color = ColorProvider(Color(0xFF38BDF8)),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium
+                                        color = ColorProvider(Color.White),
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 )
                             }
+
+                            if (nearestUpcomingDate != null) {
+                                Column(
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    Text(
+                                        text = "Next Delivery",
+                                        style = TextStyle(
+                                            color = ColorProvider(Color(0xFF94A3B8)),
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = nearestUpcomingDate,
+                                        style = TextStyle(
+                                            color = ColorProvider(Color(0xFF38BDF8)),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                }
+                            }
                         }
-                    }
 
-                    Spacer(modifier = GlanceModifier.defaultWeight())
+                        Spacer(modifier = GlanceModifier.defaultWeight())
 
-                    // Footer hint
-                    Row(
-                        modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Tap to open Payment Reminders →",
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFF64748B)),
-                                fontSize = 10.sp
+                        // Footer hint
+                        Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Tap to open Payment Reminders →",
+                                style = TextStyle(
+                                    color = ColorProvider(Color(0xFF64748B)),
+                                    fontSize = 10.sp
+                                )
                             )
-                        )
-                    }
-                } else {
-                    // Empty State: Calm & clear
-                    Column(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .defaultWeight(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "No pending payments",
-                            style = TextStyle(
-                                color = ColorProvider(Color.White),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                        }
+                    } else {
+                        // Empty State: Calm & clear
+                        Column(
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .defaultWeight(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "No pending payments",
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White),
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             )
-                        )
-                        Spacer(modifier = GlanceModifier.height(2.dp))
-                        Text(
-                            text = if (nearestUpcomingDate != null) "Next delivery: $nearestUpcomingDate" else "All customer balances are fully settled",
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFF86EFAC)),
-                                fontSize = 11.sp
+                            Spacer(modifier = GlanceModifier.height(2.dp))
+                            Text(
+                                text = if (nearestUpcomingDate != null) "Next delivery: $nearestUpcomingDate" else "All customer balances are fully settled",
+                                style = TextStyle(
+                                    color = ColorProvider(Color(0xFF86EFAC)),
+                                    fontSize = 11.sp
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    Row(
-                        modifier = GlanceModifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Tap to view orders →",
-                            style = TextStyle(
-                                color = ColorProvider(Color(0xFF64748B)),
-                                fontSize = 10.sp
+                        Row(
+                            modifier = GlanceModifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Tap to view orders →",
+                                style = TextStyle(
+                                    color = ColorProvider(Color(0xFF64748B)),
+                                    fontSize = 10.sp
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
