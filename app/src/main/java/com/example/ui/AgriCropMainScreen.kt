@@ -95,6 +95,7 @@ import com.example.data.MessageTemplateRepository
 import com.example.security.AppLockManager
 import com.example.ui.components.security.AppLockScreen
 import com.example.ui.components.security.SettingsScreen
+import com.example.chat.ui.ChatSectionScreen
 import com.google.firebase.auth.FirebaseAuth
 import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
@@ -120,6 +121,7 @@ fun AgriCropMainScreen(
     var isGardenPlanningActive by remember { mutableStateOf(false) }
     var isDashboardActive by remember { mutableStateOf(false) }
     var isSettingsActive by remember { mutableStateOf(false) }
+    var isChatActive by remember { mutableStateOf(false) }
 
     val effectiveAppLockManager = remember { appLockManager ?: AppLockManager.getInstance(context.applicationContext) }
     val isAppLockEnabled by effectiveAppLockManager.isAppLockEnabled.collectAsState()
@@ -363,6 +365,7 @@ fun AgriCropMainScreen(
         showSeasonalRemindersDialog || showSeasonalRemindersFromVm -> "SEASONAL_REMINDERS"
         isMessageTemplatesActive -> "TEMPLATES"
         isSettingsActive -> "SETTINGS"
+        isChatActive -> "CHAT"
         isDashboardActive -> "DASHBOARD"
         isAttendanceActive -> "ATTENDANCE"
         isGlobalSearchActive -> "SEARCH"
@@ -374,7 +377,7 @@ fun AgriCropMainScreen(
             targetState = currentRootScreen,
         transitionSpec = {
             val isReduced = IosMotion.isReducedMotion(context)
-            val topLevelScreens = setOf("MAIN", "DASHBOARD", "ATTENDANCE")
+            val topLevelScreens = setOf("MAIN", "DASHBOARD", "ATTENDANCE", "CHAT")
             val isTopLevelTransition = initialState in topLevelScreens && targetState in topLevelScreens
 
             if (isTopLevelTransition) {
@@ -387,6 +390,7 @@ fun AgriCropMainScreen(
                         "MAIN" -> 0
                         "DASHBOARD" -> 0
                         "ATTENDANCE" -> 0
+                        "CHAT" -> 0
                         "SEARCH" -> 1
                         "SETTINGS" -> 2
                         "TEMPLATES" -> 3
@@ -460,6 +464,15 @@ fun AgriCropMainScreen(
             "TEMPLATES" -> {
                 MessageTemplateManagerScreen(
                     onNavigateBack = { isMessageTemplatesActive = false },
+                    modifier = modifier
+                )
+            }
+            "CHAT" -> {
+                ChatSectionScreen(
+                    onBack = { isChatActive = false },
+                    accentColor = parsedPaletteColor ?: MaterialTheme.colorScheme.primary,
+                    hazeState = hazeState,
+                    backdrop = recordsBackdrop,
                     modifier = modifier
                 )
             }
@@ -779,6 +792,13 @@ fun AgriCropMainScreen(
                                 },
                                 onNavigateToQrScanner = {
                                     showQrScannerDialog = true
+                                },
+                                onNavigateToChat = {
+                                    if (currentUser == null) {
+                                        isLoginActive = true
+                                    } else {
+                                        isChatActive = true
+                                    }
                                 },
                                 unreadNotificationCount = unreadCount,
                                 onOpenNotifications = {

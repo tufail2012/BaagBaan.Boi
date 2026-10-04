@@ -64,6 +64,7 @@ import com.example.data.FirestoreSyncManager
 import com.example.data.SyncState
 import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -159,6 +160,7 @@ fun AgriHeader(
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
     onNavigateToQrScanner: () -> Unit = {},
+    onNavigateToChat: () -> Unit = {},
     unreadNotificationCount: Int = 0,
     onOpenNotifications: () -> Unit = {},
     currentUserEmail: String? = null,
@@ -389,6 +391,7 @@ fun AgriHeader(
                             onNavigateToBusinessInfo = onNavigateToBusinessInfo,
                             onNavigateToMessageTemplates = onNavigateToMessageTemplates,
                             onNavigateToQrScanner = onNavigateToQrScanner,
+                            onNavigateToChat = onNavigateToChat,
                             onLogout = onLogout,
                             onOpenThemeDialog = onOpenThemeDialog,
                             onOpenRecycleBin = onOpenRecycleBin
@@ -649,6 +652,7 @@ fun AgriHeader(
                                     onNavigateToBusinessInfo = onNavigateToBusinessInfo,
                                     onNavigateToMessageTemplates = onNavigateToMessageTemplates,
                                     onNavigateToQrScanner = onNavigateToQrScanner,
+                                    onNavigateToChat = onNavigateToChat,
                                     onLogout = onLogout,
                                     onOpenThemeDialog = onOpenThemeDialog,
                                     onOpenRecycleBin = onOpenRecycleBin
@@ -880,6 +884,7 @@ private fun OverflowMenuContent(
     onNavigateToBusinessInfo: () -> Unit = {},
     onNavigateToMessageTemplates: () -> Unit = {},
     onNavigateToQrScanner: () -> Unit = {},
+    onNavigateToChat: () -> Unit = {},
     onLogout: () -> Unit,
     onOpenThemeDialog: () -> Unit,
     onOpenRecycleBin: () -> Unit
@@ -1039,6 +1044,27 @@ private fun OverflowMenuContent(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("scan_qr_menu_item$tagSuffix")
+    )
+
+    // 8. Chat
+    DropdownMenuItem(
+        text = {
+            FrostedMenuItemContent(
+                icon = Icons.AutoMirrored.Filled.Chat,
+                title = "Chat",
+                accentColor = menuAccent,
+                textColor = itemTextColor,
+                isDark = isDark
+            )
+        },
+        onClick = {
+            onDismiss()
+            onNavigateToChat()
+        },
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("chat_menu_item$tagSuffix")
     )
 
     // Divider before Settings with subtle neutral line (no gradient, no border)

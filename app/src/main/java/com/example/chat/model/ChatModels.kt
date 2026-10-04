@@ -1,0 +1,61 @@
+package com.example.chat.model
+
+import com.google.firebase.Timestamp
+
+data class ChatUser(
+    val uid: String = "",
+    val username: String = "",
+    val displayName: String = "",
+    val photoUrl: String? = null,
+    val fcmToken: String? = null,
+    val lastSeenAt: Timestamp? = null,
+    val createdAt: Timestamp? = null
+)
+
+data class ParticipantInfo(
+    val uid: String = "",
+    val username: String = "",
+    val displayName: String = "",
+    val photoUrl: String? = null
+)
+
+data class ChatLastMessage(
+    val text: String = "",
+    val senderId: String = "",
+    val timestamp: Timestamp? = null
+)
+
+data class ChatSummary(
+    val chatId: String = "",
+    val type: String = "direct",
+    val participantIds: List<String> = emptyList(),
+    val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
+    val lastMessage: ChatLastMessage? = null,
+    val createdAt: Timestamp? = null
+) {
+    fun getOtherParticipant(currentUid: String): ParticipantInfo? {
+        val otherUid = participantIds.firstOrNull { it != currentUid } ?: return null
+        return participantInfo[otherUid]
+    }
+}
+
+data class ChatMessage(
+    val id: String = "",
+    val senderId: String = "",
+    val text: String = "",
+    val timestamp: Timestamp? = null,
+    val status: String = "sent"
+)
+
+enum class ChatTab(val title: String) {
+    CHATS("Chats"),
+    CALLS("Calls"),
+    GROUPS("Groups"),
+    SETTINGS("Settings")
+}
+
+enum class ChatSubScreen {
+    TABS,
+    SEARCH,
+    CONVERSATION
+}
