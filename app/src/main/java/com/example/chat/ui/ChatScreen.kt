@@ -1,6 +1,12 @@
 package com.example.chat.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -399,14 +405,57 @@ private fun MessageBubble(
 
                 if (timeFormatted.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = timeFormatted,
-                        color = timeColor,
-                        fontSize = 10.sp,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.align(Alignment.End)
-                    )
+                    ) {
+                        Text(
+                            text = timeFormatted,
+                            color = timeColor,
+                            fontSize = 10.sp
+                        )
+                        if (isOwn) {
+                            MessageStatusTicks(status = message.status)
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MessageStatusTicks(
+    status: String,
+    modifier: Modifier = Modifier
+) {
+    val tickColor = when (status) {
+        "read" -> Color(0xFF34D399)
+        "delivered" -> Color.White.copy(alpha = 0.80f)
+        else -> Color.White.copy(alpha = 0.60f)
+    }
+    val isDouble = status == "delivered" || status == "read"
+    val strokeWidthPx = with(LocalDensity.current) { 1.6.dp.toPx() }
+
+    Canvas(
+        modifier = modifier.size(width = if (isDouble) 18.dp else 11.dp, height = 11.dp)
+    ) {
+        fun drawCheck(offsetXPx: Float) {
+            val w = 11.dp.toPx()
+            val h = 11.dp.toPx()
+            val path = Path().apply {
+                moveTo(offsetXPx + w * 0.08f, h * 0.55f)
+                lineTo(offsetXPx + w * 0.38f, h * 0.85f)
+                lineTo(offsetXPx + w * 0.95f, h * 0.18f)
+            }
+            drawPath(
+                path = path,
+                color = tickColor,
+                style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+        }
+        drawCheck(0f)
+        if (isDouble) drawCheck(7.dp.toPx())
     }
 }

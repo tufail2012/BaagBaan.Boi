@@ -341,7 +341,7 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun getChatMessagesFlow(chatId: String): Flow<List<ChatMessage>> = callbackFlow {
+    fun getChatMessagesFlow(chatId: String, currentUid: String): Flow<List<ChatMessage>> = callbackFlow {
         val firestore = db
         if (firestore == null) {
             trySend(emptyList())
@@ -374,11 +374,48 @@ class ChatRepository(private val context: Context) {
                         }
                     }
                     trySend(messages)
+
+                    val toMarkDelivered = snapshot.documents.filter { doc ->
+                        doc.getString("senderId") != currentUid &&
+                            (doc.getString("status") ?: "sent") == "sent"
+                    }
+                    if (toMarkDelivered.isNotEmpty()) {
+                        val batch = firestore.batch()
+                        toMarkDelivered.forEach { doc ->
+                            batch.update(doc.reference, "status", "delivered")
+                        }
+                        batch.commit()
+                    }
                 }
             }
 
         awaitClose {
             listener.remove()
+        }
+    }
+
+    suspend fun markMessagesAsRead(chatId: String, currentUid: String) {
+        val firestore = db ?: return
+        try {
+            val snapshot = firestore.collection("chats")
+                .document(chatId)
+                .collection("messages")
+                .get()
+                .await()
+
+            val unread = snapshot.documents.filter { doc ->
+                doc.getString("senderId") != currentUid &&
+                    (doc.getString("status") ?: "sent") != "read"
+            }
+            if (unread.isEmpty()) return
+
+            val batch = firestore.batch()
+            unread.forEach { doc ->
+                batch.update(doc.reference, "status", "read")
+            }
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking messages as read in $chatId: ${e.message}", e)
         }
     }
 

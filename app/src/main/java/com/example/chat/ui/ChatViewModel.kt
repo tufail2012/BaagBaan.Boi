@@ -287,10 +287,17 @@ class ChatViewModel(
     private fun startListeningToMessages(chatId: String) {
         messagesListenJob?.cancel()
         _messages.value = emptyList()
+        val currentUid = _currentUser.value?.uid ?: return
+
         messagesListenJob = viewModelScope.launch {
-            repository.getChatMessagesFlow(chatId).collectLatest { msgs ->
+            repository.getChatMessagesFlow(chatId, currentUid).collectLatest { msgs ->
                 _messages.value = msgs
             }
+        }
+
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(400)
+            repository.markMessagesAsRead(chatId, currentUid)
         }
     }
 
