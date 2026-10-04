@@ -233,6 +233,11 @@ fun AgriCropMainScreen(
 
     val performLogout: () -> Unit = {
         auth?.signOut()
+        com.example.chat.call.ZegoCallManager.unInit()
+        com.example.chat.data.ChatPreferences(context).apply {
+            lastUid = null
+            lastUsername = null
+        }
         coroutineScope.launch {
             try {
                 val credentialManager = CredentialManager.create(context)

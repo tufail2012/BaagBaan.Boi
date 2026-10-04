@@ -1,6 +1,13 @@
 package com.example.chat.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.chat.call.CallPermissionHelper
+import com.example.chat.call.CallPermissionRationaleDialog
+import com.example.chat.call.ZegoCallManager
+import com.example.chat.call.ZegoConfigRequiredDialog
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -92,6 +99,7 @@ fun ChatScreen(
 
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
     val recipient by viewModel.activeRecipient.collectAsState()
@@ -104,6 +112,52 @@ fun ChatScreen(
     var showProfileDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
     val editingMessageId by viewModel.editingMessageId.collectAsState()
+    val activeChatId by viewModel.activeChatId.collectAsState()
+    val chatsList by viewModel.chatsList.collectAsState()
+    val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
+    val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid } ?: ""
+
+    var showPermissionRationale by remember { mutableStateOf(false) }
+    var showZegoConfigDialog by remember { mutableStateOf(false) }
+    var pendingIsVideoCall by remember { mutableStateOf<Boolean?>(null) }
+    var hasCallPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
+
+    val callPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        hasCallPermissions = results.values.all { it }
+        if (hasCallPermissions) {
+            val isVideo = pendingIsVideoCall ?: false
+            pendingIsVideoCall = null
+            recipient?.let { rec ->
+                if (!ZegoCallManager.isConfigured()) {
+                    showZegoConfigDialog = true
+                } else {
+                    val success = ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
+                    if (!success) {
+                        Toast.makeText(context, "Initiating call to @${rec.username}...", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(context, "Camera & Microphone permissions are needed to place calls", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun initiateCall(isVideo: Boolean) {
+        val rec = recipient ?: return
+        if (!hasCallPermissions) {
+            pendingIsVideoCall = isVideo
+            showPermissionRationale = true
+        } else if (!ZegoCallManager.isConfigured()) {
+            showZegoConfigDialog = true
+        } else {
+            val success = ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
+            if (!success) {
+                Toast.makeText(context, "Initiating call to @${rec.username}...", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -223,6 +277,27 @@ fun ChatScreen(
         )
     }
 
+    if (showPermissionRationale) {
+        CallPermissionRationaleDialog(
+            onDismiss = {
+                showPermissionRationale = false
+                pendingIsVideoCall = null
+            },
+            onConfirm = {
+                showPermissionRationale = false
+                callPermissionLauncher.launch(CallPermissionHelper.getRequiredCallPermissions().toTypedArray())
+            },
+            accentColor = accentColor
+        )
+    }
+
+    if (showZegoConfigDialog) {
+        ZegoConfigRequiredDialog(
+            onDismiss = { showZegoConfigDialog = false },
+            accentColor = accentColor
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -309,14 +384,20 @@ fun ChatScreen(
                     }
                 }
 
-                IconButton(onClick = { viewModel.notifyCallsComingSoon() }) {
+                IconButton(
+                    onClick = { initiateCall(true) },
+                    modifier = Modifier.testTag("conversation_video_call_button")
+                ) {
                     VideoCallIcon(
                         tint = if (isDark) Color.White else Color(0xFF0F172A),
                         modifier = Modifier.size(22.dp)
                     )
                 }
 
-                IconButton(onClick = { viewModel.notifyCallsComingSoon() }) {
+                IconButton(
+                    onClick = { initiateCall(false) },
+                    modifier = Modifier.testTag("conversation_voice_call_button")
+                ) {
                     Icon(
                         imageVector = Icons.Default.Call,
                         contentDescription = "Voice call",

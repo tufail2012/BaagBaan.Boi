@@ -123,6 +123,11 @@ class ChatViewModel(
             if (existing != null && existing.username.isNotBlank()) {
                 _currentUser.value = existing
                 _isUsernameSetupRequired.value = false
+                preferences.lastUid = authUser.uid
+                preferences.lastUsername = existing.username
+                (context.applicationContext as? android.app.Application)?.let { app ->
+                    com.example.chat.call.ZegoCallManager.init(app, authUser.uid, existing.username)
+                }
                 startListeningToChats(authUser.uid)
             } else {
                 _currentUser.value = null
@@ -153,6 +158,11 @@ class ChatViewModel(
                 _currentUser.value = user
                 _isUsernameSetupRequired.value = false
                 _toastMessage.value = "Welcome, @${user.username}!"
+                preferences.lastUid = user.uid
+                preferences.lastUsername = user.username
+                (context.applicationContext as? android.app.Application)?.let { app ->
+                    com.example.chat.call.ZegoCallManager.init(app, user.uid, user.username)
+                }
                 startListeningToChats(user.uid)
             }.onFailure { err ->
                 _usernameError.value = err.message ?: "Failed to set username"
@@ -178,6 +188,10 @@ class ChatViewModel(
             result.onSuccess { updatedUsername ->
                 _currentUser.value = current.copy(username = updatedUsername)
                 _toastMessage.value = "Username updated to @$updatedUsername"
+                preferences.lastUsername = updatedUsername
+                (context.applicationContext as? android.app.Application)?.let { app ->
+                    com.example.chat.call.ZegoCallManager.init(app, current.uid, updatedUsername)
+                }
                 onComplete(true)
             }.onFailure { err ->
                 _usernameError.value = err.message ?: "Failed to change username"
@@ -419,6 +433,16 @@ class ChatViewModel(
 
     fun clearUsernameError() {
         _usernameError.value = null
+    }
+
+    fun logout() {
+        com.example.chat.call.ZegoCallManager.unInit()
+        preferences.lastUid = null
+        preferences.lastUsername = null
+        _currentUser.value = null
+        _activeChatId.value = null
+        _activeRecipient.value = null
+        _messages.value = emptyList()
     }
 }
 

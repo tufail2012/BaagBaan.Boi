@@ -63,3 +63,24 @@ enum class ChatSubScreen {
     SEARCH,
     CONVERSATION
 }
+
+data class CallLogItem(
+    val id: String = "",
+    val callId: String = "",
+    val type: String = "voice", // "voice" | "video"
+    val callerId: String = "",
+    val calleeId: String = "",
+    val participantIds: List<String> = emptyList(),
+    val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
+    val chatId: String? = null,
+    val status: String = "ringing", // "ringing" | "answered" | "declined" | "missed" | "ended"
+    val startedAt: Timestamp? = null,
+    val connectedAt: Timestamp? = null,
+    val endedAt: Timestamp? = null,
+    val durationSeconds: Long? = null
+) {
+    fun getOtherParticipant(currentUid: String): ParticipantInfo? {
+        val otherUid = participantIds.firstOrNull { it != currentUid } ?: return null
+        return participantInfo[otherUid]
+    }
+}

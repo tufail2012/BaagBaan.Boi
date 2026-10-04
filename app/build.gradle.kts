@@ -15,12 +15,25 @@ android {
 
   defaultConfig {
     applicationId = "com.baagbaan.boi"
-    minSdk = 24
+    minSdk = 26
     targetSdk = 36
     versionCode = 7
     versionName = "1.5.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    val zegoAppIdProp = (project.findProperty("ZEGO_APP_ID") as? String)
+        ?: (project.findProperty("zego.app.id") as? String)
+        ?: System.getenv("ZEGO_APP_ID")
+        ?: "893846806"
+
+    val zegoAppSignProp = (project.findProperty("ZEGO_APP_SIGN") as? String)
+        ?: (project.findProperty("zego.app.sign") as? String)
+        ?: System.getenv("ZEGO_APP_SIGN")
+        ?: "873976a416756442ab84ce0d7dca1b146e1e"
+
+    buildConfigField("String", "ZEGO_APP_ID", "\"$zegoAppIdProp\"")
+    buildConfigField("String", "ZEGO_APP_SIGN", "\"$zegoAppSignProp\"")
   }
 
   signingConfigs {
@@ -128,6 +141,10 @@ dependencies {
   // implementation(libs.firebase.ai)
   // Firebase Firestore:
   implementation(libs.firebase.firestore)
+  implementation(libs.firebase.messaging)
+
+  // ZegoCloud Call Kit with Invitation
+  implementation("im.zego:zego_uikit_prebuilt_call_android:3.0.3")
 
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:

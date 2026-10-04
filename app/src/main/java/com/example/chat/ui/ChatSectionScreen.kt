@@ -193,11 +193,9 @@ fun ChatSectionScreen(
                                     }
 
                                     ChatTab.CALLS -> {
-                                        ChatPlaceholderTabScreen(
-                                            title = "Calls",
-                                            subtitle = "High-definition voice and video calls with fellow horticulturists will arrive in an upcoming release.",
-                                            icon = Icons.Default.Call,
-                                            onBack = onBack,
+                                        CallsTabScreen(
+                                            viewModel = chatViewModel,
+                                            onBackToApp = onBack,
                                             accentColor = accentColor
                                         )
                                     }
