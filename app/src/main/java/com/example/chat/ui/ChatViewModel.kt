@@ -381,6 +381,10 @@ class ChatViewModel(
         }
     }
 
+    fun notifyCallsComingSoon() {
+        _toastMessage.value = "Calls are coming soon"
+    }
+
     fun navigateBackFromConversation() {
         val chatId = _activeChatId.value
         val wasGhostMode = _ghostModeEnabled.value

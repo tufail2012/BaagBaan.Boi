@@ -36,7 +36,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -300,9 +302,35 @@ fun ChatScreen(
                             text = "@${recipient?.username}",
                             fontSize = 12.sp,
                             color = accentColor,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
+
+                IconButton(onClick = { viewModel.notifyCallsComingSoon() }) {
+                    VideoCallIcon(
+                        tint = if (isDark) Color.White else Color(0xFF0F172A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                IconButton(onClick = { viewModel.notifyCallsComingSoon() }) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = "Voice call",
+                        tint = if (isDark) Color.White else Color(0xFF0F172A),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                IconButton(onClick = { showProfileDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
                 }
             }
         }
@@ -550,3 +578,33 @@ private fun MessageStatusTicks(
         if (isDouble) drawCheck(7.dp.toPx())
     }
 }
+
+@Composable
+private fun VideoCallIcon(
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val bodyWidth = w * 0.62f
+        val cornerRadius = h * 0.18f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = androidx.compose.ui.geometry.Offset(0f, h * 0.18f),
+            size = androidx.compose.ui.geometry.Size(bodyWidth, h * 0.64f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius, cornerRadius)
+        )
+
+        val lensPath = Path().apply {
+            moveTo(bodyWidth + w * 0.02f, h * 0.30f)
+            lineTo(w, h * 0.12f)
+            lineTo(w, h * 0.88f)
+            lineTo(bodyWidth + w * 0.02f, h * 0.70f)
+            close()
+        }
+        drawPath(path = lensPath, color = tint)
+    }
+}
+
