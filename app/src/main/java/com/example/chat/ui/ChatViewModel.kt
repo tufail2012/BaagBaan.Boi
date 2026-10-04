@@ -70,6 +70,12 @@ class ChatViewModel(
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
+    private val _ghostModeEnabled = MutableStateFlow(false)
+    val ghostModeEnabled: StateFlow<Boolean> = _ghostModeEnabled.asStateFlow()
+
+    private val _editingMessageId = MutableStateFlow<String?>(null)
+    val editingMessageId: StateFlow<String?> = _editingMessageId.asStateFlow()
+
     private val _messageInput = MutableStateFlow("")
     val messageInput: StateFlow<String> = _messageInput.asStateFlow()
 
@@ -268,6 +274,7 @@ class ChatViewModel(
                     photoUrl = otherUser.photoUrl
                 )
                 _activeSubScreen.value = ChatSubScreen.CONVERSATION
+                _ghostModeEnabled.value = false
                 startListeningToMessages(chatId)
             }.onFailure { err ->
                 _toastMessage.value = "Failed to start chat: ${err.message}"
@@ -281,6 +288,7 @@ class ChatViewModel(
         _activeChatId.value = summary.chatId
         _activeRecipient.value = other
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
+        _ghostModeEnabled.value = summary.ghostMode
         startListeningToMessages(summary.chatId)
     }
 
@@ -322,9 +330,68 @@ class ChatViewModel(
         }
     }
 
+    fun startEditingMessage(message: ChatMessage) {
+        _editingMessageId.value = message.id
+        _messageInput.value = message.text
+    }
+
+    fun cancelEditingMessage() {
+        _editingMessageId.value = null
+        _messageInput.value = ""
+    }
+
+    fun saveEditedMessage() {
+        val chatId = _activeChatId.value ?: return
+        val messageId = _editingMessageId.value ?: return
+        val text = _messageInput.value.trim()
+        if (text.isEmpty()) return
+        _messageInput.value = ""
+        _editingMessageId.value = null
+        viewModelScope.launch {
+            repository.editMessage(chatId, messageId, text).onFailure { err ->
+                _toastMessage.value = "Failed to edit: ${err.message}"
+            }
+        }
+    }
+
+    fun deleteMessageForEveryone(messageId: String) {
+        val chatId = _activeChatId.value ?: return
+        viewModelScope.launch {
+            repository.deleteMessageForEveryone(chatId, messageId).onFailure { err ->
+                _toastMessage.value = "Failed to delete: ${err.message}"
+            }
+        }
+    }
+
+    fun deleteMessageForMe(messageId: String) {
+        val chatId = _activeChatId.value ?: return
+        val currentUid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            repository.deleteMessageForMe(chatId, messageId, currentUid).onFailure { err ->
+                _toastMessage.value = "Failed to delete: ${err.message}"
+            }
+        }
+    }
+
+    fun toggleGhostMode(enabled: Boolean) {
+        val chatId = _activeChatId.value ?: return
+        _ghostModeEnabled.value = enabled
+        viewModelScope.launch {
+            repository.setGhostMode(chatId, enabled)
+        }
+    }
+
     fun navigateBackFromConversation() {
+        val chatId = _activeChatId.value
+        val wasGhostMode = _ghostModeEnabled.value
+        if (chatId != null && wasGhostMode) {
+            viewModelScope.launch {
+                repository.deleteReadMessages(chatId)
+            }
+        }
         _activeChatId.value = null
         _activeRecipient.value = null
+        _ghostModeEnabled.value = false
         messagesListenJob?.cancel()
         _messages.value = emptyList()
         _activeSubScreen.value = ChatSubScreen.TABS

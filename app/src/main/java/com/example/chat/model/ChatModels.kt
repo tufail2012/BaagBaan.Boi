@@ -31,7 +31,8 @@ data class ChatSummary(
     val participantIds: List<String> = emptyList(),
     val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
     val lastMessage: ChatLastMessage? = null,
-    val createdAt: Timestamp? = null
+    val createdAt: Timestamp? = null,
+    val ghostMode: Boolean = false
 ) {
     fun getOtherParticipant(currentUid: String): ParticipantInfo? {
         val otherUid = participantIds.firstOrNull { it != currentUid } ?: return null
@@ -44,7 +45,10 @@ data class ChatMessage(
     val senderId: String = "",
     val text: String = "",
     val timestamp: Timestamp? = null,
-    val status: String = "sent"
+    val status: String = "sent",
+    val isEdited: Boolean = false,
+    val isDeleted: Boolean = false,
+    val deletedFor: List<String> = emptyList()
 )
 
 enum class ChatTab(val title: String) {

@@ -6,6 +6,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 object SafeFirebase {
     private const val TAG = "SafeFirebase"
@@ -145,6 +146,17 @@ object SafeFirebase {
         } catch (e: Throwable) {
             Log.e(TAG, "FirebaseFirestore instance failed: ${e.message}", e)
             null
+        }
+    }
+
+    suspend fun clearOfflineData(context: Context? = null) {
+        val firestore = getDb(context) ?: return
+        try {
+            firestore.terminate().await()
+            firestore.clearPersistence().await()
+            Log.d(TAG, "Firestore offline cache cleared on logout")
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to clear Firestore offline cache: ${e.message}", e)
         }
     }
 

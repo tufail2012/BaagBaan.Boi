@@ -2,6 +2,8 @@ package com.example.chat.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -34,6 +36,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -58,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,11 +94,14 @@ fun ChatScreen(
     val currentUid = currentUser?.uid ?: ""
     val recipient by viewModel.activeRecipient.collectAsState()
     val messages by viewModel.messages.collectAsState()
+    val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
     val isSending by viewModel.isSendingMessage.collectAsState()
 
     val listState = rememberLazyListState()
     var showProfileDialog by remember { mutableStateOf(false) }
+    var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
+    val editingMessageId by viewModel.editingMessageId.collectAsState()
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -144,16 +152,71 @@ fun ChatScreen(
                 }
             },
             text = {
-                Text(
-                    text = "Baagbaan Boi Verified Member.\nDirect encrypted messaging active.",
-                    fontSize = 14.sp,
-                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-                )
+                Column {
+                    Text(
+                        text = "Baagbaan Boi Verified Member.\nDirect encrypted messaging active.",
+                        fontSize = 14.sp,
+                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ghost",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = "Messages vanish from both sides once seen",
+                                fontSize = 11.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            )
+                        }
+                        Switch(
+                            checked = ghostModeEnabled,
+                            onCheckedChange = { viewModel.toggleGhostMode(it) },
+                            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = accentColor)
+                        )
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = { showProfileDialog = false }) {
                     Text("Close", color = accentColor)
                 }
+            }
+        )
+    }
+
+    selectedMessageForAction?.let { msg ->
+        val isOwnMsg = msg.senderId == currentUid
+        AlertDialog(
+            onDismissRequest = { selectedMessageForAction = null },
+            title = { Text("Message options") },
+            text = {
+                Column {
+                    if (isOwnMsg && !msg.isDeleted) {
+                        TextButton(onClick = {
+                            viewModel.startEditingMessage(msg)
+                            selectedMessageForAction = null
+                        }) { Text("Edit") }
+                        TextButton(onClick = {
+                            viewModel.deleteMessageForEveryone(msg.id)
+                            selectedMessageForAction = null
+                        }) { Text("Delete for everyone") }
+                    }
+                    TextButton(onClick = {
+                        viewModel.deleteMessageForMe(msg.id)
+                        selectedMessageForAction = null
+                    }) { Text("Delete for me") }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedMessageForAction = null }) { Text("Cancel") }
             }
         )
     }
@@ -260,7 +323,8 @@ fun ChatScreen(
                     message = msg,
                     isOwn = isOwnMessage,
                     accentColor = accentColor,
-                    isDark = isDark
+                    isDark = isDark,
+                    onLongPress = { selectedMessageForAction = msg }
                 )
             }
         }
@@ -271,6 +335,22 @@ fun ChatScreen(
             color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
             tonalElevation = 2.dp
         ) {
+            if (editingMessageId != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Editing message",
+                        fontSize = 12.sp,
+                        color = accentColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { viewModel.cancelEditingMessage() }) {
+                        Icon(Icons.Default.Close, contentDescription = "Cancel edit", tint = accentColor)
+                    }
+                }
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -300,7 +380,7 @@ fun ChatScreen(
                     keyboardActions = KeyboardActions(
                         onSend = {
                             if (messageInput.isNotBlank() && !isSending) {
-                                viewModel.sendMessage()
+                                if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
                             }
                         }
                     )
@@ -311,7 +391,7 @@ fun ChatScreen(
                 IconButton(
                     onClick = {
                         if (messageInput.isNotBlank() && !isSending) {
-                            viewModel.sendMessage()
+                            if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
                         }
                     },
                     enabled = messageInput.isNotBlank() && !isSending,
@@ -343,12 +423,14 @@ fun ChatScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     message: ChatMessage,
     isOwn: Boolean,
     accentColor: Color,
-    isDark: Boolean
+    isDark: Boolean,
+    onLongPress: () -> Unit
 ) {
     val bubbleColor = if (isOwn) {
         accentColor
@@ -391,17 +473,27 @@ private fun MessageBubble(
             modifier = Modifier
                 .widthIn(max = 290.dp)
                 .clip(bubbleShape)
+                .combinedClickable(onClick = {}, onLongClick = onLongPress)
                 .testTag("message_bubble_${message.id}")
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
             ) {
-                Text(
-                    text = message.text,
-                    color = textColor,
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp
-                )
+                if (message.isDeleted) {
+                    Text(
+                        text = "This message was deleted",
+                        color = textColor.copy(alpha = 0.6f),
+                        fontSize = 14.sp,
+                        fontStyle = FontStyle.Italic
+                    )
+                } else {
+                    Text(
+                        text = message.text,
+                        color = textColor,
+                        fontSize = 15.sp,
+                        lineHeight = 20.sp
+                    )
+                }
 
                 if (timeFormatted.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(3.dp))
@@ -410,11 +502,10 @@ private fun MessageBubble(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text(
-                            text = timeFormatted,
-                            color = timeColor,
-                            fontSize = 10.sp
-                        )
+                        if (message.isEdited && !message.isDeleted) {
+                            Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
+                        }
+                        Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
                         if (isOwn) {
                             MessageStatusTicks(status = message.status)
                         }

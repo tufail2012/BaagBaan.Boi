@@ -241,6 +241,7 @@ class ChatRepository(private val context: Context) {
                         )
                     ),
                     "lastMessage" to null,
+                    "ghostMode" to false,
                     "createdAt" to FieldValue.serverTimestamp()
                 )
                 chatRef.set(newChatData).await()
@@ -317,7 +318,8 @@ class ChatRepository(private val context: Context) {
                                 participantIds = participantIds,
                                 participantInfo = participantInfo,
                                 lastMessage = lastMessage,
-                                createdAt = doc.getTimestamp("createdAt")
+                                createdAt = doc.getTimestamp("createdAt"),
+                                ghostMode = doc.getBoolean("ghostMode") ?: false
                             )
                         } catch (e: Exception) {
                             Log.e(TAG, "Error parsing chat doc ${doc.id}: ${e.message}")
@@ -367,13 +369,17 @@ class ChatRepository(private val context: Context) {
                                 senderId = doc.getString("senderId") ?: "",
                                 text = doc.getString("text") ?: "",
                                 timestamp = doc.getTimestamp("timestamp"),
-                                status = doc.getString("status") ?: "sent"
+                                status = doc.getString("status") ?: "sent",
+                                isEdited = doc.getBoolean("isEdited") ?: false,
+                                isDeleted = doc.getBoolean("isDeleted") ?: false,
+                                deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
                             )
                         } catch (e: Exception) {
                             null
                         }
                     }
-                    trySend(messages)
+                    val visibleMessages = messages.filter { currentUid !in it.deletedFor }
+                    trySend(visibleMessages)
 
                     val toMarkDelivered = snapshot.documents.filter { doc ->
                         doc.getString("senderId") != currentUid &&
@@ -419,6 +425,50 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    suspend fun editMessage(chatId: String, messageId: String, newText: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val trimmed = newText.trim()
+        if (trimmed.isEmpty()) return Result.failure(IllegalArgumentException("Message cannot be empty"))
+        return try {
+            firestore.collection("chats").document(chatId)
+                .collection("messages").document(messageId)
+                .update(mapOf("text" to trimmed, "isEdited" to true))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error editing message $messageId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteMessageForEveryone(chatId: String, messageId: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        return try {
+            firestore.collection("chats").document(chatId)
+                .collection("messages").document(messageId)
+                .update(mapOf("isDeleted" to true, "text" to ""))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting message $messageId for everyone: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteMessageForMe(chatId: String, messageId: String, currentUid: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        return try {
+            firestore.collection("chats").document(chatId)
+                .collection("messages").document(messageId)
+                .update("deletedFor", FieldValue.arrayUnion(currentUid))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting message $messageId for me: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun sendMessage(
         chatId: String,
         senderId: String,
@@ -454,6 +504,40 @@ class ChatRepository(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message in $chatId: ${e.message}", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun setGhostMode(chatId: String, enabled: Boolean): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        return try {
+            firestore.collection("chats").document(chatId)
+                .update("ghostMode", enabled)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting ghost mode for $chatId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteReadMessages(chatId: String) {
+        val firestore = db ?: return
+        try {
+            val snapshot = firestore.collection("chats").document(chatId)
+                .collection("messages")
+                .whereEqualTo("status", "read")
+                .get()
+                .await()
+
+            if (snapshot.isEmpty) return
+
+            val batch = firestore.batch()
+            snapshot.documents.forEach { doc ->
+                batch.delete(doc.reference)
+            }
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting read messages in $chatId: ${e.message}", e)
         }
     }
 }
