@@ -79,6 +79,8 @@ class ChatRepository(private val context: Context) {
 
             firestore.runTransaction { transaction ->
                 val usernameDoc = transaction.get(usernameRef)
+                val userDoc = transaction.get(userRef)
+
                 if (usernameDoc.exists()) {
                     val ownerUid = usernameDoc.getString("uid")
                     if (ownerUid != uid) {
@@ -89,7 +91,6 @@ class ChatRepository(private val context: Context) {
                 // Reserve username
                 transaction.set(usernameRef, mapOf("uid" to uid))
 
-                val userDoc = transaction.get(userRef)
                 if (userDoc.exists()) {
                     val updates = hashMapOf<String, Any>(
                         "username" to username,
