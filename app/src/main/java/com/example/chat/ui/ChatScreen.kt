@@ -4,10 +4,13 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.chat.call.CallPermissionHelper
 import com.example.chat.call.CallPermissionRationaleDialog
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.call.ZegoConfigRequiredDialog
+import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
+import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -126,6 +129,15 @@ fun ChatScreen(
     var pendingIsVideoCall by remember { mutableStateOf<Boolean?>(null) }
     var hasCallPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
 
+    val invitationButtonRef = remember { mutableStateOf<ZegoSendCallInvitationButton?>(null) }
+
+    AndroidView(
+        modifier = Modifier.size(0.dp),
+        factory = { ctx ->
+            ZegoSendCallInvitationButton(ctx).also { invitationButtonRef.value = it }
+        }
+    )
+
     val callPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
@@ -143,9 +155,11 @@ fun ChatScreen(
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    ZegoCallManager.startCall(context, otherUid, rec.username, isVideo) { success, message ->
-                        Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
-                    }
+                    invitationButtonRef.value?.setIsVideoCall(isVideo)
+                    invitationButtonRef.value?.setResourceID("zego_call")
+                    invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(otherUid, rec.username)))
+                    Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
+                    invitationButtonRef.value?.performClick()
                 }
             }
         } else {
@@ -168,9 +182,11 @@ fun ChatScreen(
                 Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                 showZegoConfigDialog = true
             } else {
-                ZegoCallManager.startCall(context, otherUid, rec.username, isVideo) { success, message ->
-                    Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
-                }
+                invitationButtonRef.value?.setIsVideoCall(isVideo)
+                invitationButtonRef.value?.setResourceID("zego_call")
+                invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(otherUid, rec.username)))
+                Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
+                invitationButtonRef.value?.performClick()
             }
         }
     }

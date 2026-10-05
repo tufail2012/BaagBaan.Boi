@@ -4,6 +4,9 @@ import android.app.Activity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.viewinterop.AndroidView
+import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
+import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -77,12 +80,26 @@ fun CallsTabScreen(
     val isDark = isAppInDarkMode()
 
     val currentUser by viewModel.currentUser.collectAsState()
+    val currentUid = currentUser?.uid?.ifBlank { null }
+        ?: com.example.util.SafeFirebase.getAuth(context)?.currentUser?.uid.orEmpty()
+    val myUsername = currentUser?.username?.ifBlank { null }
+        ?: com.example.chat.data.ChatPreferences(context).lastUsername
+        ?: ""
     val chatSummaries by viewModel.chatsList.collectAsState()
 
     var showPermissionRationale by remember { mutableStateOf(false) }
     var showZegoConfigDialog by remember { mutableStateOf(false) }
     var pendingCallAction by remember { mutableStateOf<Triple<String, String, Boolean>?>(null) }
     var hasPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
+
+    val invitationButtonRef = remember { mutableStateOf<ZegoSendCallInvitationButton?>(null) }
+
+    AndroidView(
+        modifier = Modifier.size(0.dp),
+        factory = { ctx ->
+            ZegoSendCallInvitationButton(ctx).also { invitationButtonRef.value = it }
+        }
+    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -91,14 +108,20 @@ fun CallsTabScreen(
         if (hasPermissions) {
             pendingCallAction?.let { (uid, username, isVideo) ->
                 pendingCallAction = null
+                if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
+                    Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                    return@let
+                }
                 if (!ZegoCallManager.isConfigured()) {
                     val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    ZegoCallManager.startCall(context, uid, username, isVideo) { success, message ->
-                        Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
-                    }
+                    invitationButtonRef.value?.setIsVideoCall(isVideo)
+                    invitationButtonRef.value?.setResourceID("zego_call")
+                    invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(uid, username)))
+                    Toast.makeText(context, "Calling @$username…", Toast.LENGTH_SHORT).show()
+                    invitationButtonRef.value?.performClick()
                 }
             }
         } else {
@@ -110,13 +133,21 @@ fun CallsTabScreen(
         if (!hasPermissions) {
             pendingCallAction = Triple(targetUid, targetUsername, isVideo)
             showPermissionRationale = true
-        } else if (!ZegoCallManager.isConfigured()) {
-            val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-            Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-            showZegoConfigDialog = true
         } else {
-            ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo) { success, message ->
-                Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
+            if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
+                Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (!ZegoCallManager.isConfigured()) {
+                val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
+                Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
+                showZegoConfigDialog = true
+            } else {
+                invitationButtonRef.value?.setIsVideoCall(isVideo)
+                invitationButtonRef.value?.setResourceID("zego_call")
+                invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(targetUid, targetUsername)))
+                Toast.makeText(context, "Calling @$targetUsername…", Toast.LENGTH_SHORT).show()
+                invitationButtonRef.value?.performClick()
             }
         }
     }
