@@ -92,11 +92,12 @@ fun CallsTabScreen(
             pendingCallAction?.let { (uid, username, isVideo) ->
                 pendingCallAction = null
                 if (!ZegoCallManager.isConfigured()) {
+                    val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
+                    Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    val success = ZegoCallManager.startCall(context, uid, username, isVideo)
-                    if (!success) {
-                        Toast.makeText(context, "Initiating call to @$username...", Toast.LENGTH_SHORT).show()
+                    ZegoCallManager.startCall(context, uid, username, isVideo) { success, message ->
+                        Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -110,11 +111,12 @@ fun CallsTabScreen(
             pendingCallAction = Triple(targetUid, targetUsername, isVideo)
             showPermissionRationale = true
         } else if (!ZegoCallManager.isConfigured()) {
+            val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
+            Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
             showZegoConfigDialog = true
         } else {
-            val success = ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo)
-            if (!success) {
-                Toast.makeText(context, "Initiating call to @$targetUsername...", Toast.LENGTH_SHORT).show()
+            ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo) { success, message ->
+                Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
             }
         }
     }

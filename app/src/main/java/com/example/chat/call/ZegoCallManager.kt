@@ -1,9 +1,15 @@
 package com.example.chat.call
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.ContextWrapper
 import android.util.Log
 import com.example.BuildConfig
+import com.zegocloud.uikit.plugin.adapter.plugins.signaling.ZegoSignalingPluginNotificationConfig
+import com.zegocloud.uikit.plugin.common.PluginCallbackListener
+import com.zegocloud.uikit.plugin.invitation.ZegoInvitationType
+import com.zegocloud.uikit.prebuilt.call.core.CallInvitationServiceImpl
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
@@ -29,13 +35,25 @@ object ZegoCallManager {
         BuildConfig.ZEGO_APP_SIGN.toString().trim()
     } catch (_: Throwable) { "" }
 
+    fun getConfigurationError(): String? {
+        val appId = getAppId()
+        val appSign = getAppSign()
+        return when {
+            appId == 0L && appSign.isBlank() -> "Zego not configured: AppID is 0 and AppSign is missing"
+            appId == 0L -> "Zego not configured: AppID is 0"
+            appSign.isBlank() -> "Zego not configured: AppSign is missing"
+            else -> null
+        }
+    }
+
     fun isConfigured(): Boolean {
-        return getAppId() != 0L && getAppSign().isNotBlank()
+        return getConfigurationError() == null
     }
 
     fun init(application: Application, userId: String, userName: String) {
-        if (!isConfigured()) {
-            Log.w(TAG, "Zego AppID/AppSign not configured (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
+        val configError = getConfigurationError()
+        if (configError != null) {
+            Log.w(TAG, "$configError (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
             return
         }
         if (isInitialized && currentUserId == userId) {
@@ -78,25 +96,81 @@ object ZegoCallManager {
         }
     }
 
+    private fun findActivity(context: Context): Activity? {
+        var ctx = context
+        while (ctx is ContextWrapper) {
+            if (ctx is Activity) return ctx
+            ctx = ctx.baseContext
+        }
+        return null
+    }
+
     fun startCall(
         context: Context,
         targetUserId: String,
         targetUserName: String,
-        isVideo: Boolean
-    ): Boolean {
-        if (!isConfigured()) {
-            return false
+        isVideo: Boolean,
+        timeoutSeconds: Int = 60,
+        onResult: (success: Boolean, message: String) -> Unit = { _, _ -> }
+    ) {
+        val configError = getConfigurationError()
+        if (configError != null) {
+            Log.w(TAG, "Cannot start call: $configError")
+            onResult(false, configError)
+            return
         }
-        return try {
-            val button = com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton(context)
-            button.setIsVideoCall(isVideo)
-            button.setResourceID("zego_call")
-            button.setInvitees(listOf(ZegoUIKitUser(targetUserId, targetUserName)))
-            button.performClick()
-            true
+
+        val activity = findActivity(context) ?: CallInvitationServiceImpl.getInstance().topActivity
+        if (activity == null) {
+            val err = "Call failed: Activity context not available"
+            Log.e(TAG, err)
+            onResult(false, err)
+            return
+        }
+
+        try {
+            val invitees = listOf(ZegoUIKitUser(targetUserId, targetUserName))
+            val type = if (isVideo) ZegoInvitationType.VIDEO_CALL else ZegoInvitationType.VOICE_CALL
+            val notificationConfig = ZegoSignalingPluginNotificationConfig().apply {
+                resourceID = "zego_call"
+            }
+
+            val maskedSign = getAppSign().take(6)
+            Log.d(TAG, "ZEGO credentials check: AppID=${getAppId()}, AppSignPrefix=$maskedSign..., isUserLoggedIn=$isInitialized (userId=$currentUserId)")
+
+            CallInvitationServiceImpl.getInstance().sendInvitationWithUIChange(
+                activity,
+                invitees,
+                type,
+                "", // customData
+                timeoutSeconds,
+                null, // callID
+                notificationConfig,
+                object : PluginCallbackListener {
+                    override fun callback(result: Map<String, Any?>?) {
+                        val code = (result?.get("code") as? Number)?.toInt() ?: -1
+                        val message = (result?.get("message") as? String).orEmpty()
+                        val errorInvitees = result?.get("errorInvitees") as? List<*>
+
+                        val isSuccess = code == 0 && errorInvitees.isNullOrEmpty()
+                        val statusMessage = when {
+                            isSuccess -> "Calling @$targetUserName…"
+                            !errorInvitees.isNullOrEmpty() -> "Call failed: User @$targetUserName is offline or unavailable"
+                            message.isNotBlank() -> "Call failed: $message (code $code)"
+                            else -> "Call failed with error code $code"
+                        }
+
+                        Log.d(TAG, "Zego call invitation callback: code=$code, message=$message, isSuccess=$isSuccess")
+                        activity.runOnUiThread {
+                            onResult(isSuccess, statusMessage)
+                        }
+                    }
+                }
+            )
         } catch (e: Throwable) {
-            Log.e(TAG, "Failed to start call: ${e.message}", e)
-            false
+            val err = "Call failed: ${e.message ?: "Unknown error"}"
+            Log.e(TAG, err, e)
+            onResult(false, err)
         }
     }
 }
