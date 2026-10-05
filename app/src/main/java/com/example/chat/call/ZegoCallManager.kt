@@ -71,7 +71,10 @@ object ZegoCallManager {
             ?: (context as? Application)
             ?: com.example.AgriApplication.instance
         init(application, uid, username)
-        return isInitialized
+        // Just initialized — the SDK needs a moment to fully settle internally.
+        // Therefore, report "not ready" and let the next tap use the fast path to start the call immediately.
+        Log.w(TAG, "Zego just initialized for $uid — asking caller to retry so the SDK can settle")
+        return false
     }
 
     fun init(application: Application, userId: String, userName: String) {

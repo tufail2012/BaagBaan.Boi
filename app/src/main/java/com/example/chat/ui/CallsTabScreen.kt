@@ -117,11 +117,12 @@ fun CallsTabScreen(
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    invitationButtonRef.value?.setIsVideoCall(isVideo)
-                    invitationButtonRef.value?.setResourceID("zego_call")
-                    invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(uid, username)))
-                    Toast.makeText(context, "Calling @$username…", Toast.LENGTH_SHORT).show()
-                    invitationButtonRef.value?.performClick()
+                    val started = ZegoCallManager.startCall(invitationButtonRef.value, uid, username, isVideo)
+                    if (started) {
+                        Toast.makeText(context, "Calling @$username…", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         } else {
@@ -143,11 +144,12 @@ fun CallsTabScreen(
                 Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                 showZegoConfigDialog = true
             } else {
-                invitationButtonRef.value?.setIsVideoCall(isVideo)
-                invitationButtonRef.value?.setResourceID("zego_call")
-                invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(targetUid, targetUsername)))
-                Toast.makeText(context, "Calling @$targetUsername…", Toast.LENGTH_SHORT).show()
-                invitationButtonRef.value?.performClick()
+                val started = ZegoCallManager.startCall(invitationButtonRef.value, targetUid, targetUsername, isVideo)
+                if (started) {
+                    Toast.makeText(context, "Calling @$targetUsername…", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

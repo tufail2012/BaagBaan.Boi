@@ -155,11 +155,12 @@ fun ChatScreen(
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    invitationButtonRef.value?.setIsVideoCall(isVideo)
-                    invitationButtonRef.value?.setResourceID("zego_call")
-                    invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(otherUid, rec.username)))
-                    Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
-                    invitationButtonRef.value?.performClick()
+                    val started = ZegoCallManager.startCall(invitationButtonRef.value, otherUid, rec.username, isVideo)
+                    if (started) {
+                        Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         } else {
@@ -182,11 +183,12 @@ fun ChatScreen(
                 Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                 showZegoConfigDialog = true
             } else {
-                invitationButtonRef.value?.setIsVideoCall(isVideo)
-                invitationButtonRef.value?.setResourceID("zego_call")
-                invitationButtonRef.value?.setInvitees(listOf(ZegoUIKitUser(otherUid, rec.username)))
-                Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
-                invitationButtonRef.value?.performClick()
+                val started = ZegoCallManager.startCall(invitationButtonRef.value, otherUid, rec.username, isVideo)
+                if (started) {
+                    Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
