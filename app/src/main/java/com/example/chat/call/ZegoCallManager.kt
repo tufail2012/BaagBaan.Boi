@@ -90,6 +90,7 @@ object ZegoCallManager {
         try {
             val config = ZegoUIKitPrebuiltCallInvitationConfig().apply {
                 translationText = ZegoTranslationText(ZegoUIKitLanguage.ENGLISH)
+                Log.e(TAG, "ZEGO_INIT_CONFIG_MARKER_V2 — translationText set, build timestamp: 2026-10-05T05:59:09-07:00")
                 notificationConfig = ZegoNotificationConfig().apply {
                     channelID = "zego_call_invitation"
                     channelName = "Call Invitation"
