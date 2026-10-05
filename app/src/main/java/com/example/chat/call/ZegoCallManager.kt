@@ -35,7 +35,7 @@ object ZegoCallManager {
         BuildConfig.ZEGO_APP_SIGN.toString().trim()
     } catch (_: Throwable) { "" }
 
-    fun getConfigurationError(): String? {
+    fun getCredentialsError(): String? {
         val appId = getAppId()
         val appSign = getAppSign()
         return when {
@@ -46,14 +46,38 @@ object ZegoCallManager {
         }
     }
 
+    fun getConfigurationError(): String? {
+        val credsError = getCredentialsError()
+        if (credsError != null) return credsError
+        if (!isInitialized) {
+            return "Zego service not logged in: Call invitation service is not initialized for the current user yet"
+        }
+        return null
+    }
+
     fun isConfigured(): Boolean {
         return getConfigurationError() == null
     }
 
+    fun ensureInitialized(context: Context, uid: String, username: String): Boolean {
+        if (isInitialized && currentUserId == uid) {
+            return true
+        }
+        if (uid.isBlank() || username.isBlank()) {
+            Log.w(TAG, "Cannot ensureInitialized: uid or username is blank (uid='$uid', username='$username')")
+            return false
+        }
+        val application = (context.applicationContext as? Application)
+            ?: (context as? Application)
+            ?: com.example.AgriApplication.instance
+        init(application, uid, username)
+        return isInitialized
+    }
+
     fun init(application: Application, userId: String, userName: String) {
-        val configError = getConfigurationError()
-        if (configError != null) {
-            Log.w(TAG, "$configError (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
+        val credsError = getCredentialsError()
+        if (credsError != null) {
+            Log.w(TAG, "$credsError (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
             return
         }
         if (isInitialized && currentUserId == userId) {

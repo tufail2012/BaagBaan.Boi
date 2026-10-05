@@ -101,7 +101,11 @@ fun ChatScreen(
     val isAmoled = isAppInAmoledMode()
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
-    val currentUid = currentUser?.uid ?: ""
+    val currentUid = currentUser?.uid?.ifBlank { null }
+        ?: com.example.util.SafeFirebase.getAuth(context)?.currentUser?.uid.orEmpty()
+    val myUsername = currentUser?.username?.ifBlank { null }
+        ?: com.example.chat.data.ChatPreferences(context).lastUsername
+        ?: ""
     val recipient by viewModel.activeRecipient.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
@@ -130,6 +134,10 @@ fun ChatScreen(
             val isVideo = pendingIsVideoCall ?: false
             pendingIsVideoCall = null
             recipient?.let { rec ->
+                if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
+                    Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                    return@let
+                }
                 if (!ZegoCallManager.isConfigured()) {
                     val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
@@ -150,13 +158,19 @@ fun ChatScreen(
         if (!hasCallPermissions) {
             pendingIsVideoCall = isVideo
             showPermissionRationale = true
-        } else if (!ZegoCallManager.isConfigured()) {
-            val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-            Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-            showZegoConfigDialog = true
         } else {
-            ZegoCallManager.startCall(context, otherUid, rec.username, isVideo) { success, message ->
-                Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
+            if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
+                Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (!ZegoCallManager.isConfigured()) {
+                val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
+                Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
+                showZegoConfigDialog = true
+            } else {
+                ZegoCallManager.startCall(context, otherUid, rec.username, isVideo) { success, message ->
+                    Toast.makeText(context, message, if (success) Toast.LENGTH_SHORT else Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
