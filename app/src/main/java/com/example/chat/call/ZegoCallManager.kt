@@ -6,8 +6,11 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.util.Log
 import com.example.BuildConfig
+import com.zegocloud.uikit.internal.ZegoUIKitLanguage
+import com.zegocloud.uikit.prebuilt.call.config.ZegoNotificationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoTranslationText
 import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 
@@ -85,7 +88,17 @@ object ZegoCallManager {
             unInit()
         }
         try {
-            val config = ZegoUIKitPrebuiltCallInvitationConfig()
+            val config = ZegoUIKitPrebuiltCallInvitationConfig().apply {
+                translationText = ZegoTranslationText(ZegoUIKitLanguage.ENGLISH)
+                notificationConfig = ZegoNotificationConfig().apply {
+                    channelID = "zego_call_invitation"
+                    channelName = "Call Invitation"
+                    channelDesc = "Incoming call invitation notifications"
+                }
+                showDeclineButton = true
+                incomingCallRingtone = "zego_incoming"
+                outgoingCallRingtone = "zego_outgoing"
+            }
             ZegoUIKitPrebuiltCallInvitationService.init(
                 application,
                 getAppId(),
