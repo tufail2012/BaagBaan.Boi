@@ -96,8 +96,6 @@ object ZegoCallManager {
                     channelDesc = "Incoming call invitation notifications"
                 }
                 showDeclineButton = true
-                incomingCallRingtone = "zego_incoming"
-                outgoingCallRingtone = "zego_outgoing"
             }
             ZegoUIKitPrebuiltCallInvitationService.init(
                 application,
