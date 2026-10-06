@@ -188,6 +188,7 @@ object ZegoCallManager {
         } catch (e: Throwable) {
             val err = "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
             Log.e(TAG, "Failed to start call: $err", e)
+            com.example.util.CrashReporter.recordExplicitCrash(e, "ZegoCallManager.startCall")
             err
         }
     }

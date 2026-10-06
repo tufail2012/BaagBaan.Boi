@@ -50,7 +50,9 @@ class ChatRepository(private val context: Context) {
                         photoUrl = doc.getString("photoUrl"),
                         fcmToken = doc.getString("fcmToken"),
                         lastSeenAt = doc.getTimestamp("lastSeenAt"),
-                        createdAt = doc.getTimestamp("createdAt")
+                        createdAt = doc.getTimestamp("createdAt"),
+                        isOnline = doc.getBoolean("isOnline") ?: false,
+                        showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true
                     )
                 } else null
             } else null
@@ -107,7 +109,9 @@ class ChatRepository(private val context: Context) {
                         "photoUrl" to (photoUrl ?: ""),
                         "fcmToken" to null,
                         "lastSeenAt" to FieldValue.serverTimestamp(),
-                        "createdAt" to FieldValue.serverTimestamp()
+                        "createdAt" to FieldValue.serverTimestamp(),
+                        "isOnline" to false,
+                        "showOnlineStatus" to true
                     )
                     transaction.set(userRef, newUser)
                 }
@@ -538,6 +542,68 @@ class ChatRepository(private val context: Context) {
             batch.commit().await()
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting read messages in $chatId: ${e.message}", e)
+        }
+    }
+
+    fun getUserFlow(uid: String): Flow<ChatUser?> = callbackFlow {
+        val firestore = db
+        if (firestore == null) {
+            trySend(null)
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection("users").document(uid)
+            .addSnapshotListener { doc, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error observing user $uid: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+                if (doc != null && doc.exists()) {
+                    trySend(
+                        ChatUser(
+                            uid = uid,
+                            username = doc.getString("username") ?: "",
+                            displayName = doc.getString("displayName") ?: "",
+                            photoUrl = doc.getString("photoUrl"),
+                            fcmToken = doc.getString("fcmToken"),
+                            lastSeenAt = doc.getTimestamp("lastSeenAt"),
+                            createdAt = doc.getTimestamp("createdAt"),
+                            isOnline = doc.getBoolean("isOnline") ?: false,
+                            showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true
+                        )
+                    )
+                } else {
+                    trySend(null)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    suspend fun setOnlinePresence(uid: String, online: Boolean) {
+        val firestore = db ?: return
+        try {
+            val updates = hashMapOf<String, Any>("isOnline" to online)
+            if (!online) {
+                updates["lastSeenAt"] = FieldValue.serverTimestamp()
+            }
+            firestore.collection("users").document(uid).update(updates).await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting online presence for $uid: ${e.message}", e)
+        }
+    }
+
+    suspend fun setShowOnlineStatus(uid: String, enabled: Boolean): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        return try {
+            val updates = hashMapOf<String, Any>("showOnlineStatus" to enabled)
+            if (!enabled) {
+                updates["isOnline"] = false
+            }
+            firestore.collection("users").document(uid).update(updates).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)
+            Result.failure(e)
         }
     }
 }

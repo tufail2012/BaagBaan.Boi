@@ -100,9 +100,17 @@ class ChatViewModel(
     private val _notificationsEnabled = MutableStateFlow(preferences.isNotificationsEnabled)
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
 
+    // Online status (presence) preference + the open chat's live presence
+    private val _showOnlineStatus = MutableStateFlow(preferences.isOnlineStatusEnabled)
+    val showOnlineStatus: StateFlow<Boolean> = _showOnlineStatus.asStateFlow()
+
+    private val _recipientPresence = MutableStateFlow<ChatUser?>(null)
+    val recipientPresence: StateFlow<ChatUser?> = _recipientPresence.asStateFlow()
+
     private var chatsListenJob: Job? = null
     private var messagesListenJob: Job? = null
     private var searchJob: Job? = null
+    private var presenceListenJob: Job? = null
 
     init {
         checkUserSession()
@@ -125,6 +133,8 @@ class ChatViewModel(
                 _isUsernameSetupRequired.value = false
                 preferences.lastUid = authUser.uid
                 preferences.lastUsername = existing.username
+                preferences.isOnlineStatusEnabled = existing.showOnlineStatus
+                _showOnlineStatus.value = existing.showOnlineStatus
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, authUser.uid, existing.username)
                 }
@@ -290,6 +300,7 @@ class ChatViewModel(
                 _activeSubScreen.value = ChatSubScreen.CONVERSATION
                 _ghostModeEnabled.value = false
                 startListeningToMessages(chatId)
+                startObservingRecipientPresence(otherUser.uid)
             }.onFailure { err ->
                 _toastMessage.value = "Failed to start chat: ${err.message}"
             }
@@ -304,6 +315,26 @@ class ChatViewModel(
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
         _ghostModeEnabled.value = summary.ghostMode
         startListeningToMessages(summary.chatId)
+        startObservingRecipientPresence(other.uid)
+    }
+
+    private fun startObservingRecipientPresence(uid: String) {
+        presenceListenJob?.cancel()
+        _recipientPresence.value = null
+        presenceListenJob = viewModelScope.launch {
+            repository.getUserFlow(uid).collectLatest { user ->
+                _recipientPresence.value = user
+            }
+        }
+    }
+
+    fun setShowOnlineStatus(enabled: Boolean) {
+        preferences.isOnlineStatusEnabled = enabled
+        _showOnlineStatus.value = enabled
+        val uid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            repository.setShowOnlineStatus(uid, enabled)
+        }
     }
 
     private fun startListeningToMessages(chatId: String) {
@@ -411,6 +442,8 @@ class ChatViewModel(
         _activeRecipient.value = null
         _ghostModeEnabled.value = false
         messagesListenJob?.cancel()
+        presenceListenJob?.cancel()
+        _recipientPresence.value = null
         _messages.value = emptyList()
         _activeSubScreen.value = ChatSubScreen.TABS
     }
@@ -442,6 +475,8 @@ class ChatViewModel(
         _currentUser.value = null
         _activeChatId.value = null
         _activeRecipient.value = null
+        presenceListenJob?.cancel()
+        _recipientPresence.value = null
         _messages.value = emptyList()
     }
 }

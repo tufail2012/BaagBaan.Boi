@@ -9,8 +9,27 @@ data class ChatUser(
     val photoUrl: String? = null,
     val fcmToken: String? = null,
     val lastSeenAt: Timestamp? = null,
-    val createdAt: Timestamp? = null
+    val createdAt: Timestamp? = null,
+    val isOnline: Boolean = false,
+    val showOnlineStatus: Boolean = true
 )
+
+fun formatLastSeen(timestamp: Timestamp?): String {
+    if (timestamp == null) return "offline"
+    val date = timestamp.toDate()
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { time = date }
+    val timeFmt = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+    val isToday = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    if (isToday) return "last seen today at ${timeFmt.format(date)}"
+    val yesterday = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -1) }
+    val isYesterday = yesterday.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        yesterday.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    if (isYesterday) return "last seen yesterday at ${timeFmt.format(date)}"
+    val dateFmt = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+    return "last seen on ${dateFmt.format(date)}"
+}
 
 data class ParticipantInfo(
     val uid: String = "",

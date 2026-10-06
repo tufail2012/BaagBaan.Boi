@@ -21,10 +21,15 @@ class ChatPreferences(context: Context) {
         get() = prefs.getString(KEY_LAST_USERNAME, null)
         set(value) = prefs.edit().putString(KEY_LAST_USERNAME, value).apply()
 
+    var isOnlineStatusEnabled: Boolean
+        get() = prefs.getBoolean(KEY_ONLINE_STATUS, true)
+        set(value) = prefs.edit().putBoolean(KEY_ONLINE_STATUS, value).apply()
+
     companion object {
         private const val PREFS_NAME = "baagbaan_chat_prefs"
         private const val KEY_NOTIFICATIONS = "chat_notifications_enabled"
         private const val KEY_LAST_UID = "chat_last_uid"
         private const val KEY_LAST_USERNAME = "chat_last_username"
+        private const val KEY_ONLINE_STATUS = "chat_online_status_enabled"
     }
 }

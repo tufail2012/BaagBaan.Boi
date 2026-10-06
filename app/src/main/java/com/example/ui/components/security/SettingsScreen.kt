@@ -56,7 +56,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import com.example.chat.data.ChatPreferences
+import com.example.chat.data.ChatRepository
+import com.example.util.SafeFirebase
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -153,6 +157,9 @@ fun SettingsScreen(
     val lockAfterDuration by appLockManager.lockAfterDuration.collectAsState()
     val hideInRecentApps by appLockManager.hideInRecentApps.collectAsState()
     val protectNotifications by appLockManager.protectNotifications.collectAsState()
+    val chatPreferences = remember { ChatPreferences(context) }
+    var showOnlineStatus by remember { mutableStateOf(chatPreferences.isOnlineStatusEnabled) }
+    val coroutineScope = rememberCoroutineScope()
 
     var showSetupSheet by remember { mutableStateOf(false) }
     var isChangeMethodFlow by remember { mutableStateOf(false) }
@@ -628,6 +635,65 @@ fun SettingsScreen(
                             )
                         }
                     }
+                }
+
+                // ==========================================
+                // SECTION: CHAT PRIVACY
+                // ==========================================
+                item {
+                    Text(
+                        text = "Chat Privacy",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                        border = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .liquidGlassNav(shape = RoundedCornerShape(20.dp), backdrop = settingsBackdrop)
+                            .then(
+                                if (!isGlassSupported()) {
+                                    Modifier.glassCardBackground(
+                                        cornerRadius = 20.dp,
+                                        accentColor = Color(0xFFE11D48),
+                                        isDark = isDark,
+                                        themeMode = themeMode,
+                                        hazeState = settingsHazeState
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .glassEdge(RoundedCornerShape(20.dp))
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                            SettingsToggleRow(
+                                icon = Icons.Default.Visibility,
+                                title = "Online Status",
+                                subtitle = "Let contacts see when you're online or your last seen time. Turning this off also hides their status from you.",
+                                checked = showOnlineStatus,
+                                onCheckedChange = { checked ->
+                                    showOnlineStatus = checked
+                                    chatPreferences.isOnlineStatusEnabled = checked
+                                    val uid = SafeFirebase.getAuth(context)?.currentUser?.uid
+                                    if (uid != null) {
+                                        coroutineScope.launch {
+                                            ChatRepository(context).setShowOnlineStatus(uid, checked)
+                                        }
+                                    }
+                                },
+                                testTag = "online_status_switch"
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 // ==========================================

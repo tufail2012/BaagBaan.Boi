@@ -109,6 +109,15 @@ fun ChatScreen(
         ?: com.example.chat.data.ChatPreferences(context).lastUsername
         ?: ""
     val recipient by viewModel.activeRecipient.collectAsState()
+    val recipientPresence by viewModel.recipientPresence.collectAsState()
+    val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
+    val recipientStatusText: String? = if (showOnlineStatus && recipientPresence?.showOnlineStatus != false) {
+        when {
+            recipientPresence?.isOnline == true -> "online"
+            recipientPresence?.lastSeenAt != null -> com.example.chat.model.formatLastSeen(recipientPresence?.lastSeenAt)
+            else -> null
+        }
+    } else null
     val messages by viewModel.messages.collectAsState()
     val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
@@ -414,6 +423,15 @@ fun ChatScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        if (recipientStatusText != null) {
+                            Text(
+                                text = recipientStatusText,
+                                fontSize = 11.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
