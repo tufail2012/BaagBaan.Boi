@@ -133,6 +133,7 @@ fun AgriBottomNav(
     val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
 
     val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
+    var isProgrammaticNav by remember { mutableStateOf(false) }
     LaunchedEffect(tabStepPx) {
         motion.stepDp = with(density) { tabStepPx.toDp().value }
     }
@@ -153,6 +154,13 @@ fun AgriBottomNav(
             snapshotFlow {
                 Triple(pagerState.isScrollInProgress, pagerState.currentPage, pagerState.currentPageOffsetFraction)
             }.collect { (scrolling, page, offsetFraction) ->
+                if (isProgrammaticNav) {
+                    if (!scrolling && wasScrolling) {
+                        isProgrammaticNav = false
+                    }
+                    wasScrolling = scrolling
+                    return@collect
+                }
                 if (scrolling && !wasScrolling) {
                     motion.startDrag()
                 }
@@ -290,6 +298,7 @@ fun AgriBottomNav(
                             interactionSource = interactionSource,
                             indication = null,
                             onClick = {
+                                isProgrammaticNav = true
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 onCategorySelected(item.serviceCategory)
                             }
