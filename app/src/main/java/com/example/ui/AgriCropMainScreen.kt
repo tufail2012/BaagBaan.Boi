@@ -42,6 +42,8 @@ import com.example.ui.components.AgriHeader
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
+import com.example.ui.components.backdrop.backdrops.layerBackdrop as navGlassLayerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop as rememberNavGlassBackdrop
 import com.example.ui.components.ScrollGlassSource
 import com.example.ui.components.LocalScrollGlassSource
 import com.example.ui.components.SCROLL_GLASS_ENABLED
@@ -203,6 +205,7 @@ fun AgriCropMainScreen(
     val navBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
     )
+    val navGlassBackdrop = rememberNavGlassBackdrop(onDraw = paintBackdrop)
 
     val recordsBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
@@ -833,6 +836,7 @@ fun AgriCropMainScreen(
                                         .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
                                         .hazeSource(state = hazeState)
                                         .layerBackdrop(navBackdrop)
+                                        .navGlassLayerBackdrop(navGlassBackdrop)
                                 ) {
                                 if (selectedService.equals("Bookings", ignoreCase = true)) {
                                     UserBookingsSection(viewModel = userDashboardViewModel)
@@ -999,7 +1003,7 @@ fun AgriCropMainScreen(
                                 },
                                 hazeState = hazeState,
                                 accentColor = sectionAccentColor,
-                                backdrop = navBackdrop,
+                                glassBackdrop = navGlassBackdrop,
                                 pagerState = pagerState,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)

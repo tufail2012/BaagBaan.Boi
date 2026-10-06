@@ -1,25 +1,20 @@
 package com.example.ui.components
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,8 +28,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,23 +41,29 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.Backdrop
+import com.example.ui.components.backdrop.Backdrop as NavBackdrop
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
+import com.example.ui.haptics.Haptic
+import com.example.ui.haptics.rememberHaptics
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 data class AgriNavItem(
@@ -70,18 +73,35 @@ data class AgriNavItem(
     val testTag: String
 )
 
+// Same numbers as the reference design (FloatingBottomBar / GlassNavBar / FloatingTabBar defaults).
 private val PILL_INSET = 6.dp
 private val TAB_VERTICAL_PADDING = 9.dp
 private val TAB_ICON_LABEL_GAP = 2.dp
+private val TAB_SPACING = 0.dp
+private val BAR_GUTTER = 16.dp
+private val GESTURE_BAR_FLOOR = 15.dp
 
 /**
- * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
+ * The reference design tints the selected tab with the plain glass content colour (black /
+ * white). Set to true to tint it with the section accent colour instead.
+ */
+private const val USE_SECTION_ACCENT = false
+
+private val navBarInsets: WindowInsets
+    @Composable get() = WindowInsets.navigationBars.union(WindowInsets(bottom = GESTURE_BAR_FLOOR))
+
+/**
+ * Floating pill bottom navigation bar — a 1:1 port of the reference app's expanded
+ * liquid-glass tab bar (GlassNavBar + FloatingTabBar's ExpandedTabs).
  *
- * The selection indicator's motion (lift/overshoot, travel spring, launch
- * stretch and brake squash, glass-to-flat hand-off) is driven by
- * [GlassPillMotion]. Both a direct drag on the pill and a page swipe on
- * [pagerState] feed the same physics through startDrag/dragTo/release, so
- * either gesture gets the identical liquid feel.
+ * Glass: [glassBackdrop] must be a vendored LayerBackdrop recorded from the
+ * page (see AgriCropMainScreen). When it is null or glass is unsupported the
+ * bar falls back to the Haze material with a flat selection pill.
+ *
+ * Pill: rests flat under the tabs; while lifted/travelling it is a clear lens
+ * ([GlassSelectionPill]) refracting the page, the bar glass and the tab row.
+ * Motion physics live in [GlassPillMotion]. A page swipe on [pagerState] feeds
+ * the same physics as a direct drag on the bar.
  */
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
@@ -92,7 +112,7 @@ fun AgriBottomNav(
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
     pagerState: PagerState? = null,
-    backdrop: Backdrop? = null
+    glassBackdrop: NavBackdrop? = null
 ) {
     val navItems = remember {
         listOf(
@@ -105,12 +125,10 @@ fun AgriBottomNav(
         )
     }
 
-    val haptic = LocalHapticFeedback.current
+    val haptics = rememberHaptics()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
-
-    val isDark = isAppInDarkMode()
-    val isAmoled = isAppInAmoledMode()
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val selectedIndex = remember(selectedCategory) {
         val idx = navItems.indexOfFirst { item ->
@@ -120,29 +138,60 @@ fun AgriBottomNav(
         }
         if (idx >= 0) idx else 0
     }
+    val currentSelectedIndex by rememberUpdatedState(selectedIndex)
 
-    val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
-    val pillShape = RoundedCornerShape(percent = 50)
+    val pillShape = remember { RoundedCornerShape(percent = 50) }
+    val tabShape = remember { RoundedCornerShape(percent = 100) }
     val container = MaterialTheme.colorScheme.surface
     val n = navItems.size
 
-    val currentSelectedIndex by rememberUpdatedState(selectedIndex)
-    var rowSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-    val gapPx = with(density) { 6.dp.toPx() }
-    val tabStepPx = if (rowSize.width > 0 && n > 0) (rowSize.width + gapPx) / n else 0f
-    val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
-
-    val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
-    var isProgrammaticNav by remember { mutableStateOf(false) }
-    LaunchedEffect(tabStepPx) {
-        motion.stepDp = with(density) { tabStepPx.toDp().value }
+    // Glass-adaptive colours, exactly as the reference app's GlassNavBar.
+    val contentColor = glassContentColor()
+    val selectedColor = if (USE_SECTION_ACCENT) {
+        accentColor ?: MaterialTheme.colorScheme.primary
+    } else {
+        contentColor
     }
+    val unselectedColor = contentColor.copy(alpha = 0.65f)
+    val indicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
 
-    // External selection (tap on a tab, or deep-link) that isn't already
-    // where the pill's drag/travel has it — lift and travel there.
+    val useGlass = glassBackdrop != null && isGlassSupported()
+
+    // --- Pill geometry (reference ExpandedTabs) -------------------------------------
+    val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
+    val barGlass = rememberLayerBackdrop()
+    val tabRow = rememberLayerBackdrop()
+
+    var rowSize by remember { mutableStateOf(IntSize.Zero) }
+    var lastHapticTab by remember { mutableIntStateOf(selectedIndex) }
+    var isProgrammaticNav by remember { mutableStateOf(false) }
+
+    val tabSpacingPx = with(density) { TAB_SPACING.toPx() }
+    val tabWidthPx = if (rowSize.width > 0) (rowSize.width - tabSpacingPx * (n - 1)) / n else 0f
+    val tabStepPx = if (rowSize.width > 0) (rowSize.width + tabSpacingPx) / n else 0f
+    motion.stepDp = tabStepPx / density.density
+
+    val padPx = with(density) { PILL_INSET.toPx() }
+    val rowHeightPx = rowSize.height.toFloat()
+    val restSize = Size(tabWidthPx, rowHeightPx)
+    val liftedHeightPx = rowHeightPx + padPx * 2 + with(density) { PILL_GROW_HEIGHT.toPx() }
+    val liftedSize = if (rowHeightPx > 0f) {
+        Size(liftedHeightPx * tabWidthPx / rowHeightPx, liftedHeightPx)
+    } else {
+        restSize
+    }
+    val pillCenterInRow: (Float) -> Offset = { position ->
+        val x = position * tabStepPx + tabWidthPx / 2f
+        Offset(if (isRtl) rowSize.width - x else x, rowHeightPx / 2f)
+    }
+    val showPill = tabWidthPx > 0f
+
+    // External selection (tap on a tab, or deep-link) that isn't already where
+    // the pill's drag/travel has it — lift and travel there.
     LaunchedEffect(selectedIndex) {
         if (!motion.isFlat && motion.index == selectedIndex) return@LaunchedEffect
         motion.animateTo(selectedIndex)
+        lastHapticTab = selectedIndex
     }
 
     // A page swipe on the content drives the exact same physics a direct
@@ -174,154 +223,191 @@ fun AgriBottomNav(
         }
     }
 
-    var lastHapticTab by remember { mutableStateOf(selectedIndex) }
-
+    // Unclipped outer box: the lifted pill stands past the bar's edges, so it is
+    // drawn here, over the bar, rather than inside the bar's clip.
     Box(
         modifier = modifier
-            .navigationBarsPadding()
-            .padding(horizontal = 10.dp)
+            .windowInsetsPadding(navBarInsets)
+            .padding(horizontal = BAR_GUTTER)
             .padding(bottom = 2.dp)
             .fillMaxWidth()
-            .clip(pillShape)
-            .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-            .then(
-                if (backdrop == null || !isGlassSupported()) {
-                    Modifier
-                        .hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
-                        .glassEdge(pillShape)
-                } else {
-                    Modifier
-                }
-            )
-            .padding(horizontal = PILL_INSET, vertical = PILL_INSET)
     ) {
-        if (tabWidthPx > 0f) {
-            val restSize = Size(tabWidthPx, with(density) { rowSize.height.toFloat() })
-            val liftedSize = Size(tabWidthPx * 1.06f, restSize.height + with(density) { 9.dp.toPx() })
-            val liveSize = motion.liveSize(restSize, liftedSize)
-
+        // The bar's glass is exported for the lens to refract.
+        CompositionLocalProvider(LocalNavGlassExport provides barGlass) {
             Box(
                 modifier = Modifier
-                    .width(with(density) { liveSize.width.toDp() })
-                    .height(with(density) { liveSize.height.toDp() })
-                    .graphicsLayer {
-                        val centerPx = motion.position * tabStepPx + tabWidthPx / 2f
-                        translationX = centerPx - liveSize.width / 2f
-                        translationY = -(liveSize.height - restSize.height) / 2f
-                    }
                     .clip(pillShape)
                     .then(
-                        if (backdrop != null && isGlassSupported()) {
-                            Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        if (useGlass && glassBackdrop != null) {
+                            Modifier.navLiquidGlass(shape = pillShape, backdrop = glassBackdrop)
                         } else {
                             Modifier
+                                .hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
+                                .glassEdge(pillShape)
                         }
                     )
-                    .background(
-                        glassIndicatorColor().copy(alpha = 0.5f * (1f - motion.glassPresence * 0.6f)),
-                        pillShape
+                    .padding(PILL_INSET)
+            ) {
+                if (showPill && (!useGlass || motion.isFlat)) {
+                    FlatSelectionPill(
+                        color = indicatorColor,
+                        modifier = Modifier
+                            .matchParentSize()
+                            .pillPlacement(
+                                center = { pillCenterInRow(motion.position) },
+                                size = { motion.liveSize(restSize, liftedSize) },
+                            ),
                     )
-            )
-        }
+                }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onSizeChanged { rowSize = it }
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures(
-                        onDragStart = {
-                            motion.startDrag()
-                        },
-                        onDragCancel = {
-                            motion.release(currentSelectedIndex)
-                        },
-                        onDragEnd = {
-                            val newIndex = motion.position.roundToInt().coerceIn(0, navItems.lastIndex)
-                            motion.release(newIndex)
-                            if (newIndex != currentSelectedIndex) {
-                                onCategorySelected(navItems[newIndex].serviceCategory)
-                            }
-                        },
-                        onHorizontalDrag = { _, delta ->
-                            if (tabStepPx > 0f) {
-                                val next = (motion.position + delta / tabStepPx)
-                                    .coerceIn(0f, navItems.lastIndex.toFloat())
-                                motion.dragTo(next)
-                                val approxTab = next.roundToInt()
-                                if (approxTab != lastHapticTab) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    lastHapticTab = approxTab
+                NavTabRow(
+                    selectedIndex = selectedIndex,
+                    navItems = navItems,
+                    useGlass = useGlass,
+                    tabRow = tabRow,
+                    tabShape = tabShape,
+                    selectedColor = selectedColor,
+                    unselectedColor = unselectedColor,
+                    onRowSize = { rowSize = it },
+                    dragModifier = Modifier.pointerInput(n, tabStepPx, currentSelectedIndex, isRtl) {
+                        if (tabStepPx <= 0f) return@pointerInput
+
+                        // In tab order, whichever way the row runs.
+                        val direction = if (isRtl) -1f else 1f
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = {
+                                totalDrag = 0f
+                                motion.startDrag()
+                            },
+                            onDragCancel = { motion.release(currentSelectedIndex) },
+                            onDragEnd = {
+                                val ratio = totalDrag / tabStepPx
+                                val shift = when {
+                                    ratio > 0.35f -> maxOf(1, ratio.roundToInt())
+                                    ratio < -0.35f -> minOf(-1, ratio.roundToInt())
+                                    else -> 0
+                                }
+                                val newIndex = (currentSelectedIndex + shift).coerceIn(0, n - 1)
+                                motion.release(newIndex)
+                                if (newIndex != currentSelectedIndex) {
+                                    isProgrammaticNav = true
+                                    onCategorySelected(navItems[newIndex].serviceCategory)
+                                }
+                            },
+                            onHorizontalDrag = { _, delta ->
+                                totalDrag += delta * direction
+                                val dragOffset = when {
+                                    totalDrag > 0 && currentSelectedIndex == n - 1 -> totalDrag * 0.25f
+                                    totalDrag < 0 && currentSelectedIndex == 0 -> totalDrag * 0.25f
+                                    else -> totalDrag
+                                }
+                                motion.dragTo(currentSelectedIndex + dragOffset / tabStepPx)
+
+                                val approximateTab = (currentSelectedIndex + dragOffset / tabStepPx)
+                                    .coerceIn(0f, (n - 1).toFloat())
+                                    .roundToInt()
+                                if (approximateTab != lastHapticTab) {
+                                    haptics.play(Haptic.Tick)
+                                    lastHapticTab = approximateTab
                                 }
                             }
-                        }
-                    )
-                },
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val activeTabIndex = motion.position.roundToInt().coerceIn(0, navItems.lastIndex)
-            navItems.forEachIndexed { index, item ->
-                val isSelected = index == activeTabIndex
-                val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
-
-                val interactionSource = remember { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-
-                val pressedScale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.97f else 1.0f,
-                    animationSpec = spring(stiffness = 700f, dampingRatio = 1.0f),
-                    label = "tabItemPressedScale"
-                )
-
-                val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.22f else 1f,
-                    animationSpec = spring(stiffness = 380f, dampingRatio = 0.55f),
-                    label = "tabScale"
-                )
-                val iconColor by animateColorAsState(
-                    targetValue = if (isSelected) activeSectionAccent else unselectedColor,
-                    animationSpec = tween(200),
-                    label = "tabIconColor"
-                )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(item.testTag)
-                        .graphicsLayer {
-                            scaleX = pressedScale
-                            scaleY = pressedScale
-                        }
-                        .clip(RoundedCornerShape(percent = 50))
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = {
-                                isProgrammaticNav = true
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onCategorySelected(item.serviceCategory)
-                            }
                         )
-                        .padding(vertical = TAB_VERTICAL_PADDING)
+                    },
+                    onTabClick = { index, item ->
+                        if (index != currentSelectedIndex) {
+                            isProgrammaticNav = true
+                            haptics.play(Haptic.Select)
+                        }
+                        onCategorySelected(item.serviceCategory)
+                    }
+                )
+            }
+        }
+
+        if (useGlass && glassBackdrop != null && showPill && !motion.isFlat) {
+            GlassSelectionPill(
+                motion = motion,
+                fillColor = indicatorColor,
+                page = glassBackdrop,
+                barGlass = barGlass,
+                tabRow = tabRow,
+                modifier = Modifier
+                    .matchParentSize()
+                    .pillPlacement(
+                        center = { pillCenterInRow(motion.position) + Offset(padPx, padPx) },
+                        size = { motion.liveSize(restSize, liftedSize) },
+                    ),
+            )
+        }
+    }
+}
+
+/** The tab row: equal-weight tabs, recorded into [tabRow] so the lens can refract it. */
+@Composable
+private fun NavTabRow(
+    selectedIndex: Int,
+    navItems: List<AgriNavItem>,
+    useGlass: Boolean,
+    tabRow: com.example.ui.components.backdrop.backdrops.LayerBackdrop,
+    tabShape: androidx.compose.ui.graphics.Shape,
+    selectedColor: Color,
+    unselectedColor: Color,
+    onRowSize: (IntSize) -> Unit,
+    dragModifier: Modifier,
+    onTabClick: (Int, AgriNavItem) -> Unit,
+) {
+    androidx.compose.foundation.layout.Row(
+        horizontalArrangement = Arrangement.spacedBy(TAB_SPACING),
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged(onRowSize)
+            .then(if (useGlass) Modifier.layerBackdrop(tabRow) else Modifier)
+            .then(dragModifier)
+    ) {
+        navItems.forEachIndexed { index, item ->
+            val isSelected = index == selectedIndex
+            val tint = if (isSelected) selectedColor else unselectedColor
+            val iconScale by animateFloatAsState(
+                targetValue = if (isSelected) 1.08f else 1f,
+                animationSpec = NavGlassSpring,
+                label = "glassTabScale"
+            )
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(item.testTag)
+                    .clip(tabShape)
+                    .clickable(
+                        onClick = { onTabClick(index, item) },
+                        indication = LocalIndication.current,
+                        interactionSource = remember { MutableInteractionSource() }
+                    )
+                    .padding(vertical = TAB_VERTICAL_PADDING)
+            ) {
+                Box(
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    }
                 ) {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        tint = iconColor,
-                        modifier = Modifier
-                            .size(25.dp)
-                            .graphicsLayer { scaleX = scale; scaleY = scale }
-                    )
-                    Spacer(Modifier.height(TAB_ICON_LABEL_GAP))
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = unselectedColor,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        tint = tint,
+                        modifier = Modifier.size(25.dp)
                     )
                 }
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = TAB_ICON_LABEL_GAP)
+                )
             }
         }
     }
