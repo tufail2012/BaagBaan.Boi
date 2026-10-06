@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.SystemClock
 import android.util.Log
 import com.example.BuildConfig
 import com.zegocloud.uikit.internal.ZegoUIKitLanguage
@@ -26,6 +27,11 @@ object ZegoCallManager {
 
     var currentUserName: String? = null
         private set
+
+    @Volatile
+    private var initializedAtMs: Long = 0L
+
+    private const val SETTLE_DELAY_MS = 1500L
 
     fun getAppId(): Long = try {
         BuildConfig.ZEGO_APP_ID.toString().trim().toLongOrNull() ?: 0L
@@ -51,6 +57,10 @@ object ZegoCallManager {
         if (credsError != null) return credsError
         if (!isInitialized) {
             return "Zego service not logged in: Call invitation service is not initialized for the current user yet"
+        }
+        val sinceInit = SystemClock.elapsedRealtime() - initializedAtMs
+        if (sinceInit < SETTLE_DELAY_MS) {
+            return "Zego call service is still starting up — please try again in a moment"
         }
         return null
     }
@@ -112,6 +122,7 @@ object ZegoCallManager {
             isInitialized = true
             currentUserId = userId
             currentUserName = userName
+            initializedAtMs = SystemClock.elapsedRealtime()
             Log.i(TAG, "ZegoUIKitPrebuiltCallInvitationService initialized for user: $userName ($userId)")
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to initialize Zego call service: ${e.message}", e)
@@ -125,6 +136,7 @@ object ZegoCallManager {
                 isInitialized = false
                 currentUserId = null
                 currentUserName = null
+                initializedAtMs = 0L
                 Log.i(TAG, "ZegoUIKitPrebuiltCallInvitationService uninitialized")
             }
         } catch (e: Throwable) {
@@ -142,62 +154,39 @@ object ZegoCallManager {
     }
 
     fun startCall(
-        button: ZegoSendCallInvitationButton?,
+        context: Context,
         targetUserId: String,
         targetUserName: String,
         isVideo: Boolean
     ): Boolean {
-        if (button == null) {
-            Log.w(TAG, "Cannot start call: ZegoSendCallInvitationButton reference is null")
-            return false
-        }
-        return try {
-            button.setIsVideoCall(isVideo)
-            button.setResourceID("zego_call")
-            button.setInvitees(listOf(ZegoUIKitUser(targetUserId, targetUserName)))
-            button.performClick()
-            true
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to performClick on ZegoSendCallInvitationButton: ${e.message}", e)
-            false
-        }
-    }
-
-    @Deprecated("Prefer passing the attached ZegoSendCallInvitationButton")
-    fun startCall(
-        context: Context,
-        targetUserId: String,
-        targetUserName: String,
-        isVideo: Boolean,
-        timeoutSeconds: Int = 60,
-        onResult: (success: Boolean, message: String) -> Unit = { _, _ -> }
-    ) {
         val configError = getConfigurationError()
         if (configError != null) {
             Log.w(TAG, "Cannot start call: $configError")
-            onResult(false, configError)
-            return
+            return false
         }
 
         val activity = findActivity(context) ?: (context as? Activity)
         if (activity == null) {
-            val err = "Call failed: Activity context not available"
-            Log.e(TAG, err)
-            onResult(false, err)
-            return
+            Log.e(TAG, "Call failed: Activity context not available")
+            return false
         }
 
-        try {
+        return try {
+            // Build a FRESH button and actually attach it to the window
+            // right now — guaranteed to happen only after isConfigured()
+            // above confirmed the service is already initialized, so this
+            // instance reads a valid, non-null invitation config.
             val button = ZegoSendCallInvitationButton(activity)
             button.setIsVideoCall(isVideo)
             button.setResourceID("zego_call")
             button.setInvitees(listOf(ZegoUIKitUser(targetUserId, targetUserName)))
+            val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
+            root.addView(button, android.view.ViewGroup.LayoutParams(0, 0))
             button.performClick()
-            onResult(true, "Calling @$targetUserName…")
+            true
         } catch (e: Throwable) {
-            val err = "Call failed: ${e.message ?: "Unknown error"}"
-            Log.e(TAG, err, e)
-            onResult(false, err)
+            Log.e(TAG, "Failed to start call: ${e.message}", e)
+            false
         }
     }
 }

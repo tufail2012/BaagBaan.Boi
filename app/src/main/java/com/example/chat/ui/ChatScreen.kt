@@ -1,15 +1,14 @@
 package com.example.chat.ui
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.viewinterop.AndroidView
 import com.example.chat.call.CallPermissionHelper
 import com.example.chat.call.CallPermissionRationaleDialog
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.call.ZegoConfigRequiredDialog
-import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -129,14 +128,9 @@ fun ChatScreen(
     var pendingIsVideoCall by remember { mutableStateOf<Boolean?>(null) }
     var hasCallPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
 
-    val invitationButtonRef = remember { mutableStateOf<ZegoSendCallInvitationButton?>(null) }
-
-    AndroidView(
-        modifier = Modifier.size(0.dp),
-        factory = { ctx ->
-            ZegoSendCallInvitationButton(ctx).also { invitationButtonRef.value = it }
-        }
-    )
+    // (intentionally removed: no persistent button is created here anymore —
+    // ZegoCallManager.startCall() now builds a fresh, properly-attached
+    // button at the moment of each call attempt instead)
 
     val callPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -155,7 +149,7 @@ fun ChatScreen(
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    val started = ZegoCallManager.startCall(invitationButtonRef.value, otherUid, rec.username, isVideo)
+                    val started = ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
                     if (started) {
                         Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
                     } else {
@@ -183,7 +177,12 @@ fun ChatScreen(
                 Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                 showZegoConfigDialog = true
             } else {
-                val started = ZegoCallManager.startCall(invitationButtonRef.value, otherUid, rec.username, isVideo)
+                val started = try {
+                    ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
+                } catch (e: Throwable) {
+                    Log.e("ChatScreen", "startCall threw unexpectedly", e)
+                    false
+                }
                 if (started) {
                     Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
                 } else {
