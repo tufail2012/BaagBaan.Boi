@@ -1,17 +1,14 @@
 package com.example.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,23 +35,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -69,6 +60,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import dev.chrisbanes.haze.materials.HazeMaterials
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 data class AgriNavItem(
@@ -78,15 +70,18 @@ data class AgriNavItem(
     val testTag: String
 )
 
-private val GlassSpring = androidx.compose.animation.core.spring<Float>(dampingRatio = 0.72f, stiffness = 320f)
-private const val STRETCH = 0.16f
-private const val SQUASH = 0.5f
 private val PILL_INSET = 6.dp
 private val TAB_VERTICAL_PADDING = 9.dp
 private val TAB_ICON_LABEL_GAP = 2.dp
 
 /**
  * Floating Pill Bottom Navigation Bar for Baagbaan BOI.
+ *
+ * The selection indicator's motion (lift/overshoot, travel spring, launch
+ * stretch and brake squash, glass-to-flat hand-off) is driven by
+ * [GlassPillMotion]. Both a direct drag on the pill and a page swipe on
+ * [pagerState] feed the same physics through startDrag/dragTo/release, so
+ * either gesture gets the identical liquid feel.
  */
 @OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
@@ -127,44 +122,51 @@ fun AgriBottomNav(
     }
 
     val activeSectionAccent = accentColor ?: MaterialTheme.colorScheme.primary
-
     val pillShape = RoundedCornerShape(percent = 50)
     val container = MaterialTheme.colorScheme.surface
+    val n = navItems.size
 
-    val dragOffset = remember { Animatable(0f) }
     val currentSelectedIndex by rememberUpdatedState(selectedIndex)
     var rowSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
     val gapPx = with(density) { 6.dp.toPx() }
-    val n = navItems.size
-
-    val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
     val tabStepPx = if (rowSize.width > 0 && n > 0) (rowSize.width + gapPx) / n else 0f
+    val tabWidthPx = if (rowSize.width > 0 && n > 0) (rowSize.width - gapPx * (n - 1)) / n else 0f
 
-    val pillOffsetAnimatable = remember { Animatable(0f) }
-    var isInitialized by remember { mutableStateOf(false) }
+    val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
+    LaunchedEffect(tabStepPx) {
+        motion.stepDp = with(density) { tabStepPx.toDp().value }
+    }
 
-    LaunchedEffect(selectedIndex, tabStepPx) {
-        if (pagerState == null && tabStepPx > 0f) {
-            val targetPx = selectedIndex * tabStepPx
-            if (!isInitialized) {
-                pillOffsetAnimatable.snapTo(targetPx)
-                isInitialized = true
-            } else {
-                pillOffsetAnimatable.animateTo(
-                    targetValue = targetPx,
-                    animationSpec = spring(
-                        stiffness = 500f,
-                        dampingRatio = 1.0f
-                    )
-                )
+    // External selection (tap on a tab, or deep-link) that isn't already
+    // where the pill's drag/travel has it — lift and travel there.
+    LaunchedEffect(selectedIndex) {
+        if (!motion.isFlat && motion.index == selectedIndex) return@LaunchedEffect
+        motion.animateTo(selectedIndex)
+    }
+
+    // A page swipe on the content drives the exact same physics a direct
+    // pill-drag would: start the lift when the swipe begins, follow the
+    // continuous page fraction, release onto the page it settles on.
+    if (pagerState != null) {
+        LaunchedEffect(pagerState) {
+            var wasScrolling = false
+            snapshotFlow {
+                Triple(pagerState.isScrollInProgress, pagerState.currentPage, pagerState.currentPageOffsetFraction)
+            }.collect { (scrolling, page, offsetFraction) ->
+                if (scrolling && !wasScrolling) {
+                    motion.startDrag()
+                }
+                if (scrolling) {
+                    motion.dragTo((page + offsetFraction).coerceIn(0f, (n - 1).toFloat()))
+                } else if (wasScrolling) {
+                    motion.release(page.coerceIn(0, n - 1))
+                }
+                wasScrolling = scrolling
             }
         }
     }
 
-    var lastHapticTab by remember { mutableIntStateOf(selectedIndex) }
-    LaunchedEffect(selectedIndex) {
-        if (dragOffset.value != 0f) dragOffset.snapTo(0f)
-    }
+    var lastHapticTab by remember { mutableStateOf(selectedIndex) }
 
     Box(
         modifier = modifier
@@ -186,41 +188,31 @@ fun AgriBottomNav(
             .padding(horizontal = PILL_INSET, vertical = PILL_INSET)
     ) {
         if (tabWidthPx > 0f) {
+            val restSize = Size(tabWidthPx, with(density) { rowSize.height.toFloat() })
+            val liftedSize = Size(tabWidthPx * 1.06f, restSize.height + with(density) { 9.dp.toPx() })
+            val liveSize = motion.liveSize(restSize, liftedSize)
+
             Box(
                 modifier = Modifier
-                    .width(with(density) { tabWidthPx.toDp() })
-                    .height(with(density) { rowSize.height.toDp() })
+                    .width(with(density) { liveSize.width.toDp() })
+                    .height(with(density) { liveSize.height.toDp() })
                     .graphicsLayer {
-                        val pagerOffset = if (pagerState != null && tabStepPx > 0f) {
-                            val continuousPage = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
-                                .coerceIn(0f, (n - 1).toFloat())
-                            continuousPage * tabStepPx
-                        } else null
-
-                        val baseOffset = pagerOffset ?: if (!isInitialized && tabStepPx > 0f) {
-                            selectedIndex * tabStepPx
-                        } else {
-                            pillOffsetAnimatable.value
-                        }
-                        val currentOffset = baseOffset + dragOffset.value
-                        translationX = currentOffset
-
-                        val currentLag = if (pagerState != null) {
-                            if (pagerState.isScrollInProgress) {
-                                (kotlin.math.abs(pagerState.currentPageOffsetFraction) * 2f).coerceIn(0f, 1f)
-                            } else if (tabStepPx > 0f && dragOffset.value != 0f) {
-                                (kotlin.math.abs(dragOffset.value) / tabStepPx).coerceIn(0f, 1f)
-                            } else 0f
-                        } else if (tabStepPx > 0f) {
-                            val currentTarget = selectedIndex * tabStepPx
-                            (kotlin.math.abs(currentTarget - currentOffset) / tabStepPx).coerceIn(0f, 1f)
-                        } else 0f
-
-                        scaleX = 1f + currentLag * STRETCH
-                        scaleY = 1f - currentLag * STRETCH * SQUASH
+                        val centerPx = motion.position * tabStepPx + tabWidthPx / 2f
+                        translationX = centerPx - liveSize.width / 2f
+                        translationY = -(liveSize.height - restSize.height) / 2f
                     }
                     .clip(pillShape)
-                    .background(glassIndicatorColor().copy(alpha = 0.5f), pillShape)
+                    .then(
+                        if (backdrop != null && isGlassSupported()) {
+                            Modifier.liquidGlassNav(shape = pillShape, backdrop = backdrop)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .background(
+                        glassIndicatorColor().copy(alpha = 0.5f * (1f - motion.glassPresence * 0.6f)),
+                        pillShape
+                    )
             )
         }
 
@@ -229,74 +221,30 @@ fun AgriBottomNav(
                 .fillMaxWidth()
                 .onSizeChanged { rowSize = it }
                 .pointerInput(Unit) {
-                    var totalDrag = 0f
                     detectHorizontalDragGestures(
-                        onDragStart = { totalDrag = 0f },
+                        onDragStart = {
+                            motion.startDrag()
+                        },
                         onDragCancel = {
-                            coroutineScope.launch {
-                                dragOffset.animateTo(0f, spring(stiffness = 500f, dampingRatio = 1.0f))
-                            }
+                            motion.release(currentSelectedIndex)
                         },
                         onDragEnd = {
-                            if (tabStepPx > 0f) {
-                                val ratio = totalDrag / tabStepPx
-                                val shift = when {
-                                    ratio > 0.35f -> kotlin.math.max(1, ratio.roundToInt())
-                                    ratio < -0.35f -> kotlin.math.min(-1, ratio.roundToInt())
-                                    else -> 0
-                                }
-                                val newIndex = (currentSelectedIndex + shift).coerceIn(0, navItems.lastIndex)
-
-                                if (pagerState != null) {
-                                    // The pill's position is driven entirely by pagerState
-                                    // above, so just decay dragOffset to 0 while the pager
-                                    // animates to the new page — the two motions blend into
-                                    // one continuous slide instead of snapping.
-                                    coroutineScope.launch {
-                                        dragOffset.animateTo(0f, spring(stiffness = 380f, dampingRatio = 0.86f))
-                                    }
-                                    if (newIndex != currentSelectedIndex) {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(newIndex)
-                                        }
-                                        onCategorySelected(navItems[newIndex].serviceCategory)
-                                    }
-                                } else {
-                                    val releasedOffset = pillOffsetAnimatable.value + dragOffset.value
-                                    coroutineScope.launch {
-                                        pillOffsetAnimatable.snapTo(releasedOffset)
-                                        dragOffset.snapTo(0f)
-                                        if (newIndex != currentSelectedIndex) {
-                                            onCategorySelected(navItems[newIndex].serviceCategory)
-                                        } else {
-                                            pillOffsetAnimatable.animateTo(
-                                                targetValue = currentSelectedIndex * tabStepPx,
-                                                animationSpec = spring(
-                                                    stiffness = 500f,
-                                                    dampingRatio = 1.0f
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            } else {
-                                coroutineScope.launch { dragOffset.snapTo(0f) }
+                            val newIndex = motion.position.roundToInt().coerceIn(0, navItems.lastIndex)
+                            motion.release(newIndex)
+                            if (newIndex != currentSelectedIndex) {
+                                onCategorySelected(navItems[newIndex].serviceCategory)
                             }
                         },
                         onHorizontalDrag = { _, delta ->
-                            totalDrag += delta
-                            val rawPx = when {
-                                totalDrag > 0 && currentSelectedIndex == navItems.lastIndex -> totalDrag * 0.25f
-                                totalDrag < 0 && currentSelectedIndex == 0 -> totalDrag * 0.25f
-                                else -> totalDrag
-                            }
-                            coroutineScope.launch { dragOffset.snapTo(rawPx) }
-                            val approxTab = (currentSelectedIndex + rawPx / tabStepPx)
-                                .coerceIn(0f, navItems.lastIndex.toFloat())
-                                .roundToInt()
-                            if (approxTab != lastHapticTab) {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                lastHapticTab = approxTab
+                            if (tabStepPx > 0f) {
+                                val next = (motion.position + delta / tabStepPx)
+                                    .coerceIn(0f, navItems.lastIndex.toFloat())
+                                motion.dragTo(next)
+                                val approxTab = next.roundToInt()
+                                if (approxTab != lastHapticTab) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    lastHapticTab = approxTab
+                                }
                             }
                         }
                     )
@@ -304,19 +252,7 @@ fun AgriBottomNav(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val activeTabIndex = when {
-                pagerState != null && pagerState.isScrollInProgress ->
-                    pagerState.targetPage.coerceIn(0, navItems.lastIndex)
-                tabStepPx > 0f && dragOffset.value != 0f -> {
-                    val base = if (pagerState != null) {
-                        (pagerState.currentPage + pagerState.currentPageOffsetFraction) * tabStepPx
-                    } else {
-                        selectedIndex * tabStepPx
-                    }
-                    ((base + dragOffset.value) / tabStepPx).roundToInt().coerceIn(0, navItems.lastIndex)
-                }
-                else -> selectedIndex
-            }
+            val activeTabIndex = motion.position.roundToInt().coerceIn(0, navItems.lastIndex)
             navItems.forEachIndexed { index, item ->
                 val isSelected = index == activeTabIndex
                 val unselectedColor = if (isDark || isAmoled) Color(0xFF94A3B8) else Color(0xFF64748B)
@@ -326,19 +262,13 @@ fun AgriBottomNav(
 
                 val pressedScale by animateFloatAsState(
                     targetValue = if (isPressed) 0.97f else 1.0f,
-                    animationSpec = spring(
-                        stiffness = 700f,
-                        dampingRatio = 1.0f
-                    ),
+                    animationSpec = spring(stiffness = 700f, dampingRatio = 1.0f),
                     label = "tabItemPressedScale"
                 )
 
                 val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.08f else 1f,
-                    animationSpec = spring(
-                        stiffness = 500f,
-                        dampingRatio = 1.0f
-                    ),
+                    targetValue = if (isSelected) 1.22f else 1f,
+                    animationSpec = spring(stiffness = 380f, dampingRatio = 0.55f),
                     label = "tabScale"
                 )
                 val iconColor by animateColorAsState(
