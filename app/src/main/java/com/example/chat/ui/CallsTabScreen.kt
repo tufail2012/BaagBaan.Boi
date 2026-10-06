@@ -110,11 +110,11 @@ fun CallsTabScreen(
                     Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                     showZegoConfigDialog = true
                 } else {
-                    val started = ZegoCallManager.startCall(context, uid, username, isVideo)
-                    if (started) {
+                    val errorReason = ZegoCallManager.startCall(context, uid, username, isVideo)
+                    if (errorReason == null) {
                         Toast.makeText(context, "Calling @$username…", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -137,11 +137,11 @@ fun CallsTabScreen(
                 Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
                 showZegoConfigDialog = true
             } else {
-                val started = ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo)
-                if (started) {
+                val errorReason = ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo)
+                if (errorReason == null) {
                     Toast.makeText(context, "Calling @$targetUsername…", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Couldn't start the call — please try again", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
                 }
             }
         }

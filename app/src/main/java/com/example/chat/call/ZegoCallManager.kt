@@ -153,29 +153,30 @@ object ZegoCallManager {
         return null
     }
 
+    /**
+     * Returns null on success, or a specific, non-generic error message on
+     * failure — always the real reason, for on-screen diagnostic display.
+     */
     fun startCall(
         context: Context,
         targetUserId: String,
         targetUserName: String,
         isVideo: Boolean
-    ): Boolean {
+    ): String? {
         val configError = getConfigurationError()
         if (configError != null) {
             Log.w(TAG, "Cannot start call: $configError")
-            return false
+            return configError
         }
 
         val activity = findActivity(context) ?: (context as? Activity)
         if (activity == null) {
-            Log.e(TAG, "Call failed: Activity context not available")
-            return false
+            val err = "Activity context not available (context type: ${context.javaClass.name})"
+            Log.e(TAG, "Call failed: $err")
+            return err
         }
 
         return try {
-            // Build a FRESH button and actually attach it to the window
-            // right now — guaranteed to happen only after isConfigured()
-            // above confirmed the service is already initialized, so this
-            // instance reads a valid, non-null invitation config.
             val button = ZegoSendCallInvitationButton(activity)
             button.setIsVideoCall(isVideo)
             button.setResourceID("zego_call")
@@ -183,10 +184,11 @@ object ZegoCallManager {
             val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
             root.addView(button, android.view.ViewGroup.LayoutParams(0, 0))
             button.performClick()
-            true
+            null
         } catch (e: Throwable) {
-            Log.e(TAG, "Failed to start call: ${e.message}", e)
-            false
+            val err = "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
+            Log.e(TAG, "Failed to start call: $err", e)
+            err
         }
     }
 }
