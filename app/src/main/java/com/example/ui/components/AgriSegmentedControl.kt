@@ -141,6 +141,13 @@ fun LiquidGlassSegmentedSwitcher(
         SolidColor(Color(0xFF000000).copy(alpha = 0.08f))
     }
 
+    val activeTextColor = accentColor
+    val inactiveTextColor = if (isDark || isAmoled) {
+        Color.White.copy(alpha = 0.60f)
+    } else {
+        Color.Black.copy(alpha = 0.55f)
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -179,132 +186,17 @@ fun LiquidGlassSegmentedSwitcher(
             .glassEdge(containerShape)
             .padding(4.dp)
     ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val totalWidth = maxWidth
-            val itemCount = items.size.coerceAtLeast(1)
-            val slotWidth = totalWidth / itemCount
-            val targetOffset = slotWidth * selectedIndex
-
-            // Natural smooth fluid spring slide
-            val animatedOffsetX by animateDpAsState(
-                targetValue = targetOffset,
-                animationSpec = spring(
-                    dampingRatio = 0.72f, // Natural fluid spring physics
-                    stiffness = 320f
-                ),
-                label = "segmentedSlide"
-            )
-
-            // Soft water droplet spreading & expanding ripple wave on tab switch
-            val dropletSpread = remember { Animatable(1f) }
-            val dropletRipple = remember { Animatable(1f) }
-
-            LaunchedEffect(selectedIndex) {
-                launch {
-                    dropletSpread.snapTo(0.88f)
-                    dropletSpread.animateTo(
-                        targetValue = 1f,
-                        animationSpec = spring(
-                            dampingRatio = 0.60f, // Gentle water droplet surface tension
-                            stiffness = 250f
-                        )
-                    )
-                }
-                launch {
-                    dropletRipple.snapTo(0f)
-                    dropletRipple.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(
-                            durationMillis = 450,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                }
-            }
-
-            val offsetDelta = (targetOffset - animatedOffsetX).value
-            val glideStretch = (kotlin.math.abs(offsetDelta) / slotWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
-            val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
-            val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
-
-            // Neutral "glass" base for every tab slot, so the unselected tab also
-            // has a glass look (not just flat/plain). The accent-colored indicator
-            // below still renders on top of this for the selected tab.
-            if (!useRealGlass) {
-                Row(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items.forEachIndexed { index, _ ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .padding(1.dp)
-                                .bubblyGlassCapsuleIndicator(
-                                    hazeState = hazeState,
-                                    shape = itemShape,
-                                    accentColor = Color.White,
-                                    isDark = isDark,
-                                    isAmoled = isAmoled
-                                )
-                        )
-                    }
-                }
-            }
-
-            // Subtle water droplet expanding ripple wave
-            if (dropletRipple.value < 0.99f) {
-                val rippleProgress = dropletRipple.value
-                val rippleAlpha = ((1f - rippleProgress) * if (!isDark && !isAmoled) 0.32f else 0.24f).coerceIn(0f, 1f)
-                val extraWidth = (rippleProgress * 14).dp
-                val extraHeight = (rippleProgress * 6).dp
-
+        AgriMotionTabs(
+            titles = items.map { it.title },
+            selectedIndex = selectedIndex,
+            onSelect = onItemSelected,
+            selectedTextColor = activeTextColor,
+            unselectedTextColor = inactiveTextColor,
+            testTags = items.map { it.testTag },
+            pillInset = 4.dp,
+            pill = { pillModifier ->
                 Box(
-                    modifier = Modifier
-                        .offset(
-                            x = animatedOffsetX - (extraWidth / 2),
-                            y = -(extraHeight / 2)
-                        )
-                        .align(Alignment.CenterStart)
-                        .width(slotWidth + extraWidth)
-                        .fillMaxHeight()
-                        .clip(itemShape)
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = rippleAlpha * 0.7f),
-                                    accentColor.copy(alpha = rippleAlpha * 0.3f),
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = itemShape
-                        )
-                        .background(
-                            color = Color.White.copy(alpha = rippleAlpha * 0.18f),
-                            shape = itemShape
-                        )
-                )
-            }
-
-            // Active Pill ("Bubbly Glass" Capsule Look):
-            // background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 60%, rgba(var(--theme-primary-rgb), 0.15) 100%);
-            // backdrop-filter: blur(14px);
-            // box-shadow: inset 0 1.5px 2px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.04), 0 4px 12px 0 rgba(var(--theme-primary-rgb), 0.12);
-            // border: 1px solid rgba(255, 255, 255, 0.7);
-            Box(
-                modifier = Modifier
-                    .offset(x = animatedOffsetX)
-                    .align(Alignment.CenterStart)
-                    .width(slotWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        scaleX = dynamicScaleX
-                        scaleY = dynamicScaleY
-                    }
-                    .then(
+                    modifier = pillModifier.then(
                         if (useRealGlass) {
                             Modifier
                                 .clip(itemShape)
@@ -319,97 +211,9 @@ fun LiquidGlassSegmentedSwitcher(
                             )
                         }
                     )
-            )
-
-            // Tab Text Items Row
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items.forEachIndexed { index, item ->
-                    val isSelected = index == selectedIndex
-
-                    // Pill Typography & Theming:
-                    // Active Tab Text: Must dynamically adapt to the active screen's primary color palette (e.g., #D32F2F in Garden Planning / Rootstocks, #2E7D32 in Local Plants, etc.), with font-weight: 700.
-                    // Inactive Tab Text: Subdued neutral contrast (rgba(0, 0, 0, 0.55)), font-weight: 500.
-                    val activeTextColor = accentColor
-                    val inactiveTextColor = if (isDark || isAmoled) {
-                        Color.White.copy(alpha = 0.60f)
-                    } else {
-                        Color.Black.copy(alpha = 0.55f)
-                    }
-
-                    val textColor by animateColorAsState(
-                        targetValue = if (isSelected) activeTextColor else inactiveTextColor,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "tabTextColor"
-                    )
-
-                    // 3D Embossed lift, scale, and subtle rotation tilt
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.05f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "tabScale"
-                    )
-
-                    val liftY by animateDpAsState(
-                        targetValue = if (isSelected) (-1.5).dp else 0.dp,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "tabLift"
-                    )
-
-                    val rotX by animateFloatAsState(
-                        targetValue = if (isSelected) 4f else 0f,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "tabRotX"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .testTag(item.testTag)
-                            .clip(itemShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    if (selectedIndex != index) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onItemSelected(index)
-                                    }
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = item.title,
-                            fontSize = 14.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = textColor,
-                            maxLines = 1,
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                translationY = liftY.toPx()
-                                rotationX = rotX
-                                cameraDistance = 16f * density
-                            }
-                        )
-                    }
-                }
+                )
             }
-        }
+        )
     }
 }
 

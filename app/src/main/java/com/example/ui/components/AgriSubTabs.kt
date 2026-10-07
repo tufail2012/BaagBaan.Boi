@@ -156,102 +156,20 @@ fun PruningSubTabs(
             )
             .padding(4.dp)
     ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val totalWidth = maxWidth
-            val slotWidth = totalWidth / 2
-            val targetOffset = slotWidth * selectedIndex
+        val activeTextColor = accentColor
+        val inactiveTextColor = if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
 
-            // Natural smooth fluid spring slide
-            val animatedOffsetX by animateDpAsState(
-                targetValue = targetOffset,
-                animationSpec = spring(
-                    dampingRatio = 0.72f, // Natural fluid spring physics
-                    stiffness = 320f
-                ),
-                label = "pruningSlide"
-            )
-
-            // Soft water droplet spreading & expanding ripple wave on tab switch
-            val dropletSpread = remember { Animatable(1f) }
-            val dropletRipple = remember { Animatable(1f) }
-
-            LaunchedEffect(selectedIndex) {
-                launch {
-                    dropletSpread.snapTo(0.88f)
-                    dropletSpread.animateTo(
-                        targetValue = 1f,
-                        animationSpec = spring(
-                            dampingRatio = 0.60f, // Gentle water droplet surface tension
-                            stiffness = 250f
-                        )
-                    )
-                }
-                launch {
-                    dropletRipple.snapTo(0f)
-                    dropletRipple.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(
-                            durationMillis = 450,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                }
-            }
-
-            val offsetDelta = (targetOffset - animatedOffsetX).value
-            val glideStretch = (kotlin.math.abs(offsetDelta) / slotWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
-            val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
-            val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
-
-            // Subtle water droplet expanding ripple wave
-            if (dropletRipple.value < 0.99f) {
-                val rippleProgress = dropletRipple.value
-                val rippleAlpha = ((1f - rippleProgress) * if (!isDark && !isAmoled) 0.32f else 0.24f).coerceIn(0f, 1f)
-                val extraWidth = (rippleProgress * 14).dp
-                val extraHeight = (rippleProgress * 6).dp
-
+        AgriMotionTabs(
+            titles = subTabs,
+            selectedIndex = selectedIndex,
+            onSelect = { index -> onSelectSubTab(subTabs[index]) },
+            selectedTextColor = activeTextColor,
+            unselectedTextColor = inactiveTextColor,
+            testTags = subTabs.map { "subtab_${it.lowercase().replace(" ", "_")}" },
+            pillInset = 4.dp,
+            pill = { pillModifier ->
                 Box(
-                    modifier = Modifier
-                        .offset(
-                            x = animatedOffsetX - (extraWidth / 2),
-                            y = -(extraHeight / 2)
-                        )
-                        .align(Alignment.CenterStart)
-                        .width(slotWidth + extraWidth)
-                        .fillMaxHeight()
-                        .clip(itemShape)
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    accentColor.copy(alpha = rippleAlpha),
-                                    Color.White.copy(alpha = rippleAlpha * 0.6f),
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = itemShape
-                        )
-                        .background(
-                            color = accentColor.copy(alpha = rippleAlpha * 0.15f),
-                            shape = itemShape
-                        )
-                )
-            }
-
-            // Fluid Water-like Sliding Liquid Pill Indicator
-            Box(
-                modifier = Modifier
-                    .offset(x = animatedOffsetX)
-                    .align(Alignment.CenterStart)
-                    .width(slotWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        scaleX = dynamicScaleX
-                        scaleY = dynamicScaleY
-                    }
-                    .then(
+                    modifier = pillModifier.then(
                         if (useRealGlass) {
                             Modifier
                                 .clip(itemShape)
@@ -266,104 +184,36 @@ fun PruningSubTabs(
                             )
                         }
                     )
-            )
-
-            // Tab Text and Icons Row
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                subTabs.forEachIndexed { index, tabName ->
-                    val isSelected = index == selectedIndex
-                    val isSummer = tabName.contains("Summer", ignoreCase = true)
-                    val icon = if (isSummer) Icons.Default.WbSunny else Icons.Default.AcUnit
-
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            accentColor
-                        } else {
-                            if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
-                        },
-                        animationSpec = tween(durationMillis = 200),
-                        label = "pruningTabColor"
-                    )
-
-                    // 3D Embossed lift, scale, and subtle rotation tilt
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.05f else 1.0f,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "pruningScale"
-                    )
-
-                    val liftY by animateDpAsState(
-                        targetValue = if (isSelected) (-1.5).dp else 0.dp,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "pruningLift"
-                    )
-
-                    val rotX by animateFloatAsState(
-                        targetValue = if (isSelected) 4f else 0f,
-                        animationSpec = spring(
-                            dampingRatio = 0.72f,
-                            stiffness = 320f
-                        ),
-                        label = "pruningRotX"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .testTag("subtab_${tabName.lowercase().replace(" ", "_")}")
-                            .clip(itemShape)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = {
-                                    if (selectedIndex != index) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        onSelectSubTab(tabName)
-                                    }
-                                }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                translationY = liftY.toPx()
-                                rotationX = rotX
-                                cameraDistance = 16f * density
-                            }
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = contentColor,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = tabName,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = contentColor
-                            )
-                        }
+                )
+            },
+            tabContent = { index, isSelected, textColor, scale ->
+                val tabName = subTabs[index]
+                val isSummer = tabName.contains("Summer", ignoreCase = true)
+                val icon = if (isSummer) Icons.Default.WbSunny else Icons.Default.AcUnit
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
                     }
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = textColor,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = tabName,
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = textColor
+                    )
                 }
             }
-        }
+        )
     }
 }
 
@@ -472,125 +322,27 @@ fun RootstockSubTabs(
             )
             .padding(4.dp)
     ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            val totalWidth = maxWidth
-            val totalWeight = 3.2f
-            val width0 = totalWidth * (1.0f / totalWeight)
-            val width1 = totalWidth * (1.0f / totalWeight)
-            val width2 = totalWidth * (1.2f / totalWeight)
+        val rootstockTitles = listOf("M9-T337", "MM111", activeGenevaLabel)
+        val activeTextColor = accentColor
+        val inactiveTextColor = if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
 
-            val targetOffset = when (selectedIndex) {
-                0 -> 0.dp
-                1 -> width0
-                else -> width0 + width1
-            }
-
-            val targetWidth = when (selectedIndex) {
-                0 -> width0
-                1 -> width1
-                else -> width2
-            }
-
-            // Natural smooth fluid spring slide
-            val animatedOffsetX by animateDpAsState(
-                targetValue = targetOffset,
-                animationSpec = spring(
-                    dampingRatio = 0.72f, // Natural fluid spring physics
-                    stiffness = 320f
-                ),
-                label = "rootstockSlide"
-            )
-
-            val animatedWidth by animateDpAsState(
-                targetValue = targetWidth,
-                animationSpec = spring(
-                    dampingRatio = 0.72f,
-                    stiffness = 320f
-                ),
-                label = "rootstockWidth"
-            )
-
-            // Soft water droplet spreading & expanding ripple wave on tab switch
-            val dropletSpread = remember { Animatable(1f) }
-            val dropletRipple = remember { Animatable(1f) }
-
-            LaunchedEffect(selectedIndex) {
-                launch {
-                    dropletSpread.snapTo(0.88f)
-                    dropletSpread.animateTo(
-                        targetValue = 1f,
-                        animationSpec = spring(
-                            dampingRatio = 0.60f, // Gentle water droplet surface tension
-                            stiffness = 250f
-                        )
-                    )
+        AgriMotionTabs(
+            titles = rootstockTitles,
+            selectedIndex = selectedIndex,
+            onSelect = { index ->
+                when (index) {
+                    0 -> onSelectSubTab("M9-T337", null)
+                    1 -> onSelectSubTab("MM111", null)
+                    2 -> genevaMenuExpanded = true
                 }
-                launch {
-                    dropletRipple.snapTo(0f)
-                    dropletRipple.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(
-                            durationMillis = 450,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                }
-            }
-
-            val offsetDelta = (targetOffset - animatedOffsetX).value
-            val glideStretch = (kotlin.math.abs(offsetDelta) / targetWidth.value.coerceAtLeast(1f)).coerceIn(0f, 0.16f)
-            val dynamicScaleX = dropletSpread.value * (1f + glideStretch * 0.40f)
-            val dynamicScaleY = dropletSpread.value * (1f - glideStretch * 0.18f)
-
-            // Subtle water droplet expanding ripple wave
-            if (dropletRipple.value < 0.99f) {
-                val rippleProgress = dropletRipple.value
-                val rippleAlpha = ((1f - rippleProgress) * if (!isDark && !isAmoled) 0.32f else 0.24f).coerceIn(0f, 1f)
-                val extraWidth = (rippleProgress * 14).dp
-                val extraHeight = (rippleProgress * 6).dp
-
+            },
+            selectedTextColor = activeTextColor,
+            unselectedTextColor = inactiveTextColor,
+            testTags = listOf("subtab_m9_t337", "subtab_mm111", "subtab_geneva"),
+            pillInset = 4.dp,
+            pill = { pillModifier ->
                 Box(
-                    modifier = Modifier
-                        .offset(
-                            x = animatedOffsetX - (extraWidth / 2),
-                            y = -(extraHeight / 2)
-                        )
-                        .align(Alignment.CenterStart)
-                        .width(animatedWidth + extraWidth)
-                        .fillMaxHeight()
-                        .clip(itemShape)
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    accentColor.copy(alpha = rippleAlpha),
-                                    Color.White.copy(alpha = rippleAlpha * 0.6f),
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = itemShape
-                        )
-                        .background(
-                            color = accentColor.copy(alpha = rippleAlpha * 0.15f),
-                            shape = itemShape
-                        )
-                )
-            }
-
-            // 3D Bubbly Glass Capsule Indicator
-            Box(
-                modifier = Modifier
-                    .offset(x = animatedOffsetX)
-                    .align(Alignment.CenterStart)
-                    .width(animatedWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        scaleX = dynamicScaleX
-                        scaleY = dynamicScaleY
-                    }
-                    .then(
+                    modifier = pillModifier.then(
                         if (useRealGlass) {
                             Modifier
                                 .clip(itemShape)
@@ -605,194 +357,31 @@ fun RootstockSubTabs(
                             )
                         }
                     )
-            )
-
-            // Sub-Tab Options Row
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 1. M9-T337
-                val isM9Selected = selectedIndex == 0
-                val m9Color by animateColorAsState(
-                    targetValue = if (isM9Selected) {
-                        accentColor
-                    } else {
-                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
-                    },
-                    label = "m9Color"
                 )
-                val m9Scale by animateFloatAsState(
-                    targetValue = if (isM9Selected) 1.05f else 1.0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "m9Scale"
-                )
-                val m9LiftY by animateDpAsState(
-                    targetValue = if (isM9Selected) (-1.5).dp else 0.dp,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "m9Lift"
-                )
-                val m9RotX by animateFloatAsState(
-                    targetValue = if (isM9Selected) 4f else 0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "m9RotX"
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1.0f)
-                        .fillMaxHeight()
-                        .testTag("subtab_m9_t337")
-                        .clip(itemShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {
-                                if (selectedIndex != 0) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSelectSubTab("M9-T337", null)
-                                }
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "M9-T337",
-                        fontSize = 12.sp,
-                        fontWeight = if (isM9Selected) FontWeight.Bold else FontWeight.Medium,
-                        color = m9Color,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = m9Scale
-                            scaleY = m9Scale
-                            translationY = m9LiftY.toPx()
-                            rotationX = m9RotX
-                            cameraDistance = 16f * density
-                        }
-                    )
-                }
-
-                // 2. MM111
-                val isMM111Selected = selectedIndex == 1
-                val mm111Color by animateColorAsState(
-                    targetValue = if (isMM111Selected) {
-                        accentColor
-                    } else {
-                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
-                    },
-                    label = "mm111Color"
-                )
-                val mm111Scale by animateFloatAsState(
-                    targetValue = if (isMM111Selected) 1.05f else 1.0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "mm111Scale"
-                )
-                val mm111LiftY by animateDpAsState(
-                    targetValue = if (isMM111Selected) (-1.5).dp else 0.dp,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "mm111Lift"
-                )
-                val mm111RotX by animateFloatAsState(
-                    targetValue = if (isMM111Selected) 4f else 0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "mm111RotX"
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1.0f)
-                        .fillMaxHeight()
-                        .testTag("subtab_mm111")
-                        .clip(itemShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {
-                                if (selectedIndex != 1) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onSelectSubTab("MM111", null)
-                                }
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "MM111",
-                        fontSize = 12.sp,
-                        fontWeight = if (isMM111Selected) FontWeight.Bold else FontWeight.Medium,
-                        color = mm111Color,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = mm111Scale
-                            scaleY = mm111Scale
-                            translationY = mm111LiftY.toPx()
-                            rotationX = mm111RotX
-                            cameraDistance = 16f * density
-                        }
-                    )
-                }
-
-                // 3. Geneva Dropdown
-                val isGenevaActive = selectedIndex == 2
-                val genevaColor by animateColorAsState(
-                    targetValue = if (isGenevaActive) {
-                        accentColor
-                    } else {
-                        if (isDark || isAmoled) Color.White.copy(alpha = 0.60f) else Color.Black.copy(alpha = 0.60f)
-                    },
-                    label = "genevaColor"
-                )
-                val genevaScale by animateFloatAsState(
-                    targetValue = if (isGenevaActive) 1.05f else 1.0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "genevaScale"
-                )
-                val genevaLiftY by animateDpAsState(
-                    targetValue = if (isGenevaActive) (-1.5).dp else 0.dp,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "genevaLift"
-                )
-                val genevaRotX by animateFloatAsState(
-                    targetValue = if (isGenevaActive) 4f else 0f,
-                    animationSpec = spring(dampingRatio = 0.72f, stiffness = 320f),
-                    label = "genevaRotX"
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .fillMaxHeight()
-                        .testTag("subtab_geneva")
-                        .clip(itemShape)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                genevaMenuExpanded = true
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+            },
+            tabContent = { index, isSelected, textColor, scale ->
+                if (index == 2) {
+                    // Geneva Dropdown tab
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                         modifier = Modifier.graphicsLayer {
-                            scaleX = genevaScale
-                            scaleY = genevaScale
-                            translationY = genevaLiftY.toPx()
-                            rotationX = genevaRotX
-                            cameraDistance = 16f * density
+                            scaleX = scale
+                            scaleY = scale
                         }
                     ) {
                         Text(
                             text = activeGenevaLabel,
                             fontSize = 12.sp,
-                            fontWeight = if (isGenevaActive) FontWeight.Bold else FontWeight.Medium,
-                            color = genevaColor,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = textColor,
                             maxLines = 1
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Expand Geneva Menu",
-                            tint = genevaColor,
+                            tint = textColor,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -848,8 +437,19 @@ fun RootstockSubTabs(
                             )
                         }
                     }
+                } else {
+                    Text(
+                        text = rootstockTitles[index],
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = textColor,
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
+                    )
                 }
             }
-        }
+        )
     }
 }
