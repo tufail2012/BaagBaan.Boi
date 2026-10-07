@@ -622,43 +622,14 @@ private fun NestedLiquidGlassSection(
     isDark: Boolean,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val sectionTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
     Surface(
         shape = shape,
         color = Color.Transparent,
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .liquidGlassNav(shape = shape, backdrop = backdrop)
-            .then(
-                if (backdrop == null || !isGlassSupported()) {
-                    if (hazeState != null) {
-                        Modifier.hazeEffect(state = hazeState, style = HazeMaterials.ultraThin(sectionTint))
-                    } else {
-                        Modifier.background(sectionTint.copy(alpha = if (isDark) 0.35f else 0.45f), shape)
-                    }
-                } else {
-                    Modifier
-                }
-            )
-            .border(
-                width = if (backdrop != null && isGlassSupported()) GLASS_EDGE_WIDTH else 0.7.dp,
-                brush = if (backdrop != null && isGlassSupported()) {
-                    GLASS_EDGE_COLOR
-                } else {
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (!isDark) 0.40f else 0.20f),
-                            Color.White.copy(alpha = if (!isDark) 0.15f else 0.08f)
-                        ),
-                        start = Offset.Zero,
-                        end = Offset.Infinite
-                    )
-                },
-                shape = shape
-            )
+            .flatSurface(shape, isDark)
     ) {
-        val sectionFieldSpec = FieldGlassSpec(backdrop, hazeState, isDark)
+        val sectionFieldSpec = FieldGlassSpec(backdrop, hazeState, isDark, flat = true)
         CompositionLocalProvider(
             LocalFieldGlassSpec provides sectionFieldSpec
         ) {
@@ -935,7 +906,7 @@ fun GardenPlanningFormTab(
             .fillMaxSize()
             .claySheetBackground(accentColor = gardenAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
     ) {
-        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, effectiveHaze, isDark)) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, effectiveHaze, isDark, flat = true)) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -1498,19 +1469,7 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .clip(textFieldShape)
-                        .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-                        .then(
-                            if (backdrop == null || !isGlassSupported()) {
-                                Modifier.hazeEffect(
-                                    state = effectiveHaze,
-                                    style = HazeMaterials.regular(if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF))
-                                )
-                            } else {
-                                Modifier
-                            }
-                        )
-                        .glassEdge(textFieldShape)
+                        .flatSurface(textFieldShape, isDark)
                         .clickable {
                             viewModel.enableMultiVariety()
                         }

@@ -1442,15 +1442,23 @@ internal const val FIELD_GLASS_ENABLED = true   // kill switch: set false to dis
 data class FieldGlassSpec(
     val backdrop: Backdrop?,
     val hazeState: HazeState?,
-    val isDark: Boolean
+    val isDark: Boolean,
+    val flat: Boolean = false
 )
 
 val LocalFieldGlassSpec = staticCompositionLocalOf<FieldGlassSpec?> { null }
 
 @Composable
 fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Modifier {
-    val spec = LocalFieldGlassSpec.current
-    if (!FIELD_GLASS_ENABLED || spec == null || !isGlassSupported()) return this
+    val spec = LocalFieldGlassSpec.current ?: return this
+    if (spec.flat) {
+        return this.fieldFlat(
+            shape = shape,
+            isDark = spec.isDark,
+            accentColor = MaterialTheme.colorScheme.primary
+        )
+    }
+    if (!FIELD_GLASS_ENABLED || !isGlassSupported()) return this
     return this.fieldLiquidGlass(
         shape = shape,
         backdrop = spec.backdrop,
@@ -1459,6 +1467,31 @@ fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Mo
         accentColor = MaterialTheme.colorScheme.primary
     )
 }
+
+@Composable
+fun Modifier.fieldFlat(
+    shape: CornerBasedShape = RoundedCornerShape(18.dp),
+    isDark: Boolean,
+    accentColor: Color
+): Modifier {
+    var isFocused by remember { mutableStateOf(false) }
+    val fill = if (isDark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.55f)
+    val rim = if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
+    return this
+        .onFocusChanged { isFocused = it.isFocused }
+        .clip(shape)
+        .background(fill, shape)
+        .border(
+            width = if (isFocused) 1.5.dp else 1.dp,
+            color = if (isFocused) accentColor.copy(alpha = if (isDark) 0.65f else 0.75f) else rim,
+            shape = shape
+        )
+}
+
+fun Modifier.flatSurface(shape: androidx.compose.ui.graphics.Shape, isDark: Boolean): Modifier = this
+    .clip(shape)
+    .background(if (isDark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.55f), shape)
+    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f), shape)
 
 
 

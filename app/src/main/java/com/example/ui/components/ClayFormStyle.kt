@@ -181,7 +181,7 @@ fun ClaySectionCard(
             )
         }
         CompositionLocalProvider(
-            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)
+            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark, flat = true)
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(14.dp),

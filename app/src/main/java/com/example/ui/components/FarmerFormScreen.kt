@@ -899,7 +899,7 @@ fun FarmerFormScreen(
                 .fillMaxSize()
                 .claySheetBackground(accentColor = formAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
         ) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark)) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark, flat = true)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
@@ -2103,24 +2103,7 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .clip(textFieldShape)
-                            .liquidGlassNav(shape = textFieldShape, backdrop = backdrop)
-                            .then(
-                                if (backdrop == null || !isGlassSupported()) {
-                                    val fallbackTint = if (isDark) Color(0xFF1E2026) else Color(0xFFFFFFFF)
-                                    if (hazeState != null) {
-                                        Modifier.hazeEffect(
-                                            state = hazeState,
-                                            style = HazeMaterials.regular(fallbackTint)
-                                        )
-                                    } else {
-                                        Modifier.background(fallbackTint.copy(alpha = if (isDark) 0.35f else 0.45f), textFieldShape)
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .glassEdge(textFieldShape)
+                            .flatSurface(textFieldShape, isDark)
                             .clickable {
                                 viewModel.enableMultiVarietyForCurrentTab()
                             }
@@ -2972,22 +2955,7 @@ fun FarmerFormScreen(
                         color = Color.Transparent,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(
-                                elevation = if (isDark) 4.dp else 2.dp,
-                                shape = messageCardShape,
-                                ambientColor = if (isDark) Color.Black else Color(0x20000000),
-                                spotColor = if (isDark) Color.Black else Color(0x30000000)
-                            )
-                            .clip(messageCardShape)
-                            .liquidGlassNav(shape = messageCardShape, backdrop = backdrop)
-                            .then(
-                                if (backdrop == null || !isGlassSupported()) {
-                                    Modifier.background(if (isDark) Color(0xFF1C1D22).copy(alpha = 0.55f) else Color(0xFFF8F9FA).copy(alpha = 0.70f))
-                                } else {
-                                    Modifier
-                                }
-                            )
-                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), messageCardShape)
+                            .flatSurface(messageCardShape, isDark)
                             .testTag("new_entry_message_preview_card")
                     ) {
                         Column(
@@ -3051,18 +3019,7 @@ fun FarmerFormScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .liquidGlassNav(shape = pillShape, backdrop = backdrop)
-                                            .then(
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.boundedFormFieldRipple(shape = pillShape) { templateMenuExpanded = true }
-                                                } else {
-                                                    Modifier.border(
-                                                        1.dp,
-                                                        Color.White.copy(alpha = if (isDark) 0.15f else 0.35f),
-                                                        pillShape
-                                                    )
-                                                }
-                                            )
+                                            .flatSurface(pillShape, isDark)
                                     ) {
                                         TextField(
                                             value = selectedTemplate,
@@ -3126,22 +3083,7 @@ fun FarmerFormScreen(
                                         color = Color.Transparent,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .shadow(
-                                                elevation = if (isDark) 4.dp else 2.dp,
-                                                shape = RoundedCornerShape(14.dp),
-                                                ambientColor = if (isDark) Color.Black else Color(0x20000000),
-                                                spotColor = if (isDark) Color.Black else Color(0x30000000)
-                                            )
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .liquidGlassNav(shape = RoundedCornerShape(14.dp), backdrop = backdrop)
-                                            .then(
-                                                if (backdrop == null || !isGlassSupported()) {
-                                                    Modifier.background(if (isDark) Color(0xFF141518).copy(alpha = 0.55f) else Color.White.copy(alpha = 0.70f))
-                                                } else {
-                                                    Modifier
-                                                }
-                                            )
-                                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                                            .flatSurface(RoundedCornerShape(14.dp), isDark)
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(14.dp),
