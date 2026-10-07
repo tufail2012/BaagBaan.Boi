@@ -148,6 +148,7 @@ dependencies {
 
   // ZegoCloud Call Kit with Invitation
   implementation("im.zego:zego_uikit_prebuilt_call_android:3.0.3")
+  implementation("androidx.appcompat:appcompat:1.7.0")
 
   // Uncomment ALL FOUR of the following dependencies together to use Firebase Auth and Google
   // Sign-In via Credential Manager:

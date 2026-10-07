@@ -177,6 +177,19 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/pending_payments_widget_info" />
         </receiver>
+
+        <!-- Override ZegoCloud activities to use Theme.ZegoCallActivity (AppCompat-derived theme)
+             so CallInviteActivity and ZegoUIKitPrebuiltCallActivity do not crash with
+             IllegalStateException: "You need to use a Theme.AppCompat theme (or descendant) with this activity" -->
+        <activity
+            android:name="com.zegocloud.uikit.prebuilt.call.invite.internal.CallInviteActivity"
+            android:theme="@style/Theme.ZegoCallActivity"
+            tools:replace="android:theme" />
+
+        <activity
+            android:name="com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallActivity"
+            android:theme="@style/Theme.ZegoCallActivity"
+            tools:replace="android:theme" />
     </application>
 
 </manifest>
