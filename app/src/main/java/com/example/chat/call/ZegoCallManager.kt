@@ -38,18 +38,28 @@ object ZegoCallManager {
     } catch (_: Throwable) { 0L }
 
     fun getAppSign(): String = try {
-        BuildConfig.ZEGO_APP_SIGN.toString().trim()
+        BuildConfig.ZEGO_APP_SIGN.toString().replace("\\s+".toRegex(), "").trim()
     } catch (_: Throwable) { "" }
 
     fun getCredentialsError(): String? {
         val appId = getAppId()
         val appSign = getAppSign()
-        return when {
-            appId == 0L && appSign.isBlank() -> "Zego not configured: AppID is 0 and AppSign is missing"
-            appId == 0L -> "Zego not configured: AppID is 0"
-            appSign.isBlank() -> "Zego not configured: AppSign is missing"
-            else -> null
+        if (appId <= 0L && appSign.isBlank()) {
+            return "Zego not configured: AppID is 0 and AppSign is missing"
         }
+        if (appId <= 0L) {
+            return "Zego not configured: AppID must be a positive number, got $appId"
+        }
+        if (appSign.isBlank()) {
+            return "Zego not configured: AppSign is missing"
+        }
+        if (appSign.length != 64) {
+            return "AppSign is malformed: expected 64 hex characters, got ${appSign.length} characters"
+        }
+        if (!appSign.matches(Regex("^[0-9a-fA-F]{64}$"))) {
+            return "AppSign is malformed: contains non-hex characters"
+        }
+        return null
     }
 
     fun getConfigurationError(): String? {

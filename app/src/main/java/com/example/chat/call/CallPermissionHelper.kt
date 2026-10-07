@@ -98,8 +98,10 @@ fun CallPermissionRationaleDialog(
 @Composable
 fun ZegoConfigRequiredDialog(
     onDismiss: () -> Unit,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    reason: String? = null
 ) {
+    val liveReason = reason ?: ZegoCallManager.getConfigurationError() ?: ZegoCallManager.getCredentialsError()
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -123,8 +125,9 @@ fun ZegoConfigRequiredDialog(
                     fontSize = 14.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
+                val reasonSuffix = if (!liveReason.isNullOrBlank()) "\n\nReason: $liveReason" else ""
                 Text(
-                    text = "1. Open gradle.properties (or local.properties)\n2. Add your real Zego credentials:\n   ZEGO_APP_ID=YOUR_APP_ID\n   ZEGO_APP_SIGN=YOUR_APP_SIGN\n3. Rebuild the app to initiate live calls.",
+                    text = "1. Open gradle.properties (or local.properties)\n2. Add your real Zego credentials:\n   ZEGO_APP_ID=YOUR_APP_ID\n   ZEGO_APP_SIGN=YOUR_APP_SIGN\n3. Rebuild the app to initiate live calls.$reasonSuffix",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

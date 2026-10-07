@@ -1,7 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -48,6 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -55,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.example.ui.animation.IosMotion
 import com.example.ui.components.backdrop.Backdrop as NavBackdrop
 import com.example.ui.components.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
@@ -128,6 +133,9 @@ fun AgriBottomNav(
     val haptics = rememberHaptics()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val context = LocalContext.current
+    val reduceMotion = remember(context) { IosMotion.isReducedMotion(context) }
+    val glassSpec: AnimationSpec<Float> = if (reduceMotion) snap() else NavGlassSpring
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val selectedIndex = remember(selectedCategory) {
@@ -159,12 +167,12 @@ fun AgriBottomNav(
 
     // --- Pill geometry (reference ExpandedTabs) -------------------------------------
     val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
+    motion.reduceMotion = reduceMotion
     val barGlass = rememberLayerBackdrop()
     val tabRow = rememberLayerBackdrop()
 
     var rowSize by remember { mutableStateOf(IntSize.Zero) }
     var lastHapticTab by remember { mutableIntStateOf(selectedIndex) }
-    var isProgrammaticNav by remember { mutableStateOf(false) }
 
     val tabSpacingPx = with(density) { TAB_SPACING.toPx() }
     val tabWidthPx = if (rowSize.width > 0) (rowSize.width - tabSpacingPx * (n - 1)) / n else 0f
@@ -199,26 +207,18 @@ fun AgriBottomNav(
     // continuous page fraction, release onto the page it settles on.
     if (pagerState != null) {
         LaunchedEffect(pagerState) {
-            var wasScrolling = false
+            var swiping = false
             snapshotFlow {
                 Triple(pagerState.isScrollInProgress, pagerState.currentPage, pagerState.currentPageOffsetFraction)
             }.collect { (scrolling, page, offsetFraction) ->
-                if (isProgrammaticNav) {
-                    if (!scrolling && wasScrolling) {
-                        isProgrammaticNav = false
-                    }
-                    wasScrolling = scrolling
-                    return@collect
-                }
-                if (scrolling && !wasScrolling) {
-                    motion.startDrag()
-                }
-                if (scrolling) {
+                val nowSwiping = scrolling && offsetFraction != 0f
+                if (nowSwiping && !swiping) motion.startDrag()
+                if (nowSwiping) {
                     motion.dragTo((page + offsetFraction).coerceIn(0f, (n - 1).toFloat()))
-                } else if (wasScrolling) {
+                } else if (swiping) {
                     motion.release(page.coerceIn(0, n - 1))
                 }
-                wasScrolling = scrolling
+                swiping = nowSwiping
             }
         }
     }
@@ -243,7 +243,7 @@ fun AgriBottomNav(
                         } else {
                             Modifier
                                 .hazeEffect(state = hazeState, style = HazeMaterials.regular(container))
-                                .glassEdge(pillShape)
+                                .border(0.5.dp, Color.White.copy(alpha = 0.10f), pillShape)
                         }
                     )
                     .padding(PILL_INSET)
@@ -268,6 +268,7 @@ fun AgriBottomNav(
                     tabShape = tabShape,
                     selectedColor = selectedColor,
                     unselectedColor = unselectedColor,
+                    glassSpec = glassSpec,
                     onRowSize = { rowSize = it },
                     dragModifier = Modifier.pointerInput(n, tabStepPx, currentSelectedIndex, isRtl) {
                         if (tabStepPx <= 0f) return@pointerInput
@@ -291,7 +292,6 @@ fun AgriBottomNav(
                                 val newIndex = (currentSelectedIndex + shift).coerceIn(0, n - 1)
                                 motion.release(newIndex)
                                 if (newIndex != currentSelectedIndex) {
-                                    isProgrammaticNav = true
                                     onCategorySelected(navItems[newIndex].serviceCategory)
                                 }
                             },
@@ -316,7 +316,6 @@ fun AgriBottomNav(
                     },
                     onTabClick = { index, item ->
                         if (index != currentSelectedIndex) {
-                            isProgrammaticNav = true
                             haptics.play(Haptic.Select)
                         }
                         onCategorySelected(item.serviceCategory)
@@ -353,6 +352,7 @@ private fun NavTabRow(
     tabShape: androidx.compose.ui.graphics.Shape,
     selectedColor: Color,
     unselectedColor: Color,
+    glassSpec: AnimationSpec<Float>,
     onRowSize: (IntSize) -> Unit,
     dragModifier: Modifier,
     onTabClick: (Int, AgriNavItem) -> Unit,
@@ -370,7 +370,7 @@ private fun NavTabRow(
             val tint = if (isSelected) selectedColor else unselectedColor
             val iconScale by animateFloatAsState(
                 targetValue = if (isSelected) 1.08f else 1f,
-                animationSpec = NavGlassSpring,
+                animationSpec = glassSpec,
                 label = "glassTabScale"
             )
             Column(

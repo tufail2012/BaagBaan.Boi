@@ -17,20 +17,22 @@ android {
     applicationId = "com.baagbaan.boi"
     minSdk = 26
     targetSdk = 36
-    versionCode = 13
-    versionName = "1.5.8"
+    versionCode = 15
+    versionName = "1.6.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    val zegoAppIdProp = (project.findProperty("ZEGO_APP_ID") as? String)
+    val zegoAppIdProp = ((project.findProperty("ZEGO_APP_ID") as? String)
         ?: (project.findProperty("zego.app.id") as? String)
         ?: System.getenv("ZEGO_APP_ID")
-        ?: "893846806"
+        ?: "893846806").replace("\\s+".toRegex(), "").trim()
 
-    val zegoAppSignProp = (project.findProperty("ZEGO_APP_SIGN") as? String)
+    val zegoAppSignRaw = (project.findProperty("ZEGO_APP_SIGN") as? String)
         ?: (project.findProperty("zego.app.sign") as? String)
         ?: System.getenv("ZEGO_APP_SIGN")
-        ?: "873976a416756442ab84ce0d7dca1b146e1e"
+        ?: "873976a416756442ab84ce0d7dca1b146e13e839a64edb1fb956020303abd637"
+
+    val zegoAppSignProp = zegoAppSignRaw.replace("\\s+".toRegex(), "").trim()
 
     buildConfigField("String", "ZEGO_APP_ID", "\"$zegoAppIdProp\"")
     buildConfigField("String", "ZEGO_APP_SIGN", "\"$zegoAppSignProp\"")
@@ -96,6 +98,7 @@ androidComponents.onVariants(androidComponents.selector().withBuildType("release
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
+  ignoreList.add("ZEGO_.*")
 }
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }

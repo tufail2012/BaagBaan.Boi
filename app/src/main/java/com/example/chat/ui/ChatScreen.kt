@@ -334,9 +334,13 @@ fun ChatScreen(
     }
 
     if (showZegoConfigDialog) {
+        val actualErrorString = ZegoCallManager.getConfigurationError()
+            ?: ZegoCallManager.getCredentialsError()
+            ?: "Call service is not ready or configured"
         ZegoConfigRequiredDialog(
             onDismiss = { showZegoConfigDialog = false },
-            accentColor = accentColor
+            accentColor = accentColor,
+            reason = actualErrorString
         )
     }
 

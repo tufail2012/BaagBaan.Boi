@@ -701,10 +701,7 @@ fun AgriCropMainScreen(
                         targetIndex != pagerState.targetPage &&
                         targetIndex != animatingNavTargetPage
                     ) {
-                        pagerState.animateScrollToPage(
-                            page = targetIndex,
-                            animationSpec = tween(durationMillis = 300)
-                        )
+                        pagerState.scrollToPage(targetIndex)
                     }
                 }
 
@@ -989,10 +986,7 @@ fun AgriCropMainScreen(
                                         navAnimationJob?.cancel()
                                         navAnimationJob = coroutineScope.launch {
                                             try {
-                                                pagerState.animateScrollToPage(
-                                                    page = targetIndex,
-                                                    animationSpec = tween(durationMillis = 300)
-                                                )
+                                                pagerState.scrollToPage(targetIndex)
                                             } finally {
                                                 if (animatingNavTargetPage == targetIndex) {
                                                     animatingNavTargetPage = -1
