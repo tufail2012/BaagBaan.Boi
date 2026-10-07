@@ -1443,7 +1443,9 @@ data class FieldGlassSpec(
     val backdrop: Backdrop?,
     val hazeState: HazeState?,
     val isDark: Boolean,
-    val flat: Boolean = false
+    val flat: Boolean = false,
+    val accent: Color = Color.Unspecified,
+    val isAmoled: Boolean = false
 )
 
 val LocalFieldGlassSpec = staticCompositionLocalOf<FieldGlassSpec?> { null }
@@ -1455,7 +1457,8 @@ fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Mo
         return this.fieldFlat(
             shape = shape,
             isDark = spec.isDark,
-            accentColor = MaterialTheme.colorScheme.primary
+            isAmoled = spec.isAmoled,
+            accentColor = spec.accent.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary
         )
     }
     if (!FIELD_GLASS_ENABLED || !isGlassSupported()) return this
@@ -1469,29 +1472,53 @@ fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Mo
 }
 
 @Composable
+fun flatSheetColor(isDark: Boolean, isAmoled: Boolean): Color = when {
+    isAmoled -> Color.Black
+    isDark -> MaterialTheme.colorScheme.background
+    else -> Color.White
+}
+
+@Composable
+fun flatFieldFill(accent: Color, isDark: Boolean, isAmoled: Boolean): Color {
+    val amount = when {
+        isAmoled -> 0.16f
+        isDark -> 0.18f
+        else -> 0.10f
+    }
+    return androidx.compose.ui.graphics.lerp(flatSheetColor(isDark, isAmoled), accent, amount)
+}
+
+@Composable
 fun Modifier.fieldFlat(
     shape: CornerBasedShape = RoundedCornerShape(18.dp),
     isDark: Boolean,
+    isAmoled: Boolean = false,
     accentColor: Color
 ): Modifier {
     var isFocused by remember { mutableStateOf(false) }
-    val fill = if (isDark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.55f)
-    val rim = if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
+    val fill = flatFieldFill(accentColor, isDark, isAmoled)
+    val rim = accentColor.copy(alpha = if (isDark) 0.30f else 0.22f)
     return this
         .onFocusChanged { isFocused = it.isFocused }
         .clip(shape)
         .background(fill, shape)
         .border(
             width = if (isFocused) 1.5.dp else 1.dp,
-            color = if (isFocused) accentColor.copy(alpha = if (isDark) 0.65f else 0.75f) else rim,
+            color = if (isFocused) accentColor.copy(alpha = if (isDark) 0.80f else 0.85f) else rim,
             shape = shape
         )
 }
 
-fun Modifier.flatSurface(shape: androidx.compose.ui.graphics.Shape, isDark: Boolean): Modifier = this
-    .clip(shape)
-    .background(if (isDark) Color.White.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.55f), shape)
-    .border(1.dp, if (isDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f), shape)
+@Composable
+fun Modifier.flatSurface(shape: androidx.compose.ui.graphics.Shape, isDark: Boolean): Modifier {
+    val spec = LocalFieldGlassSpec.current
+    val accent = spec?.accent?.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary
+    val fill = flatFieldFill(accent, isDark, spec?.isAmoled ?: false)
+    return this
+        .clip(shape)
+        .background(fill, shape)
+        .border(1.dp, accent.copy(alpha = if (isDark) 0.30f else 0.22f), shape)
+}
 
 
 

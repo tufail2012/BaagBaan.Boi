@@ -180,8 +180,14 @@ fun ClaySectionCard(
                     .background(clayAccentGradient(if (accentColor != Color.Unspecified) accentColor else MaterialTheme.colorScheme.primary), RoundedCornerShape(1.dp))
             )
         }
+        val outerSpec = LocalFieldGlassSpec.current
         CompositionLocalProvider(
-            LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark, flat = true)
+            LocalFieldGlassSpec provides FieldGlassSpec(
+                backdrop, hazeState, isDark,
+                flat = true,
+                accent = if (accentColor != Color.Unspecified) accentColor else (outerSpec?.accent ?: Color.Unspecified),
+                isAmoled = outerSpec?.isAmoled ?: false
+            )
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -192,6 +198,10 @@ fun ClaySectionCard(
 }
 
 val CLAY_SHEET_SHAPE = RoundedCornerShape(0.dp)
+
+@Composable
+fun Modifier.flatSheetBackground(isDark: Boolean, isAmoled: Boolean): Modifier =
+    this.background(color = flatSheetColor(isDark, isAmoled), shape = CLAY_SHEET_SHAPE)
 
 /** One continuous "sheet" background for the whole scrolling form, instead of separate floating cards. */
 @Composable

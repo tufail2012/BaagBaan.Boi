@@ -904,9 +904,9 @@ fun GardenPlanningFormTab(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .claySheetBackground(accentColor = gardenAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
+            .flatSheetBackground(isDark = isDark, isAmoled = isAmoled)
     ) {
-        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, effectiveHaze, isDark, flat = true)) {
+        CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, effectiveHaze, isDark, flat = true, accent = gardenAccent, isAmoled = isAmoled)) {
         LazyColumn(
             state = lazyListState,
             modifier = Modifier

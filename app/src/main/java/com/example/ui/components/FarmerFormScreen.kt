@@ -897,9 +897,9 @@ fun FarmerFormScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .claySheetBackground(accentColor = formAccent, isDark = isDark, isAmoled = isAmoled, backdrop = backdrop)
+                .flatSheetBackground(isDark = isDark, isAmoled = isAmoled)
         ) {
-            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark, flat = true)) {
+            CompositionLocalProvider(LocalFieldGlassSpec provides FieldGlassSpec(backdrop, hazeState, isDark, flat = true, accent = formAccent, isAmoled = isAmoled)) {
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
@@ -3017,9 +3017,7 @@ fun FarmerFormScreen(
 
                                     // Select Template Dropdown
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .flatSurface(pillShape, isDark)
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
                                         TextField(
                                             value = selectedTemplate,
