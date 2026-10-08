@@ -19,11 +19,15 @@ import coil.transform.CircleCropTransformation
 import com.example.BuildConfig
 import com.zegocloud.uikit.ZegoUIKit
 import com.zegocloud.uikit.components.audiovideo.ZegoAvatarViewProvider
+import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayout
 import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayoutPictureInPictureConfig
 import com.zegocloud.uikit.internal.ZegoUIKitLanguage
 import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallConfig
 import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallFragment
+import com.zegocloud.uikit.prebuilt.call.config.ZegoBottomMenuBarConfig
+import com.zegocloud.uikit.prebuilt.call.config.ZegoCallDurationConfig
 import com.zegocloud.uikit.prebuilt.call.config.ZegoNotificationConfig
+import com.zegocloud.uikit.prebuilt.call.config.ZegoTopMenuBarConfig
 import com.zegocloud.uikit.prebuilt.call.core.CallInvitationServiceImpl
 import com.zegocloud.uikit.prebuilt.call.core.basic.provider.ZegoCallRoomForegroundProvider
 import com.zegocloud.uikit.prebuilt.call.core.invite.PrebuiltCallRepository
@@ -177,64 +181,84 @@ object ZegoCallManager {
                 // Customize the in-call experience
                 provider = object : ZegoUIKitPrebuiltCallConfigProvider {
                     override fun requireConfig(callInvitationData: ZegoCallInvitationData): ZegoUIKitPrebuiltCallConfig {
-                        val callConfig = ZegoUIKitPrebuiltCallInvitationConfig.generateDefaultConfig(callInvitationData)
+                        return try {
+                            val callConfig = ZegoUIKitPrebuiltCallInvitationConfig.generateDefaultConfig(callInvitationData)
 
-                        val otherUser = if (callInvitationData.inviter?.userID == currentUserId) {
-                            callInvitationData.invitees?.firstOrNull()
-                        } else {
-                            callInvitationData.inviter
-                        }
-                        val targetUid = otherUser?.userID ?: (_activeCallState.value?.targetUid ?: "")
-                        val targetName = otherUser?.userName ?: (_activeCallState.value?.targetName ?: "Member")
-                        val photoUrl = avatarUrlCache[targetUid] ?: _activeCallState.value?.targetPhotoUrl
-                        val isVideo = (callInvitationData.type == 1)
-
-                        _activeCallState.value = ActiveCallState(
-                            callId = callInvitationData.callID ?: "",
-                            targetUid = targetUid,
-                            targetName = targetName,
-                            targetPhotoUrl = photoUrl,
-                            isVideo = isVideo,
-                            statusText = "Calling…",
-                            isNoiseCancellationOn = true
-                        )
-
-                        // WhatsApp PIP layout style
-                        callConfig.layout.config = ZegoLayoutPictureInPictureConfig().apply {
-                            largeViewBackgroundColor = Color.parseColor("#0B141A")
-                            smallViewBackgroundColor = Color.parseColor("#111B21")
-                        }
-
-                        // Hide built-in SDK bars so our WhatsApp Compose overlay has complete control
-                        callConfig.topMenuBarConfig.isVisible = false
-                        callConfig.bottomMenuBarConfig.buttons = emptyList()
-                        callConfig.bottomMenuBarConfig.maxCount = 0
-                        callConfig.durationConfig.isVisible = false
-
-                        // Attach WhatsApp-style full screen overlay via roomForegroundProvider
-                        callConfig.roomForegroundProvider = ZegoCallRoomForegroundProvider { ctx ->
-                            createWhatsAppCallView(ctx)
-                        }
-
-                        // Avatar view provider for underlying audio/video container
-                        callConfig.avatarViewProvider = object : ZegoAvatarViewProvider {
-                            override fun onUserIDUpdated(parent: ViewGroup, uiKitUser: ZegoUIKitUser): View {
-                                val imageView = ImageView(parent.context)
-                                val pUrl = avatarUrlCache[uiKitUser.userID]
-                                if (!pUrl.isNullOrBlank()) {
-                                    imageView.load(pUrl) {
-                                        transformations(CircleCropTransformation())
-                                    }
-                                }
-                                return imageView
+                            val otherUser = if (callInvitationData.inviter?.userID == currentUserId) {
+                                callInvitationData.invitees?.firstOrNull()
+                            } else {
+                                callInvitationData.inviter
                             }
-                        }
+                            val targetUid = otherUser?.userID ?: (_activeCallState.value?.targetUid ?: "")
+                            val targetName = otherUser?.userName ?: (_activeCallState.value?.targetName ?: "Member")
+                            val photoUrl = avatarUrlCache[targetUid] ?: _activeCallState.value?.targetPhotoUrl
+                            val isVideo = (callInvitationData.type == 1)
 
-                        callConfig.leaveCallListener = ZegoUIKitPrebuiltCallFragment.LeaveCallListener {
-                            endCallInternal()
-                        }
+                            _activeCallState.value = ActiveCallState(
+                                callId = callInvitationData.callID ?: "",
+                                targetUid = targetUid,
+                                targetName = targetName,
+                                targetPhotoUrl = photoUrl,
+                                isVideo = isVideo,
+                                statusText = "Calling…",
+                                isNoiseCancellationOn = true
+                            )
 
-                        return callConfig
+                            // WhatsApp PIP layout style
+                            if (callConfig.layout == null) {
+                                callConfig.layout = ZegoLayout()
+                            }
+                            callConfig.layout.config = ZegoLayoutPictureInPictureConfig().apply {
+                                largeViewBackgroundColor = Color.parseColor("#0B141A")
+                                smallViewBackgroundColor = Color.parseColor("#111B21")
+                            }
+
+                            // Hide built-in SDK bars so our WhatsApp Compose overlay has complete control
+                            if (callConfig.topMenuBarConfig == null) {
+                                callConfig.topMenuBarConfig = ZegoTopMenuBarConfig()
+                            }
+                            callConfig.topMenuBarConfig.isVisible = false
+
+                            if (callConfig.bottomMenuBarConfig == null) {
+                                callConfig.bottomMenuBarConfig = ZegoBottomMenuBarConfig()
+                            }
+                            callConfig.bottomMenuBarConfig.buttons = emptyList()
+                            callConfig.bottomMenuBarConfig.maxCount = 0
+
+                            if (callConfig.durationConfig == null) {
+                                callConfig.durationConfig = ZegoCallDurationConfig()
+                            }
+                            callConfig.durationConfig.isVisible = false
+
+                            // Attach WhatsApp-style full screen overlay via roomForegroundProvider
+                            callConfig.roomForegroundProvider = ZegoCallRoomForegroundProvider { ctx ->
+                                createWhatsAppCallView(ctx)
+                            }
+
+                            // Avatar view provider for underlying audio/video container
+                            callConfig.avatarViewProvider = object : ZegoAvatarViewProvider {
+                                override fun onUserIDUpdated(parent: ViewGroup, uiKitUser: ZegoUIKitUser): View {
+                                    val imageView = ImageView(parent.context)
+                                    val pUrl = avatarUrlCache[uiKitUser.userID]
+                                    if (!pUrl.isNullOrBlank()) {
+                                        imageView.load(pUrl) {
+                                            transformations(CircleCropTransformation())
+                                        }
+                                    }
+                                    return imageView
+                                }
+                            }
+
+                            callConfig.leaveCallListener = ZegoUIKitPrebuiltCallFragment.LeaveCallListener {
+                                endCallInternal()
+                            }
+
+                            callConfig
+                        } catch (e: Throwable) {
+                            Log.e(TAG, "Exception inside requireConfig, falling back to default", e)
+                            com.example.util.CrashReporter.recordExplicitCrash(e, "ZegoCallManager.requireConfig")
+                            ZegoUIKitPrebuiltCallInvitationConfig.generateDefaultConfig(callInvitationData)
+                        }
                     }
                 }
             }
