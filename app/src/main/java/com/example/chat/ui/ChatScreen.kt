@@ -9,6 +9,7 @@ import com.example.chat.call.CallPermissionHelper
 import com.example.chat.call.CallPermissionRationaleDialog
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.call.ZegoConfigRequiredDialog
+import com.example.chat.ui.call.MinimizedCallBar
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -136,6 +137,7 @@ fun ChatScreen(
     val chatsList by viewModel.chatsList.collectAsState()
     val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
     val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid } ?: ""
+    val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
     var showPermissionRationale by remember { mutableStateOf(false) }
     var showZegoConfigDialog by remember { mutableStateOf(false) }
@@ -359,6 +361,15 @@ fun ChatScreen(
             .statusBarsPadding()
             .imePadding()
     ) {
+        // Active minimized call bar
+        activeCall?.let { call ->
+            MinimizedCallBar(
+                state = call,
+                accentColor = accentColor,
+                isDark = isDark
+            )
+        }
+
         // Conversation Top Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),

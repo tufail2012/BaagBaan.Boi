@@ -46,6 +46,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.chat.call.ZegoCallManager
+import com.example.chat.ui.call.MinimizedCallBar
 import com.example.chat.model.ChatSummary
 import com.example.chat.model.ParticipantInfo
 import com.example.ui.components.isAppInAmoledMode
@@ -69,6 +71,7 @@ fun ChatsListScreen(
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
+    val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
     Column(
         modifier = modifier
@@ -127,6 +130,15 @@ fun ChatsListScreen(
                     modifier = Modifier.size(22.dp)
                 )
             }
+        }
+
+        // Active Minimized Call Bar
+        activeCall?.let { call ->
+            MinimizedCallBar(
+                state = call,
+                accentColor = accentColor,
+                isDark = isDark
+            )
         }
 
         // Content

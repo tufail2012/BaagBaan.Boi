@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.SystemClock
@@ -11,22 +12,44 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import coil.load
 import coil.transform.CircleCropTransformation
 import com.example.BuildConfig
+import com.zegocloud.uikit.ZegoUIKit
 import com.zegocloud.uikit.components.audiovideo.ZegoAvatarViewProvider
 import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayoutPictureInPictureConfig
 import com.zegocloud.uikit.internal.ZegoUIKitLanguage
 import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallConfig
-import com.zegocloud.uikit.prebuilt.call.config.ZegoMenuBarButtonName
+import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallFragment
 import com.zegocloud.uikit.prebuilt.call.config.ZegoNotificationConfig
+import com.zegocloud.uikit.prebuilt.call.core.CallInvitationServiceImpl
+import com.zegocloud.uikit.prebuilt.call.core.basic.provider.ZegoCallRoomForegroundProvider
+import com.zegocloud.uikit.prebuilt.call.core.invite.PrebuiltCallRepository
 import com.zegocloud.uikit.prebuilt.call.core.invite.ZegoCallInvitationData
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
+import com.zegocloud.uikit.prebuilt.call.invite.internal.CallInviteActivity
+import com.zegocloud.uikit.prebuilt.call.invite.internal.CallStateListener
 import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoTranslationText
 import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoUIKitPrebuiltCallConfigProvider
 import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
+import com.zegocloud.uikit.service.defines.ZegoAudioOutputDevice
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
+import im.zego.zegoexpress.ZegoExpressEngine
+import im.zego.zegoexpress.constants.ZegoANSMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 object ZegoCallManager {
     private const val TAG = "ZegoCallManager"
@@ -47,6 +70,13 @@ object ZegoCallManager {
     private const val SETTLE_DELAY_MS = 1500L
 
     private val avatarUrlCache = mutableMapOf<String, String>()
+
+    // ACTIVE CALL STATE FOR IN-CALL UI & MINIMIZED BAR
+    private val _activeCallState = MutableStateFlow<ActiveCallState?>(null)
+    val activeCallState: StateFlow<ActiveCallState?> = _activeCallState.asStateFlow()
+
+    private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var durationJob: Job? = null
 
     fun cacheAvatarUrl(uid: String, photoUrl: String?) {
         if (uid.isNotBlank() && !photoUrl.isNullOrBlank()) {
@@ -112,8 +142,6 @@ object ZegoCallManager {
             ?: (context as? Application)
             ?: com.example.AgriApplication.instance
         init(application, uid, username)
-        // Just initialized — the SDK needs a moment to fully settle internally.
-        // Therefore, report "not ready" and let the next tap use the fast path to start the call immediately.
         Log.w(TAG, "Zego just initialized for $uid — asking caller to retry so the SDK can settle")
         return false
     }
@@ -142,33 +170,59 @@ object ZegoCallManager {
                 }
                 showDeclineButton = true
 
-                // WhatsApp-style dark background on the ringing/outgoing screen
+                // WhatsApp dark background on ringing screens
                 incomingCallBackground = ColorDrawable(Color.parseColor("#0B141A"))
                 outgoingCallBackground = ColorDrawable(Color.parseColor("#0B141A"))
 
-                // Customize the actual in-call screen once the call connects
+                // Customize the in-call experience
                 provider = object : ZegoUIKitPrebuiltCallConfigProvider {
                     override fun requireConfig(callInvitationData: ZegoCallInvitationData): ZegoUIKitPrebuiltCallConfig {
                         val callConfig = ZegoUIKitPrebuiltCallInvitationConfig.generateDefaultConfig(callInvitationData)
 
+                        val otherUser = if (callInvitationData.inviter?.userID == currentUserId) {
+                            callInvitationData.invitees?.firstOrNull()
+                        } else {
+                            callInvitationData.inviter
+                        }
+                        val targetUid = otherUser?.userID ?: (_activeCallState.value?.targetUid ?: "")
+                        val targetName = otherUser?.userName ?: (_activeCallState.value?.targetName ?: "Member")
+                        val photoUrl = avatarUrlCache[targetUid] ?: _activeCallState.value?.targetPhotoUrl
+                        val isVideo = (callInvitationData.type == 1)
+
+                        _activeCallState.value = ActiveCallState(
+                            callId = callInvitationData.callID ?: "",
+                            targetUid = targetUid,
+                            targetName = targetName,
+                            targetPhotoUrl = photoUrl,
+                            isVideo = isVideo,
+                            statusText = "Calling…",
+                            isNoiseCancellationOn = true
+                        )
+
+                        // WhatsApp PIP layout style
                         callConfig.layout.config = ZegoLayoutPictureInPictureConfig().apply {
                             largeViewBackgroundColor = Color.parseColor("#0B141A")
                             smallViewBackgroundColor = Color.parseColor("#111B21")
                         }
 
-                        callConfig.bottomMenuBarConfig.buttons = listOf(
-                            ZegoMenuBarButtonName.TOGGLE_MICROPHONE_BUTTON,
-                            ZegoMenuBarButtonName.SWITCH_AUDIO_OUTPUT_BUTTON,
-                            ZegoMenuBarButtonName.TOGGLE_CAMERA_BUTTON,
-                            ZegoMenuBarButtonName.HANG_UP_BUTTON
-                        )
+                        // Hide built-in SDK bars so our WhatsApp Compose overlay has complete control
+                        callConfig.topMenuBarConfig.isVisible = false
+                        callConfig.bottomMenuBarConfig.buttons = emptyList()
+                        callConfig.bottomMenuBarConfig.maxCount = 0
+                        callConfig.durationConfig.isVisible = false
 
+                        // Attach WhatsApp-style full screen overlay via roomForegroundProvider
+                        callConfig.roomForegroundProvider = ZegoCallRoomForegroundProvider { ctx ->
+                            createWhatsAppCallView(ctx)
+                        }
+
+                        // Avatar view provider for underlying audio/video container
                         callConfig.avatarViewProvider = object : ZegoAvatarViewProvider {
                             override fun onUserIDUpdated(parent: ViewGroup, uiKitUser: ZegoUIKitUser): View {
                                 val imageView = ImageView(parent.context)
-                                val photoUrl = avatarUrlCache[uiKitUser.userID]
-                                if (!photoUrl.isNullOrBlank()) {
-                                    imageView.load(photoUrl) {
+                                val pUrl = avatarUrlCache[uiKitUser.userID]
+                                if (!pUrl.isNullOrBlank()) {
+                                    imageView.load(pUrl) {
                                         transformations(CircleCropTransformation())
                                     }
                                 }
@@ -176,10 +230,15 @@ object ZegoCallManager {
                             }
                         }
 
+                        callConfig.leaveCallListener = ZegoUIKitPrebuiltCallFragment.LeaveCallListener {
+                            endCallInternal()
+                        }
+
                         return callConfig
                     }
                 }
             }
+
             ZegoUIKitPrebuiltCallInvitationService.init(
                 application,
                 getAppId(),
@@ -188,6 +247,10 @@ object ZegoCallManager {
                 userName,
                 config
             )
+
+            // Setup listeners for call state, audio devices, and mute status
+            setupStateListeners()
+
             isInitialized = true
             currentUserId = userId
             currentUserName = userName
@@ -198,8 +261,162 @@ object ZegoCallManager {
         }
     }
 
+    private fun setupStateListeners() {
+        try {
+            CallInvitationServiceImpl.getInstance().addCallStateListener(object : CallStateListener {
+                override fun onStateChanged(before: Int, after: Int) {
+                    Log.d(TAG, "CallStateListener onStateChanged: before=$before, after=$after")
+                    when (after) {
+                        PrebuiltCallRepository.CONNECTED -> {
+                            onCallConnected()
+                        }
+                        PrebuiltCallRepository.NONE,
+                        PrebuiltCallRepository.NONE_HANG_UP,
+                        PrebuiltCallRepository.NONE_REJECTED,
+                        PrebuiltCallRepository.NONE_CANCELED,
+                        PrebuiltCallRepository.NONE_CALL_NO_REPLY,
+                        PrebuiltCallRepository.NONE_RECEIVE_MISSED -> {
+                            endCallInternal()
+                        }
+                    }
+                }
+            })
+
+            ZegoUIKit.addMicrophoneStateListener { user, isOn ->
+                if (user?.userID == currentUserId) {
+                    _activeCallState.update { it?.copy(isMicMuted = !isOn) }
+                }
+            }
+
+            ZegoUIKit.addCameraStateListener { user, isOn ->
+                if (user?.userID == currentUserId) {
+                    _activeCallState.update { it?.copy(isCameraOn = isOn) }
+                }
+            }
+
+            ZegoUIKit.addAudioOutputDeviceChangedListener { device ->
+                val isSpeaker = (device == ZegoAudioOutputDevice.SPEAKER)
+                _activeCallState.update { it?.copy(isSpeakerOn = isSpeaker) }
+            }
+
+            ZegoUIKit.addUserUpdateListener(object : com.zegocloud.uikit.service.defines.ZegoUserUpdateListener {
+                override fun onUserJoined(list: List<ZegoUIKitUser>?) {
+                    if (list != null && list.any { it.userID != currentUserId } && _activeCallState.value?.isConnected != true) {
+                        onCallConnected()
+                    }
+                }
+                override fun onUserLeft(list: List<ZegoUIKitUser>?) {}
+            })
+        } catch (e: Throwable) {
+            Log.w(TAG, "Could not register Zego listeners: ${e.message}")
+        }
+    }
+
+    private fun onCallConnected() {
+        _activeCallState.update { it?.copy(isConnected = true, statusText = "00:00") }
+        durationJob?.cancel()
+        durationJob = managerScope.launch {
+            var elapsed = 0L
+            while (isActive) {
+                delay(1000L)
+                elapsed++
+                _activeCallState.update { it?.copy(durationSeconds = elapsed) }
+            }
+        }
+    }
+
+    private fun endCallInternal() {
+        durationJob?.cancel()
+        durationJob = null
+        _activeCallState.value = null
+    }
+
+    fun createWhatsAppCallView(context: Context): View {
+        return ComposeView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+            setContent {
+                com.example.chat.ui.call.WhatsAppCallOverlay()
+            }
+        }
+    }
+
+    fun toggleMicrophone() {
+        val uid = currentUserId ?: return
+        val currentMuted = _activeCallState.value?.isMicMuted ?: false
+        val newMicOn = currentMuted
+        ZegoUIKit.turnMicrophoneOn(uid, newMicOn)
+        _activeCallState.update { it?.copy(isMicMuted = !newMicOn) }
+    }
+
+    fun toggleCamera() {
+        val uid = currentUserId ?: return
+        val currentCamOn = _activeCallState.value?.isCameraOn ?: false
+        val newCamOn = !currentCamOn
+        ZegoUIKit.turnCameraOn(uid, newCamOn)
+        _activeCallState.update { it?.copy(isCameraOn = newCamOn) }
+    }
+
+    fun toggleSpeaker() {
+        val currentSpeaker = _activeCallState.value?.isSpeakerOn ?: false
+        val newSpeaker = !currentSpeaker
+        ZegoUIKit.setAudioOutputToSpeaker(newSpeaker)
+        _activeCallState.update { it?.copy(isSpeakerOn = newSpeaker) }
+    }
+
+    fun setNoiseCancellation(enable: Boolean) {
+        try {
+            val engine = ZegoExpressEngine.getEngine()
+            engine?.enableANS(enable)
+            engine?.enableTransientANS(enable)
+            if (enable) {
+                engine?.setANSMode(ZegoANSMode.AI)
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "Could not toggle ANS: ${e.message}")
+        }
+        _activeCallState.update { it?.copy(isNoiseCancellationOn = enable) }
+    }
+
+    fun minimizeCall(activity: Activity) {
+        try {
+            activity.moveTaskToBack(true)
+            _activeCallState.update { it?.copy(isMinimized = true) }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error minimizing call activity", e)
+        }
+    }
+
+    fun restoreCall(context: Context) {
+        try {
+            val intent = Intent(context, CallInviteActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            context.startActivity(intent)
+            _activeCallState.update { it?.copy(isMinimized = false) }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to restore call", e)
+        }
+    }
+
+    fun endCall() {
+        try {
+            CallInvitationServiceImpl.getInstance().endCall()
+        } catch (e: Throwable) {
+            Log.w(TAG, "CallInvitationServiceImpl.endCall failed: ${e.message}")
+        }
+        try {
+            ZegoUIKit.leaveRoom()
+        } catch (_: Throwable) {}
+        endCallInternal()
+    }
+
     fun unInit() {
         try {
+            endCallInternal()
             if (isInitialized) {
                 ZegoUIKitPrebuiltCallInvitationService.unInit()
                 isInitialized = false
@@ -213,7 +430,7 @@ object ZegoCallManager {
         }
     }
 
-    private fun findActivity(context: Context): Activity? {
+    fun findActivity(context: Context): Activity? {
         var ctx = context
         while (ctx is ContextWrapper) {
             if (ctx is Activity) return ctx
@@ -222,10 +439,6 @@ object ZegoCallManager {
         return null
     }
 
-    /**
-     * Returns null on success, or a specific, non-generic error message on
-     * failure — always the real reason, for on-screen diagnostic display.
-     */
     fun startCall(
         context: Context,
         targetUserId: String,
@@ -245,6 +458,16 @@ object ZegoCallManager {
             return err
         }
 
+        // Initialize active call state for initial dial
+        _activeCallState.value = ActiveCallState(
+            targetUid = targetUserId,
+            targetName = targetUserName,
+            targetPhotoUrl = avatarUrlCache[targetUserId],
+            isVideo = isVideo,
+            statusText = "Calling…",
+            isNoiseCancellationOn = true
+        )
+
         return try {
             val button = ZegoSendCallInvitationButton(activity)
             button.setIsVideoCall(isVideo)
@@ -255,6 +478,7 @@ object ZegoCallManager {
             button.performClick()
             null
         } catch (e: Throwable) {
+            endCallInternal()
             val err = "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
             Log.e(TAG, "Failed to start call: $err", e)
             com.example.util.CrashReporter.recordExplicitCrash(e, "ZegoCallManager.startCall")
