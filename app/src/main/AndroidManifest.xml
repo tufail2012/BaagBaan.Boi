@@ -190,6 +190,13 @@
             android:name="com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallActivity"
             android:theme="@style/Theme.ZegoCallActivity"
             tools:replace="android:theme" />
+
+        <!-- Ongoing Outgoing Call Foreground Service -->
+        <service
+            android:name="com.example.chat.call.OutgoingCallNotificationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="phoneCall" />
     </application>
 
 </manifest>

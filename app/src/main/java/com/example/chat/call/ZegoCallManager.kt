@@ -41,6 +41,11 @@ import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoUIKitPrebuiltCallCo
 import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
 import com.zegocloud.uikit.service.defines.ZegoAudioOutputDevice
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
+import com.zegocloud.uikit.plugin.signaling.ZegoSignalingPlugin
+import im.zego.zim.ZIM
+import im.zego.zim.callback.ZIMEventHandler
+import im.zego.zim.entity.ZIMCallUserStateChangeInfo
+import im.zego.zim.enums.ZIMCallUserState
 import im.zego.zegoexpress.ZegoExpressEngine
 import im.zego.zegoexpress.constants.ZegoANSMode
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +86,36 @@ object ZegoCallManager {
 
     private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var durationJob: Job? = null
+    private var applicationContext: Context? = null
+
+    private val zimEventHandler = object : ZIMEventHandler() {
+        override fun onCallUserStateChanged(
+            zim: ZIM,
+            info: ZIMCallUserStateChangeInfo,
+            callID: String
+        ) {
+            val currentCall = _activeCallState.value ?: return
+            if (currentCall.isConnected) return
+
+            for (user in info.callUserList ?: emptyList()) {
+                if (user.userID == currentCall.targetUid) {
+                    Log.d(TAG, "ZIM onCallUserStateChanged: user=${user.userID}, state=${user.state}")
+                    if (user.state == ZIMCallUserState.RECEIVED) {
+                        _activeCallState.update { it?.copy(statusText = "Ringing…") }
+                        applicationContext?.let { ctx ->
+                            OutgoingCallNotificationService.update(
+                                context = ctx,
+                                targetName = currentCall.targetName,
+                                statusText = "Ringing…",
+                                photoUrl = currentCall.targetPhotoUrl,
+                                isVideo = currentCall.isVideo
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fun cacheAvatarUrl(uid: String, photoUrl: String?) {
         if (uid.isNotBlank() && !photoUrl.isNullOrBlank()) {
@@ -151,6 +186,7 @@ object ZegoCallManager {
     }
 
     fun init(application: Application, userId: String, userName: String) {
+        applicationContext = application.applicationContext
         val credsError = getCredentialsError()
         if (credsError != null) {
             Log.w(TAG, "$credsError (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
@@ -275,6 +311,13 @@ object ZegoCallManager {
             // Setup listeners for call state, audio devices, and mute status
             setupStateListeners()
 
+            // Register ZIM signaling event handler for real-time invitation delivery acknowledgment
+            try {
+                ZegoSignalingPlugin.getInstance().registerZIMEventHandler(zimEventHandler)
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to register ZIMEventHandler: ${e.message}")
+            }
+
             isInitialized = true
             currentUserId = userId
             currentUserName = userName
@@ -338,6 +381,9 @@ object ZegoCallManager {
 
     private fun onCallConnected() {
         _activeCallState.update { it?.copy(isConnected = true, statusText = "00:00") }
+        applicationContext?.let { ctx ->
+            OutgoingCallNotificationService.stop(ctx)
+        }
         durationJob?.cancel()
         durationJob = managerScope.launch {
             var elapsed = 0L
@@ -350,6 +396,9 @@ object ZegoCallManager {
     }
 
     private fun endCallInternal() {
+        applicationContext?.let { ctx ->
+            OutgoingCallNotificationService.stop(ctx)
+        }
         durationJob?.cancel()
         durationJob = null
         _activeCallState.value = null
@@ -442,6 +491,9 @@ object ZegoCallManager {
         try {
             endCallInternal()
             if (isInitialized) {
+                try {
+                    ZegoSignalingPlugin.getInstance().unregisterZIMEventHandler(zimEventHandler)
+                } catch (_: Throwable) {}
                 ZegoUIKitPrebuiltCallInvitationService.unInit()
                 isInitialized = false
                 currentUserId = null
@@ -500,6 +552,17 @@ object ZegoCallManager {
             val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
             root.addView(button, android.view.ViewGroup.LayoutParams(0, 0))
             button.performClick()
+
+            // Launch ongoing notification for the outgoing call
+            val photoUrl = avatarUrlCache[targetUserId]
+            OutgoingCallNotificationService.start(
+                context = activity.applicationContext,
+                targetName = targetUserName,
+                statusText = "Calling…",
+                photoUrl = photoUrl,
+                isVideo = isVideo
+            )
+
             null
         } catch (e: Throwable) {
             endCallInternal()
