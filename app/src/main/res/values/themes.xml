@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MyApplication" parent="Theme.AppCompat.Light.NoActionBar" />
+    <style name="Theme.MyApplication" parent="Theme.MaterialComponents.Light.NoActionBar" />
 
-    <!-- ZegoCloud's call screens are AppCompatActivity/AppCompatDialog and need an AppCompat descendant theme -->
-    <style name="Theme.ZegoCallActivity" parent="Theme.AppCompat.Light.NoActionBar" />
+    <style name="Theme.ZegoCallActivity" parent="Theme.MaterialComponents.Light.NoActionBar" />
 </resources>

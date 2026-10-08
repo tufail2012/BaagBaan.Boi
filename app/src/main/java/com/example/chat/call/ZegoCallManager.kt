@@ -4,14 +4,27 @@ import android.app.Activity
 import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.SystemClock
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import coil.load
+import coil.transform.CircleCropTransformation
 import com.example.BuildConfig
+import com.zegocloud.uikit.components.audiovideo.ZegoAvatarViewProvider
+import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayoutPictureInPictureConfig
 import com.zegocloud.uikit.internal.ZegoUIKitLanguage
+import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallConfig
+import com.zegocloud.uikit.prebuilt.call.config.ZegoMenuBarButtonName
 import com.zegocloud.uikit.prebuilt.call.config.ZegoNotificationConfig
+import com.zegocloud.uikit.prebuilt.call.core.invite.ZegoCallInvitationData
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
 import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoTranslationText
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoUIKitPrebuiltCallConfigProvider
 import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
 import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 
@@ -32,6 +45,14 @@ object ZegoCallManager {
     private var initializedAtMs: Long = 0L
 
     private const val SETTLE_DELAY_MS = 1500L
+
+    private val avatarUrlCache = mutableMapOf<String, String>()
+
+    fun cacheAvatarUrl(uid: String, photoUrl: String?) {
+        if (uid.isNotBlank() && !photoUrl.isNullOrBlank()) {
+            avatarUrlCache[uid] = photoUrl
+        }
+    }
 
     fun getAppId(): Long = try {
         BuildConfig.ZEGO_APP_ID.toString().trim().toLongOrNull() ?: 0L
@@ -120,6 +141,47 @@ object ZegoCallManager {
                     channelDesc = "Incoming call invitation notifications"
                 }
                 showDeclineButton = true
+
+                // WhatsApp-style dark background on the ringing/outgoing screen
+                incomingCallBackground = ColorDrawable(Color.parseColor("#0B141A"))
+                outgoingCallBackground = ColorDrawable(Color.parseColor("#0B141A"))
+
+                // Customize the actual in-call screen once the call connects
+                provider = object : ZegoUIKitPrebuiltCallConfigProvider {
+                    override fun requireConfig(callInvitationData: ZegoCallInvitationData): ZegoUIKitPrebuiltCallConfig {
+                        val callConfig = ZegoUIKitPrebuiltCallConfig.oneOnOneVideoCall()
+                        // NOTE: if voice-only calls need a different base config, check callInvitationData
+                        // in Android Studio's autocomplete for a call-type field/method and branch here —
+                        // for now the same config is used for both voice and video.
+
+                        callConfig.layout.config = ZegoLayoutPictureInPictureConfig().apply {
+                            largeViewBackgroundColor = Color.parseColor("#0B141A")
+                            smallViewBackgroundColor = Color.parseColor("#111B21")
+                        }
+
+                        callConfig.bottomMenuBarConfig.buttons = listOf(
+                            ZegoMenuBarButtonName.TOGGLE_MICROPHONE_BUTTON,
+                            ZegoMenuBarButtonName.SWITCH_AUDIO_OUTPUT_BUTTON,
+                            ZegoMenuBarButtonName.TOGGLE_CAMERA_BUTTON,
+                            ZegoMenuBarButtonName.HANG_UP_BUTTON
+                        )
+
+                        callConfig.avatarViewProvider = object : ZegoAvatarViewProvider {
+                            override fun onUserIDUpdated(parent: ViewGroup, uiKitUser: ZegoUIKitUser): View {
+                                val imageView = ImageView(parent.context)
+                                val photoUrl = avatarUrlCache[uiKitUser.userID]
+                                if (!photoUrl.isNullOrBlank()) {
+                                    imageView.load(photoUrl) {
+                                        transformations(CircleCropTransformation())
+                                    }
+                                }
+                                return imageView
+                            }
+                        }
+
+                        return callConfig
+                    }
+                }
             }
             ZegoUIKitPrebuiltCallInvitationService.init(
                 application,

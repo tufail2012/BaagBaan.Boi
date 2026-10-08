@@ -207,6 +207,10 @@ fun ChatScreen(
         }
     }
 
+    LaunchedEffect(otherUid, recipient?.photoUrl) {
+        ZegoCallManager.cacheAvatarUrl(otherUid, recipient?.photoUrl)
+    }
+
     // Profile Dialog Stub
     if (showProfileDialog && recipient != null) {
         AlertDialog(

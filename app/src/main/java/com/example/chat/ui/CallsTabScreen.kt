@@ -42,6 +42,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,6 +85,17 @@ fun CallsTabScreen(
         ?: com.example.chat.data.ChatPreferences(context).lastUsername
         ?: ""
     val chatSummaries by viewModel.chatsList.collectAsState()
+
+    LaunchedEffect(chatSummaries) {
+        val myUid = currentUser?.uid.orEmpty()
+        chatSummaries.forEach { summary ->
+            val otherUid = summary.participantIds.firstOrNull { it != myUid }
+            val otherInfo = summary.getOtherParticipant(myUid)
+            if (!otherUid.isNullOrBlank() && !otherInfo?.photoUrl.isNullOrBlank()) {
+                ZegoCallManager.cacheAvatarUrl(otherUid, otherInfo?.photoUrl)
+            }
+        }
+    }
 
     var showPermissionRationale by remember { mutableStateOf(false) }
     var showZegoConfigDialog by remember { mutableStateOf(false) }
