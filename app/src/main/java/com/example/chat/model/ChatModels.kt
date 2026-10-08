@@ -67,7 +67,14 @@ data class ChatMessage(
     val status: String = "sent",
     val isEdited: Boolean = false,
     val isDeleted: Boolean = false,
-    val deletedFor: List<String> = emptyList()
+    val deletedFor: List<String> = emptyList(),
+    // Real call message attributes
+    val messageType: String = "text", // "text" | "call"
+    val callType: String = "voice",   // "voice" | "video"
+    val callOutcome: String = "ended", // "connected" | "missed" | "declined" | "no_answer" | "failed"
+    val callDurationSeconds: Long = 0L,
+    val callCallerId: String = "",
+    val callCalleeId: String = ""
 )
 
 enum class ChatTab(val title: String) {

@@ -2,6 +2,7 @@ package com.example.chat.data
 
 import android.content.Context
 import android.util.Log
+import com.example.chat.model.CallLogItem
 import com.example.chat.model.ChatLastMessage
 import com.example.chat.model.ChatMessage
 import com.example.chat.model.ChatSummary
@@ -376,7 +377,13 @@ class ChatRepository(private val context: Context) {
                                 status = doc.getString("status") ?: "sent",
                                 isEdited = doc.getBoolean("isEdited") ?: false,
                                 isDeleted = doc.getBoolean("isDeleted") ?: false,
-                                deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                                deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                                messageType = doc.getString("messageType") ?: "text",
+                                callType = doc.getString("callType") ?: "voice",
+                                callOutcome = doc.getString("callOutcome") ?: "ended",
+                                callDurationSeconds = doc.getLong("callDurationSeconds") ?: 0L,
+                                callCallerId = doc.getString("callCallerId") ?: "",
+                                callCalleeId = doc.getString("callCalleeId") ?: ""
                             )
                         } catch (e: Exception) {
                             null
@@ -509,6 +516,165 @@ class ChatRepository(private val context: Context) {
             Log.e(TAG, "Error sending message in $chatId: ${e.message}", e)
             Result.failure(e)
         }
+    }
+
+    suspend fun recordCallEvent(
+        callerId: String,
+        calleeId: String,
+        callType: String, // "voice" | "video"
+        callOutcome: String, // "connected" | "missed" | "declined" | "no_answer" | "failed"
+        durationSeconds: Long,
+        callerInfo: ParticipantInfo? = null,
+        calleeInfo: ParticipantInfo? = null
+    ): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (callerId.isBlank() || calleeId.isBlank()) {
+            return Result.failure(IllegalArgumentException("callerId and calleeId must not be blank"))
+        }
+
+        return try {
+            val chatId = getDirectChatId(callerId, calleeId)
+            val chatRef = firestore.collection("chats").document(chatId)
+
+            val summaryText = when (callOutcome) {
+                "connected" -> {
+                    val mins = durationSeconds / 60
+                    val secs = durationSeconds % 60
+                    val durStr = String.format("%d:%02d", mins, secs)
+                    if (callType == "video") "Video call ($durStr)" else "Voice call ($durStr)"
+                }
+                "missed" -> if (callType == "video") "Missed video call" else "Missed voice call"
+                "declined" -> if (callType == "video") "Declined video call" else "Declined voice call"
+                "no_answer" -> "No answer"
+                else -> if (callType == "video") "Video call" else "Voice call"
+            }
+
+            // 1. Write inline Call Message into /chats/{chatId}/messages/
+            val messageRef = chatRef.collection("messages").document()
+            val messageData = hashMapOf(
+                "senderId" to callerId,
+                "text" to summaryText,
+                "timestamp" to FieldValue.serverTimestamp(),
+                "status" to "delivered",
+                "messageType" to "call",
+                "callType" to callType,
+                "callOutcome" to callOutcome,
+                "callDurationSeconds" to durationSeconds,
+                "callCallerId" to callerId,
+                "callCalleeId" to calleeId
+            )
+
+            val lastMessageData = hashMapOf(
+                "text" to summaryText,
+                "senderId" to callerId,
+                "timestamp" to FieldValue.serverTimestamp()
+            )
+
+            // 2. Write to /callLogs/{callLogId} for Calls Tab listing
+            val callLogRef = firestore.collection("callLogs").document()
+            val participantIds = listOf(callerId, calleeId)
+            val pInfoMap = mutableMapOf<String, Any>()
+            if (callerInfo != null) {
+                pInfoMap[callerId] = mapOf(
+                    "uid" to callerInfo.uid,
+                    "username" to callerInfo.username,
+                    "displayName" to callerInfo.displayName,
+                    "photoUrl" to (callerInfo.photoUrl ?: "")
+                )
+            }
+            if (calleeInfo != null) {
+                pInfoMap[calleeId] = mapOf(
+                    "uid" to calleeInfo.uid,
+                    "username" to calleeInfo.username,
+                    "displayName" to calleeInfo.displayName,
+                    "photoUrl" to (calleeInfo.photoUrl ?: "")
+                )
+            }
+
+            val callLogData = hashMapOf(
+                "callId" to callLogRef.id,
+                "type" to callType,
+                "callerId" to callerId,
+                "calleeId" to calleeId,
+                "participantIds" to participantIds,
+                "participantInfo" to pInfoMap,
+                "chatId" to chatId,
+                "status" to callOutcome,
+                "startedAt" to FieldValue.serverTimestamp(),
+                "endedAt" to FieldValue.serverTimestamp(),
+                "durationSeconds" to durationSeconds
+            )
+
+            val batch = firestore.batch()
+            batch.set(messageRef, messageData)
+            batch.update(chatRef, "lastMessage", lastMessageData)
+            batch.set(callLogRef, callLogData)
+            batch.commit().await()
+
+            Log.i(TAG, "Recorded call log event: $summaryText in chat $chatId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error recording call event: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    fun getCallLogsFlow(currentUid: String): Flow<List<CallLogItem>> = callbackFlow {
+        val firestore = db
+        if (firestore == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("callLogs")
+            .whereArrayContains("participantIds", currentUid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error listening to call logs: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val list = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            val pInfoRaw = doc.get("participantInfo") as? Map<String, Any?> ?: emptyMap()
+                            val participantInfo = pInfoRaw.mapNotNull { (k, v) ->
+                                @Suppress("UNCHECKED_CAST")
+                                val map = v as? Map<String, Any?> ?: return@mapNotNull null
+                                k to ParticipantInfo(
+                                    uid = k,
+                                    username = map["username"]?.toString() ?: "",
+                                    displayName = map["displayName"]?.toString() ?: "",
+                                    photoUrl = map["photoUrl"]?.toString()
+                                )
+                            }.toMap()
+
+                            CallLogItem(
+                                id = doc.id,
+                                callId = doc.getString("callId") ?: doc.id,
+                                type = doc.getString("type") ?: "voice",
+                                callerId = doc.getString("callerId") ?: "",
+                                calleeId = doc.getString("calleeId") ?: "",
+                                participantIds = (doc.get("participantIds") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                                participantInfo = participantInfo,
+                                chatId = doc.getString("chatId"),
+                                status = doc.getString("status") ?: "ended",
+                                startedAt = doc.getTimestamp("startedAt"),
+                                endedAt = doc.getTimestamp("endedAt"),
+                                durationSeconds = doc.getLong("durationSeconds")
+                            )
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+
+                    val sorted = list.sortedByDescending { it.startedAt?.toDate()?.time ?: 0L }
+                    trySend(sorted)
+                }
+            }
+
+        awaitClose { listener.remove() }
     }
 
     suspend fun setGhostMode(chatId: String, enabled: Boolean): Result<Unit> {

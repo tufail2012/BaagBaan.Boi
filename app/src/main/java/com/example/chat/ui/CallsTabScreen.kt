@@ -85,6 +85,7 @@ fun CallsTabScreen(
         ?: com.example.chat.data.ChatPreferences(context).lastUsername
         ?: ""
     val chatSummaries by viewModel.chatsList.collectAsState()
+    val callLogs by viewModel.callLogs.collectAsState()
 
     LaunchedEffect(chatSummaries) {
         val myUid = currentUser?.uid.orEmpty()
@@ -329,6 +330,127 @@ fun CallsTabScreen(
                                 shape = RoundedCornerShape(10.dp)
                             ) {
                                 Text("Grant Permissions", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Recent Real Call History Section
+            if (callLogs.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Recent Calls",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = if (isDark) Color.White else Color(0xFF0F172A),
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
+                }
+
+                items(callLogs, key = { it.id }) { log ->
+                    val other = log.getOtherParticipant(currentUid)
+                    val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
+                    val isCaller = (log.callerId == currentUid)
+                    val isVideo = (log.type == "video")
+                    val isMissed = (log.status == "missed" || log.status == "no_answer")
+                    val isDeclined = (log.status == "declined")
+
+                    val statusLabel = when {
+                        log.status == "connected" -> {
+                            val secs = log.durationSeconds ?: 0L
+                            if (secs > 0) "${secs / 60}:${String.format("%02d", secs % 60)}" else "Connected"
+                        }
+                        isMissed -> if (isCaller) "No answer" else "Missed"
+                        isDeclined -> "Declined"
+                        else -> log.status
+                    }
+
+                    val dateLabel = log.startedAt?.toDate()?.let {
+                        java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.getDefault()).format(it)
+                    } ?: ""
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isDark) Color(0xFF1E293B) else Color(0xFFF8FAFC),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (!other?.photoUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = other?.photoUrl,
+                                    contentDescription = other?.displayName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(44.dp).clip(CircleShape)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(accentColor.copy(alpha = 0.20f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = (other?.displayName?.ifBlank { other.username } ?: "U").take(1).uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = accentColor
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = other?.displayName?.ifBlank { other.username } ?: "Member",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isMissed && !isCaller) Color(0xFFEF4444) else if (isDark) Color.White else Color(0xFF0F172A),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isVideo) Icons.Default.Videocam else Icons.Default.Call,
+                                        contentDescription = null,
+                                        tint = if (isMissed && !isCaller) Color(0xFFEF4444) else accentColor,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isCaller) "Outgoing • $statusLabel • $dateLabel" else "Incoming • $statusLabel • $dateLabel",
+                                        fontSize = 12.sp,
+                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    val targetUsername = other?.username ?: other?.displayName ?: ""
+                                    handleCallPress(otherUid, targetUsername, isVideo)
+                                },
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+                            ) {
+                                Icon(
+                                    imageVector = if (isVideo) Icons.Default.Videocam else Icons.Default.Call,
+                                    contentDescription = "Call Back",
+                                    tint = accentColor,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }

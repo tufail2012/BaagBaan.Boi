@@ -527,14 +527,26 @@ fun ChatScreen(
 
                     Spacer(modifier = Modifier.height(if (isSameSenderAsPrev) 1.dp else 6.dp))
 
-                    MessageBubble(
-                        message = msg,
-                        isOwn = isOwnMessage,
-                        accentColor = accentColor,
-                        isDark = isDark,
-                        showTail = !isSameSenderAsNext,
-                        onLongPress = { selectedMessageForAction = msg }
-                    )
+                    if (msg.messageType == "call") {
+                        CallLogBubble(
+                            message = msg,
+                            currentUid = currentUid,
+                            accentColor = accentColor,
+                            isDark = isDark,
+                            onCallBack = { isVideo ->
+                                initiateCall(isVideo)
+                            }
+                        )
+                    } else {
+                        MessageBubble(
+                            message = msg,
+                            isOwn = isOwnMessage,
+                            accentColor = accentColor,
+                            isDark = isDark,
+                            showTail = !isSameSenderAsNext,
+                            onLongPress = { selectedMessageForAction = msg }
+                        )
+                    }
                 }
 
                 item { Spacer(modifier = Modifier.height(4.dp)) }
@@ -874,4 +886,138 @@ private fun VideoCallIcon(
         drawPath(path = lensPath, color = tint)
     }
 }
+
+@Composable
+private fun CallLogBubble(
+    message: ChatMessage,
+    currentUid: String,
+    accentColor: Color,
+    isDark: Boolean,
+    onCallBack: (isVideo: Boolean) -> Unit
+) {
+    val isCaller = message.callCallerId == currentUid || (message.callCallerId.isBlank() && message.senderId == currentUid)
+    val isVideo = message.callType == "video"
+    val isMissed = message.callOutcome == "missed" || message.callOutcome == "no_answer"
+    val isDeclined = message.callOutcome == "declined"
+    val isConnected = message.callOutcome == "connected"
+
+    // Primary label text
+    val titleText = when {
+        isConnected -> if (isVideo) "Video call" else "Voice call"
+        isMissed -> if (isCaller) {
+            "No answer"
+        } else {
+            if (isVideo) "Missed video call" else "Missed voice call"
+        }
+        isDeclined -> if (isCaller) "Declined" else "Call declined"
+        else -> if (isVideo) "Video call" else "Voice call"
+    }
+
+    // Subtitle / duration
+    val subtitleText = when {
+        isConnected && message.callDurationSeconds > 0L -> {
+            val mins = message.callDurationSeconds / 60
+            val secs = message.callDurationSeconds % 60
+            String.format("%d:%02d", mins, secs)
+        }
+        !isCaller && (isMissed || isDeclined) -> "Tap to call back"
+        else -> null
+    }
+
+    val iconColor = when {
+        isMissed || isDeclined -> Color(0xFFEF4444) // Red for missed/declined
+        else -> accentColor
+    }
+
+    val bubbleBg = if (isDark) Color(0xFF1E293B) else Color.White
+    val titleColor = if (isMissed && !isCaller) {
+        Color(0xFFEF4444)
+    } else {
+        if (isDark) Color.White else Color(0xFF0F172A)
+    }
+
+    val timeFormatted = remember(message.timestamp) {
+        message.timestamp?.toDate()?.let {
+            SimpleDateFormat("h:mm a", Locale.getDefault()).format(it)
+        } ?: ""
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = bubbleBg,
+            tonalElevation = 2.dp,
+            modifier = Modifier
+                .widthIn(min = 220.dp, max = 310.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable {
+                    if (!isCaller && (isMissed || isDeclined)) {
+                        onCallBack(isVideo)
+                    }
+                }
+                .testTag("call_log_bubble_${message.id}")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Call icon circle
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(iconColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isVideo) {
+                        VideoCallIcon(tint = iconColor, modifier = Modifier.size(20.dp))
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = null,
+                            tint = iconColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = titleText,
+                        color = titleColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (subtitleText != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subtitleText,
+                            color = if (subtitleText.startsWith("Tap")) accentColor else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            fontSize = 12.sp,
+                            fontWeight = if (subtitleText.startsWith("Tap")) FontWeight.Medium else FontWeight.Normal
+                        )
+                    }
+                }
+
+                if (timeFormatted.isNotEmpty()) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = timeFormatted,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        fontSize = 11.sp,
+                        modifier = Modifier.align(Alignment.Bottom)
+                    )
+                }
+            }
+        }
+    }
+}
+
 

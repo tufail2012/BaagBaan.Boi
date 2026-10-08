@@ -1,6 +1,7 @@
 package com.example.chat.ui
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -49,6 +50,11 @@ class ChatViewModel(
 
     private val _isChatsLoading = MutableStateFlow(false)
     val isChatsLoading: StateFlow<Boolean> = _isChatsLoading.asStateFlow()
+
+    // Real call logs flow for Calls tab
+    private val _callLogs = MutableStateFlow<List<com.example.chat.model.CallLogItem>>(emptyList())
+    val callLogs: StateFlow<List<com.example.chat.model.CallLogItem>> = _callLogs.asStateFlow()
+    private var callLogsListenJob: Job? = null
 
     // Search state
     private val _searchQuery = MutableStateFlow("")
@@ -241,6 +247,15 @@ class ChatViewModel(
                             }
                         }
                     }
+                }
+        }
+
+        callLogsListenJob?.cancel()
+        callLogsListenJob = viewModelScope.launch {
+            repository.getCallLogsFlow(uid)
+                .catch { Log.w("ChatViewModel", "Error in callLogs flow: ${it.message}") }
+                .collectLatest { logs ->
+                    _callLogs.value = logs
                 }
         }
     }

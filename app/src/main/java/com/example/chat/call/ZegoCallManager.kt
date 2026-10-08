@@ -225,6 +225,7 @@ object ZegoCallManager {
                             } else {
                                 callInvitationData.inviter
                             }
+                            val isOutgoing = (callInvitationData.inviter?.userID == currentUserId)
                             val targetUid = otherUser?.userID ?: (_activeCallState.value?.targetUid ?: "")
                             val targetName = otherUser?.userName ?: (_activeCallState.value?.targetName ?: "Member")
                             val photoUrl = avatarUrlCache[targetUid] ?: _activeCallState.value?.targetPhotoUrl
@@ -236,7 +237,10 @@ object ZegoCallManager {
                                 targetName = targetName,
                                 targetPhotoUrl = photoUrl,
                                 isVideo = isVideo,
-                                statusText = "Calling…",
+                                isOutgoing = isOutgoing,
+                                callerId = callInvitationData.inviter?.userID ?: currentUserId.orEmpty(),
+                                calleeId = if (isOutgoing) targetUid else currentUserId.orEmpty(),
+                                statusText = if (isOutgoing) "Calling…" else "Incoming call…",
                                 isNoiseCancellationOn = true
                             )
 
@@ -337,12 +341,22 @@ object ZegoCallManager {
                         PrebuiltCallRepository.CONNECTED -> {
                             onCallConnected()
                         }
-                        PrebuiltCallRepository.NONE,
-                        PrebuiltCallRepository.NONE_HANG_UP,
-                        PrebuiltCallRepository.NONE_REJECTED,
-                        PrebuiltCallRepository.NONE_CANCELED,
-                        PrebuiltCallRepository.NONE_CALL_NO_REPLY,
+                        PrebuiltCallRepository.NONE_HANG_UP -> {
+                            endCallWithOutcome("connected") // was connected and hung up normally
+                        }
+                        PrebuiltCallRepository.NONE_REJECTED -> {
+                            endCallWithOutcome("declined")
+                        }
+                        PrebuiltCallRepository.NONE_CALL_NO_REPLY -> {
+                            endCallWithOutcome("no_answer")
+                        }
+                        PrebuiltCallRepository.NONE_CANCELED -> {
+                            endCallWithOutcome("missed")
+                        }
                         PrebuiltCallRepository.NONE_RECEIVE_MISSED -> {
+                            endCallWithOutcome("missed")
+                        }
+                        PrebuiltCallRepository.NONE -> {
                             endCallInternal()
                         }
                     }
@@ -395,13 +409,63 @@ object ZegoCallManager {
         }
     }
 
-    private fun endCallInternal() {
+    private fun endCallWithOutcome(suggestedOutcome: String) {
+        val call = _activeCallState.value
+        val outcome = if (call?.isConnected == true) {
+            "connected"
+        } else {
+            suggestedOutcome
+        }
+        val duration = call?.durationSeconds ?: 0L
+        val callerId = call?.callerId?.ifBlank { currentUserId.orEmpty() } ?: currentUserId.orEmpty()
+        val calleeId = call?.calleeId?.ifBlank { call.targetUid } ?: call?.targetUid.orEmpty()
+        val callType = if (call?.isVideo == true) "video" else "voice"
+
         applicationContext?.let { ctx ->
             OutgoingCallNotificationService.stop(ctx)
+            if (callerId.isNotBlank() && calleeId.isNotBlank()) {
+                managerScope.launch(Dispatchers.IO) {
+                    try {
+                        val repo = com.example.chat.data.ChatRepository(ctx)
+                        val callerPhoto = avatarUrlCache[callerId]
+                        val calleePhoto = avatarUrlCache[calleeId] ?: call?.targetPhotoUrl
+
+                        val callerInfo = com.example.chat.model.ParticipantInfo(
+                            uid = callerId,
+                            username = if (callerId == currentUserId) currentUserName.orEmpty() else "",
+                            displayName = if (callerId == currentUserId) currentUserName.orEmpty() else "",
+                            photoUrl = callerPhoto
+                        )
+                        val calleeInfo = com.example.chat.model.ParticipantInfo(
+                            uid = calleeId,
+                            username = if (calleeId == call?.targetUid) call.targetName else "",
+                            displayName = if (calleeId == call?.targetUid) call.targetName else "",
+                            photoUrl = calleePhoto
+                        )
+
+                        repo.recordCallEvent(
+                            callerId = callerId,
+                            calleeId = calleeId,
+                            callType = callType,
+                            callOutcome = outcome,
+                            durationSeconds = duration,
+                            callerInfo = callerInfo,
+                            calleeInfo = calleeInfo
+                        )
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Failed to record call event: ${e.message}", e)
+                    }
+                }
+            }
         }
+
         durationJob?.cancel()
         durationJob = null
         _activeCallState.value = null
+    }
+
+    private fun endCallInternal() {
+        endCallWithOutcome("ended")
     }
 
     fun createWhatsAppCallView(context: Context): View {
@@ -540,6 +604,9 @@ object ZegoCallManager {
             targetName = targetUserName,
             targetPhotoUrl = avatarUrlCache[targetUserId],
             isVideo = isVideo,
+            isOutgoing = true,
+            callerId = currentUserId.orEmpty(),
+            calleeId = targetUserId,
             statusText = "Calling…",
             isNoiseCancellationOn = true
         )
