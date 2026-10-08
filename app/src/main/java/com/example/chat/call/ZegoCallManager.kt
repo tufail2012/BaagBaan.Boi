@@ -134,7 +134,7 @@ object ZegoCallManager {
         try {
             val config = ZegoUIKitPrebuiltCallInvitationConfig().apply {
                 translationText = ZegoTranslationText(ZegoUIKitLanguage.ENGLISH)
-                Log.e(TAG, "ZEGO_INIT_CONFIG_MARKER_V2 — translationText set, build timestamp: 2026-10-05T05:59:09-07:00")
+                Log.d(TAG, "ZEGO_INIT_CONFIG_MARKER_V2 — translationText set, build timestamp: 2026-10-05T05:59:09-07:00")
                 notificationConfig = ZegoNotificationConfig().apply {
                     channelID = "zego_call_invitation"
                     channelName = "Call Invitation"
@@ -149,10 +149,7 @@ object ZegoCallManager {
                 // Customize the actual in-call screen once the call connects
                 provider = object : ZegoUIKitPrebuiltCallConfigProvider {
                     override fun requireConfig(callInvitationData: ZegoCallInvitationData): ZegoUIKitPrebuiltCallConfig {
-                        val callConfig = ZegoUIKitPrebuiltCallConfig.oneOnOneVideoCall()
-                        // NOTE: if voice-only calls need a different base config, check callInvitationData
-                        // in Android Studio's autocomplete for a call-type field/method and branch here —
-                        // for now the same config is used for both voice and video.
+                        val callConfig = ZegoUIKitPrebuiltCallInvitationConfig.generateDefaultConfig(callInvitationData)
 
                         callConfig.layout.config = ZegoLayoutPictureInPictureConfig().apply {
                             largeViewBackgroundColor = Color.parseColor("#0B141A")

@@ -213,7 +213,7 @@ fun ChatsListScreen(
                     .fillMaxSize()
                     .testTag("chats_list_column"),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 items(chats, key = { it.chatId }) { chat ->
                     val other = chat.getOtherParticipant(currentUid)
@@ -251,103 +251,110 @@ private fun ChatListItemRow(
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+        shape = RoundedCornerShape(0.dp),
+        color = Color.Transparent,
         tonalElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
             .testTag("chat_item_${chat.chatId}")
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
-        ) {
-            // Avatar
-            if (!other?.photoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = other?.photoUrl,
-                    contentDescription = displayName,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.20f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = displayName.take(1).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = accentColor
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+            ) {
+                // Avatar
+                if (!other?.photoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = other?.photoUrl,
+                        contentDescription = displayName,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = displayName,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                        color = if (isDark) Color.White else Color(0xFF0F172A),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-
-                    if (formattedTime.isNotEmpty()) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.20f)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = formattedTime,
-                            fontSize = 11.sp,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            text = displayName.take(1).uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = accentColor
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (username.isNotEmpty()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = "@$username",
-                            fontSize = 12.sp,
-                            color = accentColor,
-                            fontWeight = FontWeight.Medium
+                            text = displayName,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "•",
-                            fontSize = 10.sp,
-                            color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
+
+                        if (formattedTime.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = formattedTime,
+                                fontSize = 11.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            )
+                        }
                     }
 
-                    Text(
-                        text = lastMsg?.text ?: "No messages yet",
-                        fontSize = 13.sp,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (username.isNotEmpty()) {
+                            Text(
+                                text = "@$username",
+                                fontSize = 12.sp,
+                                color = accentColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "•",
+                                fontSize = 10.sp,
+                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+
+                        Text(
+                            text = lastMsg?.text ?: "No messages yet",
+                            fontSize = 13.sp,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
+
+            androidx.compose.material3.HorizontalDivider(
+                modifier = Modifier.padding(start = 76.dp),
+                thickness = 0.6.dp,
+                color = if (isDark) Color(0x1AFFFFFF) else Color(0x14000000)
+            )
         }
     }
 }

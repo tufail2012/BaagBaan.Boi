@@ -13,6 +13,10 @@ import com.zegocloud.uikit.service.defines.ZegoUIKitUser
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -86,6 +90,7 @@ import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.google.firebase.Timestamp
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 @Composable
@@ -476,24 +481,52 @@ fun ChatScreen(
         }
 
         // Messages list
-        LazyColumn(
-            state = listState,
+        Box(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .testTag("conversation_messages_column"),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .background(if (isDark) Color(0xFF0B141A) else Color(0xFFF1F5F9))
         ) {
-            items(messages, key = { it.id }) { msg ->
-                val isOwnMessage = msg.senderId == currentUid
-                MessageBubble(
-                    message = msg,
-                    isOwn = isOwnMessage,
-                    accentColor = accentColor,
-                    isDark = isDark,
-                    onLongPress = { selectedMessageForAction = msg }
-                )
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("conversation_messages_column"),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                itemsIndexed(messages, key = { _, msg -> msg.id }) { index, msg ->
+                    val isOwnMessage = msg.senderId == currentUid
+                    val prev = messages.getOrNull(index - 1)
+                    val next = messages.getOrNull(index + 1)
+
+                    val isNewDay = prev == null || !isSameDay(prev.timestamp, msg.timestamp)
+                    val isSameSenderAsNext = next != null &&
+                        next.senderId == msg.senderId &&
+                        isSameDay(msg.timestamp, next.timestamp) &&
+                        minutesBetween(msg.timestamp, next.timestamp) < 3
+                    val isSameSenderAsPrev = prev != null &&
+                        prev.senderId == msg.senderId &&
+                        !isNewDay &&
+                        minutesBetween(prev.timestamp, msg.timestamp) < 3
+
+                    if (isNewDay) {
+                        DateSeparator(date = msg.timestamp, isDark = isDark)
+                    }
+
+                    Spacer(modifier = Modifier.height(if (isSameSenderAsPrev) 1.dp else 6.dp))
+
+                    MessageBubble(
+                        message = msg,
+                        isOwn = isOwnMessage,
+                        accentColor = accentColor,
+                        isDark = isDark,
+                        showTail = !isSameSenderAsNext,
+                        onLongPress = { selectedMessageForAction = msg }
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(4.dp)) }
             }
         }
 
@@ -591,6 +624,43 @@ fun ChatScreen(
     }
 }
 
+@Composable
+private fun DateSeparator(date: Timestamp?, isDark: Boolean) {
+    val label = remember(date) {
+        if (date == null) return@remember ""
+        val cal = Calendar.getInstance().apply { time = date.toDate() }
+        val now = Calendar.getInstance()
+        when {
+            now.get(Calendar.YEAR) == cal.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == cal.get(Calendar.DAY_OF_YEAR) -> "Today"
+            now.get(Calendar.YEAR) == cal.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) - cal.get(Calendar.DAY_OF_YEAR) == 1 -> "Yesterday"
+            now.get(Calendar.YEAR) == cal.get(Calendar.YEAR) -> SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(date.toDate())
+            else -> SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(date.toDate())
+        }
+    }
+    if (label.isEmpty()) return
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = if (isDark) Color(0xFF1E293B) else Color.White,
+            tonalElevation = 1.dp
+        ) {
+            Text(
+                text = label,
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
@@ -598,12 +668,13 @@ private fun MessageBubble(
     isOwn: Boolean,
     accentColor: Color,
     isDark: Boolean,
+    showTail: Boolean,
     onLongPress: () -> Unit
 ) {
     val bubbleColor = if (isOwn) {
         accentColor
     } else {
-        if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF)
+        if (isDark) Color(0xFF1E293B) else Color.White
     }
 
     val textColor = if (isOwn) {
@@ -618,10 +689,18 @@ private fun MessageBubble(
         if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
     }
 
+    val tailCorner = 4.dp
+    val roundCorner = 18.dp
     val bubbleShape = if (isOwn) {
-        RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 4.dp)
+        RoundedCornerShape(
+            topStart = roundCorner, topEnd = roundCorner,
+            bottomStart = roundCorner, bottomEnd = if (showTail) tailCorner else roundCorner
+        )
     } else {
-        RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 4.dp, bottomEnd = 18.dp)
+        RoundedCornerShape(
+            topStart = roundCorner, topEnd = roundCorner,
+            bottomStart = if (showTail) tailCorner else roundCorner, bottomEnd = roundCorner
+        )
     }
 
     val timeFormatted = remember(message.timestamp) {
@@ -634,54 +713,91 @@ private fun MessageBubble(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (isOwn) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Surface(
-            shape = bubbleShape,
-            color = bubbleColor,
-            tonalElevation = if (isOwn) 2.dp else 1.dp,
-            modifier = Modifier
-                .widthIn(max = 290.dp)
-                .clip(bubbleShape)
-                .combinedClickable(onClick = {}, onLongClick = onLongPress)
-                .testTag("message_bubble_${message.id}")
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
-            ) {
-                if (message.isDeleted) {
-                    Text(
-                        text = "This message was deleted",
-                        color = textColor.copy(alpha = 0.6f),
-                        fontSize = 14.sp,
-                        fontStyle = FontStyle.Italic
-                    )
-                } else {
-                    Text(
-                        text = message.text,
-                        color = textColor,
-                        fontSize = 15.sp,
-                        lineHeight = 20.sp
-                    )
-                }
-
-                if (timeFormatted.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        if (message.isEdited && !message.isDeleted) {
-                            Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
-                        }
-                        Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
+        Box {
+            if (showTail) {
+                Canvas(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .align(if (isOwn) Alignment.BottomEnd else Alignment.BottomStart)
+                        .offset(x = if (isOwn) 6.dp else (-6).dp)
+                ) {
+                    val path = Path().apply {
                         if (isOwn) {
-                            MessageStatusTicks(status = message.status)
+                            moveTo(0f, 0f)
+                            lineTo(size.width, size.height * 0.45f)
+                            lineTo(0f, size.height)
+                            close()
+                        } else {
+                            moveTo(size.width, 0f)
+                            lineTo(0f, size.height * 0.45f)
+                            lineTo(size.width, size.height)
+                            close()
+                        }
+                    }
+                    drawPath(path, color = bubbleColor)
+                }
+            }
+
+            Surface(
+                shape = bubbleShape,
+                color = bubbleColor,
+                tonalElevation = if (isOwn) 2.dp else 1.dp,
+                modifier = Modifier
+                    .widthIn(max = 290.dp)
+                    .clip(bubbleShape)
+                    .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                    .testTag("message_bubble_${message.id}")
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)) {
+                    if (message.isDeleted) {
+                        Text(
+                            text = "This message was deleted",
+                            color = textColor.copy(alpha = 0.6f),
+                            fontSize = 14.sp,
+                            fontStyle = FontStyle.Italic
+                        )
+                    } else {
+                        Text(
+                            text = message.text,
+                            color = textColor,
+                            fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+
+                    if (timeFormatted.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            if (message.isEdited && !message.isDeleted) {
+                                Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
+                            }
+                            Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
+                            if (isOwn) {
+                                MessageStatusTicks(status = message.status)
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+private fun isSameDay(a: Timestamp?, b: Timestamp?): Boolean {
+    if (a == null || b == null) return false
+    val ca = Calendar.getInstance().apply { time = a.toDate() }
+    val cb = Calendar.getInstance().apply { time = b.toDate() }
+    return ca.get(Calendar.YEAR) == cb.get(Calendar.YEAR) &&
+        ca.get(Calendar.DAY_OF_YEAR) == cb.get(Calendar.DAY_OF_YEAR)
+}
+
+private fun minutesBetween(a: Timestamp?, b: Timestamp?): Long {
+    if (a == null || b == null) return Long.MAX_VALUE
+    return kotlin.math.abs(b.toDate().time - a.toDate().time) / 60000L
 }
 
 @Composable
