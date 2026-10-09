@@ -51,10 +51,10 @@ class ChatViewModel(
     private val _isChatsLoading = MutableStateFlow(false)
     val isChatsLoading: StateFlow<Boolean> = _isChatsLoading.asStateFlow()
 
-    // Real call logs flow for Calls tab
-    private val _callLogs = MutableStateFlow<List<com.example.chat.model.CallLogItem>>(emptyList())
-    val callLogs: StateFlow<List<com.example.chat.model.CallLogItem>> = _callLogs.asStateFlow()
-    private var callLogsListenJob: Job? = null
+    // Real call history flow for Calls tab
+    private val _callHistory = MutableStateFlow<List<com.example.chat.model.CallLogItem>>(emptyList())
+    val callHistory: StateFlow<List<com.example.chat.model.CallLogItem>> = _callHistory.asStateFlow()
+    private var callHistoryListenJob: Job? = null
 
     // Search state
     private val _searchQuery = MutableStateFlow("")
@@ -250,12 +250,12 @@ class ChatViewModel(
                 }
         }
 
-        callLogsListenJob?.cancel()
-        callLogsListenJob = viewModelScope.launch {
+        callHistoryListenJob?.cancel()
+        callHistoryListenJob = viewModelScope.launch {
             repository.getCallLogsFlow(uid)
-                .catch { Log.w("ChatViewModel", "Error in callLogs flow: ${it.message}") }
+                .catch { Log.w("ChatViewModel", "Error in call history flow: ${it.message}") }
                 .collectLatest { logs ->
-                    _callLogs.value = logs
+                    _callHistory.value = logs
                 }
         }
     }

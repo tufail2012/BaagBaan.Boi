@@ -85,7 +85,7 @@ fun CallsTabScreen(
         ?: com.example.chat.data.ChatPreferences(context).lastUsername
         ?: ""
     val chatSummaries by viewModel.chatsList.collectAsState()
-    val callLogs by viewModel.callLogs.collectAsState()
+    val callHistory by viewModel.callHistory.collectAsState()
 
     LaunchedEffect(chatSummaries) {
         val myUid = currentUser?.uid.orEmpty()
@@ -337,7 +337,7 @@ fun CallsTabScreen(
             }
 
             // Recent Real Call History Section
-            if (callLogs.isNotEmpty()) {
+            if (callHistory.isNotEmpty()) {
                 item {
                     Text(
                         text = "Recent Calls",
@@ -348,7 +348,7 @@ fun CallsTabScreen(
                     )
                 }
 
-                items(callLogs, key = { it.id }) { log ->
+                items(callHistory, key = { it.id }) { log ->
                     val other = log.getOtherParticipant(currentUid)
                     val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
                     val isCaller = (log.callerId == currentUid)

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -1014,6 +1015,25 @@ fun AgriCropMainScreen(
         }
         }
     }
+
+        val activeCallState by com.example.chat.call.ZegoCallManager.activeCallState.collectAsState()
+        activeCallState?.let { call ->
+            if (call.isMinimized && currentRootScreen != "CHAT") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .align(Alignment.TopCenter)
+                        .zIndex(20f)
+                ) {
+                    com.example.chat.ui.call.MinimizedCallBar(
+                        state = call,
+                        accentColor = parsedPaletteColor ?: MaterialTheme.colorScheme.primary,
+                        isDark = isDark
+                    )
+                }
+            }
+        }
 
         // Production-ready App Lock authentication overlay when enabled and locked
         if (isAppLockEnabled && isAppLocked) {

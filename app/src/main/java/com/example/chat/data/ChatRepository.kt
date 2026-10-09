@@ -13,10 +13,13 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 
 class ChatRepository(private val context: Context) {
@@ -570,45 +573,9 @@ class ChatRepository(private val context: Context) {
                 "timestamp" to FieldValue.serverTimestamp()
             )
 
-            // 2. Write to /callLogs/{callLogId} for Calls Tab listing
-            val callLogRef = firestore.collection("callLogs").document()
-            val participantIds = listOf(callerId, calleeId)
-            val pInfoMap = mutableMapOf<String, Any>()
-            if (callerInfo != null) {
-                pInfoMap[callerId] = mapOf(
-                    "uid" to callerInfo.uid,
-                    "username" to callerInfo.username,
-                    "displayName" to callerInfo.displayName,
-                    "photoUrl" to (callerInfo.photoUrl ?: "")
-                )
-            }
-            if (calleeInfo != null) {
-                pInfoMap[calleeId] = mapOf(
-                    "uid" to calleeInfo.uid,
-                    "username" to calleeInfo.username,
-                    "displayName" to calleeInfo.displayName,
-                    "photoUrl" to (calleeInfo.photoUrl ?: "")
-                )
-            }
-
-            val callLogData = hashMapOf(
-                "callId" to callLogRef.id,
-                "type" to callType,
-                "callerId" to callerId,
-                "calleeId" to calleeId,
-                "participantIds" to participantIds,
-                "participantInfo" to pInfoMap,
-                "chatId" to chatId,
-                "status" to callOutcome,
-                "startedAt" to FieldValue.serverTimestamp(),
-                "endedAt" to FieldValue.serverTimestamp(),
-                "durationSeconds" to durationSeconds
-            )
-
             val batch = firestore.batch()
             batch.set(messageRef, messageData)
             batch.update(chatRef, "lastMessage", lastMessageData)
-            batch.set(callLogRef, callLogData)
             batch.commit().await()
 
             Log.i(TAG, "Recorded call log event: $summaryText in chat $chatId")
@@ -619,62 +586,83 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun getCallLogsFlow(currentUid: String): Flow<List<CallLogItem>> = callbackFlow {
-        val firestore = db
-        if (firestore == null) {
-            trySend(emptyList())
-            close()
-            return@callbackFlow
-        }
-
-        val listener = firestore.collection("callLogs")
-            .whereArrayContains("participantIds", currentUid)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e(TAG, "Error listening to call logs: ${error.message}", error)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            val pInfoRaw = doc.get("participantInfo") as? Map<String, Any?> ?: emptyMap()
-                            val participantInfo = pInfoRaw.mapNotNull { (k, v) ->
-                                @Suppress("UNCHECKED_CAST")
-                                val map = v as? Map<String, Any?> ?: return@mapNotNull null
-                                k to ParticipantInfo(
-                                    uid = k,
-                                    username = map["username"]?.toString() ?: "",
-                                    displayName = map["displayName"]?.toString() ?: "",
-                                    photoUrl = map["photoUrl"]?.toString()
-                                )
-                            }.toMap()
-
-                            CallLogItem(
-                                id = doc.id,
-                                callId = doc.getString("callId") ?: doc.id,
-                                type = doc.getString("type") ?: "voice",
-                                callerId = doc.getString("callerId") ?: "",
-                                calleeId = doc.getString("calleeId") ?: "",
-                                participantIds = (doc.get("participantIds") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                                participantInfo = participantInfo,
-                                chatId = doc.getString("chatId"),
-                                status = doc.getString("status") ?: "ended",
-                                startedAt = doc.getTimestamp("startedAt"),
-                                endedAt = doc.getTimestamp("endedAt"),
-                                durationSeconds = doc.getLong("durationSeconds")
-                            )
-                        } catch (e: Exception) {
-                            null
-                        }
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun getCallLogsFlow(currentUid: String): Flow<List<CallLogItem>> {
+        return getUserChatsFlow(currentUid).flatMapLatest { chats ->
+            if (chats.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                callbackFlow {
+                    val firestore = db
+                    if (firestore == null) {
+                        trySend(emptyList())
+                        close()
+                        return@callbackFlow
                     }
 
-                    val sorted = list.sortedByDescending { it.startedAt?.toDate()?.time ?: 0L }
-                    trySend(sorted)
+                    val registrations = mutableListOf<ListenerRegistration>()
+                    val chatCallsMap = mutableMapOf<String, List<CallLogItem>>()
+
+                    fun emitCombined() {
+                        val combined = chatCallsMap.values.flatten().sortedByDescending {
+                            it.startedAt?.toDate()?.time ?: 0L
+                        }
+                        trySend(combined)
+                    }
+
+                    for (chat in chats) {
+                        val reg = firestore.collection("chats")
+                            .document(chat.chatId)
+                            .collection("messages")
+                            .whereEqualTo("messageType", "call")
+                            .orderBy("timestamp", Query.Direction.DESCENDING)
+                            .addSnapshotListener { snapshot, error ->
+                                if (error != null) {
+                                    Log.w(TAG, "Error querying call messages for chat ${chat.chatId}: ${error.message}")
+                                    return@addSnapshotListener
+                                }
+                                if (snapshot != null) {
+                                    val logs = snapshot.documents.mapNotNull { doc ->
+                                        try {
+                                            val cType = doc.getString("callType") ?: "voice"
+                                            val cOutcome = doc.getString("callOutcome") ?: "ended"
+                                            val cDuration = doc.getLong("callDurationSeconds") ?: 0L
+                                            val cCallerId = doc.getString("callCallerId") ?: doc.getString("senderId").orEmpty()
+                                            val cCalleeId = doc.getString("callCalleeId") ?: ""
+                                            val ts = doc.getTimestamp("timestamp")
+
+                                            CallLogItem(
+                                                id = "${chat.chatId}_${doc.id}",
+                                                callId = doc.id,
+                                                type = cType,
+                                                callerId = cCallerId,
+                                                calleeId = cCalleeId,
+                                                participantIds = chat.participantIds,
+                                                participantInfo = chat.participantInfo,
+                                                chatId = chat.chatId,
+                                                status = cOutcome,
+                                                startedAt = ts,
+                                                connectedAt = ts,
+                                                endedAt = ts,
+                                                durationSeconds = cDuration
+                                            )
+                                        } catch (e: Exception) {
+                                            null
+                                        }
+                                    }
+                                    chatCallsMap[chat.chatId] = logs
+                                    emitCombined()
+                                }
+                            }
+                        registrations.add(reg)
+                    }
+
+                    awaitClose {
+                        registrations.forEach { it.remove() }
+                    }
                 }
             }
-
-        awaitClose { listener.remove() }
+        }
     }
 
     suspend fun setGhostMode(chatId: String, enabled: Boolean): Result<Unit> {

@@ -2,6 +2,7 @@ package com.example.chat.ui.call
 
 import android.app.Activity
 import android.content.Context
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -59,8 +60,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -82,6 +85,7 @@ import coil.compose.AsyncImage
 import com.example.chat.call.ActiveCallState
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.data.ChatRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,11 +98,28 @@ fun WhatsAppCallOverlay(
     var showMoreSheet by remember { mutableStateOf(false) }
 
     val state = callState ?: ActiveCallState()
+    val isVideoActive = state.isVideo || state.isCameraOn
+
+    // Auto-hide controls after ~2 seconds of no touch interaction on video calls
+    var areControlsVisible by remember { mutableStateOf(true) }
+    var lastInteractionTime by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+
+    LaunchedEffect(areControlsVisible, lastInteractionTime, isVideoActive, showMoreSheet) {
+        if (isVideoActive && areControlsVisible && !showMoreSheet) {
+            delay(2000L)
+            areControlsVisible = false
+        }
+    }
+
+    val onScreenTap = {
+        lastInteractionTime = SystemClock.elapsedRealtime()
+        areControlsVisible = !areControlsVisible
+    }
 
     // Main WhatsApp dark background (#0B141A)
-    // If it is a video call and camera is active, use a semi-transparent scrim so the video stream shows through
-    val bgScrim = if (state.isVideo && state.isCameraOn) {
-        Color(0x880B141A)
+    // If camera is active in a video call, use a transparent scrim so the camera video stream shows cleanly
+    val bgScrim = if (isVideoActive && state.isCameraOn) {
+        Color.Transparent
     } else {
         Color(0xFF0B141A)
     }
@@ -107,6 +128,14 @@ fun WhatsAppCallOverlay(
         modifier = modifier
             .fillMaxSize()
             .background(bgScrim)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                if (isVideoActive) {
+                    onScreenTap()
+                }
+            }
     ) {
         Column(
             modifier = Modifier
@@ -116,46 +145,78 @@ fun WhatsAppCallOverlay(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // HEADER ROW
-            CallHeaderRow(
-                state = state,
-                onMinimize = {
-                    val activity = (context as? Activity) ?: ZegoCallManager.findActivity(context)
-                    if (activity != null) {
-                        ZegoCallManager.minimizeCall(activity)
+            // HEADER ROW (Auto-hides on video calls, always visible on audio calls)
+            AnimatedVisibility(
+                visible = areControlsVisible || !isVideoActive,
+                enter = fadeIn(tween(180)) + slideInVertically(initialOffsetY = { -it / 2 }, animationSpec = tween(180)),
+                exit = fadeOut(tween(180)) + slideOutVertically(targetOffsetY = { -it / 2 }, animationSpec = tween(180))
+            ) {
+                CallHeaderRow(
+                    state = state,
+                    onMinimize = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        val activity = (context as? Activity) ?: ZegoCallManager.findActivity(context) ?: ZegoCallManager.getTopActivity()
+                        if (activity != null) {
+                            ZegoCallManager.minimizeCall(activity)
+                        }
+                    },
+                    onAddPerson = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        Toast.makeText(context, "Group calling coming soon", Toast.LENGTH_SHORT).show()
                     }
-                },
-                onAddPerson = {
-                    Toast.makeText(context, "Group calling coming soon", Toast.LENGTH_SHORT).show()
-                }
-            )
+                )
+            }
 
-            // CENTER AVATAR
+            // CENTER AVATAR (shown during audio calls or when camera is not broadcasting)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                CallCenterAvatar(
-                    name = state.targetName.ifBlank { "Member" },
-                    photoUrl = state.targetPhotoUrl,
-                    isConnected = state.isConnected
-                )
+                if (!isVideoActive || !state.isCameraOn) {
+                    CallCenterAvatar(
+                        name = state.targetName.ifBlank { "Member" },
+                        photoUrl = state.targetPhotoUrl,
+                        isConnected = state.isConnected
+                    )
+                }
             }
 
             // BOTTOM CONTROL PANEL (WhatsApp rounded card with two rows of 3 buttons)
-            CallControlPanel(
-                state = state,
-                onToggleSpeaker = { ZegoCallManager.toggleSpeaker() },
-                onToggleVideo = { ZegoCallManager.toggleCamera() },
-                onToggleMute = { ZegoCallManager.toggleMicrophone() },
-                onOpenMore = { showMoreSheet = true },
-                onShare = {
-                    Toast.makeText(context, "Screen sharing coming soon", Toast.LENGTH_SHORT).show()
-                },
-                onEndCall = { ZegoCallManager.endCall() }
-            )
+            AnimatedVisibility(
+                visible = areControlsVisible || !isVideoActive,
+                enter = fadeIn(tween(180)) + slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(180)),
+                exit = fadeOut(tween(180)) + slideOutVertically(targetOffsetY = { it / 2 }, animationSpec = tween(180))
+            ) {
+                CallControlPanel(
+                    state = state,
+                    onToggleSpeaker = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        ZegoCallManager.toggleSpeaker()
+                    },
+                    onToggleVideo = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        ZegoCallManager.toggleCamera(context)
+                    },
+                    onToggleMute = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        ZegoCallManager.toggleMicrophone()
+                    },
+                    onOpenMore = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        showMoreSheet = true
+                    },
+                    onShare = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        Toast.makeText(context, "Screen sharing coming soon", Toast.LENGTH_SHORT).show()
+                    },
+                    onEndCall = {
+                        lastInteractionTime = SystemClock.elapsedRealtime()
+                        ZegoCallManager.endCall()
+                    }
+                )
+            }
         }
 
         // IN-TREE ANIMATED MORE BOTTOM SHEET (zero external Window / Pop-Up Window allocation)

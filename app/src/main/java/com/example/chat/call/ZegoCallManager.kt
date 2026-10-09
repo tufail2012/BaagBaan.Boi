@@ -7,6 +7,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
@@ -17,6 +18,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import coil.load
 import coil.transform.CircleCropTransformation
 import com.example.BuildConfig
+import com.example.MainActivity
 import com.zegocloud.uikit.ZegoUIKit
 import com.zegocloud.uikit.components.audiovideo.ZegoAvatarViewProvider
 import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayout
@@ -24,6 +26,7 @@ import com.zegocloud.uikit.components.audiovideocontainer.ZegoLayoutPictureInPic
 import com.zegocloud.uikit.internal.ZegoUIKitLanguage
 import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallConfig
 import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallFragment
+import com.zegocloud.uikit.prebuilt.call.ZegoUIKitPrebuiltCallService
 import com.zegocloud.uikit.prebuilt.call.config.ZegoBottomMenuBarConfig
 import com.zegocloud.uikit.prebuilt.call.config.ZegoCallDurationConfig
 import com.zegocloud.uikit.prebuilt.call.config.ZegoNotificationConfig
@@ -32,6 +35,7 @@ import com.zegocloud.uikit.prebuilt.call.core.CallInvitationServiceImpl
 import com.zegocloud.uikit.prebuilt.call.core.basic.provider.ZegoCallRoomForegroundProvider
 import com.zegocloud.uikit.prebuilt.call.core.invite.PrebuiltCallRepository
 import com.zegocloud.uikit.prebuilt.call.core.invite.ZegoCallInvitationData
+import com.zegocloud.uikit.prebuilt.call.event.BackPressEvent
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationConfig
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
 import com.zegocloud.uikit.prebuilt.call.invite.internal.CallInviteActivity
@@ -48,6 +52,8 @@ import im.zego.zim.entity.ZIMCallUserStateChangeInfo
 import im.zego.zim.enums.ZIMCallUserState
 import im.zego.zegoexpress.ZegoExpressEngine
 import im.zego.zegoexpress.constants.ZegoANSMode
+import java.lang.ref.WeakReference
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -87,6 +93,10 @@ object ZegoCallManager {
     private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var durationJob: Job? = null
     private var applicationContext: Context? = null
+
+    private var topActivityRef: WeakReference<Activity>? = null
+
+    fun getTopActivity(): Activity? = topActivityRef?.get()
 
     private val zimEventHandler = object : ZIMEventHandler() {
         override fun onCallUserStateChanged(
@@ -312,6 +322,47 @@ object ZegoCallManager {
                 config
             )
 
+            // Track top activity for system-level minimize & back-press routing
+            application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityResumed(activity: Activity) {
+                    topActivityRef = WeakReference(activity)
+                }
+                override fun onActivityPaused(activity: Activity) {
+                    if (topActivityRef?.get() == activity) {
+                        topActivityRef = null
+                    }
+                }
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                    topActivityRef = WeakReference(activity)
+                }
+                override fun onActivityStarted(activity: Activity) {
+                    topActivityRef = WeakReference(activity)
+                }
+                override fun onActivityStopped(activity: Activity) {}
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+                override fun onActivityDestroyed(activity: Activity) {
+                    if (topActivityRef?.get() == activity) {
+                        topActivityRef = null
+                    }
+                }
+            })
+
+            // Intercept system Back press on the Call screen to minimize the call rather than drop it
+            try {
+                ZegoUIKitPrebuiltCallService.events.callEvents.setBackPressEvent(object : BackPressEvent {
+                    override fun onBackPressed(): Boolean {
+                        val act = getTopActivity()
+                        if (act != null) {
+                            minimizeCall(act)
+                            return true
+                        }
+                        return false
+                    }
+                })
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to register callEvents.setBackPressEvent: ${e.message}")
+            }
+
             // Setup listeners for call state, audio devices, and mute status
             setupStateListeners()
 
@@ -371,7 +422,12 @@ object ZegoCallManager {
 
             ZegoUIKit.addCameraStateListener { user, isOn ->
                 if (user?.userID == currentUserId) {
-                    _activeCallState.update { it?.copy(isCameraOn = isOn) }
+                    _activeCallState.update {
+                        it?.copy(
+                            isCameraOn = isOn,
+                            isVideo = if (isOn) true else (it?.isVideo ?: false)
+                        )
+                    }
                 }
             }
 
@@ -395,8 +451,16 @@ object ZegoCallManager {
 
     private fun onCallConnected() {
         _activeCallState.update { it?.copy(isConnected = true, statusText = "00:00") }
+        // Keep ongoing notification alive throughout connected call to preserve foreground protection
         applicationContext?.let { ctx ->
-            OutgoingCallNotificationService.stop(ctx)
+            val call = _activeCallState.value
+            OutgoingCallNotificationService.update(
+                context = ctx,
+                targetName = call?.targetName ?: "Member",
+                statusText = "Ongoing call • 00:00",
+                photoUrl = call?.targetPhotoUrl,
+                isVideo = call?.isVideo ?: false
+            )
         }
         durationJob?.cancel()
         durationJob = managerScope.launch {
@@ -404,7 +468,20 @@ object ZegoCallManager {
             while (isActive) {
                 delay(1000L)
                 elapsed++
-                _activeCallState.update { it?.copy(durationSeconds = elapsed) }
+                val minutes = elapsed / 60
+                val seconds = elapsed % 60
+                val formatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                _activeCallState.update { it?.copy(durationSeconds = elapsed, statusText = formatted) }
+                applicationContext?.let { ctx ->
+                    val call = _activeCallState.value
+                    OutgoingCallNotificationService.update(
+                        context = ctx,
+                        targetName = call?.targetName ?: "Member",
+                        statusText = "Ongoing call • $formatted",
+                        photoUrl = call?.targetPhotoUrl,
+                        isVideo = call?.isVideo ?: false
+                    )
+                }
             }
         }
     }
@@ -489,12 +566,39 @@ object ZegoCallManager {
         _activeCallState.update { it?.copy(isMicMuted = !newMicOn) }
     }
 
-    fun toggleCamera() {
+    fun toggleCamera(context: Context? = null) {
         val uid = currentUserId ?: return
         val currentCamOn = _activeCallState.value?.isCameraOn ?: false
         val newCamOn = !currentCamOn
-        ZegoUIKit.turnCameraOn(uid, newCamOn)
-        _activeCallState.update { it?.copy(isCameraOn = newCamOn) }
+        val ctx = context ?: applicationContext
+        if (newCamOn && ctx != null) {
+            val hasCamPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                ctx,
+                android.Manifest.permission.CAMERA
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!hasCamPermission) {
+                val act = (ctx as? Activity) ?: getTopActivity()
+                if (act != null) {
+                    androidx.core.app.ActivityCompat.requestPermissions(
+                        act,
+                        arrayOf(android.Manifest.permission.CAMERA),
+                        1011
+                    )
+                }
+                return
+            }
+        }
+        try {
+            ZegoUIKit.turnCameraOn(uid, newCamOn)
+        } catch (e: Throwable) {
+            Log.e(TAG, "turnCameraOn failed: ${e.message}", e)
+        }
+        _activeCallState.update {
+            it?.copy(
+                isCameraOn = newCamOn,
+                isVideo = if (newCamOn) true else (it.isVideo)
+            )
+        }
     }
 
     fun toggleSpeaker() {
@@ -520,10 +624,19 @@ object ZegoCallManager {
 
     fun minimizeCall(activity: Activity) {
         try {
-            activity.moveTaskToBack(true)
+            val intent = Intent(activity, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+            activity.startActivity(intent)
             _activeCallState.update { it?.copy(isMinimized = true) }
         } catch (e: Throwable) {
-            Log.e(TAG, "Error minimizing call activity", e)
+            Log.e(TAG, "Error minimizing call activity to MainActivity, falling back to moveTaskToBack", e)
+            try {
+                activity.moveTaskToBack(true)
+                _activeCallState.update { it?.copy(isMinimized = true) }
+            } catch (t: Throwable) {
+                Log.e(TAG, "moveTaskToBack failed", t)
+            }
         }
     }
 
