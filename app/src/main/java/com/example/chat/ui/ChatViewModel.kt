@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.chat.data.ChatPreferences
 import com.example.chat.data.ChatRepository
+import com.example.chat.data.ChatStorageManager
 import com.example.chat.model.ChatMessage
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatSummary
@@ -21,7 +22,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import android.net.Uri
 
 class ChatViewModel(
     private val context: Context,
@@ -441,6 +445,156 @@ class ChatViewModel(
         }
     }
 
+    // Active upload progress by message or temporary ID: progress in 0f..1f
+    private val _uploadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val uploadProgress: StateFlow<Map<String, Float>> = _uploadProgress.asStateFlow()
+
+    // Failed uploads map: ID -> retry action
+    private val _failedUploads = MutableStateFlow<Map<String, () -> Unit>>(emptyMap())
+    val failedUploads: StateFlow<Map<String, () -> Unit>> = _failedUploads.asStateFlow()
+
+    fun uploadAndSendMedia(mediaType: String, fileUri: Uri, context: Context, caption: String = "") {
+        val chatId = _activeChatId.value ?: return
+        val currentUid = _currentUser.value?.uid ?: return
+        val pendingId = "pending_${System.currentTimeMillis()}"
+
+        val executeUpload: () -> Unit = {
+            _failedUploads.update { it - pendingId }
+            _uploadProgress.update { it + (pendingId to 0.05f) }
+
+            viewModelScope.launch {
+                val uploadCategory = when (mediaType) {
+                    "video" -> "videos"
+                    "document" -> "documents"
+                    else -> "images"
+                }
+
+                val uploadRes = ChatStorageManager.uploadFile(
+                    chatId = chatId,
+                    mediaType = uploadCategory,
+                    fileUri = fileUri,
+                    context = context,
+                    onProgress = { prog ->
+                        _uploadProgress.update { it + (pendingId to prog) }
+                    }
+                )
+
+                uploadRes.fold(
+                    onSuccess = { downloadUrl ->
+                        _uploadProgress.update { it - pendingId }
+                        val (fileName, fileSize) = ChatStorageManager.queryFileDetails(context, fileUri)
+                        val mime = ChatStorageManager.getMimeType(context, fileUri)
+
+                        repository.sendAttachmentMessage(
+                            chatId = chatId,
+                            senderId = currentUid,
+                            messageType = mediaType,
+                            textFallback = caption,
+                            mediaUrl = downloadUrl,
+                            fileName = fileName,
+                            fileSize = fileSize,
+                            mimeType = mime
+                        )
+                    },
+                    onFailure = { err ->
+                        Log.e(TAG, "Media upload failed: ${err.message}", err)
+                        _uploadProgress.update { it - pendingId }
+                        _toastMessage.value = "Upload failed. Please tap retry."
+                    }
+                )
+            }
+        }
+
+        executeUpload()
+    }
+
+    fun uploadAndSendVoiceNote(file: File, waveform: List<Int>, durationSeconds: Long) {
+        val chatId = _activeChatId.value ?: return
+        val currentUid = _currentUser.value?.uid ?: return
+        val pendingId = "voice_${System.currentTimeMillis()}"
+
+        val executeUpload: () -> Unit = {
+            _failedUploads.update { it - pendingId }
+            _uploadProgress.update { it + (pendingId to 0.05f) }
+
+            viewModelScope.launch {
+                try {
+                    val bytes = file.readBytes()
+                    val fileName = file.name
+                    val uploadRes = ChatStorageManager.uploadBytes(
+                        chatId = chatId,
+                        mediaType = "voice",
+                        fileName = fileName,
+                        bytes = bytes,
+                        mimeType = "audio/mp4",
+                        context = context,
+                        onProgress = { prog ->
+                            _uploadProgress.update { it + (pendingId to prog) }
+                        }
+                    )
+
+                    uploadRes.fold(
+                        onSuccess = { downloadUrl ->
+                            _uploadProgress.update { it - pendingId }
+                            try { file.delete() } catch (_: Exception) {}
+                            repository.sendAttachmentMessage(
+                                chatId = chatId,
+                                senderId = currentUid,
+                                messageType = "voice",
+                                mediaUrl = downloadUrl,
+                                durationSeconds = durationSeconds,
+                                waveform = waveform,
+                                fileSize = bytes.size.toLong(),
+                                mimeType = "audio/mp4"
+                            )
+                        },
+                        onFailure = { err ->
+                            Log.e(TAG, "Voice note upload failed: ${err.message}", err)
+                            _uploadProgress.update { it - pendingId }
+                            _toastMessage.value = "Voice note upload failed"
+                        }
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error reading voice note: ${e.message}", e)
+                    _uploadProgress.update { it - pendingId }
+                }
+            }
+        }
+
+        executeUpload()
+    }
+
+    fun sendLocation(latitude: Double, longitude: Double, address: String) {
+        val chatId = _activeChatId.value ?: return
+        val currentUid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            repository.sendAttachmentMessage(
+                chatId = chatId,
+                senderId = currentUid,
+                messageType = "location",
+                latitude = latitude,
+                longitude = longitude,
+                locationAddress = address,
+                textFallback = address
+            )
+        }
+    }
+
+    fun sendContact(name: String, phone: String) {
+        val chatId = _activeChatId.value ?: return
+        val currentUid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            repository.sendAttachmentMessage(
+                chatId = chatId,
+                senderId = currentUid,
+                messageType = "contact",
+                contactName = name,
+                contactPhone = phone,
+                textFallback = name
+            )
+        }
+    }
+
     fun notifyCallsComingSoon() {
         _toastMessage.value = "Calls are coming soon"
     }
@@ -493,6 +647,10 @@ class ChatViewModel(
         presenceListenJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()
+    }
+
+    companion object {
+        private const val TAG = "ChatViewModel"
     }
 }
 

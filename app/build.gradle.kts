@@ -17,8 +17,8 @@ android {
     applicationId = "com.baagbaan.boi"
     minSdk = 26
     targetSdk = 36
-    versionCode = 21
-    versionName = "1.7.5"
+    versionCode = 22
+    versionName = "1.7.6"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -144,6 +144,7 @@ dependencies {
   // implementation(libs.firebase.ai)
   // Firebase Firestore:
   implementation(libs.firebase.firestore)
+  implementation("com.google.firebase:firebase-storage")
   // implementation(libs.firebase.messaging)
 
   // ZegoCloud Call Kit with Invitation
@@ -164,7 +165,7 @@ dependencies {
   implementation(libs.logging.interceptor)
   implementation(libs.moshi.kotlin)
   implementation(libs.okhttp)
-  // implementation(libs.play.services.location)
+  implementation(libs.play.services.location)
   implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

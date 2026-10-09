@@ -149,6 +149,20 @@ object SafeFirebase {
         }
     }
 
+    fun getStorage(context: Context? = null): com.google.firebase.storage.FirebaseStorage? {
+        val app = ensureFirebaseApp(context)
+        return try {
+            if (app != null) {
+                com.google.firebase.storage.FirebaseStorage.getInstance(app)
+            } else {
+                com.google.firebase.storage.FirebaseStorage.getInstance()
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "FirebaseStorage instance failed: ${e.message}", e)
+            null
+        }
+    }
+
     suspend fun clearOfflineData(context: Context? = null) {
         val firestore = getDb(context) ?: return
         try {
@@ -165,4 +179,7 @@ object SafeFirebase {
 
     val db: FirebaseFirestore?
         get() = getDb()
+
+    val storage: com.google.firebase.storage.FirebaseStorage?
+        get() = getStorage()
 }

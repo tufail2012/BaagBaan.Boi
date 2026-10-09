@@ -84,16 +84,41 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.DisposableEffect
 import coil.compose.AsyncImage
 import com.example.chat.model.ChatMessage
 import com.example.chat.model.ParticipantInfo
+import com.example.chat.ui.attachments.AttachmentBottomSheet
+import com.example.chat.ui.bubbles.ContactMessageBubble
+import com.example.chat.ui.bubbles.DocumentMessageBubble
+import com.example.chat.ui.bubbles.ImageVideoMessageBubble
+import com.example.chat.ui.bubbles.LocationMessageBubble
+import com.example.chat.ui.bubbles.VoiceNoteMessageBubble
+import com.example.chat.voice.VoiceNoteRecordBar
+import com.example.chat.voice.VoicePlayer
+import com.example.chat.voice.VoiceRecorder
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.firebase.Timestamp
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.net.Uri
+import android.provider.ContactsContract
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel,
@@ -143,6 +168,138 @@ fun ChatScreen(
     var showZegoConfigDialog by remember { mutableStateOf(false) }
     var pendingIsVideoCall by remember { mutableStateOf<Boolean?>(null) }
     var hasCallPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
+
+    // Attachment bottom sheet & upload progress
+    var showAttachmentSheet by remember { mutableStateOf(false) }
+    val attachmentSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val uploadProgressMap by viewModel.uploadProgress.collectAsState()
+    val failedUploadsMap by viewModel.failedUploads.collectAsState()
+
+    // Voice note recording
+    val voiceRecorder = remember { VoiceRecorder(context) }
+    val recordingState by voiceRecorder.recordingState.collectAsState()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            VoicePlayer.stop()
+            voiceRecorder.cancelRecording()
+        }
+    }
+
+    // Attachment Launchers
+    val galleryPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris ->
+        uris.forEach { uri ->
+            val mime = context.contentResolver.getType(uri) ?: ""
+            val type = if (mime.startsWith("video")) "video" else "image"
+            viewModel.uploadAndSendMedia(type, uri, context)
+        }
+    }
+
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    val takePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && cameraImageUri != null) {
+            viewModel.uploadAndSendMedia("image", cameraImageUri!!, context)
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            try {
+                val tempFile = File(context.cacheDir, "camera_${System.currentTimeMillis()}.jpg")
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+                cameraImageUri = uri
+                takePhotoLauncher.launch(uri)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Could not open camera: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.uploadAndSendMedia("document", uri, context)
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val fineGranted = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = results[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            Toast.makeText(context, "Fetching current location...", Toast.LENGTH_SHORT).show()
+            try {
+                val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { loc ->
+                        if (loc != null) {
+                            val lat = loc.latitude
+                            val lng = loc.longitude
+                            var addressStr = "Lat: $lat, Lng: $lng"
+                            try {
+                                val geocoder = Geocoder(context, Locale.getDefault())
+                                @Suppress("DEPRECATION")
+                                val addresses = geocoder.getFromLocation(lat, lng, 1)
+                                if (!addresses.isNullOrEmpty()) {
+                                    val addr = addresses[0]
+                                    addressStr = addr.getAddressLine(0) ?: addressStr
+                                }
+                            } catch (_: Exception) {}
+                            viewModel.sendLocation(lat, lng, addressStr)
+                        } else {
+                            Toast.makeText(context, "Location unavailable", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, "Could not get location: ${it.message}", Toast.LENGTH_SHORT).show()
+                    }
+            } catch (e: SecurityException) {
+                Toast.makeText(context, "Location permission missing", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Location permission is required to share location", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val contactUri = result.data?.data
+            if (contactUri != null) {
+                try {
+                    context.contentResolver.query(
+                        contactUri,
+                        arrayOf(
+                            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                            ContactsContract.CommonDataKinds.Phone.NUMBER
+                        ),
+                        null, null, null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val nameIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                            val phoneIndex = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                            val name = if (nameIndex != -1) cursor.getString(nameIndex) ?: "Contact" else "Contact"
+                            val phone = if (phoneIndex != -1) cursor.getString(phoneIndex) ?: "" else ""
+                            viewModel.sendContact(name, phone)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Could not read contact: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     // (intentionally removed: no persistent button is created here anymore —
     // ZegoCallManager.startCall() now builds a fresh, properly-attached
@@ -544,6 +701,8 @@ fun ChatScreen(
                             accentColor = accentColor,
                             isDark = isDark,
                             showTail = !isSameSenderAsNext,
+                            uploadProgress = uploadProgressMap[msg.id],
+                            onRetryUpload = failedUploadsMap[msg.id],
                             onLongPress = { selectedMessageForAction = msg }
                         )
                     }
@@ -579,70 +738,151 @@ fun ChatScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
             ) {
-                OutlinedTextField(
-                    value = messageInput,
-                    onValueChange = { viewModel.updateMessageInput(it) },
-                    placeholder = {
-                        Text("Message...", color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8), fontSize = 14.sp)
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("conversation_message_input"),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = accentColor,
-                        unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
-                        focusedContainerColor = if (isDark) Color(0x441E293B) else Color(0x99FFFFFF),
-                        unfocusedContainerColor = if (isDark) Color(0x221E293B) else Color(0x66FFFFFF),
-                        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-                        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
-                    ),
-                    maxLines = 4,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            if (messageInput.isNotBlank() && !isSending) {
-                                if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                            }
-                        }
-                    )
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = {
-                        if (messageInput.isNotBlank() && !isSending) {
-                            if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                        }
-                    },
-                    enabled = messageInput.isNotBlank() && !isSending,
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (messageInput.isNotBlank() && !isSending) accentColor else accentColor.copy(alpha = 0.3f)
-                        )
-                        .testTag("conversation_send_button")
-                ) {
-                    if (isSending) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else {
+                if (!recordingState.isRecording) {
+                    // "+" Attachment Button
+                    IconButton(
+                        onClick = { showAttachmentSheet = true },
+                        modifier = Modifier.size(42.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Attach",
+                            tint = accentColor
                         )
                     }
+
+                    OutlinedTextField(
+                        value = messageInput,
+                        onValueChange = { viewModel.updateMessageInput(it) },
+                        placeholder = {
+                            Text("Message...", color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8), fontSize = 14.sp)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("conversation_message_input"),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            unfocusedBorderColor = if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1),
+                            focusedContainerColor = if (isDark) Color(0x441E293B) else Color(0x99FFFFFF),
+                            unfocusedContainerColor = if (isDark) Color(0x221E293B) else Color(0x66FFFFFF),
+                            focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                            unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                        ),
+                        maxLines = 4,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (messageInput.isNotBlank() && !isSending) {
+                                    if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
+                                }
+                            }
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    if (messageInput.isNotBlank()) {
+                        IconButton(
+                            onClick = {
+                                if (!isSending) {
+                                    if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
+                                }
+                            },
+                            enabled = !isSending,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(accentColor)
+                                .testTag("conversation_send_button")
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    } else {
+                        // Voice note mic button (hold to record)
+                        VoiceNoteRecordBar(
+                            voiceRecorder = voiceRecorder,
+                            onVoiceNoteRecorded = { file, waveform, duration ->
+                                viewModel.uploadAndSendVoiceNote(file, waveform, duration)
+                            },
+                            accentColor = accentColor,
+                            isDark = isDark,
+                            modifier = Modifier.width(48.dp)
+                        )
+                    }
+                } else {
+                    // Full-width live voice recording bar
+                    VoiceNoteRecordBar(
+                        voiceRecorder = voiceRecorder,
+                        onVoiceNoteRecorded = { file, waveform, duration ->
+                            viewModel.uploadAndSendVoiceNote(file, waveform, duration)
+                        },
+                        accentColor = accentColor,
+                        isDark = isDark,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
+        }
+
+        // Attachment Bottom Sheet
+        if (showAttachmentSheet) {
+            AttachmentBottomSheet(
+                sheetState = attachmentSheetState,
+                onDismiss = { showAttachmentSheet = false },
+                onPickGallery = {
+                    galleryPickerLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageAndVideo
+                        )
+                    )
+                },
+                onTakePhoto = {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        try {
+                            val tempFile = File(context.cacheDir, "camera_${System.currentTimeMillis()}.jpg")
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+                            cameraImageUri = uri
+                            takePhotoLauncher.launch(uri)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Could not open camera: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    } else {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
+                onPickDocument = {
+                    documentPickerLauncher.launch(arrayOf("*/*"))
+                },
+                onShareLocation = {
+                    locationPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                },
+                onPickContact = {
+                    val contactIntent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                    contactPickerLauncher.launch(contactIntent)
+                },
+                isDark = isDark
+            )
         }
     }
 }
@@ -692,6 +932,8 @@ private fun MessageBubble(
     accentColor: Color,
     isDark: Boolean,
     showTail: Boolean,
+    uploadProgress: Float? = null,
+    onRetryUpload: (() -> Unit)? = null,
     onLongPress: () -> Unit
 ) {
     val bubbleColor = if (isOwn) {
@@ -771,7 +1013,7 @@ private fun MessageBubble(
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
                     .testTag("message_bubble_${message.id}")
             ) {
-                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     if (message.isDeleted) {
                         Text(
                             text = "This message was deleted",
@@ -780,12 +1022,62 @@ private fun MessageBubble(
                             fontStyle = FontStyle.Italic
                         )
                     } else {
-                        Text(
-                            text = message.text,
-                            color = textColor,
-                            fontSize = 15.sp,
-                            lineHeight = 20.sp
-                        )
+                        when (message.messageType) {
+                            "image", "video" -> {
+                                ImageVideoMessageBubble(
+                                    message = message,
+                                    isOwn = isOwn,
+                                    accentColor = accentColor,
+                                    isDark = isDark,
+                                    uploadProgress = uploadProgress,
+                                    onRetryUpload = onRetryUpload
+                                )
+                            }
+                            "document" -> {
+                                DocumentMessageBubble(
+                                    message = message,
+                                    isOwn = isOwn,
+                                    accentColor = accentColor,
+                                    isDark = isDark,
+                                    uploadProgress = uploadProgress,
+                                    onRetryUpload = onRetryUpload
+                                )
+                            }
+                            "voice" -> {
+                                VoiceNoteMessageBubble(
+                                    message = message,
+                                    isOwn = isOwn,
+                                    accentColor = accentColor,
+                                    isDark = isDark,
+                                    uploadProgress = uploadProgress,
+                                    onRetryUpload = onRetryUpload
+                                )
+                            }
+                            "location" -> {
+                                LocationMessageBubble(
+                                    message = message,
+                                    isOwn = isOwn,
+                                    accentColor = accentColor,
+                                    isDark = isDark
+                                )
+                            }
+                            "contact" -> {
+                                ContactMessageBubble(
+                                    message = message,
+                                    isOwn = isOwn,
+                                    accentColor = accentColor,
+                                    isDark = isDark
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = message.text,
+                                    color = textColor,
+                                    fontSize = 15.sp,
+                                    lineHeight = 20.sp
+                                )
+                            }
+                        }
                     }
 
                     if (timeFormatted.isNotEmpty()) {

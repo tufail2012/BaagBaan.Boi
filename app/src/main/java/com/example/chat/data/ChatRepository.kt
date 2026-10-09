@@ -386,7 +386,20 @@ class ChatRepository(private val context: Context) {
                                 callOutcome = doc.getString("callOutcome") ?: "ended",
                                 callDurationSeconds = doc.getLong("callDurationSeconds") ?: 0L,
                                 callCallerId = doc.getString("callCallerId") ?: "",
-                                callCalleeId = doc.getString("callCalleeId") ?: ""
+                                callCalleeId = doc.getString("callCalleeId") ?: "",
+                                mediaUrl = doc.getString("mediaUrl"),
+                                thumbnailUrl = doc.getString("thumbnailUrl"),
+                                fileName = doc.getString("fileName"),
+                                fileSize = doc.getLong("fileSize"),
+                                mimeType = doc.getString("mimeType"),
+                                durationSeconds = doc.getLong("durationSeconds"),
+                                waveform = (doc.get("waveform") as? List<*>)?.mapNotNull { (it as? Number)?.toInt() },
+                                latitude = doc.getDouble("latitude"),
+                                longitude = doc.getDouble("longitude"),
+                                locationAddress = doc.getString("locationAddress"),
+                                contactName = doc.getString("contactName"),
+                                contactPhone = doc.getString("contactPhone"),
+                                contactEmail = doc.getString("contactEmail")
                             )
                         } catch (e: Exception) {
                             null
@@ -517,6 +530,87 @@ class ChatRepository(private val context: Context) {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error sending message in $chatId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun sendAttachmentMessage(
+        chatId: String,
+        senderId: String,
+        messageType: String,
+        textFallback: String = "",
+        mediaUrl: String? = null,
+        thumbnailUrl: String? = null,
+        fileName: String? = null,
+        fileSize: Long? = null,
+        mimeType: String? = null,
+        durationSeconds: Long? = null,
+        waveform: List<Int>? = null,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        locationAddress: String? = null,
+        contactName: String? = null,
+        contactPhone: String? = null,
+        contactEmail: String? = null
+    ): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+
+        return try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            val messageRef = chatRef.collection("messages").document()
+
+            val messageData = hashMapOf<String, Any?>(
+                "senderId" to senderId,
+                "text" to textFallback,
+                "timestamp" to FieldValue.serverTimestamp(),
+                "status" to "sent",
+                "messageType" to messageType
+            )
+
+            mediaUrl?.let { messageData["mediaUrl"] = it }
+            thumbnailUrl?.let { messageData["thumbnailUrl"] = it }
+            fileName?.let { messageData["fileName"] = it }
+            fileSize?.let { messageData["fileSize"] = it }
+            mimeType?.let { messageData["mimeType"] = it }
+            durationSeconds?.let { messageData["durationSeconds"] = it }
+            waveform?.let { messageData["waveform"] = it }
+            latitude?.let { messageData["latitude"] = it }
+            longitude?.let { messageData["longitude"] = it }
+            locationAddress?.let { messageData["locationAddress"] = it }
+            contactName?.let { messageData["contactName"] = it }
+            contactPhone?.let { messageData["contactPhone"] = it }
+            contactEmail?.let { messageData["contactEmail"] = it }
+
+            val previewText = when (messageType) {
+                "image" -> if (textFallback.isNotBlank()) "📷 $textFallback" else "📷 Photo"
+                "video" -> if (textFallback.isNotBlank()) "🎥 $textFallback" else "🎥 Video"
+                "document" -> "📄 ${fileName ?: "Document"}"
+                "voice" -> {
+                    val s = durationSeconds ?: 0L
+                    val m = s / 60
+                    val rem = s % 60
+                    val durStr = String.format(java.util.Locale.getDefault(), "%d:%02d", m, rem)
+                    "🎤 Voice message ($durStr)"
+                }
+                "location" -> "📍 ${locationAddress?.ifBlank { "Location" } ?: "Location"}"
+                "contact" -> "👤 ${contactName ?: "Contact"}"
+                else -> textFallback.ifBlank { "Attachment" }
+            }
+
+            val lastMessageData = hashMapOf(
+                "text" to previewText,
+                "senderId" to senderId,
+                "timestamp" to FieldValue.serverTimestamp()
+            )
+
+            val batch = firestore.batch()
+            batch.set(messageRef, messageData)
+            batch.update(chatRef, "lastMessage", lastMessageData)
+            batch.commit().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending attachment message in $chatId: ${e.message}", e)
             Result.failure(e)
         }
     }

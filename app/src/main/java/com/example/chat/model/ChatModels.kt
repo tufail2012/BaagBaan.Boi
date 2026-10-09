@@ -68,13 +68,30 @@ data class ChatMessage(
     val isEdited: Boolean = false,
     val isDeleted: Boolean = false,
     val deletedFor: List<String> = emptyList(),
-    // Real call message attributes
-    val messageType: String = "text", // "text" | "call"
+    // Message type: "text" | "call" | "image" | "video" | "document" | "voice" | "location" | "contact"
+    val messageType: String = "text",
+    // Call attributes
     val callType: String = "voice",   // "voice" | "video"
     val callOutcome: String = "ended", // "connected" | "missed" | "declined" | "no_answer" | "failed"
     val callDurationSeconds: Long = 0L,
     val callCallerId: String = "",
-    val callCalleeId: String = ""
+    val callCalleeId: String = "",
+    // Media & file attachments ("image", "video", "document", "voice")
+    val mediaUrl: String? = null,
+    val thumbnailUrl: String? = null,
+    val fileName: String? = null,
+    val fileSize: Long? = null,
+    val mimeType: String? = null,
+    val durationSeconds: Long? = null,
+    val waveform: List<Int>? = null,
+    // Location ("location")
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val locationAddress: String? = null,
+    // Contact ("contact")
+    val contactName: String? = null,
+    val contactPhone: String? = null,
+    val contactEmail: String? = null
 )
 
 enum class ChatTab(val title: String) {
