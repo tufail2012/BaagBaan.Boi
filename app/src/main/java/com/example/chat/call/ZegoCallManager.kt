@@ -644,6 +644,7 @@ object ZegoCallManager {
         try {
             val intent = Intent(context, CallInviteActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("page", "page_call")
             }
             context.startActivity(intent)
             _activeCallState.update { it?.copy(isMinimized = false) }

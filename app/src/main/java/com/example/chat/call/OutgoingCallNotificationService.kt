@@ -185,6 +185,7 @@ class OutgoingCallNotificationService : Service() {
         // Tapping notification reopens call screen
         val contentIntent = Intent(this, CallInviteActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("page", "page_call")
         }
         val pendingContentIntent = PendingIntent.getActivity(
             this,
