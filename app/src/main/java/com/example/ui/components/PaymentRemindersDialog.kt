@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.HourglassTop
@@ -32,9 +34,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -123,6 +127,8 @@ fun PaymentRemindersDialog(
     var searchQuery by remember { mutableStateOf("") }
     var selectedServiceTypes by remember { mutableStateOf(setOf<String>()) }
     var selectedPaidBands by remember { mutableStateOf(setOf<Int>()) }
+    var serviceTypeDropdownExpanded by remember { mutableStateOf(false) }
+    var paidBandDropdownExpanded by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedReceiptItem by remember { mutableStateOf<PendingPaymentItem?>(null) }
 
@@ -223,10 +229,11 @@ fun PaymentRemindersDialog(
         }
     }
 
-    // Distinct service types from current pending records ordered by preferred order, then alphabetically
+    // Service type options: always includes known types in preferred order, plus any other distinct pending types alphabetically
     val serviceTypeOptions = remember(allPendingRecords) {
-        val distinctTypes = allPendingRecords.map { it.serviceType }.filter { it.isNotBlank() }.distinct()
-        distinctTypes.sortedWith { a, b ->
+        val pendingTypes = allPendingRecords.map { it.serviceType }.filter { it.isNotBlank() }.distinct()
+        val combined = (preferredServiceOrder + pendingTypes).distinct()
+        combined.sortedWith { a, b ->
             val idxA = preferredServiceOrder.indexOf(a)
             val idxB = preferredServiceOrder.indexOf(b)
             when {
@@ -566,78 +573,224 @@ fun PaymentRemindersDialog(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Row 1: Service Type FilterChips
-                    if (serviceTypeOptions.isNotEmpty()) {
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp)
-                        ) {
-                            items(serviceTypeOptions) { serviceType ->
-                                val isSelected = serviceType in selectedServiceTypes
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        selectedServiceTypes = if (isSelected) {
-                                            selectedServiceTypes - serviceType
-                                        } else {
-                                            selectedServiceTypes + serviceType
-                                        }
-                                    },
-                                    label = {
-                                        Text(
-                                            text = serviceType,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = paymentAccent,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFF1F5F9),
-                                        labelColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
-                                    ),
-                                    modifier = Modifier.testTag("filter_chip_service_${serviceType.lowercase().replace(" ", "_")}")
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Dropdowns side-by-side
+                    val dropdownContainerBg = if (isDark) {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                    } else {
+                        Color(0xFFF1F5F9)
+                    }
+                    val dropdownBorderColor = if (isDark) {
+                        Color.White.copy(alpha = 0.12f)
+                    } else {
+                        Color(0xFFCBD5E1)
                     }
 
-                    // Row 2: Paid % FilterChips
-                    LazyRow(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(horizontal = 2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(paidBandOptions) { band ->
-                            val isSelected = band in selectedPaidBands
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    selectedPaidBands = if (isSelected) {
-                                        selectedPaidBands - band
-                                    } else {
-                                        selectedPaidBands + band
+                        // Dropdown 1: Service type
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                        ) {
+                            val serviceSummary = when (selectedServiceTypes.size) {
+                                0 -> "All"
+                                1, 2 -> {
+                                    // Keep preferred display order in summary
+                                    serviceTypeOptions.filter { it in selectedServiceTypes }.joinToString(", ")
+                                }
+                                else -> "${selectedServiceTypes.size} selected"
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = dropdownContainerBg,
+                                border = BorderStroke(1.dp, dropdownBorderColor),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { serviceTypeDropdownExpanded = true }
+                                    .testTag("payment_reminders_service_type_dropdown")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = "Service type",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = serviceSummary,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (selectedServiceTypes.isNotEmpty()) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedServiceTypes.isNotEmpty()) paymentAccent else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
-                                },
-                                label = {
-                                    Text(
-                                        text = "$band% paid",
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    Icon(
+                                        imageVector = if (serviceTypeDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = paymentAccent,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFF1F5F9),
-                                    labelColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
-                                ),
-                                modifier = Modifier.testTag("filter_chip_paid_$band")
-                            )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = serviceTypeDropdownExpanded,
+                                onDismissRequest = { serviceTypeDropdownExpanded = false },
+                                modifier = Modifier
+                                    .fillMaxWidth(0.65f)
+                                    .testTag("payment_reminders_service_type_menu")
+                            ) {
+                                serviceTypeOptions.forEach { type ->
+                                    val isChecked = type in selectedServiceTypes
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Checkbox(
+                                                    checked = isChecked,
+                                                    onCheckedChange = null,
+                                                    colors = CheckboxDefaults.colors(
+                                                        checkedColor = paymentAccent
+                                                    )
+                                                )
+                                                Text(
+                                                    text = type,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedServiceTypes = if (isChecked) {
+                                                selectedServiceTypes - type
+                                            } else {
+                                                selectedServiceTypes + type
+                                            }
+                                        },
+                                        modifier = Modifier.testTag("service_type_item_${type.lowercase().replace(" ", "_")}")
+                                    )
+                                }
+                            }
+                        }
+
+                        // Dropdown 2: Paid %
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                        ) {
+                            val paidSummary = when (selectedPaidBands.size) {
+                                0 -> "All"
+                                1, 2 -> {
+                                    // Order numerically
+                                    paidBandOptions.filter { it in selectedPaidBands }.joinToString(", ") { "$it%" }
+                                }
+                                else -> "${selectedPaidBands.size} selected"
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = dropdownContainerBg,
+                                border = BorderStroke(1.dp, dropdownBorderColor),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { paidBandDropdownExpanded = true }
+                                    .testTag("payment_reminders_paid_band_dropdown")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = "Paid %",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = paidSummary,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (selectedPaidBands.isNotEmpty()) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (selectedPaidBands.isNotEmpty()) paymentAccent else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = if (paidBandDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = paidBandDropdownExpanded,
+                                onDismissRequest = { paidBandDropdownExpanded = false },
+                                modifier = Modifier
+                                    .fillMaxWidth(0.5f)
+                                    .testTag("payment_reminders_paid_band_menu")
+                            ) {
+                                paidBandOptions.forEach { band ->
+                                    val isChecked = band in selectedPaidBands
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Checkbox(
+                                                    checked = isChecked,
+                                                    onCheckedChange = null,
+                                                    colors = CheckboxDefaults.colors(
+                                                        checkedColor = paymentAccent
+                                                    )
+                                                )
+                                                Text(
+                                                    text = "$band%",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = if (isChecked) FontWeight.Bold else FontWeight.Normal,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedPaidBands = if (isChecked) {
+                                                selectedPaidBands - band
+                                            } else {
+                                                selectedPaidBands + band
+                                            }
+                                        },
+                                        modifier = Modifier.testTag("paid_band_item_$band")
+                                    )
+                                }
+                            }
                         }
                     }
 
