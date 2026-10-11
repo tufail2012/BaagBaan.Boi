@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +33,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -117,6 +121,8 @@ fun PaymentRemindersDialog(
     }
 
     var searchQuery by remember { mutableStateOf("") }
+    var selectedServiceTypes by remember { mutableStateOf(setOf<String>()) }
+    var selectedPaidBands by remember { mutableStateOf(setOf<Int>()) }
     var isRefreshing by remember { mutableStateOf(false) }
     var selectedReceiptItem by remember { mutableStateOf<PendingPaymentItem?>(null) }
 
@@ -138,8 +144,31 @@ fun PaymentRemindersDialog(
 
     val numberFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
 
-    // Filter all pending payment items
-    val pendingItems = remember(cropRecords, gardenEntries, searchQuery) {
+    // Predefined service type order
+    val preferredServiceOrder = remember {
+        listOf(
+            "Local Plants",
+            "Imported",
+            "Rootstocks",
+            "Pruning",
+            "Site Visit",
+            "Garden Planning"
+        )
+    }
+
+    val paidBandOptions = remember {
+        (10..100 step 10).toList()
+    }
+
+    // Helper function for paid percentage band (clamped to 0..100, 10-point bands)
+    fun getPaidBand(item: PendingPaymentItem): Int {
+        if (item.totalCost <= 0.0) return 0
+        val paidShare = ((item.amountPaid / item.totalCost) * 100.0).coerceIn(0.0, 100.0)
+        return (((paidShare + 1e-6) / 10.0).toInt() * 10).coerceAtMost(100)
+    }
+
+    // All pending payment items extracted from DB records
+    val allPendingRecords = remember(cropRecords, gardenEntries) {
         try {
             val list = mutableListOf<PendingPaymentItem>()
 
@@ -187,23 +216,49 @@ fun PaymentRemindersDialog(
                 }
             }
 
-            val filteredList = if (searchQuery.isNotBlank()) {
-                val q = searchQuery.trim().lowercase()
-                list.filter { item ->
-                    item.farmerName.lowercase().contains(q) ||
-                            item.serialNumber.lowercase().contains(q) ||
-                            item.contactNumber.contains(q) ||
-                            item.serviceType.lowercase().contains(q)
-                }
-            } else {
-                list
-            }
-            filteredList.sortedWith { i1, i2 ->
-                SerialNumberUtils.compareSerials(i1.serialNumber, i2.serialNumber)
-            }
+            list
         } catch (e: Exception) {
             loadErrorTrace = "Error loading payment reminders: ${e.message}\n${e.stackTraceToString()}"
             emptyList()
+        }
+    }
+
+    // Distinct service types from current pending records ordered by preferred order, then alphabetically
+    val serviceTypeOptions = remember(allPendingRecords) {
+        val distinctTypes = allPendingRecords.map { it.serviceType }.filter { it.isNotBlank() }.distinct()
+        distinctTypes.sortedWith { a, b ->
+            val idxA = preferredServiceOrder.indexOf(a)
+            val idxB = preferredServiceOrder.indexOf(b)
+            when {
+                idxA != -1 && idxB != -1 -> idxA.compareTo(idxB)
+                idxA != -1 -> -1
+                idxB != -1 -> 1
+                else -> a.compareTo(b, ignoreCase = true)
+            }
+        }
+    }
+
+    // Filtered items based on search query, service type filter, and paid % band filter
+    val pendingItems = remember(allPendingRecords, searchQuery, selectedServiceTypes, selectedPaidBands) {
+        val q = searchQuery.trim().lowercase()
+        val filteredList = allPendingRecords.filter { item ->
+            val matchesSearch = if (q.isBlank()) true else {
+                item.farmerName.lowercase().contains(q) ||
+                        item.serialNumber.lowercase().contains(q) ||
+                        item.contactNumber.contains(q) ||
+                        item.serviceType.lowercase().contains(q)
+            }
+            val matchesServiceType = if (selectedServiceTypes.isEmpty()) true else {
+                item.serviceType in selectedServiceTypes
+            }
+            val matchesPaidBand = if (selectedPaidBands.isEmpty()) true else {
+                getPaidBand(item) in selectedPaidBands
+            }
+
+            matchesSearch && matchesServiceType && matchesPaidBand
+        }
+        filteredList.sortedWith { i1, i2 ->
+            SerialNumberUtils.compareSerials(i1.serialNumber, i2.serialNumber)
         }
     }
 
@@ -471,7 +526,122 @@ fun PaymentRemindersDialog(
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = paymentAccent)
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Filters header & Clear all button
+                    val totalSelectedFilters = selectedServiceTypes.size + selectedPaidBands.size
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Filters",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (totalSelectedFilters > 0) {
+                            TextButton(
+                                onClick = {
+                                    selectedServiceTypes = emptySet()
+                                    selectedPaidBands = emptySet()
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                modifier = Modifier
+                                    .height(28.dp)
+                                    .testTag("payment_reminders_clear_all_filters")
+                            ) {
+                                Text(
+                                    text = "Clear all ($totalSelectedFilters)",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Row 1: Service Type FilterChips
+                    if (serviceTypeOptions.isNotEmpty()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) {
+                            items(serviceTypeOptions) { serviceType ->
+                                val isSelected = serviceType in selectedServiceTypes
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        selectedServiceTypes = if (isSelected) {
+                                            selectedServiceTypes - serviceType
+                                        } else {
+                                            selectedServiceTypes + serviceType
+                                        }
+                                    },
+                                    label = {
+                                        Text(
+                                            text = serviceType,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = paymentAccent,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFF1F5F9),
+                                        labelColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                    ),
+                                    modifier = Modifier.testTag("filter_chip_service_${serviceType.lowercase().replace(" ", "_")}")
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
+
+                    // Row 2: Paid % FilterChips
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp)
+                    ) {
+                        items(paidBandOptions) { band ->
+                            val isSelected = band in selectedPaidBands
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedPaidBands = if (isSelected) {
+                                        selectedPaidBands - band
+                                    } else {
+                                        selectedPaidBands + band
+                                    }
+                                },
+                                label = {
+                                    Text(
+                                        text = "$band% paid",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                    )
+                                },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = paymentAccent,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFF1F5F9),
+                                    labelColor = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155)
+                                ),
+                                modifier = Modifier.testTag("filter_chip_paid_$band")
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     if (pendingItems.isEmpty()) {
                         if (isInitialLoading) {
@@ -501,7 +671,7 @@ fun PaymentRemindersDialog(
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = if (searchQuery.isBlank()) "No pending payments found" else "No matching pending records",
+                                        text = if (searchQuery.isBlank() && selectedServiceTypes.isEmpty() && selectedPaidBands.isEmpty()) "No pending payments found" else "No matching pending records",
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
