@@ -17,8 +17,8 @@ android {
     applicationId = "com.baagbaan.boi"
     minSdk = 26
     targetSdk = 36
-    versionCode = 25
-    versionName = "1.7.9"
+    versionCode = 26
+    versionName = "1.7.10"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

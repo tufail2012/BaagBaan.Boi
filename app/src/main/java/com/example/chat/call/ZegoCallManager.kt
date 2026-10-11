@@ -71,14 +71,37 @@ import kotlinx.coroutines.launch
 
 object ZegoCallManager {
     private const val TAG = "ZegoCallManager"
+    private const val TRACE_FILE_NAME = "calltrace.txt"
+    private const val TRACE_PREV_FILE_NAME = "calltrace_prev.txt"
+    private var traceFlushedThisProcess = false
 
     private var sendButtonCount = 0
 
     internal fun trace(msg: String) {
-        Log.i("CALLTRACE", msg)
         try {
-            com.example.util.CrashReporter.recordExplicitCrash(Throwable("TRACE: $msg"), "CALLTRACE")
+            Log.i("CALLTRACE", msg)
+            val ctx = com.example.AgriApplication.instance.applicationContext
+            val file = java.io.File(ctx.filesDir, TRACE_FILE_NAME)
+            if (file.exists() && file.length() > 256_000L) file.delete()
+            val stamp = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(java.util.Date())
+            file.appendText("$stamp $msg\n")
         } catch (_: Throwable) {
+        }
+    }
+
+    internal fun takeTraceForDisplay(): String? {
+        if (traceFlushedThisProcess) return null
+        traceFlushedThisProcess = true
+        return try {
+            val ctx = com.example.AgriApplication.instance.applicationContext
+            val file = java.io.File(ctx.filesDir, TRACE_FILE_NAME)
+            if (!file.exists()) return null
+            val text = file.readText()
+            java.io.File(ctx.filesDir, TRACE_PREV_FILE_NAME).writeText(text)
+            file.delete()
+            text.takeIf { it.isNotBlank() }
+        } catch (_: Throwable) {
+            null
         }
     }
 

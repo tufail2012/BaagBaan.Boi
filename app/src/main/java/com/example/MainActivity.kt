@@ -44,7 +44,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         createCount++
-        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onCreate #$createCount taskId=$taskId isTaskRoot=$isTaskRoot")
+        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onCreate #$createCount taskId=$taskId isTaskRoot=$isTaskRoot intentFlags=0x${Integer.toHexString(intent?.flags ?: 0)} action=${intent?.action} extras=${intent?.extras?.keySet()}")
         super.onCreate(savedInstanceState)
 
         // Ensure window privacy flag is cleared so screenshots, screen recording, and sharing work seamlessly
@@ -126,6 +126,12 @@ class MainActivity : FragmentActivity() {
                         activeCrashLog = log
                     }
                 }
+                val traceText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.chat.call.ZegoCallManager.takeTraceForDisplay()
+                }
+                if (traceText != null && !com.example.util.CrashReporter.hasCrashLog(this@MainActivity)) {
+                    activeCrashLog = "CALLTRACE (lines up to this app start)\n\n" + traceText
+                }
             }
 
             if (activeCrashLog != null) {
@@ -166,7 +172,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
-        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onNewIntent taskId=$taskId isTaskRoot=$isTaskRoot")
+        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onNewIntent taskId=$taskId isTaskRoot=$isTaskRoot intentFlags=0x${Integer.toHexString(intent.flags)} action=${intent.action} extras=${intent.extras?.keySet()}")
         super.onNewIntent(intent)
         setIntent(intent)
         intent.data?.let { uri ->
