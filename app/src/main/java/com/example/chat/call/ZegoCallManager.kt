@@ -699,6 +699,12 @@ object ZegoCallManager {
         targetUserName: String,
         isVideo: Boolean
     ): String? {
+        if (targetUserId.isBlank() || targetUserId == currentUserId) {
+            val err = "Cannot place a call to yourself"
+            Log.w(TAG, "Call rejected: $err (targetUserId: $targetUserId, currentUserId: $currentUserId)")
+            return err
+        }
+
         val configError = getConfigurationError()
         if (configError != null) {
             Log.w(TAG, "Cannot start call: $configError")

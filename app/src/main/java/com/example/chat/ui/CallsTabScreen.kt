@@ -87,8 +87,9 @@ fun CallsTabScreen(
     val chatSummaries by viewModel.chatsList.collectAsState()
     val callHistory by viewModel.callHistory.collectAsState()
 
-    LaunchedEffect(chatSummaries) {
-        val myUid = currentUser?.uid.orEmpty()
+    LaunchedEffect(chatSummaries, currentUid) {
+        val myUid = currentUid
+        if (myUid.isBlank()) return@LaunchedEffect
         chatSummaries.forEach { summary ->
             val otherUid = summary.participantIds.firstOrNull { it != myUid }
             val otherInfo = summary.getOtherParticipant(myUid)
@@ -137,6 +138,10 @@ fun CallsTabScreen(
     }
 
     fun handleCallPress(targetUid: String, targetUsername: String, isVideo: Boolean) {
+        if (targetUid.isBlank() || targetUid == currentUid) {
+            Toast.makeText(context, "Cannot call yourself", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (!hasPermissions) {
             pendingCallAction = Triple(targetUid, targetUsername, isVideo)
             showPermissionRationale = true
@@ -469,11 +474,11 @@ fun CallsTabScreen(
             }
 
             // List of member contacts from chat summaries
-            val myUid = currentUser?.uid ?: ""
-            val memberContacts = chatSummaries.mapNotNull { summary ->
+            val myUid = currentUid
+            val memberContacts = if (myUid.isBlank()) emptyList() else chatSummaries.mapNotNull { summary ->
                 summary.getOtherParticipant(myUid)?.let { info ->
                     val otherUid = summary.participantIds.firstOrNull { it != myUid } ?: ""
-                    Pair(otherUid, info)
+                    if (otherUid.isBlank() || otherUid == myUid) null else Pair(otherUid, info)
                 }
             }
 
