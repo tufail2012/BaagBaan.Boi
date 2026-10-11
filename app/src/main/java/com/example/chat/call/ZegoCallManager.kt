@@ -371,6 +371,7 @@ object ZegoCallManager {
                     ) {
                         val calleeIds = callees.map { it.id }.joinToString(",")
                         trace("T5 incoming callID=$callID caller=${caller.id} type=$type callees=$calleeIds local=$currentUserId")
+                        trace("T5 self_caller=${caller.id == currentUserId} callee_has_local=${callees.any { it.id == currentUserId }}")
                     }
 
                     override fun onIncomingCallCanceled(callID: String, caller: ZegoCallUser) {
@@ -397,8 +398,10 @@ object ZegoCallManager {
                         trace("T5 onOutgoingCallTimeout callID=$callID")
                     }
                 })
+                trace("T5 listener registered ok user=$userId")
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to register ZegoInvitationCallListener: ${e.message}")
+                trace("T5 listener register failed: ${e.javaClass.simpleName}: ${e.message}")
             }
 
             // Track top activity for system-level minimize & back-press routing
@@ -439,8 +442,10 @@ object ZegoCallManager {
                         return false
                     }
                 })
+                trace("T8 back handler registered ok")
             } catch (e: Throwable) {
                 Log.w(TAG, "Failed to register callEvents.setBackPressEvent: ${e.message}")
+                trace("T8 back handler register failed: ${e.javaClass.simpleName}: ${e.message}")
             }
 
             // Setup listeners for call state, audio devices, and mute status
