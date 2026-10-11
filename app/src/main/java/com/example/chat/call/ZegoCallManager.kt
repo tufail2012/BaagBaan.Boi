@@ -40,6 +40,9 @@ import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationC
 import com.zegocloud.uikit.prebuilt.call.invite.ZegoUIKitPrebuiltCallInvitationService
 import com.zegocloud.uikit.prebuilt.call.invite.internal.CallInviteActivity
 import com.zegocloud.uikit.prebuilt.call.invite.internal.CallStateListener
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoCallType
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoCallUser
+import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoInvitationCallListener
 import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoTranslationText
 import com.zegocloud.uikit.prebuilt.call.invite.internal.ZegoUIKitPrebuiltCallConfigProvider
 import com.zegocloud.uikit.prebuilt.call.invite.widget.ZegoSendCallInvitationButton
@@ -68,6 +71,16 @@ import kotlinx.coroutines.launch
 
 object ZegoCallManager {
     private const val TAG = "ZegoCallManager"
+
+    private var sendButtonCount = 0
+
+    internal fun trace(msg: String) {
+        Log.i("CALLTRACE", msg)
+        try {
+            com.example.util.CrashReporter.recordExplicitCrash(Throwable("TRACE: $msg"), "CALLTRACE")
+        } catch (_: Throwable) {
+        }
+    }
 
     @Volatile
     var isInitialized: Boolean = false
@@ -196,6 +209,7 @@ object ZegoCallManager {
     }
 
     fun init(application: Application, userId: String, userName: String) {
+        trace("T2 init start user=$userId name=$userName wasInitialized=$isInitialized prevUser=$currentUserId")
         applicationContext = application.applicationContext
         val credsError = getCredentialsError()
         if (credsError != null) {
@@ -321,6 +335,48 @@ object ZegoCallManager {
                 userName,
                 config
             )
+            trace("T3 init ok user=$userId")
+
+            // Register SDK invitation call listener for diagnostic trace logging
+            try {
+                ZegoUIKitPrebuiltCallInvitationService.addInvitationCallListener(object : ZegoInvitationCallListener {
+                    override fun onIncomingCallReceived(
+                        callID: String,
+                        caller: ZegoCallUser,
+                        type: ZegoCallType,
+                        callees: List<ZegoCallUser>
+                    ) {
+                        val calleeIds = callees.map { it.id }.joinToString(",")
+                        trace("T5 incoming callID=$callID caller=${caller.id} type=$type callees=$calleeIds local=$currentUserId")
+                    }
+
+                    override fun onIncomingCallCanceled(callID: String, caller: ZegoCallUser) {
+                        trace("T5 onIncomingCallCanceled callID=$callID")
+                    }
+
+                    override fun onIncomingCallTimeout(callID: String, caller: ZegoCallUser) {
+                        trace("T5 onIncomingCallTimeout callID=$callID")
+                    }
+
+                    override fun onOutgoingCallAccepted(callID: String, callee: ZegoCallUser) {
+                        trace("T5 onOutgoingCallAccepted callID=$callID")
+                    }
+
+                    override fun onOutgoingCallRejectedCauseBusy(callID: String, callee: ZegoCallUser) {
+                        trace("T5 onOutgoingCallRejectedCauseBusy callID=$callID")
+                    }
+
+                    override fun onOutgoingCallDeclined(callID: String, callee: ZegoCallUser) {
+                        trace("T5 onOutgoingCallDeclined callID=$callID")
+                    }
+
+                    override fun onOutgoingCallTimeout(callID: String, callees: List<ZegoCallUser>) {
+                        trace("T5 onOutgoingCallTimeout callID=$callID")
+                    }
+                })
+            } catch (e: Throwable) {
+                Log.w(TAG, "Failed to register ZegoInvitationCallListener: ${e.message}")
+            }
 
             // Track top activity for system-level minimize & back-press routing
             application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
@@ -352,6 +408,7 @@ object ZegoCallManager {
                 ZegoUIKitPrebuiltCallService.events.callEvents.setBackPressEvent(object : BackPressEvent {
                     override fun onBackPressed(): Boolean {
                         val act = getTopActivity()
+                        trace("T8 back_pressed topActivity=${act?.javaClass?.simpleName} taskId=${act?.taskId} isTaskRoot=${act?.isTaskRoot}")
                         if (act != null) {
                             minimizeCall(act)
                             return true
@@ -379,6 +436,7 @@ object ZegoCallManager {
             initializedAtMs = SystemClock.elapsedRealtime()
             Log.i(TAG, "ZegoUIKitPrebuiltCallInvitationService initialized for user: $userName ($userId)")
         } catch (e: Throwable) {
+            trace("T3 init failed: ${e.javaClass.simpleName}: ${e.message}")
             Log.e(TAG, "Failed to initialize Zego call service: ${e.message}", e)
         }
     }
@@ -623,16 +681,20 @@ object ZegoCallManager {
     }
 
     fun minimizeCall(activity: Activity) {
+        trace("T9 minimize start taskId=${activity.taskId} isTaskRoot=${activity.isTaskRoot}")
         try {
             val intent = Intent(activity, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             activity.startActivity(intent)
+            trace("T9 minimize startActivity ok")
             _activeCallState.update { it?.copy(isMinimized = true) }
         } catch (e: Throwable) {
+            trace("T9 minimize startActivity failed: ${e.javaClass.simpleName}: ${e.message}")
             Log.e(TAG, "Error minimizing call activity to MainActivity, falling back to moveTaskToBack", e)
             try {
                 activity.moveTaskToBack(true)
+                trace("T9 minimize moveTaskToBack ok")
                 _activeCallState.update { it?.copy(isMinimized = true) }
             } catch (t: Throwable) {
                 Log.e(TAG, "moveTaskToBack failed", t)
@@ -641,14 +703,17 @@ object ZegoCallManager {
     }
 
     fun restoreCall(context: Context) {
+        trace("T10 restore start")
         try {
             val intent = Intent(context, CallInviteActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
                 putExtra("page", "page_call")
             }
             context.startActivity(intent)
+            trace("T10 restore ok")
             _activeCallState.update { it?.copy(isMinimized = false) }
         } catch (e: Throwable) {
+            trace("T10 restore failed: ${e.javaClass.simpleName}: ${e.message}")
             Log.e(TAG, "Failed to restore call", e)
         }
     }
@@ -666,9 +731,13 @@ object ZegoCallManager {
     }
 
     fun unInit() {
+        trace("T4 unInit prevUser=$currentUserId wasInitialized=$isInitialized")
         try {
             endCallInternal()
             if (isInitialized) {
+                try {
+                    ZegoUIKitPrebuiltCallInvitationService.removeInvitationCallListener()
+                } catch (_: Throwable) {}
                 try {
                     ZegoSignalingPlugin.getInstance().unregisterZIMEventHandler(zimEventHandler)
                 } catch (_: Throwable) {}
@@ -704,6 +773,7 @@ object ZegoCallManager {
             Log.w(TAG, "Call rejected: $err (targetUserId: $targetUserId, currentUserId: $currentUserId)")
             return err
         }
+        trace("T6 startCall target=$targetUserId local=$currentUserId video=$isVideo")
 
         val configError = getConfigurationError()
         if (configError != null) {
@@ -738,6 +808,8 @@ object ZegoCallManager {
             button.setInvitees(listOf(ZegoUIKitUser(targetUserId, targetUserName)))
             val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
             root.addView(button, android.view.ViewGroup.LayoutParams(0, 0))
+            sendButtonCount++
+            trace("T7 send button #$sendButtonCount attached, root children=${root.childCount}")
             button.performClick()
 
             // Launch ongoing notification for the outgoing call

@@ -35,10 +35,16 @@ import android.view.WindowManager
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
+    companion object {
+        var createCount: Int = 0
+    }
+
     private lateinit var appLockManager: AppLockManager
     private var cropViewModel: CropViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        createCount++
+        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onCreate #$createCount taskId=$taskId isTaskRoot=$isTaskRoot")
         super.onCreate(savedInstanceState)
 
         // Ensure window privacy flag is cleared so screenshots, screen recording, and sharing work seamlessly
@@ -160,6 +166,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
+        com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onNewIntent taskId=$taskId isTaskRoot=$isTaskRoot")
         super.onNewIntent(intent)
         setIntent(intent)
         intent.data?.let { uri ->

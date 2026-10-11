@@ -32,7 +32,9 @@ class AgriApplication : Application() {
             val prefs = com.example.chat.data.ChatPreferences(this)
             val currentUid = SafeFirebase.getAuth(this)?.currentUser?.uid
             val lastUsername = prefs.lastUsername
-            if (!currentUid.isNullOrBlank() && !lastUsername.isNullOrBlank()) {
+            val willRestore = !currentUid.isNullOrBlank() && !lastUsername.isNullOrBlank()
+            com.example.chat.call.ZegoCallManager.trace("T1 app start uid=$currentUid lastUsername=$lastUsername restore=$willRestore")
+            if (willRestore) {
                 Log.d("AgriApplication", "Restoring Zego Call Invitation for user @$lastUsername ($currentUid)")
                 com.example.chat.call.ZegoCallManager.init(this, currentUid, lastUsername)
             }
