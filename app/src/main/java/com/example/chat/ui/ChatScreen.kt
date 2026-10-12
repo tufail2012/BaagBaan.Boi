@@ -16,13 +16,20 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -555,19 +562,13 @@ fun ChatScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .imePadding()
     ) {
-        // Active minimized call bar
-        activeCall?.let { call ->
-            MinimizedCallBar(
-                state = call,
-                accentColor = accentColor,
-                isDark = isDark
-            )
-        }
-
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            var overlayHeightPx by remember { mutableIntStateOf(0) }
+            val overlayHeight = with(LocalDensity.current) { overlayHeightPx.toDp() }
+
             // Layer 1: messages. This Box is what the glass records.
             Box(
                 modifier = Modifier
@@ -591,6 +592,12 @@ fun ChatScreen(
                         Modifier.fillMaxSize()
                             .background(Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f))
                     )
+                    // status bar readability on a wallpaper
+                    Box(
+                        Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                            .height(statusTop + 24.dp)
+                            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.35f), Color.Transparent)))
+                    )
                 }
 
                 LazyColumn(
@@ -598,7 +605,12 @@ fun ChatScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("conversation_messages_column"),
-                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 88.dp, bottom = 12.dp),
+                    contentPadding = PaddingValues(
+                        top = overlayHeight + 8.dp,
+                        bottom = 8.dp,
+                        start = 12.dp,
+                        end = 12.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     itemsIndexed(messages, key = { _, msg -> msg.id }) { index, msg ->
@@ -650,159 +662,172 @@ fun ChatScreen(
                 }
             }
 
-            // Layer 2: floating pill header. It is a SIBLING of layer 1, never a
+            // Layer 2: floating overlay. It is a SIBLING of layer 1, never a
             // child, so it can never sample itself.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                    .height(64.dp)
-                    .then(
-                        if (glassOn) Modifier.navLiquidGlass(shape = headerShape, backdrop = chatGlass)
-                        else Modifier
-                            .clip(headerShape)
-                            .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
-                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), headerShape)
-                    )
-                    .padding(horizontal = 6.dp)
+                    .padding(top = statusTop + 4.dp)
+                    .onGloballyPositioned { overlayHeightPx = it.size.height }
+                    .zIndex(2f),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.testTag("conversation_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = if (isDark) Color.White else Color(0xFF0F172A)
-                    )
+                activeCall?.let { call ->
+                    MinimizedCallBar(state = call, accentColor = accentColor, isDark = isDark)
                 }
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { showProfileDialog = true }
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                ) {
-                    // Recipient Avatar
-                    if (!recipient?.photoUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = recipient?.photoUrl,
-                            contentDescription = recipient?.displayName,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
+                        .fillMaxWidth()
+                        .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
+                        .height(64.dp)
+                        .then(
+                            if (glassOn) Modifier.navLiquidGlass(shape = headerShape, backdrop = chatGlass)
+                            else Modifier
+                                .clip(headerShape)
+                                .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.10f), headerShape)
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(accentColor.copy(alpha = 0.20f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = (recipient?.displayName?.ifBlank { recipient?.username } ?: "U").take(1).uppercase(),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = accentColor
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    Column {
-                        Text(
-                            text = recipient?.displayName?.ifBlank { recipient?.username } ?: "Member",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "@${recipient?.username}",
-                            fontSize = 12.sp,
-                            color = accentColor,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (recipientStatusText != null) {
-                            Text(
-                                text = recipientStatusText,
-                                fontSize = 11.sp,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                IconButton(
-                    onClick = { initiateCall(true) },
-                    modifier = Modifier.testTag("conversation_video_call_button")
+                        .padding(horizontal = 6.dp)
                 ) {
-                    VideoCallIcon(
-                        tint = if (isDark) Color.White else Color(0xFF0F172A),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                IconButton(
-                    onClick = { initiateCall(false) },
-                    modifier = Modifier.testTag("conversation_voice_call_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Call,
-                        contentDescription = "Voice call",
-                        tint = if (isDark) Color.White else Color(0xFF0F172A),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Box {
                     IconButton(
-                        onClick = { showMoreMenu = true },
-                        modifier = Modifier.testTag("conversation_more_button")
+                        onClick = onBack,
+                        modifier = Modifier.testTag("conversation_back_button")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options",
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
                             tint = if (isDark) Color.White else Color(0xFF0F172A)
                         )
                     }
-                    DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("View profile") },
-                            onClick = { showMoreMenu = false; showProfileDialog = true }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Wallpaper") },
-                            modifier = Modifier.testTag("menu_wallpaper"),
-                            onClick = {
-                                showMoreMenu = false
-                                wallpaperPicker.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showProfileDialog = true }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    ) {
+                        // Recipient Avatar
+                        if (!recipient?.photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = recipient?.photoUrl,
+                                contentDescription = recipient?.displayName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(accentColor.copy(alpha = 0.20f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = (recipient?.displayName?.ifBlank { recipient?.username } ?: "U").take(1).uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = accentColor
                                 )
                             }
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column {
+                            Text(
+                                text = recipient?.displayName?.ifBlank { recipient?.username } ?: "Member",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "@${recipient?.username}",
+                                fontSize = 12.sp,
+                                color = accentColor,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (recipientStatusText != null) {
+                                Text(
+                                    text = recipientStatusText,
+                                    fontSize = 11.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { initiateCall(true) },
+                        modifier = Modifier.testTag("conversation_video_call_button")
+                    ) {
+                        VideoCallIcon(
+                            tint = if (isDark) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.size(22.dp)
                         )
-                        if (wallpaperFile != null) {
+                    }
+
+                    IconButton(
+                        onClick = { initiateCall(false) },
+                        modifier = Modifier.testTag("conversation_voice_call_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = "Voice call",
+                            tint = if (isDark) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { showMoreMenu = true },
+                            modifier = Modifier.testTag("conversation_more_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                        }
+                        DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
                             DropdownMenuItem(
-                                text = { Text("Reset wallpaper") },
+                                text = { Text("View profile") },
+                                onClick = { showMoreMenu = false; showProfileDialog = true }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Wallpaper") },
+                                modifier = Modifier.testTag("menu_wallpaper"),
                                 onClick = {
                                     showMoreMenu = false
-                                    activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                    wallpaperFile = null
-                                    wallpaperRevision++
+                                    wallpaperPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
                                 }
                             )
+                            if (wallpaperFile != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Reset wallpaper") },
+                                    onClick = {
+                                        showMoreMenu = false
+                                        activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                        wallpaperFile = null
+                                        wallpaperRevision++
+                                    }
+                                )
+                            }
                         }
                     }
                 }
