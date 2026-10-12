@@ -24,7 +24,12 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
+import com.example.ui.components.isGlassSupported
+import com.example.ui.components.navLiquidGlass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,12 +89,21 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
+import com.example.chat.data.ChatWallpaperStore
 import com.example.chat.model.ChatMessage
+import kotlinx.coroutines.launch
 import com.example.chat.model.ParticipantInfo
 import com.example.chat.ui.attachments.AttachmentBottomSheet
 import com.example.chat.ui.bubbles.ContactMessageBubble
@@ -155,6 +169,9 @@ fun ChatScreen(
     val isSending by viewModel.isSendingMessage.collectAsState()
 
     val listState = rememberLazyListState()
+    val chatGlass = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
+    val glassOn = com.example.ui.components.isGlassSupported()
+    val headerShape = RoundedCornerShape(percent = 50)
     var showProfileDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
     val editingMessageId by viewModel.editingMessageId.collectAsState()
@@ -163,6 +180,29 @@ fun ChatScreen(
     val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
     val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid } ?: ""
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
+
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var wallpaperRevision by remember { mutableIntStateOf(0) }
+    var wallpaperFile by remember(activeChatId) {
+        mutableStateOf<java.io.File?>(
+            activeChatId?.let { ChatWallpaperStore.get(context, currentUid, it) }
+        )
+    }
+    val wallpaperScope = rememberCoroutineScope()
+    val wallpaperPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        val id = activeChatId
+        if (uri != null && id != null) {
+            wallpaperScope.launch {
+                val saved = ChatWallpaperStore.save(context, currentUid, id, uri)
+                if (saved != null) {
+                    wallpaperFile = saved
+                    wallpaperRevision++
+                }
+            }
+        }
+    }
 
     var showPermissionRationale by remember { mutableStateOf(false) }
     var showZegoConfigDialog by remember { mutableStateOf(false) }
@@ -527,17 +567,106 @@ fun ChatScreen(
             )
         }
 
-        // Conversation Top Bar
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = if (isDark) Color(0x331E293B) else Color(0x44FFFFFF),
-            tonalElevation = 2.dp
-        ) {
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            // Layer 1: messages. This Box is what the glass records.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (glassOn) Modifier.layerBackdrop(chatGlass) else Modifier)
+                    .background(if (isDark) Color(0xFF0B141A) else Color(0xFFF1F5F9))
+            ) {
+                wallpaperFile?.let { file ->
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(file)
+                            .memoryCacheKey("chat_wp_${file.absolutePath}_$wallpaperRevision")
+                            .diskCachePolicy(CachePolicy.DISABLED)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().testTag("conversation_wallpaper")
+                    )
+                    // readability scrim so bubbles and text stay legible on any photo
+                    Box(
+                        Modifier.fillMaxSize()
+                            .background(Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f))
+                    )
+                }
+
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("conversation_messages_column"),
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 88.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    itemsIndexed(messages, key = { _, msg -> msg.id }) { index, msg ->
+                        val isOwnMessage = msg.senderId == currentUid
+                        val prev = messages.getOrNull(index - 1)
+                        val next = messages.getOrNull(index + 1)
+
+                        val isNewDay = prev == null || !isSameDay(prev.timestamp, msg.timestamp)
+                        val isSameSenderAsNext = next != null &&
+                            next.senderId == msg.senderId &&
+                            isSameDay(msg.timestamp, next.timestamp) &&
+                            minutesBetween(msg.timestamp, next.timestamp) < 3
+                        val isSameSenderAsPrev = prev != null &&
+                            prev.senderId == msg.senderId &&
+                            !isNewDay &&
+                            minutesBetween(prev.timestamp, msg.timestamp) < 3
+
+                        if (isNewDay) {
+                            DateSeparator(date = msg.timestamp, isDark = isDark)
+                        }
+
+                        Spacer(modifier = Modifier.height(if (isSameSenderAsPrev) 1.dp else 6.dp))
+
+                        if (msg.messageType == "call") {
+                            CallLogBubble(
+                                message = msg,
+                                currentUid = currentUid,
+                                accentColor = accentColor,
+                                isDark = isDark,
+                                onCallBack = { isVideo ->
+                                    initiateCall(isVideo)
+                                }
+                            )
+                        } else {
+                            MessageBubble(
+                                message = msg,
+                                isOwn = isOwnMessage,
+                                accentColor = accentColor,
+                                isDark = isDark,
+                                showTail = !isSameSenderAsNext,
+                                uploadProgress = uploadProgressMap[msg.id],
+                                onRetryUpload = failedUploadsMap[msg.id],
+                                onLongPress = { selectedMessageForAction = msg }
+                            )
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(4.dp)) }
+                }
+            }
+
+            // Layer 2: floating pill header. It is a SIBLING of layer 1, never a
+            // child, so it can never sample itself.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .height(64.dp)
+                    .then(
+                        if (glassOn) Modifier.navLiquidGlass(shape = headerShape, backdrop = chatGlass)
+                        else Modifier
+                            .clip(headerShape)
+                            .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.10f), headerShape)
+                    )
+                    .padding(horizontal = 6.dp)
             ) {
                 IconButton(
                     onClick = onBack,
@@ -638,77 +767,45 @@ fun ChatScreen(
                     )
                 }
 
-                IconButton(onClick = { showProfileDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = if (isDark) Color.White else Color(0xFF0F172A)
-                    )
-                }
-            }
-        }
-
-        // Messages list
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(if (isDark) Color(0xFF0B141A) else Color(0xFFF1F5F9))
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("conversation_messages_column"),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                itemsIndexed(messages, key = { _, msg -> msg.id }) { index, msg ->
-                    val isOwnMessage = msg.senderId == currentUid
-                    val prev = messages.getOrNull(index - 1)
-                    val next = messages.getOrNull(index + 1)
-
-                    val isNewDay = prev == null || !isSameDay(prev.timestamp, msg.timestamp)
-                    val isSameSenderAsNext = next != null &&
-                        next.senderId == msg.senderId &&
-                        isSameDay(msg.timestamp, next.timestamp) &&
-                        minutesBetween(msg.timestamp, next.timestamp) < 3
-                    val isSameSenderAsPrev = prev != null &&
-                        prev.senderId == msg.senderId &&
-                        !isNewDay &&
-                        minutesBetween(prev.timestamp, msg.timestamp) < 3
-
-                    if (isNewDay) {
-                        DateSeparator(date = msg.timestamp, isDark = isDark)
+                Box {
+                    IconButton(
+                        onClick = { showMoreMenu = true },
+                        modifier = Modifier.testTag("conversation_more_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More options",
+                            tint = if (isDark) Color.White else Color(0xFF0F172A)
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(if (isSameSenderAsPrev) 1.dp else 6.dp))
-
-                    if (msg.messageType == "call") {
-                        CallLogBubble(
-                            message = msg,
-                            currentUid = currentUid,
-                            accentColor = accentColor,
-                            isDark = isDark,
-                            onCallBack = { isVideo ->
-                                initiateCall(isVideo)
+                    DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("View profile") },
+                            onClick = { showMoreMenu = false; showProfileDialog = true }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Wallpaper") },
+                            modifier = Modifier.testTag("menu_wallpaper"),
+                            onClick = {
+                                showMoreMenu = false
+                                wallpaperPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
                             }
                         )
-                    } else {
-                        MessageBubble(
-                            message = msg,
-                            isOwn = isOwnMessage,
-                            accentColor = accentColor,
-                            isDark = isDark,
-                            showTail = !isSameSenderAsNext,
-                            uploadProgress = uploadProgressMap[msg.id],
-                            onRetryUpload = failedUploadsMap[msg.id],
-                            onLongPress = { selectedMessageForAction = msg }
-                        )
+                        if (wallpaperFile != null) {
+                            DropdownMenuItem(
+                                text = { Text("Reset wallpaper") },
+                                onClick = {
+                                    showMoreMenu = false
+                                    activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                    wallpaperFile = null
+                                    wallpaperRevision++
+                                }
+                            )
+                        }
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(4.dp)) }
             }
         }
 
