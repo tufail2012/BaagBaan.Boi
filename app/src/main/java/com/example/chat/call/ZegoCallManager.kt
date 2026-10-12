@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.app.NotificationManager
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -13,8 +14,26 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import coil.load
 import coil.transform.CircleCropTransformation
 import com.example.BuildConfig
@@ -232,6 +251,12 @@ object ZegoCallManager {
     }
 
     fun init(application: Application, userId: String, userName: String) {
+        if (_activeCallState.value == null) {
+            try {
+                (application.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)
+                    ?.cancel(OutgoingCallNotificationService.NOTIFICATION_ID)
+            } catch (_: Throwable) {}
+        }
         trace("T2 init start user=$userId name=$userName wasInitialized=$isInitialized prevUser=$currentUserId")
         applicationContext = application.applicationContext
         val credsError = getCredentialsError()
@@ -372,6 +397,17 @@ object ZegoCallManager {
                         val calleeIds = callees.map { it.id }.joinToString(",")
                         trace("T5 incoming callID=$callID caller=${caller.id} type=$type callees=$calleeIds local=$currentUserId")
                         trace("T5 self_caller=${caller.id == currentUserId} callee_has_local=${callees.any { it.id == currentUserId }}")
+                        if (caller.id == currentUserId) {
+                            trace("T13 stale self-invitation callID=$callID -> dismissing")
+                            managerScope.launch {
+                                try { CallInvitationServiceImpl.getInstance().endCall() } catch (_: Throwable) {}
+                                try { ZegoUIKit.leaveRoom() } catch (_: Throwable) {}
+                                (getTopActivity() as? CallInviteActivity)?.finish()
+                                _activeCallState.value = null
+                                applicationContext?.let { OutgoingCallNotificationService.stop(it) }
+                            }
+                            return
+                        }
                     }
 
                     override fun onIncomingCallCanceled(callID: String, caller: ZegoCallUser) {
@@ -416,6 +452,7 @@ object ZegoCallManager {
                 }
                 override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                     topActivityRef = WeakReference(activity)
+                    attachOutgoingCallBack(activity)
                 }
                 override fun onActivityStarted(activity: Activity) {
                     topActivityRef = WeakReference(activity)
@@ -735,7 +772,7 @@ object ZegoCallManager {
         try {
             val intent = Intent(context, CallInviteActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("page", "page_call")
+                if (_activeCallState.value?.isConnected == true) putExtra("page", "page_call")
             }
             context.startActivity(intent)
             trace("T10 restore ok")
@@ -857,6 +894,73 @@ object ZegoCallManager {
             Log.e(TAG, "Failed to start call: $err", e)
             com.example.util.CrashReporter.recordExplicitCrash(e, "ZegoCallManager.startCall")
             err
+        }
+    }
+
+    fun endActiveCallForShutdown() {
+        val call = _activeCallState.value ?: return
+        trace("T12 shutdown -> ending call outgoing=${call.isOutgoing} connected=${call.isConnected}")
+        endCall()
+    }
+
+    private const val BACK_BUTTON_TAG = "agri_outgoing_call_back"
+
+    private fun attachOutgoingCallBack(activity: Activity) {
+        if (activity !is CallInviteActivity) return
+        try {
+            // System back / back gesture -> minimise to the app while OUR call is active
+            (activity as? androidx.activity.ComponentActivity)?.onBackPressedDispatcher?.addCallback(
+                activity,
+                object : androidx.activity.OnBackPressedCallback(true) {
+                    override fun handleOnBackPressed() {
+                        val call = _activeCallState.value
+                        if (call != null && call.isOutgoing) {
+                            minimizeCall(activity)
+                        } else {
+                            isEnabled = false
+                            activity.onBackPressedDispatcher.onBackPressed()
+                        }
+                    }
+                }
+            )
+            // Visible back arrow, top-left, shown only while my call is still ringing
+            val content = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
+            if (content.findViewWithTag<View>(BACK_BUTTON_TAG) != null) return
+            val arrow = ComposeView(activity).apply {
+                tag = BACK_BUTTON_TAG
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindowOrReleasedFromPool)
+                setContent { OutgoingCallBackArrow(onBack = { minimizeCall(activity) }) }
+            }
+            activity.addContentView(
+                arrow,
+                android.widget.FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.Gravity.TOP or android.view.Gravity.START
+                )
+            )
+        } catch (e: Throwable) {
+            trace("T14 attachOutgoingCallBack failed: ${e.javaClass.simpleName}: ${e.message}")
+        }
+    }
+}
+
+@Composable
+internal fun OutgoingCallBackArrow(onBack: () -> Unit) {
+    val call by ZegoCallManager.activeCallState.collectAsState()
+    val c = call
+    if (c != null && c.isOutgoing && !c.isConnected) {
+        Box(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(start = 8.dp, top = 8.dp)
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(ComposeColor(0x33FFFFFF))
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ComposeColor.White)
         }
     }
 }

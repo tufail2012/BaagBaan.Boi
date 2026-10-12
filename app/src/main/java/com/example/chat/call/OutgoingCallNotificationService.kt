@@ -98,6 +98,7 @@ class OutgoingCallNotificationService : Service() {
         }
     }
 
+    private var shuttingDown = false
     private val serviceScope = CoroutineScope(Dispatchers.Main)
     private var imageLoadingJob: Job? = null
     private var cachedAvatarBitmap: Bitmap? = null
@@ -110,9 +111,22 @@ class OutgoingCallNotificationService : Service() {
         createNotificationChannel()
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        ZegoCallManager.trace("T12 onTaskRemoved")
+        shuttingDown = true
+        ZegoCallManager.endActiveCallForShutdown()   // cancels the pending invitation / leaves the room
+        // keep the process alive ~1.5 s so the cancel reaches the server
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            stopForegroundNotification()
+            stopSelf()
+        }, 1500L)
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                if (shuttingDown) return START_NOT_STICKY
                 stopForegroundNotification()
                 stopSelf()
                 return START_NOT_STICKY
@@ -185,7 +199,9 @@ class OutgoingCallNotificationService : Service() {
         // Tapping notification reopens call screen
         val contentIntent = Intent(this, CallInviteActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("page", "page_call")
+            if (ZegoCallManager.activeCallState.value?.isConnected == true) {
+                putExtra("page", "page_call")
+            }
         }
         val pendingContentIntent = PendingIntent.getActivity(
             this,
