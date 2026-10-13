@@ -63,7 +63,8 @@ fun TopHeaderScrollScrim(
     isAmoled: Boolean = isAppInAmoledMode(),
     customHeight: Dp? = null,
     scrollOffset: Float = 0f,
-    scrollOffsetProvider: (() -> Float)? = null
+    scrollOffsetProvider: (() -> Float)? = null,
+    pageColorOverride: Color? = null
 ) {
     val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val topBarHeightEquivalent = customHeight ?: (statusBarTop + 52.dp)
@@ -73,8 +74,8 @@ fun TopHeaderScrollScrim(
 
     val themeBgColor = MaterialTheme.colorScheme.background
     val scrimAccent = accentColor ?: MaterialTheme.colorScheme.primary
-    val baseColor = remember(isDark, isAmoled, themeBgColor, scrimAccent) {
-        when {
+    val baseColor = remember(isDark, isAmoled, themeBgColor, scrimAccent, pageColorOverride) {
+        pageColorOverride ?: when {
             isAmoled -> Color.Black
             isDark -> getAppDimBackgroundColor(scrimAccent, isDark = true, isAmoled = false)
             else -> themeBgColor

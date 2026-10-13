@@ -82,11 +82,18 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
+import com.example.ui.components.TopHeaderScrollScrim
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -184,6 +191,13 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val chatGlass = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
     val glassOn = com.example.ui.components.isGlassSupported()
+    val chatHaze = remember { dev.chrisbanes.haze.HazeState() }
+    val headerScrolled by remember { derivedStateOf { listState.canScrollBackward } }
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (headerScrolled) 1f else 0f,
+        animationSpec = tween(150),
+        label = "chatHeaderScrim"
+    )
     val headerShape = RoundedCornerShape(percent = 50)
     val composerShape = RoundedCornerShape(28.dp)
 
@@ -591,6 +605,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(if (glassOn) Modifier.layerBackdrop(chatGlass) else Modifier)
+                    .hazeSource(state = chatHaze)
                     .background(if (isDark) Color(0xFF0B141A) else Color(0xFFF1F5F9))
             ) {
                 wallpaperFile?.let { file ->
@@ -677,6 +692,25 @@ fun ChatScreen(
 
                     item { Spacer(modifier = Modifier.height(4.dp)) }
                 }
+            }
+
+            if (scrimAlpha > 0f) {
+                TopHeaderScrollScrim(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .graphicsLayer { alpha = scrimAlpha },
+                    isScrolling = true,
+                    hazeState = chatHaze,
+                    accentColor = accentColor,
+                    isDark = isDark,
+                    isAmoled = isAmoled,
+                    customHeight = statusTop + overlayHeight,
+                    pageColorOverride = when {
+                        isAmoled -> Color.Black
+                        isDark -> Color(0xFF0B141A)
+                        else -> Color(0xFFF1F5F9)
+                    }
+                )
             }
 
             // Layer 2: floating overlay. It is a SIBLING of layer 1, never a
