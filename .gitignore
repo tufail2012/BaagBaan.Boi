@@ -17,6 +17,8 @@ local.properties
 .env
 debug.keystore
 release-key.jks
+release-key*
 *.jks
+*.b64
 .build-outputs/
 *.base64

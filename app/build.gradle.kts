@@ -25,12 +25,12 @@ android {
     val zegoAppIdProp = ((project.findProperty("ZEGO_APP_ID") as? String)
         ?: (project.findProperty("zego.app.id") as? String)
         ?: System.getenv("ZEGO_APP_ID")
-        ?: "893846806").replace("\\s+".toRegex(), "").trim()
+        ?: "").replace("\\s+".toRegex(), "").trim()
 
     val zegoAppSignRaw = (project.findProperty("ZEGO_APP_SIGN") as? String)
         ?: (project.findProperty("zego.app.sign") as? String)
         ?: System.getenv("ZEGO_APP_SIGN")
-        ?: "873976a416756442ab84ce0d7dca1b146e13e839a64edb1fb956020303abd637"
+        ?: ""
 
     val zegoAppSignProp = zegoAppSignRaw.replace("\\s+".toRegex(), "").trim()
 
@@ -45,9 +45,9 @@ android {
       val debugKeystoreFile = file("${rootDir}/debug.keystore")
       if (keystoreFile.exists()) {
         storeFile = keystoreFile
-        storePassword = System.getenv("RELEASE_STORE_PASSWORD").takeIf { !it.isNullOrBlank() } ?: "AgriCropReleasePass2026"
-        keyAlias = System.getenv("RELEASE_KEY_ALIAS").takeIf { !it.isNullOrBlank() } ?: "agricrop-release"
-        keyPassword = System.getenv("RELEASE_KEY_PASSWORD").takeIf { !it.isNullOrBlank() } ?: "AgriCropReleasePass2026"
+        storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+        keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+        keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
       } else if (debugKeystoreFile.exists()) {
         storeFile = debugKeystoreFile
         storePassword = "android"
@@ -66,7 +66,7 @@ android {
   buildTypes {
     release {
       isCrunchPngs = false
-      isMinifyEnabled = false
+      isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }

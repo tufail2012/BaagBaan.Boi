@@ -48,16 +48,8 @@ jobs:
               exit 1
             }
           else
-            echo "RELEASE_KEYSTORE_BASE64 secret not set in GitHub Secrets. Auto-generating release keystore..."
-            keytool -genkeypair -v \
-              -keystore ./release-key.jks \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -alias agricrop-release \
-              -storepass AgriCropReleasePass2026 \
-              -keypass AgriCropReleasePass2026 \
-              -dname "CN=AgriCrop, OU=Dev, O=AgriCrop, L=City, S=State, C=US"
+            echo "Error: RELEASE_KEYSTORE_BASE64 secret is missing from repository secrets. A persistent release keystore is required for release builds."
+            exit 1
           fi
 
           if [ ! -s "./release-key.jks" ]; then
@@ -68,9 +60,9 @@ jobs:
 
       - name: Build Release APK
         env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'AgriCropReleasePass2026' }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'agricrop-release' }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'AgriCropReleasePass2026' }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: gradle :app:clean :app:assembleRelease --stacktrace --no-daemon
 
       - name: Verify and Validate Release APK
