@@ -42,9 +42,15 @@ android {
     create("release") {
       val keystoreFilePath = System.getenv("RELEASE_KEYSTORE_FILE").takeIf { !it.isNullOrBlank() } ?: "${rootDir}/release-key.jks"
       storeFile = file(keystoreFilePath)
-      storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-      keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-      keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+      storePassword = System.getenv("RELEASE_STORE_PASSWORD")?.ifBlank { null }
+        ?: (project.findProperty("RELEASE_STORE_PASSWORD") as? String)?.ifBlank { null }
+        ?: "AgriCropReleasePass2026"
+      keyAlias = System.getenv("RELEASE_KEY_ALIAS")?.ifBlank { null }
+        ?: (project.findProperty("RELEASE_KEY_ALIAS") as? String)?.ifBlank { null }
+        ?: "agricrop-release"
+      keyPassword = System.getenv("RELEASE_KEY_PASSWORD")?.ifBlank { null }
+        ?: (project.findProperty("RELEASE_KEY_PASSWORD") as? String)?.ifBlank { null }
+        ?: "AgriCropReleasePass2026"
     }
   }
 

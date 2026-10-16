@@ -41,9 +41,9 @@ jobs:
         id: validate
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'AgriCropReleasePass2026' }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'agricrop-release' }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'AgriCropReleasePass2026' }}
         run: |
           echo "github.repository: ${{ github.repository }}"
           echo "github.ref: ${{ github.ref }}"
@@ -145,9 +145,11 @@ jobs:
       - name: Build Release APK
         if: steps.validate.outputs.signing_ready == 'true'
         env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'AgriCropReleasePass2026' }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'agricrop-release' }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'AgriCropReleasePass2026' }}
+          ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: gradle :app:clean :app:assembleRelease --stacktrace --no-daemon
 
       - name: Verify and Validate Release APK
