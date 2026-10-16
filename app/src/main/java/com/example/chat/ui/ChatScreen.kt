@@ -2,6 +2,7 @@ package com.example.chat.ui
 
 import android.util.Log
 import android.widget.Toast
+import kotlinx.coroutines.delay
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -176,13 +177,33 @@ fun ChatScreen(
     val recipient by viewModel.activeRecipient.collectAsState()
     val recipientPresence by viewModel.recipientPresence.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
-    val recipientStatusText: String? = if (showOnlineStatus && recipientPresence?.showOnlineStatus != false) {
-        when {
-            recipientPresence?.isOnline == true -> "online"
-            recipientPresence?.lastSeenAt != null -> com.example.chat.model.formatLastSeen(recipientPresence?.lastSeenAt)
-            else -> null
+
+    var currentTimeTick by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000L)
+            currentTimeTick = System.currentTimeMillis()
         }
-    } else null
+    }
+
+    val isRecipientOnline = remember(recipientPresence, currentTimeTick) {
+        val p = recipientPresence
+        p != null && com.example.chat.model.isUserConsideredOnline(p.isOnline, p.lastSeenAt)
+    }
+
+    val recipientStatusText: String? = remember(recipientPresence, showOnlineStatus, isRecipientOnline, currentTimeTick) {
+        if (!showOnlineStatus || recipientPresence?.showOnlineStatus == false) {
+            null
+        } else if (isRecipientOnline) {
+            "online"
+        } else if (recipientPresence?.lastSeenAt != null) {
+            com.example.chat.model.formatLastSeen(recipientPresence?.lastSeenAt)
+        } else if (recipientPresence != null) {
+            "offline"
+        } else {
+            null
+        }
+    }
     val messages by viewModel.messages.collectAsState()
     val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
@@ -757,29 +778,47 @@ fun ChatScreen(
                             .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
                         // Recipient Avatar
-                        if (!recipient?.photoUrl.isNullOrBlank()) {
-                            AsyncImage(
-                                model = recipient?.photoUrl,
-                                contentDescription = recipient?.displayName,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(accentColor.copy(alpha = 0.20f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = (recipient?.displayName?.ifBlank { recipient?.username } ?: "U").take(1).uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = accentColor
+                        Box(contentAlignment = Alignment.BottomEnd) {
+                            if (!recipient?.photoUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = recipient?.photoUrl,
+                                    contentDescription = recipient?.displayName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
                                 )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(accentColor.copy(alpha = 0.20f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = (recipient?.displayName?.ifBlank { recipient?.username } ?: "U").take(1).uppercase(),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = accentColor
+                                    )
+                                }
+                            }
+                            if (isRecipientOnline && showOnlineStatus && recipientPresence?.showOnlineStatus != false) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(11.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isDark) Color(0xFF0F172A) else Color.White)
+                                        .padding(1.5.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF22C55E))
+                                    )
+                                }
                             }
                         }
 
@@ -803,13 +842,25 @@ fun ChatScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (recipientStatusText != null) {
-                                Text(
-                                    text = recipientStatusText,
-                                    fontSize = 11.sp,
-                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (isRecipientOnline) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF22C55E))
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    Text(
+                                        text = recipientStatusText,
+                                        fontSize = 11.sp,
+                                        color = if (isRecipientOnline) Color(0xFF22C55E) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        fontWeight = if (isRecipientOnline) FontWeight.Medium else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }

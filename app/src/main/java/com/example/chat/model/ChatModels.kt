@@ -14,9 +14,28 @@ data class ChatUser(
     val showOnlineStatus: Boolean = true
 )
 
+fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {
+    if (!isOnline) return false
+    if (lastSeenAt == null) return true
+    val elapsedMs = System.currentTimeMillis() - lastSeenAt.toDate().time
+    // Within 2.5 minutes (150,000 ms) considered active online; otherwise offline due to disconnect/app-kill
+    return elapsedMs < 150_000L
+}
+
 fun formatLastSeen(timestamp: Timestamp?): String {
     if (timestamp == null) return "offline"
     val date = timestamp.toDate()
+    val nowMs = System.currentTimeMillis()
+    val diffMs = nowMs - date.time
+
+    if (diffMs in -5_000L..59_999L) {
+        return "last seen just now"
+    }
+    val diffMinutes = diffMs / 60_000L
+    if (diffMinutes in 1..59) {
+        return "last seen ${diffMinutes}m ago"
+    }
+
     val now = java.util.Calendar.getInstance()
     val then = java.util.Calendar.getInstance().apply { time = date }
     val timeFmt = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
@@ -27,7 +46,7 @@ fun formatLastSeen(timestamp: Timestamp?): String {
     val isYesterday = yesterday.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
         yesterday.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
     if (isYesterday) return "last seen yesterday at ${timeFmt.format(date)}"
-    val dateFmt = java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault())
+    val dateFmt = java.text.SimpleDateFormat("MMM d 'at' h:mm a", java.util.Locale.getDefault())
     return "last seen on ${dateFmt.format(date)}"
 }
 

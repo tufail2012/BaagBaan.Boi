@@ -830,11 +830,11 @@ class ChatRepository(private val context: Context) {
     suspend fun setOnlinePresence(uid: String, online: Boolean) {
         val firestore = db ?: return
         try {
-            val updates = hashMapOf<String, Any>("isOnline" to online)
-            if (!online) {
-                updates["lastSeenAt"] = FieldValue.serverTimestamp()
-            }
-            firestore.collection("users").document(uid).update(updates).await()
+            val updates = hashMapOf<String, Any>(
+                "isOnline" to online,
+                "lastSeenAt" to FieldValue.serverTimestamp()
+            )
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
         } catch (e: Exception) {
             Log.e(TAG, "Error setting online presence for $uid: ${e.message}", e)
         }
@@ -846,8 +846,9 @@ class ChatRepository(private val context: Context) {
             val updates = hashMapOf<String, Any>("showOnlineStatus" to enabled)
             if (!enabled) {
                 updates["isOnline"] = false
+                updates["lastSeenAt"] = FieldValue.serverTimestamp()
             }
-            firestore.collection("users").document(uid).update(updates).await()
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)

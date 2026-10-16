@@ -17,6 +17,9 @@ class AgriApplication : Application() {
         kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO
     )
 
+    @Volatile
+    private var isAppInForeground: Boolean = false
+
     override fun onCreate() {
         com.example.util.CrashReporter.install(this)
         super.onCreate()
@@ -46,6 +49,7 @@ class AgriApplication : Application() {
         androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(
             object : androidx.lifecycle.DefaultLifecycleObserver {
                 override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                    isAppInForeground = true
                     val uid = SafeFirebase.getAuth(this@AgriApplication)?.currentUser?.uid ?: return
                     val prefs = com.example.chat.data.ChatPreferences(this@AgriApplication)
                     if (!prefs.isOnlineStatusEnabled) return
@@ -55,6 +59,7 @@ class AgriApplication : Application() {
                 }
 
                 override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
+                    isAppInForeground = false
                     val uid = SafeFirebase.getAuth(this@AgriApplication)?.currentUser?.uid ?: return
                     presenceScope.launch {
                         com.example.chat.data.ChatRepository(this@AgriApplication).setOnlinePresence(uid, false)
@@ -62,5 +67,18 @@ class AgriApplication : Application() {
                 }
             }
         )
+
+        // Keep presence updated if user signs in or auth state finishes restoring while app is already in foreground
+        SafeFirebase.getAuth(this)?.addAuthStateListener { auth ->
+            val uid = auth.currentUser?.uid
+            if (uid != null && isAppInForeground) {
+                val prefs = com.example.chat.data.ChatPreferences(this@AgriApplication)
+                if (prefs.isOnlineStatusEnabled) {
+                    presenceScope.launch {
+                        com.example.chat.data.ChatRepository(this@AgriApplication).setOnlinePresence(uid, true)
+                    }
+                }
+            }
+        }
     }
 }

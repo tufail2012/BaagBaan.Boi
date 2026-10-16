@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -77,6 +78,7 @@ fun ChatSettingsScreen(
     val isAmoled = isAppInAmoledMode()
     val currentUser by viewModel.currentUser.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
+    val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
     val isSubmitting by viewModel.isSubmittingUsername.collectAsState()
     val serverError by viewModel.usernameError.collectAsState()
 
@@ -376,6 +378,67 @@ fun ChatSettingsScreen(
                         checkedTrackColor = accentColor
                     ),
                     modifier = Modifier.testTag("notifications_toggle_switch")
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Online Status & Last Seen Privacy Section
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+            tonalElevation = 1.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = null,
+                        tint = Color(0xFF22C55E),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Online Status & Last Seen",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
+                    Text(
+                        text = "Let other members see when you are online and your last seen timing",
+                        fontSize = 12.sp,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        lineHeight = 16.sp
+                    )
+                }
+
+                Switch(
+                    checked = showOnlineStatus,
+                    onCheckedChange = { viewModel.setShowOnlineStatus(it) },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = accentColor
+                    ),
+                    modifier = Modifier.testTag("online_status_toggle_switch")
                 )
             }
         }

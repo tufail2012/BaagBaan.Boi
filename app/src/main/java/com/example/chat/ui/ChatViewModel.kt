@@ -17,6 +17,8 @@ import com.example.chat.model.ParticipantInfo
 import com.example.util.SafeFirebase
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,9 +123,28 @@ class ChatViewModel(
     private var messagesListenJob: Job? = null
     private var searchJob: Job? = null
     private var presenceListenJob: Job? = null
+    private var presenceHeartbeatJob: Job? = null
 
     init {
         checkUserSession()
+    }
+
+    private fun startPresenceHeartbeat(uid: String) {
+        presenceHeartbeatJob?.cancel()
+        if (!_showOnlineStatus.value) return
+        presenceHeartbeatJob = viewModelScope.launch {
+            while (isActive) {
+                if (_showOnlineStatus.value) {
+                    repository.setOnlinePresence(uid, true)
+                }
+                delay(45_000L) // Refresh presence every 45s while active in chat
+            }
+        }
+    }
+
+    private fun stopPresenceHeartbeat() {
+        presenceHeartbeatJob?.cancel()
+        presenceHeartbeatJob = null
     }
 
     fun checkUserSession() {
@@ -145,6 +166,7 @@ class ChatViewModel(
                 preferences.lastUsername = existing.username
                 preferences.isOnlineStatusEnabled = existing.showOnlineStatus
                 _showOnlineStatus.value = existing.showOnlineStatus
+                startPresenceHeartbeat(authUser.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, authUser.uid, existing.username)
                 }
@@ -180,6 +202,7 @@ class ChatViewModel(
                 _toastMessage.value = "Welcome, @${user.username}!"
                 preferences.lastUid = user.uid
                 preferences.lastUsername = user.username
+                startPresenceHeartbeat(user.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, user.uid, user.username)
                 }
@@ -320,6 +343,9 @@ class ChatViewModel(
                 _ghostModeEnabled.value = false
                 startListeningToMessages(chatId)
                 startObservingRecipientPresence(otherUser.uid)
+                if (_showOnlineStatus.value) {
+                    repository.setOnlinePresence(current.uid, true)
+                }
             }.onFailure { err ->
                 _toastMessage.value = "Failed to start chat: ${err.message}"
             }
@@ -335,6 +361,11 @@ class ChatViewModel(
         _ghostModeEnabled.value = summary.ghostMode
         startListeningToMessages(summary.chatId)
         startObservingRecipientPresence(other.uid)
+        if (_showOnlineStatus.value) {
+            viewModelScope.launch {
+                repository.setOnlinePresence(currentUid, true)
+            }
+        }
     }
 
     private fun startObservingRecipientPresence(uid: String) {
@@ -351,6 +382,11 @@ class ChatViewModel(
         preferences.isOnlineStatusEnabled = enabled
         _showOnlineStatus.value = enabled
         val uid = _currentUser.value?.uid ?: return
+        if (enabled) {
+            startPresenceHeartbeat(uid)
+        } else {
+            stopPresenceHeartbeat()
+        }
         viewModelScope.launch {
             repository.setShowOnlineStatus(uid, enabled)
         }
@@ -638,6 +674,13 @@ class ChatViewModel(
     }
 
     fun logout() {
+        val uid = _currentUser.value?.uid
+        if (uid != null) {
+            viewModelScope.launch {
+                repository.setOnlinePresence(uid, false)
+            }
+        }
+        stopPresenceHeartbeat()
         com.example.chat.call.ZegoCallManager.unInit()
         preferences.lastUid = null
         preferences.lastUsername = null
@@ -647,6 +690,11 @@ class ChatViewModel(
         presenceListenJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPresenceHeartbeat()
     }
 
     companion object {
