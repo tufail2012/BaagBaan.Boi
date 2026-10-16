@@ -719,7 +719,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(top = statusTop + 4.dp)
+                    .padding(top = statusTop)
                     .onGloballyPositioned { overlayHeightPx = it.size.height }
                     .zIndex(2f),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -732,7 +732,7 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
+                        .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
                         .height(64.dp)
                         .then(glassModifier(headerShape))
                         .padding(horizontal = 6.dp)
@@ -910,109 +910,109 @@ fun ChatScreen(
                     }
                 }
 
-                // (b) the composer pill
+                // (b) the composer: three separate glass pieces
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                        .then(glassModifier(composerShape))
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     if (!recordingState.isRecording) {
-                        // "+" Attachment Button
-                        IconButton(
-                            onClick = { showAttachmentSheet = true },
-                            modifier = Modifier.size(42.dp)
+                        // LEFT: a 56.dp glass CIRCLE with the "+" (Icons.Default.Add) icon
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .then(glassModifier(CircleShape)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Attach",
-                                tint = accentColor
-                            )
+                            IconButton(
+                                onClick = { showAttachmentSheet = true },
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Attach",
+                                    tint = accentColor
+                                )
+                            }
                         }
 
-                        TextField(
-                            value = messageInput,
-                            onValueChange = { viewModel.updateMessageInput(it) },
-                            placeholder = {
-                                Text(
-                                    "Message...",
-                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                    fontSize = 14.sp
-                                )
-                            },
+                        // MIDDLE: the message pill, containing ONLY the TextField
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .testTag("conversation_message_input"),
-                            shape = RectangleShape,
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                disabledIndicatorColor = Color.Transparent,
-                                cursorColor = accentColor,
-                                focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-                                unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
-                            ),
-                            maxLines = 4,
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(
-                                onSend = {
-                                    if (messageInput.isNotBlank() && !isSending) {
-                                        if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                                    }
-                                }
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.width(6.dp))
-
-                        if (messageInput.isNotBlank()) {
-                            IconButton(
-                                onClick = {
-                                    if (!isSending) {
-                                        if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                                    }
+                                .heightIn(min = 56.dp)
+                                .then(glassModifier(composerShape)),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            TextField(
+                                value = messageInput,
+                                onValueChange = { viewModel.updateMessageInput(it) },
+                                placeholder = {
+                                    Text(
+                                        "Message...",
+                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                        fontSize = 14.sp
+                                    )
                                 },
-                                enabled = !isSending,
                                 modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(CircleShape)
-                                    .background(accentColor)
-                                    .testTag("conversation_send_button")
-                            ) {
-                                if (isSending) {
-                                    CircularProgressIndicator(
-                                        color = Color.White,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "Send",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        } else {
-                            // Voice note mic button (hold to record)
-                            VoiceNoteRecordBar(
-                                voiceRecorder = voiceRecorder,
-                                onVoiceNoteRecorded = { file, waveform, duration ->
-                                    viewModel.uploadAndSendVoiceNote(file, waveform, duration)
-                                },
-                                accentColor = accentColor,
-                                isDark = isDark,
-                                modifier = Modifier.width(48.dp)
+                                    .fillMaxWidth()
+                                    .testTag("conversation_message_input"),
+                                shape = RectangleShape,
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    disabledContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent,
+                                    cursorColor = accentColor,
+                                    focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                                    unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                                ),
+                                maxLines = 4,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(
+                                    onSend = {
+                                        if (messageInput.isNotBlank() && !isSending) {
+                                            if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
+                                        }
+                                    }
+                                )
                             )
                         }
+                    }
+
+                    // RIGHT: a 56.dp circle for send or mic
+                    if (messageInput.isNotBlank() && !recordingState.isRecording) {
+                        IconButton(
+                            onClick = {
+                                if (!isSending) {
+                                    if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
+                                }
+                            },
+                            enabled = !isSending,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(accentColor)
+                                .testTag("conversation_send_button")
+                        ) {
+                            if (isSending) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     } else {
-                        // Full-width live voice recording bar
                         VoiceNoteRecordBar(
                             voiceRecorder = voiceRecorder,
                             onVoiceNoteRecorded = { file, waveform, duration ->
@@ -1020,7 +1020,8 @@ fun ChatScreen(
                             },
                             accentColor = accentColor,
                             isDark = isDark,
-                            modifier = Modifier.fillMaxWidth()
+                            containerModifier = glassModifier(CircleShape),
+                            modifier = if (recordingState.isRecording) Modifier.fillMaxWidth() else Modifier.size(56.dp)
                         )
                     }
                 }

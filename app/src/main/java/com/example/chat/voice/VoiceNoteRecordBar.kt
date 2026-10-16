@@ -64,7 +64,8 @@ fun VoiceNoteRecordBar(
     onVoiceNoteRecorded: (File, List<Int>, Long) -> Unit,
     accentColor: Color,
     isDark: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerModifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val recordingState by voiceRecorder.recordingState.collectAsState()
@@ -104,8 +105,8 @@ fun VoiceNoteRecordBar(
 
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .height(52.dp),
+            .then(if (isRecording) Modifier.fillMaxWidth() else Modifier)
+            .height(56.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isRecording) {
@@ -191,9 +192,8 @@ fun VoiceNoteRecordBar(
         // The Mic Button (Hold to Record, Release to Send)
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(if (isRecording) (if (isCancelTriggered) Color(0xFFEF4444) else accentColor) else accentColor)
+                .size(56.dp)
+                .then(containerModifier)
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = {
@@ -247,7 +247,7 @@ fun VoiceNoteRecordBar(
             Icon(
                 imageVector = Icons.Default.Mic,
                 contentDescription = "Hold to record voice note",
-                tint = Color.White,
+                tint = if (isCancelTriggered) Color(0xFFEF4444) else accentColor,
                 modifier = Modifier.size(24.dp)
             )
         }
