@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,7 +37,91 @@ jobs:
           fi
           echo "Active Java version ($JAVA_VER) is 17 or newer."
 
+      - name: Validate Release Signing Secrets
+        id: validate
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          echo "github.repository: ${{ github.repository }}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.workflow_ref: ${{ github.workflow_ref }}"
+          echo ""
+
+          MISSING=0
+
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "RELEASE_KEYSTORE_BASE64: set"
+            KS_STATUS="set"
+          else
+            echo "RELEASE_KEYSTORE_BASE64: EMPTY"
+            KS_STATUS="EMPTY"
+            MISSING=1
+          fi
+
+          if [ -n "$RELEASE_STORE_PASSWORD" ]; then
+            echo "RELEASE_STORE_PASSWORD: set"
+            SP_STATUS="set"
+          else
+            echo "RELEASE_STORE_PASSWORD: EMPTY"
+            SP_STATUS="EMPTY"
+            MISSING=1
+          fi
+
+          if [ -n "$RELEASE_KEY_ALIAS" ]; then
+            echo "RELEASE_KEY_ALIAS: set"
+            KA_STATUS="set"
+          else
+            echo "RELEASE_KEY_ALIAS: EMPTY"
+            KA_STATUS="EMPTY"
+            MISSING=1
+          fi
+
+          if [ -n "$RELEASE_KEY_PASSWORD" ]; then
+            echo "RELEASE_KEY_PASSWORD: set"
+            KP_STATUS="set"
+          else
+            echo "RELEASE_KEY_PASSWORD: EMPTY"
+            KP_STATUS="EMPTY"
+            MISSING=1
+          fi
+
+          {
+            echo "### Release Signing Diagnostics"
+            echo "- github.repository: ${{ github.repository }}"
+            echo "- github.ref: ${{ github.ref }}"
+            echo "- github.event_name: ${{ github.event_name }}"
+            echo "- github.workflow_ref: ${{ github.workflow_ref }}"
+            echo ""
+            echo "- RELEASE_KEYSTORE_BASE64: $KS_STATUS"
+            echo "- RELEASE_STORE_PASSWORD: $SP_STATUS"
+            echo "- RELEASE_KEY_ALIAS: $KA_STATUS"
+            echo "- RELEASE_KEY_PASSWORD: $KP_STATUS"
+          } >> $GITHUB_STEP_SUMMARY
+
+          if [ "$MISSING" -ne 0 ]; then
+            echo "signing_ready=false" >> $GITHUB_OUTPUT
+            echo ""
+            echo "Create them under Settings > Secrets and variables > Actions > Repository secrets (NOT Variables, NOT Environment, NOT Codespaces, NOT Dependabot). Names are case-sensitive."
+            {
+              echo ""
+              echo "Create them under Settings > Secrets and variables > Actions > Repository secrets (NOT Variables, NOT Environment, NOT Codespaces, NOT Dependabot). Names are case-sensitive."
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            echo "signing_ready=true" >> $GITHUB_OUTPUT
+            echo ""
+            echo "All release signing secrets are present."
+            {
+              echo ""
+              echo "All release signing secrets are present."
+            } >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Set up Release Keystore
+        if: steps.validate.outputs.signing_ready == 'true'
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
@@ -58,31 +142,8 @@ jobs:
           fi
           echo "release-key.jks is ready."
 
-      - name: Validate Release Signing Secrets
-        env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
-          MISSING=0
-          if [ -z "$RELEASE_STORE_PASSWORD" ]; then
-            echo "Missing secret: RELEASE_STORE_PASSWORD"
-            MISSING=1
-          fi
-          if [ -z "$RELEASE_KEY_ALIAS" ]; then
-            echo "Missing secret: RELEASE_KEY_ALIAS"
-            MISSING=1
-          fi
-          if [ -z "$RELEASE_KEY_PASSWORD" ]; then
-            echo "Missing secret: RELEASE_KEY_PASSWORD"
-            MISSING=1
-          fi
-          if [ "$MISSING" -ne 0 ]; then
-            exit 1
-          fi
-          echo "All required release signing secrets are present."
-
       - name: Build Release APK
+        if: steps.validate.outputs.signing_ready == 'true'
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -90,6 +151,7 @@ jobs:
         run: gradle :app:clean :app:assembleRelease --stacktrace --no-daemon
 
       - name: Verify and Validate Release APK
+        if: steps.validate.outputs.signing_ready == 'true'
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
@@ -121,8 +183,33 @@ jobs:
           echo "GENERATED_APK_PATH=$APK_PATH" >> $GITHUB_ENV
 
       - name: Upload Release APK Artifact
+        if: steps.validate.outputs.signing_ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: BaagbaanBoi-Release-APK
           path: ${{ env.GENERATED_APK_PATH }}
+          if-no-files-found: error
+
+      - name: Build Debug Test APK (Fallback)
+        if: steps.validate.outputs.signing_ready == 'false'
+        run: |
+          echo "::warning::Release signing secrets missing. Building DEBUG test APK instead. Not for release."
+          gradle :app:assembleDebug --stacktrace --no-daemon
+          DEBUG_APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -z "$DEBUG_APK_PATH" ] || [ ! -f "$DEBUG_APK_PATH" ]; then
+            echo "Error: No debug APK generated under app/build/outputs/apk/debug"
+            exit 1
+          fi
+          echo "GENERATED_DEBUG_APK_PATH=$DEBUG_APK_PATH" >> $GITHUB_ENV
+          {
+            echo ""
+            echo "This is a debug-signed APK that cannot update an installed release build."
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Debug Test APK Artifact
+        if: steps.validate.outputs.signing_ready == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-DEBUG-TEST-ONLY
+          path: ${{ env.GENERATED_DEBUG_APK_PATH }}
           if-no-files-found: error
