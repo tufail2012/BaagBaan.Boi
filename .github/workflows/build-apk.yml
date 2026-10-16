@@ -58,6 +58,30 @@ jobs:
           fi
           echo "release-key.jks is ready."
 
+      - name: Validate Release Signing Secrets
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          MISSING=0
+          if [ -z "$RELEASE_STORE_PASSWORD" ]; then
+            echo "Missing secret: RELEASE_STORE_PASSWORD"
+            MISSING=1
+          fi
+          if [ -z "$RELEASE_KEY_ALIAS" ]; then
+            echo "Missing secret: RELEASE_KEY_ALIAS"
+            MISSING=1
+          fi
+          if [ -z "$RELEASE_KEY_PASSWORD" ]; then
+            echo "Missing secret: RELEASE_KEY_PASSWORD"
+            MISSING=1
+          fi
+          if [ "$MISSING" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All required release signing secrets are present."
+
       - name: Build Release APK
         env:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}

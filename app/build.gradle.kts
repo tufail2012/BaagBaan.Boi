@@ -41,25 +41,10 @@ android {
   signingConfigs {
     create("release") {
       val keystoreFilePath = System.getenv("RELEASE_KEYSTORE_FILE").takeIf { !it.isNullOrBlank() } ?: "${rootDir}/release-key.jks"
-      val keystoreFile = file(keystoreFilePath)
-      val debugKeystoreFile = file("${rootDir}/debug.keystore")
-      if (keystoreFile.exists()) {
-        storeFile = keystoreFile
-        storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-        keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-        keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
-      } else if (debugKeystoreFile.exists()) {
-        storeFile = debugKeystoreFile
-        storePassword = "android"
-        keyAlias = "androiddebugkey"
-        keyPassword = "android"
-      } else {
-        val debugConfig = signingConfigs.getByName("debug")
-        storeFile = debugConfig.storeFile
-        storePassword = debugConfig.storePassword
-        keyAlias = debugConfig.keyAlias
-        keyPassword = debugConfig.keyPassword
-      }
+      storeFile = file(keystoreFilePath)
+      storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+      keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+      keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
     }
   }
 
@@ -185,4 +170,32 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+}
+
+gradle.taskGraph.whenReady {
+  val hasReleaseTask = allTasks.any { task ->
+    task.name.contains("Release", ignoreCase = true) &&
+      (task.name.contains("assemble", ignoreCase = true) ||
+       task.name.contains("package", ignoreCase = true) ||
+       task.name.contains("bundle", ignoreCase = true))
+  }
+  if (hasReleaseTask) {
+    val keystoreFilePath = System.getenv("RELEASE_KEYSTORE_FILE").takeIf { !it.isNullOrBlank() } ?: "${rootDir}/release-key.jks"
+    val keystoreFile = file(keystoreFilePath)
+    if (!keystoreFile.exists()) {
+      throw GradleException("Release keystore file not found at: ${keystoreFile.absolutePath}. Please configure RELEASE_KEYSTORE_FILE or place release-key.jks at the project root.")
+    }
+    val storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+    if (storePassword.isNullOrBlank()) {
+      throw GradleException("Release signing configuration error: RELEASE_STORE_PASSWORD is blank or not set.")
+    }
+    val keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+    if (keyAlias.isNullOrBlank()) {
+      throw GradleException("Release signing configuration error: RELEASE_KEY_ALIAS is blank or not set.")
+    }
+    val keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+    if (keyPassword.isNullOrBlank()) {
+      throw GradleException("Release signing configuration error: RELEASE_KEY_PASSWORD is blank or not set.")
+    }
+  }
 }
