@@ -401,262 +401,228 @@ fun AgriHeader(
             }
         } else {
             // Standard Header with Title and Search Button
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                // Left App Logo Badge & Title
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (onBack != null || isAttendanceScreen) {
-                        IconButton(
-                            onClick = { onBack?.invoke() },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .testTag("header_back_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back",
-                                tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-                    val isAppLogo = when (title.lowercase()) {
-                        "agricrop", "baagbaan boi", "home", "dashboard" -> true
-                        "local", "local plants", "imported", "imported plants", "rootstocks", "imported rootstocks", "site visit", "pruning", "bookings", "garden planning", "garden", "attendance", "worker attendance" -> false
-                        else -> false
-                    }
-
-                    val headerBadgeIcon = when (title.lowercase()) {
-                        "local", "local plants" -> Icons.Outlined.LocalFlorist
-                        "imported", "imported plants" -> Icons.Default.LocalShipping
-                        "rootstocks", "imported rootstocks" -> Icons.Default.Spa
-                        "site visit" -> Icons.Outlined.Assignment
-                        "pruning" -> Icons.Default.ContentCut
-                        "bookings" -> Icons.Default.PlaylistAddCheck
-                        "garden planning", "garden" -> Icons.Default.Park
-                        "attendance", "worker attendance" -> Icons.Default.CalendarToday
-                        else -> null
-                    }
-
-                    if (isAppLogo || headerBadgeIcon == null) {
-                        AppBrandLogo(
-                            size = 38.dp,
-                            shape = RoundedCornerShape(10.dp),
-                            elevation = 1.dp,
-                            contentDescription = "App Logo"
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (isScrolling) {
+                                if (backdrop != null && isGlassSupported()) {
+                                    Modifier.liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = backdrop)
+                                } else {
+                                    Modifier
+                                        .clip(RoundedCornerShape(percent = 50))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                }
+                            } else {
+                                Modifier
+                            }
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .then(
-                                    if (isScrolling) {
-                                        if (backdrop != null && isGlassSupported()) {
-                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                        } else {
-                                            Modifier
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        }
-                                    } else {
-                                        Modifier
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Left App Logo Badge & Title
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = headerBadgeIcon,
-                                contentDescription = "$title Icon",
-                                tint = if (isScrolling) {
+                            if (onBack != null || isAttendanceScreen) {
+                                IconButton(
+                                    onClick = { onBack?.invoke() },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .testTag("header_back_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            val isAppLogo = when (title.lowercase()) {
+                                "agricrop", "baagbaan boi", "home", "dashboard" -> true
+                                "local", "local plants", "imported", "imported plants", "rootstocks", "imported rootstocks", "site visit", "pruning", "bookings", "garden planning", "garden", "attendance", "worker attendance" -> false
+                                else -> false
+                            }
+
+                            val headerBadgeIcon = when (title.lowercase()) {
+                                "local", "local plants" -> Icons.Outlined.LocalFlorist
+                                "imported", "imported plants" -> Icons.Default.LocalShipping
+                                "rootstocks", "imported rootstocks" -> Icons.Default.Spa
+                                "site visit" -> Icons.Outlined.Assignment
+                                "pruning" -> Icons.Default.ContentCut
+                                "bookings" -> Icons.Default.PlaylistAddCheck
+                                "garden planning", "garden" -> Icons.Default.Park
+                                "attendance", "worker attendance" -> Icons.Default.CalendarToday
+                                else -> null
+                            }
+
+                            if (isAppLogo || headerBadgeIcon == null) {
+                                AppBrandLogo(
+                                    size = 38.dp,
+                                    shape = RoundedCornerShape(10.dp),
+                                    elevation = 1.dp,
+                                    contentDescription = "App Logo"
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.size(44.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = headerBadgeIcon,
+                                        contentDescription = "$title Icon",
+                                        tint = if (isScrolling) {
+                                            glassContentColor()
+                                        } else if (isDark) {
+                                            Color.White
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = if (isScrolling) {
                                     glassContentColor()
                                 } else if (isDark) {
                                     Color.White
                                 } else {
                                     MaterialTheme.colorScheme.onSurface
                                 },
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = if (isScrolling && !isAppLogo && headerBadgeIcon != null) {
-                            glassContentColor()
-                        } else if (isDark) {
-                            Color.White
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                        modifier = if (isScrolling && !isAppLogo && headerBadgeIcon != null) {
-                            Modifier
-                                .then(
-                                    if (backdrop != null && isGlassSupported()) {
-                                        Modifier.liquidGlassNav(shape = RoundedCornerShape(percent = 50), backdrop = backdrop)
-                                    } else {
-                                        Modifier
-                                            .clip(RoundedCornerShape(percent = 50))
-                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                    }
-                                )
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        } else {
-                            Modifier
-                        }
-                    )
-                }
-
-                if (!isAttendanceScreen) {
-                    // Right Action Buttons
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        IconButton(
-                            onClick = onOpenNotifications,
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (isScrolling) {
-                                        if (backdrop != null && isGlassSupported()) {
-                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                        } else {
-                                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        }
-                                    } else Modifier
-                                )
-                                .testTag("header_notifications_button")
-                        ) {
-                            BadgedBox(
-                                badge = {
-                                    if (unreadNotificationCount > 0) {
-                                        Badge(
-                                            containerColor = com.example.ui.theme.paletteTertiaryAccent(),
-                                            contentColor = com.example.ui.theme.getAccessibleTextColor(com.example.ui.theme.paletteTertiaryAccent())
-                                        ) {
-                                            Text(
-                                                text = if (unreadNotificationCount > 99) "99+" else "$unreadNotificationCount",
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "Notification Center",
-                                    tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
-
-                        IconButton(
-                            onClick = {
-                                onSearchActiveChange(true)
-                                onToggleSearch()
-                            },
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(CircleShape)
-                                .then(
-                                    if (isScrolling) {
-                                        if (backdrop != null && isGlassSupported()) {
-                                            Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                        } else {
-                                            Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                        }
-                                    } else Modifier
-                                )
-                                .testTag("header_search_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search Records",
-                                tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        // Profile Avatar Menu containing Theme & Account options
-                        Box {
-                            HeaderProfileAvatar(
-                                photoUrl = effectivePhotoUrl,
-                                currentUserEmail = currentUserEmail,
-                                isDark = isDark,
-                                onClick = { menuExpanded = true },
-                                backdrop = backdrop,
-                                isScrolling = isScrolling,
-                                modifier = if (isScrolling) {
-                                    if (backdrop != null && isGlassSupported()) {
-                                        Modifier.liquidGlassNav(shape = CircleShape, backdrop = backdrop)
-                                    } else {
-                                        Modifier
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
-
-                            DropdownMenu(
-                                expanded = menuExpanded,
-                                onDismissRequest = { menuExpanded = false },
                                 modifier = Modifier
-                                    .widthIn(min = 250.dp, max = 310.dp)
-                                    .profileMenuLiquidGlass(
-                                        backdrop = resolvedProfileBackdrop,
-                                        hazeState = hazeState,
-                                        shape = RoundedCornerShape(22.dp)
-                                    )
-                                    .padding(vertical = 4.dp),
-                                shape = RoundedCornerShape(22.dp),
-                                containerColor = Color.Transparent,
-                                border = null,
-                                shadowElevation = 0.dp,
-                                tonalElevation = 0.dp
+                            )
+                        }
+
+                        if (!isAttendanceScreen) {
+                            // Right Action Buttons
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                OverflowMenuContent(
-                                    themeMode = themeMode,
-                                    currentUserEmail = currentUserEmail,
-                                    tagSuffix = "_2",
-                                    parsedPaletteColor = parsedPaletteColor,
-                                    hazeState = hazeState,
-                                    onDismiss = { menuExpanded = false },
-                                    onNavigateToDashboard = onNavigateToDashboard,
-                                    onNavigateToInventory = onNavigateToInventory,
-                                    onNavigateToAttendance = onNavigateToAttendance,
-                                    onNavigateToContactDirectory = onNavigateToContactDirectory,
-                                    onNavigateToPaymentReminders = onNavigateToPaymentReminders,
-                                    onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
-                                    onNavigateToBackupRestore = onNavigateToBackupRestore,
-                                    onNavigateToLogin = onNavigateToLogin,
-                                    onNavigateToGardenPlanning = onNavigateToGardenPlanning,
-                                    onNavigateToSettings = onNavigateToSettings,
-                                    onNavigateToBusinessInfo = onNavigateToBusinessInfo,
-                                    onNavigateToMessageTemplates = onNavigateToMessageTemplates,
-                                    onNavigateToQrScanner = onNavigateToQrScanner,
-                                    onNavigateToChat = onNavigateToChat,
-                                    onLogout = onLogout,
-                                    onOpenThemeDialog = onOpenThemeDialog,
-                                    onOpenRecycleBin = onOpenRecycleBin
-                                )
+                                IconButton(
+                                    onClick = onOpenNotifications,
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .testTag("header_notifications_button")
+                                ) {
+                                    BadgedBox(
+                                        badge = {
+                                            if (unreadNotificationCount > 0) {
+                                                Badge(
+                                                    containerColor = com.example.ui.theme.paletteTertiaryAccent(),
+                                                    contentColor = com.example.ui.theme.getAccessibleTextColor(com.example.ui.theme.paletteTertiaryAccent())
+                                                ) {
+                                                    Text(
+                                                        text = if (unreadNotificationCount > 99) "99+" else "$unreadNotificationCount",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Notifications,
+                                            contentDescription = "Notification Center",
+                                            tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        onSearchActiveChange(true)
+                                        onToggleSearch()
+                                    },
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .testTag("header_search_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search Records",
+                                        tint = if (isScrolling) glassContentColor() else if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                // Profile Avatar Menu containing Theme & Account options
+                                Box {
+                                    HeaderProfileAvatar(
+                                        photoUrl = effectivePhotoUrl,
+                                        currentUserEmail = currentUserEmail,
+                                        isDark = isDark,
+                                        onClick = { menuExpanded = true },
+                                        backdrop = backdrop,
+                                        isScrolling = isScrolling,
+                                        modifier = Modifier
+                                    )
+
+                                    DropdownMenu(
+                                        expanded = menuExpanded,
+                                        onDismissRequest = { menuExpanded = false },
+                                        modifier = Modifier
+                                            .widthIn(min = 250.dp, max = 310.dp)
+                                            .profileMenuLiquidGlass(
+                                                backdrop = resolvedProfileBackdrop,
+                                                hazeState = hazeState,
+                                                shape = RoundedCornerShape(22.dp)
+                                            )
+                                            .padding(vertical = 4.dp),
+                                        shape = RoundedCornerShape(22.dp),
+                                        containerColor = Color.Transparent,
+                                        border = null,
+                                        shadowElevation = 0.dp,
+                                        tonalElevation = 0.dp
+                                    ) {
+                                        OverflowMenuContent(
+                                            themeMode = themeMode,
+                                            currentUserEmail = currentUserEmail,
+                                            tagSuffix = "_2",
+                                            parsedPaletteColor = parsedPaletteColor,
+                                            hazeState = hazeState,
+                                            onDismiss = { menuExpanded = false },
+                                            onNavigateToDashboard = onNavigateToDashboard,
+                                            onNavigateToInventory = onNavigateToInventory,
+                                            onNavigateToAttendance = onNavigateToAttendance,
+                                            onNavigateToContactDirectory = onNavigateToContactDirectory,
+                                            onNavigateToPaymentReminders = onNavigateToPaymentReminders,
+                                            onNavigateToSeasonalReminders = onNavigateToSeasonalReminders,
+                                            onNavigateToBackupRestore = onNavigateToBackupRestore,
+                                            onNavigateToLogin = onNavigateToLogin,
+                                            onNavigateToGardenPlanning = onNavigateToGardenPlanning,
+                                            onNavigateToSettings = onNavigateToSettings,
+                                            onNavigateToBusinessInfo = onNavigateToBusinessInfo,
+                                            onNavigateToMessageTemplates = onNavigateToMessageTemplates,
+                                            onNavigateToQrScanner = onNavigateToQrScanner,
+                                            onNavigateToChat = onNavigateToChat,
+                                            onLogout = onLogout,
+                                            onOpenThemeDialog = onOpenThemeDialog,
+                                            onOpenRecycleBin = onOpenRecycleBin
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -1111,7 +1077,7 @@ private fun HeaderProfileAvatar(
             .size(44.dp)
             .testTag("overflow_menu_button")
     ) {
-        val onGlass = isScrolling && backdrop != null && isGlassSupported()
+        val onGlass = false
         if (!photoUrl.isNullOrBlank()) {
             AsyncImage(
                 model = photoUrl,
