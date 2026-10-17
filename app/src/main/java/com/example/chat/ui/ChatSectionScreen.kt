@@ -57,12 +57,12 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
-import com.example.ui.components.backdrop.backdrops.layerBackdrop
-import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Job
@@ -92,16 +92,27 @@ fun ChatSectionScreen(
     val toastMessage by chatViewModel.toastMessage.collectAsState()
     val inAppBanner by chatViewModel.inAppBanner.collectAsState()
 
+    val rootBgBrush = remember(isDark, isAmoled, accentColor) {
+        getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
+    }
+
     val chatHazeState = remember { HazeState() }
     val windowBackground = MaterialTheme.colorScheme.surface
     val paintBackdrop: ContentDrawScope.() -> Unit =
-        remember(windowBackground) {
+        remember(windowBackground, rootBgBrush) {
             {
                 drawRect(windowBackground)
-                drawContent()
+                drawRect(rootBgBrush)
+                isRecordingChatBackdrop = true
+                try {
+                    drawContent()
+                } finally {
+                    isRecordingChatBackdrop = false
+                }
             }
         }
-    val chatNavBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
+    val chatBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
+    val chatNavBackdrop = remember(chatBackdrop) { chatBackdrop.asNavBackdrop() }
 
     val chatTabs = remember {
         listOf(
@@ -173,10 +184,6 @@ fun ChatSectionScreen(
         }
     }
 
-    val rootBgBrush = remember(isDark, isAmoled, accentColor) {
-        getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -205,7 +212,7 @@ fun ChatSectionScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .hazeSource(state = chatHazeState)
-                        .layerBackdrop(chatNavBackdrop)
+                        .layerBackdrop(chatBackdrop)
                         .background(rootBgBrush)
                 ) {
                     when (activeSubScreen) {
@@ -230,7 +237,7 @@ fun ChatSectionScreen(
                                 viewModel = chatViewModel,
                                 onBack = { chatViewModel.navigateBackFromArchived() },
                                 accentColor = accentColor,
-                                backdrop = backdrop
+                                backdrop = chatBackdrop
                             )
                         }
 
@@ -247,7 +254,7 @@ fun ChatSectionScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
                                             accentColor = accentColor,
-                                            backdrop = backdrop
+                                            backdrop = chatBackdrop
                                         )
                                     }
 
@@ -256,7 +263,7 @@ fun ChatSectionScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
                                             accentColor = accentColor,
-                                            backdrop = backdrop
+                                            backdrop = chatBackdrop
                                         )
                                     }
 
@@ -275,7 +282,7 @@ fun ChatSectionScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
                                             accentColor = accentColor,
-                                            backdrop = backdrop
+                                            backdrop = chatBackdrop
                                         )
                                     }
                                 }

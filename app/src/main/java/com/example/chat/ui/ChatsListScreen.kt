@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -84,6 +85,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.data.ChatItemLocalState
@@ -174,157 +176,15 @@ fun ChatsListScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
+    val density = LocalDensity.current
+    var stripHeightPx by remember { mutableIntStateOf(0) }
+    val stripHeightDp = with(density) { stripHeightPx.toDp() }
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        if (selectedChatIds.isNotEmpty()) {
-            ChatSelectionBar(
-                selectedChatIds = selectedChatIds,
-                allSelectableChatIds = chats.map { it.chatId }.toSet(),
-                chatLocalStates = chatLocalStates,
-                viewModel = viewModel,
-                backdrop = backdrop,
-                isDark = isDark,
-                contentColor = contentColor,
-                onUpdateSelection = { selectedChatIds = it },
-                onClearSelection = { selectedChatIds = emptySet() }
-            )
-        } else {
-            // Top App Bar: glass pills, icons and text black or white by theme only
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-            ) {
-                // Left glass pill: chat icon + "Chats" title
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .chatHeaderGlass(backdrop)
-                        .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(26.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Chats",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
-                    )
-                }
-
-                // Right side: profile pill (no text)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .chatHeaderGlass(backdrop, CircleShape)
-                            .clip(CircleShape)
-                            .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
-                            .testTag("chat_list_profile_button"),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val photo = currentUser?.photoUrl
-                        if (!photo.isNullOrBlank()) {
-                            AsyncImage(
-                                model = photo,
-                                contentDescription = "Profile",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile",
-                                tint = contentColor,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Expanded search bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .chatHeaderGlass(backdrop, RoundedCornerShape(percent = 50))
-                        .clip(RoundedCornerShape(percent = 50))
-                        .clickable { viewModel.openSearch() }
-                        .testTag("open_user_search_button"),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 18.dp, end = 18.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Search users",
-                            fontSize = 16.sp,
-                            color = contentColor.copy(alpha = 0.6f),
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-
-            // Glass filter row
-            ChatFilterRow(
-                selectedFilter = selectedFilter,
-                unreadCount = unreadCount,
-                favouritesCount = favouritesCount,
-                customLists = customLists,
-                backdrop = backdrop,
-                contentColor = contentColor,
-                onSelectFilter = { viewModel.selectFilter(it) },
-                onAddListClick = {
-                    editingList = null
-                    showListSheet = true
-                },
-                onEditCustomList = { list ->
-                    editingList = list
-                    showListSheet = true
-                }
-            )
-        }
-
-        // Active Minimized Call Bar
-        activeCall?.let { call ->
-            MinimizedCallBar(
-                state = call,
-                accentColor = accentColor,
-                isDark = isDark
-            )
-        }
-
-        // Content
+        // Content fills the whole Box and scrolls underneath the floating glass strip
         val filterEmptyLabel: String? = when (val f = selectedFilter) {
             ChatFilter.All -> if (chats.isEmpty() && allChats.isNotEmpty()) "No chats in All" else null
             ChatFilter.Unread -> if (chats.isEmpty()) "No chats in Unread" else null
@@ -340,7 +200,7 @@ fun ChatsListScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 90.dp),
+                    .padding(top = stripHeightDp, bottom = 100.dp + navBarBottom),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = accentColor)
@@ -349,7 +209,7 @@ fun ChatsListScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 90.dp)
+                    .padding(top = stripHeightDp, bottom = 100.dp + navBarBottom)
                     .padding(horizontal = 32.dp)
                     .testTag("empty_filter_state"),
                 contentAlignment = Alignment.Center
@@ -361,11 +221,11 @@ fun ChatsListScreen(
                 )
             }
         } else if (allChats.isEmpty() && archivedChats.isEmpty()) {
-            // Empty State
+            // Empty State centred in the area below the floating header strip
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 90.dp)
+                    .padding(top = stripHeightDp, bottom = 100.dp + navBarBottom)
                     .padding(horizontal = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -429,7 +289,6 @@ fun ChatsListScreen(
                 }
             }
         } else {
-            val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -437,8 +296,8 @@ fun ChatsListScreen(
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
-                    top = 8.dp,
-                    bottom = 110.dp + navBarBottom
+                    top = stripHeightDp + 8.dp,
+                    bottom = 100.dp + navBarBottom
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
@@ -509,6 +368,173 @@ fun ChatsListScreen(
                                 selectedChatIds + chat.chatId
                             }
                         }
+                    )
+                }
+            }
+        }
+
+        // Floating glass strip at TopCenter covering full width from top of screen to bottom of chip row
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .zIndex(10f)
+                .onSizeChanged { stripHeightPx = it.height }
+                .skipWhenRecordingChatBackdrop()
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .chatHeaderStripGlass(backdrop)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+            ) {
+                if (selectedChatIds.isNotEmpty()) {
+                    ChatSelectionBar(
+                        selectedChatIds = selectedChatIds,
+                        allSelectableChatIds = chats.map { it.chatId }.toSet(),
+                        chatLocalStates = chatLocalStates,
+                        viewModel = viewModel,
+                        backdrop = backdrop,
+                        isDark = isDark,
+                        contentColor = contentColor,
+                        onUpdateSelection = { selectedChatIds = it },
+                        onClearSelection = { selectedChatIds = emptySet() }
+                    )
+                } else {
+                    // Top App Bar: glass pills, icons and text black or white by theme only
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+                    ) {
+                        // Left glass pill: chat icon + "Chats" title
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .chatHeaderGlass(backdrop)
+                                .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Chats",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor
+                            )
+                        }
+
+                        // Right side: profile pill (no text)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .chatHeaderGlass(backdrop, CircleShape)
+                                    .clip(CircleShape)
+                                    .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
+                                    .testTag("chat_list_profile_button"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val photo = currentUser?.photoUrl
+                                if (!photo.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = photo,
+                                        contentDescription = "Profile",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Profile",
+                                        tint = contentColor,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Expanded search bar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .chatHeaderGlass(backdrop, RoundedCornerShape(percent = 50))
+                                .clip(RoundedCornerShape(percent = 50))
+                                .clickable { viewModel.openSearch() }
+                                .testTag("open_user_search_button"),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(start = 18.dp, end = 18.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "Search users",
+                                    fontSize = 16.sp,
+                                    color = contentColor.copy(alpha = 0.6f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+
+                    // Glass filter row
+                    ChatFilterRow(
+                        selectedFilter = selectedFilter,
+                        unreadCount = unreadCount,
+                        favouritesCount = favouritesCount,
+                        customLists = customLists,
+                        backdrop = backdrop,
+                        contentColor = contentColor,
+                        onSelectFilter = { viewModel.selectFilter(it) },
+                        onAddListClick = {
+                            editingList = null
+                            showListSheet = true
+                        },
+                        onEditCustomList = { list ->
+                            editingList = list
+                            showListSheet = true
+                        }
+                    )
+                }
+
+                // Active Minimized Call Bar
+                activeCall?.let { call ->
+                    MinimizedCallBar(
+                        state = call,
+                        accentColor = accentColor,
+                        isDark = isDark
                     )
                 }
             }
