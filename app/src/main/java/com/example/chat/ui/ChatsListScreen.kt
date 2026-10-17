@@ -18,10 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,10 +50,15 @@ import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.ui.call.MinimizedCallBar
 import com.example.chat.model.ChatSummary
+import com.example.chat.model.ChatTab
 import com.example.chat.model.ParticipantInfo
+import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import com.example.ui.components.isGlassSupported
+import com.example.ui.components.liquidGlassNav
 import com.google.firebase.Timestamp
+import com.kyant.backdrop.Backdrop
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -63,6 +69,7 @@ fun ChatsListScreen(
     viewModel: ChatViewModel,
     onBackToApp: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
@@ -78,57 +85,85 @@ fun ChatsListScreen(
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // Top App Bar
+        // Top App Bar: glass pills, icons and text black or white by theme only
+        val contentColor = glassContentColor()
         Row(
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            IconButton(
-                onClick = onBackToApp,
-                modifier = Modifier.testTag("chat_list_back_button")
+            // Left glass pill: chat icon + "Chats" title
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .chatHeaderGlass(backdrop)
+                    .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to Home",
-                    tint = if (isDark) Color.White else Color(0xFF0F172A)
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(26.dp)
                 )
-            }
-
-            Spacer(modifier = Modifier.width(6.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Chats",
-                    fontSize = 22.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                    color = contentColor
                 )
-                if (currentUser != null) {
-                    Text(
-                        text = "@${currentUser?.username}",
-                        fontSize = 12.sp,
-                        color = accentColor,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
             }
 
-            IconButton(
-                onClick = { viewModel.openSearch() },
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = if (isDark) 0.20f else 0.12f))
-                    .testTag("open_user_search_button")
+            // Right side: search pill (icon only) and profile pill (no text)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search users",
-                    tint = accentColor,
-                    modifier = Modifier.size(22.dp)
-                )
+                IconButton(
+                    onClick = { viewModel.openSearch() },
+                    modifier = Modifier
+                        .size(50.dp)
+                        .chatHeaderGlass(backdrop, CircleShape)
+                        .testTag("open_user_search_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search users",
+                        tint = contentColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .chatHeaderGlass(backdrop, CircleShape)
+                        .clip(CircleShape)
+                        .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
+                        .testTag("chat_list_profile_button"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val photo = currentUser?.photoUrl
+                    if (!photo.isNullOrBlank()) {
+                        AsyncImage(
+                            model = photo,
+                            contentDescription = "Profile",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = contentColor,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
             }
         }
 
@@ -394,3 +429,16 @@ private fun formatTimestamp(timestamp: Timestamp?): String {
         }
     }
 }
+
+@Composable
+private fun Modifier.chatHeaderGlass(
+    backdrop: Backdrop?,
+    shape: CornerBasedShape = RoundedCornerShape(percent = 50)
+): Modifier {
+    return if (backdrop != null && isGlassSupported()) {
+        this.liquidGlassNav(shape = shape, backdrop = backdrop)
+    } else {
+        this.clip(shape).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+    }
+}
+

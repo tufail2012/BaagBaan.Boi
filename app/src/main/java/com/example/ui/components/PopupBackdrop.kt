@@ -42,7 +42,7 @@ class PopupBackdrop(
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?
     ) {
-        if (coordinates == null) return
+        if (coordinates == null || !coordinates.isAttached) return
 
         val layerBackdrop = source as? LayerBackdrop
         if (layerBackdrop == null) {
@@ -53,10 +53,7 @@ class PopupBackdrop(
         }
 
         val layerCoordinates = sourceCoordinatesProvider?.invoke() ?: getBackdropCoordinates(layerBackdrop)
-        if (layerCoordinates == null || !coordinates.isAttached || !layerCoordinates.isAttached) {
-            with(source) {
-                drawBackdrop(density, coordinates, layerBlock)
-            }
+        if (layerCoordinates == null || !layerCoordinates.isAttached) {
             return
         }
 

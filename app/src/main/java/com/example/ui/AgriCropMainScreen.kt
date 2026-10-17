@@ -751,7 +751,10 @@ fun AgriCropMainScreen(
                                     viewModel.openGlobalSearch()
                                 },
                                 onNavigateToAttendance = {
-                                    isAttendanceActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        isAttendanceActive = true
+                                    }
                                 },
                                 onNavigateToBookings = {
                                     viewModel.selectServiceCategory("Bookings")
@@ -778,32 +781,47 @@ fun AgriCropMainScreen(
                                     showThemePreferencesDialog = true
                                 },
                                 onNavigateToDashboard = {
-                                    isDashboardActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        isDashboardActive = true
+                                    }
                                 },
                                 onNavigateToLogin = {
-                                    isLoginActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        isLoginActive = true
+                                    }
                                 },
                                 onNavigateToGardenPlanning = {
                                     viewModel.selectServiceCategory("Garden Planning")
                                     gardenPlanningViewModel.resetToNewEntry()
                                 },
                                 onNavigateToSettings = {
-                                    isSettingsActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        isSettingsActive = true
+                                    }
                                 },
                                 onNavigateToBusinessInfo = {
                                     showBusinessInfoDialog = true
                                 },
                                 onNavigateToMessageTemplates = {
-                                    isMessageTemplatesActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        isMessageTemplatesActive = true
+                                    }
                                 },
                                 onNavigateToQrScanner = {
                                     showQrScannerDialog = true
                                 },
                                 onNavigateToChat = {
-                                    if (currentUser == null) {
-                                        isLoginActive = true
-                                    } else {
-                                        isChatActive = true
+                                    coroutineScope.launch {
+                                        kotlinx.coroutines.yield()
+                                        if (currentUser == null) {
+                                            isLoginActive = true
+                                        } else {
+                                            isChatActive = true
+                                        }
                                     }
                                 },
                                 unreadNotificationCount = unreadCount,

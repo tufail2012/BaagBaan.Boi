@@ -191,7 +191,8 @@ fun ChatSectionScreen(
                                         ChatsListScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
-                                            accentColor = accentColor
+                                            accentColor = accentColor,
+                                            backdrop = backdrop
                                         )
                                     }
 
