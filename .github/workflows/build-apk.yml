@@ -142,6 +142,15 @@ jobs:
           fi
           echo "release-key.jks is ready."
 
+      - name: Check Zego secrets reach the build
+        if: steps.validate.outputs.signing_ready == 'true'
+        env:
+          ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
+        run: |
+          echo "ZEGO_APP_ID length: ${#ZEGO_APP_ID}"
+          echo "ZEGO_APP_SIGN length: ${#ZEGO_APP_SIGN}"
+
       - name: Build Release APK
         if: steps.validate.outputs.signing_ready == 'true'
         env:
