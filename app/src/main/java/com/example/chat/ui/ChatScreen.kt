@@ -172,8 +172,9 @@ fun ChatScreen(
     val currentUid = currentUser?.uid?.ifBlank { null }
         ?: com.example.util.SafeFirebase.getAuth(context)?.currentUser?.uid.orEmpty()
     val myUsername = currentUser?.username?.ifBlank { null }
-        ?: com.example.chat.data.ChatPreferences(context).lastUsername
-        ?: ""
+        ?: com.example.chat.data.ChatPreferences(context).lastUsername?.ifBlank { null }
+        ?: currentUser?.displayName?.ifBlank { null }
+        ?: "user_${currentUid.take(6)}"
     val recipient by viewModel.activeRecipient.collectAsState()
     val recipientPresence by viewModel.recipientPresence.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
@@ -242,7 +243,9 @@ fun ChatScreen(
     val activeChatId by viewModel.activeChatId.collectAsState()
     val chatsList by viewModel.chatsList.collectAsState()
     val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
-    val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid } ?: ""
+    val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid }
+        ?.ifBlank { null }
+        ?: recipient?.uid.orEmpty()
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -417,21 +420,20 @@ fun ChatScreen(
             val isVideo = pendingIsVideoCall ?: false
             pendingIsVideoCall = null
             recipient?.let { rec ->
+                if (ZegoCallManager.getCredentialsError() != null) {
+                    showZegoConfigDialog = true
+                    return@let
+                }
                 if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
                     Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
                     return@let
                 }
-                if (!ZegoCallManager.isConfigured()) {
-                    val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-                    Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-                    showZegoConfigDialog = true
+                val targetName = rec.username.ifBlank { rec.displayName.ifBlank { "Member" } }
+                val errorReason = ZegoCallManager.startCall(context, otherUid, targetName, isVideo)
+                if (errorReason == null) {
+                    Toast.makeText(context, "Calling @$targetName…", Toast.LENGTH_SHORT).show()
                 } else {
-                    val errorReason = ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
-                    if (errorReason == null) {
-                        Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
-                    }
+                    Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
                 }
             }
         } else {
@@ -445,26 +447,25 @@ fun ChatScreen(
             pendingIsVideoCall = isVideo
             showPermissionRationale = true
         } else {
+            if (ZegoCallManager.getCredentialsError() != null) {
+                showZegoConfigDialog = true
+                return
+            }
             if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
                 Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
                 return
             }
-            if (!ZegoCallManager.isConfigured()) {
-                val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-                Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-                showZegoConfigDialog = true
+            val targetName = rec.username.ifBlank { rec.displayName.ifBlank { "Member" } }
+            val errorReason = try {
+                ZegoCallManager.startCall(context, otherUid, targetName, isVideo)
+            } catch (e: Throwable) {
+                Log.e("ChatScreen", "startCall threw unexpectedly", e)
+                "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
+            }
+            if (errorReason == null) {
+                Toast.makeText(context, "Calling @$targetName…", Toast.LENGTH_SHORT).show()
             } else {
-                val errorReason = try {
-                    ZegoCallManager.startCall(context, otherUid, rec.username, isVideo)
-                } catch (e: Throwable) {
-                    Log.e("ChatScreen", "startCall threw unexpectedly", e)
-                    "${e.javaClass.simpleName}: ${e.message ?: "no message"}"
-                }
-                if (errorReason == null) {
-                    Toast.makeText(context, "Calling @${rec.username}…", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
             }
         }
     }

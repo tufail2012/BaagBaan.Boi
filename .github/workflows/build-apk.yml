@@ -194,6 +194,9 @@ jobs:
 
       - name: Build Debug Test APK (Fallback)
         if: steps.validate.outputs.signing_ready == 'false'
+        env:
+          ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: |
           echo "::warning::Release signing secrets missing. Building DEBUG test APK instead. Not for release."
           gradle :app:assembleDebug --stacktrace --no-daemon

@@ -82,8 +82,9 @@ fun CallsTabScreen(
     val currentUid = currentUser?.uid?.ifBlank { null }
         ?: com.example.util.SafeFirebase.getAuth(context)?.currentUser?.uid.orEmpty()
     val myUsername = currentUser?.username?.ifBlank { null }
-        ?: com.example.chat.data.ChatPreferences(context).lastUsername
-        ?: ""
+        ?: com.example.chat.data.ChatPreferences(context).lastUsername?.ifBlank { null }
+        ?: currentUser?.displayName?.ifBlank { null }
+        ?: "user_${currentUid.take(6)}"
     val chatSummaries by viewModel.chatsList.collectAsState()
     val callHistory by viewModel.callHistory.collectAsState()
 
@@ -115,21 +116,20 @@ fun CallsTabScreen(
         if (hasPermissions) {
             pendingCallAction?.let { (uid, username, isVideo) ->
                 pendingCallAction = null
+                if (ZegoCallManager.getCredentialsError() != null) {
+                    showZegoConfigDialog = true
+                    return@let
+                }
                 if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
                     Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
                     return@let
                 }
-                if (!ZegoCallManager.isConfigured()) {
-                    val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-                    Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-                    showZegoConfigDialog = true
+                val safeName = username.ifBlank { "Member" }
+                val errorReason = ZegoCallManager.startCall(context, uid, safeName, isVideo)
+                if (errorReason == null) {
+                    Toast.makeText(context, "Calling @$safeName…", Toast.LENGTH_SHORT).show()
                 } else {
-                    val errorReason = ZegoCallManager.startCall(context, uid, username, isVideo)
-                    if (errorReason == null) {
-                        Toast.makeText(context, "Calling @$username…", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
-                    }
+                    Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
                 }
             }
         } else {
@@ -146,21 +146,20 @@ fun CallsTabScreen(
             pendingCallAction = Triple(targetUid, targetUsername, isVideo)
             showPermissionRationale = true
         } else {
+            if (ZegoCallManager.getCredentialsError() != null) {
+                showZegoConfigDialog = true
+                return
+            }
             if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
                 Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
                 return
             }
-            if (!ZegoCallManager.isConfigured()) {
-                val reason = ZegoCallManager.getConfigurationError() ?: "Zego call service is not configured"
-                Toast.makeText(context, reason, Toast.LENGTH_LONG).show()
-                showZegoConfigDialog = true
+            val safeName = targetUsername.ifBlank { "Member" }
+            val errorReason = ZegoCallManager.startCall(context, targetUid, safeName, isVideo)
+            if (errorReason == null) {
+                Toast.makeText(context, "Calling @$safeName…", Toast.LENGTH_SHORT).show()
             } else {
-                val errorReason = ZegoCallManager.startCall(context, targetUid, targetUsername, isVideo)
-                if (errorReason == null) {
-                    Toast.makeText(context, "Calling @$targetUsername…", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
-                }
+                Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -245,6 +244,11 @@ fun CallsTabScreen(
             // Call Status & Service Card
             item {
                 Card(
+                    onClick = {
+                        if (!ZegoCallManager.isConfigured()) {
+                            showZegoConfigDialog = true
+                        }
+                    },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isDark) Color(0xFF1E293B) else Color(0xFFF1F5F9)

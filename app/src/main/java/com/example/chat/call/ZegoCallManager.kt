@@ -227,10 +227,6 @@ object ZegoCallManager {
         if (!isInitialized) {
             return "Zego service not logged in: Call invitation service is not initialized for the current user yet"
         }
-        val sinceInit = SystemClock.elapsedRealtime() - initializedAtMs
-        if (sinceInit < SETTLE_DELAY_MS) {
-            return "Zego call service is still starting up — please try again in a moment"
-        }
         return null
     }
 
@@ -241,22 +237,21 @@ object ZegoCallManager {
     fun ensureInitialized(context: Context, uid: String, username: String): Boolean {
         val message = getCredentialsError()
         if (message != null) {
-            Toast.makeText(context.applicationContext, message, Toast.LENGTH_LONG).show()
             return false
         }
         if (isInitialized && currentUserId == uid) {
             return true
         }
-        if (uid.isBlank() || username.isBlank()) {
-            Log.w(TAG, "Cannot ensureInitialized: uid or username is blank (uid='$uid', username='$username')")
+        val safeUsername = username.ifBlank { "user_${uid.take(6)}" }
+        if (uid.isBlank()) {
+            Log.w(TAG, "Cannot ensureInitialized: uid is blank")
             return false
         }
         val application = (context.applicationContext as? Application)
             ?: (context as? Application)
             ?: com.example.AgriApplication.instance
-        init(application, uid, username)
-        Log.w(TAG, "Zego just initialized for $uid — asking caller to retry so the SDK can settle")
-        return false
+        init(application, uid, safeUsername)
+        return isInitialized
     }
 
     fun init(application: Application, userId: String, userName: String) {
@@ -639,16 +634,27 @@ object ZegoCallManager {
                         val callerPhoto = avatarUrlCache[callerId]
                         val calleePhoto = avatarUrlCache[calleeId] ?: call?.targetPhotoUrl
 
+                        val callerName = if (callerId == currentUserId) {
+                            currentUserName.orEmpty()
+                        } else {
+                            call?.targetName.orEmpty()
+                        }
+                        val calleeName = if (calleeId == currentUserId) {
+                            currentUserName.orEmpty()
+                        } else {
+                            call?.targetName.orEmpty()
+                        }
+
                         val callerInfo = com.example.chat.model.ParticipantInfo(
                             uid = callerId,
-                            username = if (callerId == currentUserId) currentUserName.orEmpty() else "",
-                            displayName = if (callerId == currentUserId) currentUserName.orEmpty() else "",
+                            username = callerName,
+                            displayName = callerName,
                             photoUrl = callerPhoto
                         )
                         val calleeInfo = com.example.chat.model.ParticipantInfo(
                             uid = calleeId,
-                            username = if (calleeId == call?.targetUid) call.targetName else "",
-                            displayName = if (calleeId == call?.targetUid) call.targetName else "",
+                            username = calleeName,
+                            displayName = calleeName,
                             photoUrl = calleePhoto
                         )
 
@@ -875,16 +881,22 @@ object ZegoCallManager {
             isNoiseCancellationOn = true
         )
 
+        val safeTargetName = targetUserName.ifBlank { "Member" }
         return try {
             val button = ZegoSendCallInvitationButton(activity)
             button.setIsVideoCall(isVideo)
             button.setResourceID("zego_call")
-            button.setInvitees(listOf(ZegoUIKitUser(targetUserId, targetUserName)))
+            button.setInvitees(listOf(ZegoUIKitUser(targetUserId, safeTargetName)))
             val root = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
             root.addView(button, android.view.ViewGroup.LayoutParams(0, 0))
             sendButtonCount++
             trace("T7 send button #$sendButtonCount attached, root children=${root.childCount}")
             button.performClick()
+            root.post {
+                try {
+                    root.removeView(button)
+                } catch (_: Throwable) {}
+            }
 
             // Launch ongoing notification for the outgoing call
             val photoUrl = avatarUrlCache[targetUserId]

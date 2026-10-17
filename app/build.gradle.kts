@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.util.Properties
 
 plugins {
   id("com.android.application")
@@ -22,13 +23,26 @@ android {
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+    val localEnvProps = Properties().apply {
+      listOf(".env", "local.properties").forEach { fileName ->
+        val propFile = rootProject.file(fileName)
+        if (propFile.exists()) {
+          propFile.inputStream().use { load(it) }
+        }
+      }
+    }
+
     val zegoAppIdProp = ((project.findProperty("ZEGO_APP_ID") as? String)
         ?: (project.findProperty("zego.app.id") as? String)
+        ?: localEnvProps.getProperty("ZEGO_APP_ID")
+        ?: localEnvProps.getProperty("zego.app.id")
         ?: System.getenv("ZEGO_APP_ID")
         ?: "").replace("\\s+".toRegex(), "").trim()
 
     val zegoAppSignRaw = (project.findProperty("ZEGO_APP_SIGN") as? String)
         ?: (project.findProperty("zego.app.sign") as? String)
+        ?: localEnvProps.getProperty("ZEGO_APP_SIGN")
+        ?: localEnvProps.getProperty("zego.app.sign")
         ?: System.getenv("ZEGO_APP_SIGN")
         ?: ""
 
