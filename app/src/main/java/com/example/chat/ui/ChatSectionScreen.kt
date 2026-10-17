@@ -206,7 +206,8 @@ fun ChatSectionScreen(
                                         CallsTabScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
-                                            accentColor = accentColor
+                                            accentColor = accentColor,
+                                            backdrop = backdrop
                                         )
                                     }
 
