@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -312,11 +316,12 @@ fun CallsTabScreen(
                 }
             }
 
+            val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .testTag("calls_list_column"),
-                contentPadding = PaddingValues(bottom = 96.dp)
+                contentPadding = PaddingValues(bottom = 120.dp + navBarBottom)
             ) {
                 // 2. Four quick action circles
                 item {
@@ -403,11 +408,12 @@ fun CallsTabScreen(
             }
         }
 
-        // 4. Floating call button at bottom right
+        // 4. Floating call button at bottom right (above floating nav bar)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 20.dp)
+                .navigationBarsPadding()
+                .padding(end = 20.dp, bottom = 104.dp)
                 .size(56.dp)
                 .chatHeaderGlass(backdrop, RoundedCornerShape(16.dp))
                 .clip(RoundedCornerShape(16.dp))

@@ -13,13 +13,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
@@ -34,8 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,8 +57,8 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
-import com.example.ui.components.backdrop.backdrops.layerBackdrop as navGlassLayerBackdrop
-import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop as rememberNavGlassBackdrop
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.theme.getAppDimBackgroundBrush
@@ -97,7 +92,7 @@ fun ChatSectionScreen(
     val toastMessage by chatViewModel.toastMessage.collectAsState()
     val inAppBanner by chatViewModel.inAppBanner.collectAsState()
 
-    val effectiveHazeState = hazeState ?: remember { HazeState() }
+    val chatHazeState = remember { HazeState() }
     val windowBackground = MaterialTheme.colorScheme.surface
     val paintBackdrop: ContentDrawScope.() -> Unit =
         remember(windowBackground) {
@@ -106,7 +101,7 @@ fun ChatSectionScreen(
                 drawContent()
             }
         }
-    val navGlassBackdrop = rememberNavGlassBackdrop(onDraw = paintBackdrop)
+    val chatNavBackdrop = rememberLayerBackdrop(onDraw = paintBackdrop)
 
     val chatTabs = remember {
         listOf(
@@ -202,51 +197,16 @@ fun ChatSectionScreen(
                 accentColor = accentColor
             )
         } else {
-            // Main Chat Experience with its OWN Scaffold & Bottom Nav
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                containerColor = Color.Transparent,
-                contentWindowInsets = when (activeSubScreen) {
-                    ChatSubScreen.CONVERSATION -> WindowInsets(0, 0, 0, 0)
-                    ChatSubScreen.TABS, ChatSubScreen.ARCHIVED -> ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars)
-                    else -> ScaffoldDefaults.contentWindowInsets
-                },
-                bottomBar = {
-                    // Only show bottom navigation on main tabs, not inside active search or conversation
-                    if (activeSubScreen == ChatSubScreen.TABS) {
-                        ChatBottomNav(
-                            selectedTab = activeTab,
-                            onTabSelected = { tab ->
-                                val targetIndex = chatTabs.indexOf(tab)
-                                chatViewModel.selectTab(tab)
-                                if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
-                                    animatingNavTargetPage = targetIndex
-                                    navAnimationJob?.cancel()
-                                    navAnimationJob = coroutineScope.launch {
-                                        try {
-                                            pagerState.scrollToPage(targetIndex)
-                                        } finally {
-                                            if (animatingNavTargetPage == targetIndex) {
-                                                animatingNavTargetPage = -1
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            pagerState = pagerState,
-                            glassBackdrop = navGlassBackdrop,
-                            hazeState = effectiveHazeState
-                        )
-                    }
-                }
-            ) { padding ->
+            // Main Chat Experience with Floating Liquid-Glass Bottom Nav Overlay
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .hazeSource(state = effectiveHazeState)
-                        .navGlassLayerBackdrop(navGlassBackdrop)
+                        .hazeSource(state = chatHazeState)
+                        .layerBackdrop(chatNavBackdrop)
                         .background(rootBgBrush)
-                        .padding(padding)
                 ) {
                     when (activeSubScreen) {
                         ChatSubScreen.SEARCH -> {
@@ -322,6 +282,36 @@ fun ChatSectionScreen(
                             }
                         }
                     }
+                }
+
+                // Only show floating bottom navigation on main tabs, not inside active search, archived, or conversation
+                if (activeSubScreen == ChatSubScreen.TABS) {
+                    ChatBottomNav(
+                        selectedTab = activeTab,
+                        onTabSelected = { tab ->
+                            val targetIndex = chatTabs.indexOf(tab)
+                            chatViewModel.selectTab(tab)
+                            if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+                                animatingNavTargetPage = targetIndex
+                                navAnimationJob?.cancel()
+                                navAnimationJob = coroutineScope.launch {
+                                    try {
+                                        pagerState.scrollToPage(targetIndex)
+                                    } finally {
+                                        if (animatingNavTargetPage == targetIndex) {
+                                            animatingNavTargetPage = -1
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        pagerState = pagerState,
+                        glassBackdrop = chatNavBackdrop,
+                        hazeState = chatHazeState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .zIndex(10f)
+                    )
                 }
             }
         }
