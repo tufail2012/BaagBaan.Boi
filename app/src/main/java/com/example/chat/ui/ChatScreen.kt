@@ -751,16 +751,21 @@ fun ChatScreen(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
                         .height(64.dp)
-                        .then(glassModifier(headerShape))
-                        .padding(horizontal = 6.dp)
                 ) {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.testTag("conversation_back_button")
+                    // 1) BACK: its own glass circle
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .then(glassModifier(CircleShape))
+                            .clip(CircleShape)
+                            .clickable(onClick = onBack)
+                            .testTag("conversation_back_button")
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -769,13 +774,16 @@ fun ChatScreen(
                         )
                     }
 
+                    // 2) NAME: its own glass pill (avatar, name, status)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
+                            .height(56.dp)
+                            .then(glassModifier(headerShape))
+                            .clip(headerShape)
                             .clickable { showProfileDialog = true }
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         // Recipient Avatar
                         Box(contentAlignment = Alignment.BottomEnd) {
@@ -865,64 +873,75 @@ fun ChatScreen(
                         }
                     }
 
-                    IconButton(
-                        onClick = { initiateCall(true) },
-                        modifier = Modifier.testTag("conversation_video_call_button")
+                    // 3) ACTIONS: its own glass pill (voice call + more menu)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .height(56.dp)
+                            .then(glassModifier(headerShape))
+                            .clip(headerShape)
+                            .padding(horizontal = 4.dp)
                     ) {
-                        VideoCallIcon(
-                            tint = if (isDark) Color.White else Color(0xFF0F172A),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { initiateCall(false) },
-                        modifier = Modifier.testTag("conversation_voice_call_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = "Voice call",
-                            tint = if (isDark) Color.White else Color(0xFF0F172A),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Box {
                         IconButton(
-                            onClick = { showMoreMenu = true },
-                            modifier = Modifier.testTag("conversation_more_button")
+                            onClick = { initiateCall(false) },
+                            modifier = Modifier.testTag("conversation_voice_call_button")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options",
-                                tint = if (isDark) Color.White else Color(0xFF0F172A)
+                                imageVector = Icons.Default.Call,
+                                contentDescription = "Voice call",
+                                tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                modifier = Modifier.size(22.dp)
                             )
                         }
-                        DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text("View profile") },
-                                onClick = { showMoreMenu = false; showProfileDialog = true }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Wallpaper") },
-                                modifier = Modifier.testTag("menu_wallpaper"),
-                                onClick = {
-                                    showMoreMenu = false
-                                    wallpaperPicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                            )
-                            if (wallpaperFile != null) {
+
+                        Box {
+                            IconButton(
+                                onClick = { showMoreMenu = true },
+                                modifier = Modifier.testTag("conversation_more_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = if (isDark) Color.White else Color(0xFF0F172A)
+                                )
+                            }
+                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Reset wallpaper") },
+                                    text = { Text("Video call") },
+                                    leadingIcon = {
+                                        VideoCallIcon(
+                                            tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    },
+                                    modifier = Modifier.testTag("conversation_video_call_button"),
+                                    onClick = { showMoreMenu = false; initiateCall(true) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("View profile") },
+                                    onClick = { showMoreMenu = false; showProfileDialog = true }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Wallpaper") },
+                                    modifier = Modifier.testTag("menu_wallpaper"),
                                     onClick = {
                                         showMoreMenu = false
-                                        activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                        wallpaperFile = null
-                                        wallpaperRevision++
+                                        wallpaperPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
                                     }
                                 )
+                                if (wallpaperFile != null) {
+                                    DropdownMenuItem(
+                                        text = { Text("Reset wallpaper") },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                            wallpaperFile = null
+                                            wallpaperRevision++
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
