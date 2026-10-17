@@ -1,7 +1,11 @@
 package com.example.chat.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,21 +25,37 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,10 +68,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
-import com.example.chat.ui.call.MinimizedCallBar
+import com.example.chat.data.ChatItemLocalState
 import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatTab
 import com.example.chat.model.ParticipantInfo
+import com.example.chat.ui.call.MinimizedCallBar
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
@@ -61,7 +82,6 @@ import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -75,93 +95,337 @@ fun ChatsListScreen(
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val chats by viewModel.chatsList.collectAsState()
+    val chatLocalStates by viewModel.chatLocalStates.collectAsState()
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
+
+    var selectedChatIds by remember { mutableStateOf(emptySet<String>()) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMuteDialog by remember { mutableStateOf(false) }
+
+    // Keep selection clean if chats list updates and removes selected items
+    LaunchedEffect(chats) {
+        if (selectedChatIds.isNotEmpty()) {
+            val visibleIds = chats.map { it.chatId }.toSet()
+            val remaining = selectedChatIds.intersect(visibleIds)
+            if (remaining.size != selectedChatIds.size) {
+                selectedChatIds = remaining
+            }
+        }
+    }
+
+    BackHandler(enabled = selectedChatIds.isNotEmpty()) {
+        selectedChatIds = emptySet()
+    }
+
+    val contentColor = glassContentColor()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
     ) {
-        // Top App Bar: glass pills, icons and text black or white by theme only
-        val contentColor = glassContentColor()
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-        ) {
-            // Left glass pill: chat icon + "Chats" title
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+        if (selectedChatIds.isNotEmpty()) {
+            // Selection top bar: one glass pill across the full width
+            Box(
                 modifier = Modifier
-                    .chatHeaderGlass(backdrop)
-                    .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Chats",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor
-                )
-            }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .chatHeaderGlass(backdrop)
+                        .padding(horizontal = 6.dp)
+                ) {
+                    IconButton(
+                        onClick = { selectedChatIds = emptySet() },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("selection_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Clear selection",
+                            tint = contentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
-            // Right side: search pill (icon only) and profile pill (no text)
+                    Text(
+                        text = "${selectedChatIds.size}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = {
+                            viewModel.togglePinChats(selectedChatIds)
+                            selectedChatIds = emptySet()
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("selection_pin_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "Pin",
+                            tint = contentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("selection_delete_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = contentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showMuteDialog = true },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("selection_mute_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsOff,
+                            contentDescription = "Mute",
+                            tint = contentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            viewModel.archiveChats(selectedChatIds)
+                            selectedChatIds = emptySet()
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("selection_archive_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Archive,
+                            contentDescription = "Archive",
+                            tint = contentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Box {
+                        IconButton(
+                            onClick = { showOverflowMenu = true },
+                            modifier = Modifier
+                                .size(42.dp)
+                                .testTag("selection_more_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = contentColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        val anyUnread = selectedChatIds.any { chatLocalStates[it]?.markedUnread == true }
+                        val allFavourite = selectedChatIds.isNotEmpty() &&
+                            selectedChatIds.all { chatLocalStates[it]?.favourite == true }
+
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false },
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp
+                        ) {
+                            val menuShape = RoundedCornerShape(20.dp)
+                            Column(
+                                modifier = Modifier
+                                    .width(220.dp)
+                                    .clip(menuShape)
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(
+                                            alpha = if (isDark) 0.82f else 0.88f
+                                        )
+                                    )
+                                    .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
+                                    .chatHeaderGlass(backdrop, menuShape)
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                SelectionMenuItem(
+                                    text = "Add chat shortcut",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.showToast("Coming soon")
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = if (anyUnread) "Mark as read" else "Mark as unread",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        if (anyUnread) {
+                                            viewModel.markChatsAsRead(selectedChatIds)
+                                        } else {
+                                            viewModel.markChatsAsUnread(selectedChatIds)
+                                        }
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = "Select all",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        selectedChatIds = chats.map { it.chatId }.toSet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = "Lock chat",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.showToast("Coming soon")
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = if (allFavourite) "Remove from favourites" else "Add to favourites",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.toggleFavouriteChats(selectedChatIds)
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = "Add to list",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.showToast("Coming soon")
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = "Clear chat",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.showToast("Coming soon")
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                                SelectionMenuItem(
+                                    text = "Block",
+                                    contentColor = contentColor,
+                                    onClick = {
+                                        showOverflowMenu = false
+                                        viewModel.showToast("Coming soon")
+                                        selectedChatIds = emptySet()
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Top App Bar: glass pills, icons and text black or white by theme only
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
             ) {
-                IconButton(
-                    onClick = { viewModel.openSearch() },
+                // Left glass pill: chat icon + "Chats" title
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .size(50.dp)
-                        .chatHeaderGlass(backdrop, CircleShape)
-                        .testTag("open_user_search_button")
+                        .chatHeaderGlass(backdrop)
+                        .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search users",
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = null,
                         tint = contentColor,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Chats",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .chatHeaderGlass(backdrop, CircleShape)
-                        .clip(CircleShape)
-                        .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
-                        .testTag("chat_list_profile_button"),
-                    contentAlignment = Alignment.Center
+                // Right side: search pill (icon only) and profile pill (no text)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val photo = currentUser?.photoUrl
-                    if (!photo.isNullOrBlank()) {
-                        AsyncImage(
-                            model = photo,
-                            contentDescription = "Profile",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                        )
-                    } else {
+                    IconButton(
+                        onClick = { viewModel.openSearch() },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .chatHeaderGlass(backdrop, CircleShape)
+                            .testTag("open_user_search_button")
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Profile",
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search users",
                             tint = contentColor,
-                            modifier = Modifier.size(26.dp)
+                            modifier = Modifier.size(24.dp)
                         )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .chatHeaderGlass(backdrop, CircleShape)
+                            .clip(CircleShape)
+                            .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
+                            .testTag("chat_list_profile_button"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val photo = currentUser?.photoUrl
+                        if (!photo.isNullOrBlank()) {
+                            AsyncImage(
+                                model = photo,
+                                contentDescription = "Profile",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = contentColor,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -264,12 +528,34 @@ fun ChatsListScreen(
             ) {
                 items(chats, key = { it.chatId }) { chat ->
                     val other = chat.getOtherParticipant(currentUid)
+                    val isSelected = chat.chatId in selectedChatIds
+                    val localState = chatLocalStates[chat.chatId]
                     ChatListItemRow(
                         chat = chat,
                         other = other,
                         accentColor = accentColor,
                         isDark = isDark,
-                        onClick = { viewModel.openChatFromSummary(chat) }
+                        contentColor = contentColor,
+                        isSelected = isSelected,
+                        localState = localState,
+                        onClick = {
+                            if (selectedChatIds.isNotEmpty()) {
+                                selectedChatIds = if (isSelected) {
+                                    selectedChatIds - chat.chatId
+                                } else {
+                                    selectedChatIds + chat.chatId
+                                }
+                            } else {
+                                viewModel.openChatFromSummary(chat)
+                            }
+                        },
+                        onLongClick = {
+                            selectedChatIds = if (isSelected) {
+                                selectedChatIds - chat.chatId
+                            } else {
+                                selectedChatIds + chat.chatId
+                            }
+                        }
                     )
                 }
 
@@ -279,15 +565,151 @@ fun ChatsListScreen(
             }
         }
     }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    text = "Delete chat?",
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.hideDeletedChatsLocally(selectedChatIds)
+                        showDeleteDialog = false
+                        selectedChatIds = emptySet()
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = contentColor,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(
+                        text = "Cancel",
+                        color = contentColor
+                    )
+                }
+            }
+        )
+    }
+
+    if (showMuteDialog) {
+        var selectedOption by remember { mutableIntStateOf(0) }
+        val options = listOf("8 hours", "1 week", "Always")
+        AlertDialog(
+            onDismissRequest = { showMuteDialog = false },
+            title = {
+                Text(
+                    text = "Mute message notifications",
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Column {
+                    options.forEachIndexed { index, label ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedOption = index }
+                                .padding(vertical = 6.dp)
+                        ) {
+                            RadioButton(
+                                selected = selectedOption == index,
+                                onClick = { selectedOption = index },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = contentColor,
+                                    unselectedColor = contentColor.copy(alpha = 0.6f)
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = label,
+                                fontSize = 16.sp,
+                                color = contentColor
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val now = System.currentTimeMillis()
+                        val mutedUntil = when (selectedOption) {
+                            0 -> now + 8L * 60L * 60L * 1000L
+                            1 -> now + 7L * 24L * 60L * 60L * 1000L
+                            else -> Long.MAX_VALUE
+                        }
+                        viewModel.muteChats(selectedChatIds, mutedUntil)
+                        showMuteDialog = false
+                        selectedChatIds = emptySet()
+                    }
+                ) {
+                    Text(
+                        text = "OK",
+                        color = contentColor,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMuteDialog = false }) {
+                    Text(
+                        text = "Cancel",
+                        color = contentColor
+                    )
+                }
+            }
+        )
+    }
 }
 
+@Composable
+private fun SelectionMenuItem(
+    text: String,
+    contentColor: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = contentColor
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChatListItemRow(
     chat: ChatSummary,
     other: ParticipantInfo?,
     accentColor: Color,
     isDark: Boolean,
-    onClick: () -> Unit
+    contentColor: Color,
+    isSelected: Boolean,
+    localState: ChatItemLocalState?,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     val displayName = other?.displayName?.ifBlank { other.username } ?: "Member"
     val username = other?.username ?: ""
@@ -295,14 +717,20 @@ private fun ChatListItemRow(
     val formattedTime = remember(lastMsg?.timestamp) {
         formatTimestamp(lastMsg?.timestamp)
     }
+    val isPinned = localState?.pinned == true
+    val isMuted = localState?.isMuted() == true
+    val isMarkedUnread = localState?.markedUnread == true
 
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(0.dp),
-        color = Color.Transparent,
+        color = if (isSelected) contentColor.copy(alpha = 0.10f) else Color.Transparent,
         tonalElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .testTag("chat_item_${chat.chatId}")
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -312,8 +740,24 @@ private fun ChatListItemRow(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
-                // Avatar
-                if (!other?.photoUrl.isNullOrBlank()) {
+                // Avatar or 48dp selection circle
+                if (isSelected) {
+                    val tickColor = if (isDark) Color.Black else Color.White
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(contentColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = tickColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                } else if (!other?.photoUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = other?.photoUrl,
                         contentDescription = displayName,
@@ -369,30 +813,71 @@ private fun ChatListItemRow(
 
                     Spacer(modifier = Modifier.height(2.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (username.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (username.isNotEmpty()) {
+                                Text(
+                                    text = "@$username",
+                                    fontSize = 12.sp,
+                                    color = accentColor,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "•",
+                                    fontSize = 10.sp,
+                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+
                             Text(
-                                text = "@$username",
-                                fontSize = 12.sp,
-                                color = accentColor,
-                                fontWeight = FontWeight.Medium
+                                text = lastMsg?.text ?: "No messages yet",
+                                fontSize = 13.sp,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "•",
-                                fontSize = 10.sp,
-                                color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
                         }
 
-                        Text(
-                            text = lastMsg?.text ?: "No messages yet",
-                            fontSize = 13.sp,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        if (isMuted || isPinned || isMarkedUnread) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (isMuted) {
+                                    Icon(
+                                        imageVector = Icons.Default.NotificationsOff,
+                                        contentDescription = "Muted",
+                                        tint = contentColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                if (isPinned) {
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = "Pinned",
+                                        tint = contentColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                if (isMarkedUnread) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(contentColor)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -438,7 +923,11 @@ private fun Modifier.chatHeaderGlass(
     return if (backdrop != null && isGlassSupported()) {
         this.liquidGlassNav(shape = shape, backdrop = backdrop)
     } else {
-        this.clip(shape).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+        this
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+            .border(0.5.dp, glassContentColor().copy(alpha = 0.15f), shape)
     }
 }
+
 

@@ -7,6 +7,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.chat.data.ChatItemLocalState
+import com.example.chat.data.ChatListLocalPrefs
 import com.example.chat.data.ChatPreferences
 import com.example.chat.data.ChatRepository
 import com.example.chat.data.ChatStorageManager
@@ -37,6 +39,7 @@ class ChatViewModel(
 ) : ViewModel() {
 
     private val preferences = ChatPreferences(context)
+    private val localChatPrefs = ChatListLocalPrefs(context)
 
     private val _currentUser = MutableStateFlow<ChatUser?>(null)
     val currentUser: StateFlow<ChatUser?> = _currentUser.asStateFlow()
@@ -52,6 +55,11 @@ class ChatViewModel(
 
     private val _activeSubScreen = MutableStateFlow(ChatSubScreen.TABS)
     val activeSubScreen: StateFlow<ChatSubScreen> = _activeSubScreen.asStateFlow()
+
+    private var rawChatsList: List<ChatSummary> = emptyList()
+
+    private val _chatLocalStates = MutableStateFlow<Map<String, ChatItemLocalState>>(localChatPrefs.loadAll())
+    val chatLocalStates: StateFlow<Map<String, ChatItemLocalState>> = _chatLocalStates.asStateFlow()
 
     private val _chatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val chatsList: StateFlow<List<ChatSummary>> = _chatsList.asStateFlow()
@@ -250,6 +258,24 @@ class ChatViewModel(
         }
     }
 
+    private fun refreshVisibleChatsList() {
+        val states = _chatLocalStates.value
+        val filteredAndSorted = rawChatsList
+            .filter { chat ->
+                val state = states[chat.chatId]
+                if (state == null) {
+                    true
+                } else if (state.archived) {
+                    false
+                } else {
+                    val lastMsgTimeMs = chat.lastMessage?.timestamp?.toDate()?.time ?: 0L
+                    !state.isHidden(lastMsgTimeMs)
+                }
+            }
+            .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+        _chatsList.value = filteredAndSorted
+    }
+
     private fun startListeningToChats(uid: String) {
         chatsListenJob?.cancel()
         _isChatsLoading.value = true
@@ -260,8 +286,9 @@ class ChatViewModel(
                 }
                 .collectLatest { list ->
                     _isChatsLoading.value = false
-                    val previousList = _chatsList.value
-                    _chatsList.value = list
+                    val previousList = rawChatsList
+                    rawChatsList = list
+                    refreshVisibleChatsList()
 
                     // In-app notification check for foreground messages
                     if (previousList.isNotEmpty() && preferences.isNotificationsEnabled) {
@@ -291,6 +318,77 @@ class ChatViewModel(
                     _callHistory.value = logs
                 }
         }
+    }
+
+    fun togglePinChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        val currentStates = _chatLocalStates.value
+        val shouldPin = chatIds.any { currentStates[it]?.pinned != true }
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(pinned = shouldPin)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun hideDeletedChatsLocally(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        val now = System.currentTimeMillis()
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(hiddenAt = now, pinned = false)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun muteChats(chatIds: Set<String>, mutedUntil: Long) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(mutedUntil = mutedUntil)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun archiveChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(archived = true)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun markChatsAsRead(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(markedUnread = false)
+        }
+        refreshVisibleChatsList()
+        val currentUid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            for (chatId in chatIds) {
+                repository.markMessagesAsRead(chatId, currentUid)
+            }
+        }
+    }
+
+    fun markChatsAsUnread(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(markedUnread = true)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun toggleFavouriteChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        val currentStates = _chatLocalStates.value
+        val allFavourite = chatIds.all { currentStates[it]?.favourite == true }
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(favourite = !allFavourite)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun showToast(message: String) {
+        _toastMessage.value = message
     }
 
     fun dismissInAppBanner() {
@@ -361,6 +459,12 @@ class ChatViewModel(
     fun openChatFromSummary(summary: ChatSummary) {
         val currentUid = _currentUser.value?.uid ?: return
         val other = summary.getOtherParticipant(currentUid) ?: return
+        if (_chatLocalStates.value[summary.chatId]?.markedUnread == true) {
+            _chatLocalStates.value = localChatPrefs.updateChats(listOf(summary.chatId)) {
+                it.copy(markedUnread = false)
+            }
+            refreshVisibleChatsList()
+        }
         _activeChatId.value = summary.chatId
         _activeRecipient.value = other
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
