@@ -204,6 +204,13 @@ fun ChatScreen(
             null
         }
     }
+
+    val presenceHidden = !showOnlineStatus || recipientPresence?.showOnlineStatus == false
+    val ringColor: Color = when {
+        recipientPresence == null || presenceHidden -> Color(0xFF94A3B8) // grey: loading or hidden
+        isRecipientOnline -> Color(0xFF22C55E) // green: online
+        else -> Color(0xFFEF4444) // red: offline
+    }
     val messages by viewModel.messages.collectAsState()
     val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
@@ -751,17 +758,17 @@ fun ChatScreen(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, top = 0.dp, bottom = 8.dp)
-                        .height(64.dp)
+                        .padding(start = 8.dp, end = 10.dp, top = 0.dp, bottom = 8.dp)
+                        .height(56.dp)
                 ) {
-                    // 1) BACK: its own glass circle
+                    // 1) BACK: glass circle at the left edge
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(48.dp)
                             .then(glassModifier(CircleShape))
                             .clip(CircleShape)
                             .clickable(onClick = onBack)
@@ -774,7 +781,7 @@ fun ChatScreen(
                         )
                     }
 
-                    // 2) NAME: its own glass pill (avatar, name, status)
+                    // 2) NAME: wide glass pill with avatar, name and status (username is in the profile dialog)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -783,10 +790,16 @@ fun ChatScreen(
                             .then(glassModifier(headerShape))
                             .clip(headerShape)
                             .clickable { showProfileDialog = true }
-                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
-                        // Recipient Avatar
-                        Box(contentAlignment = Alignment.BottomEnd) {
+                        // Recipient avatar with status ring
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .border(width = 2.dp, color = ringColor, shape = CircleShape)
+                                .padding(2.dp)
+                        ) {
                             if (!recipient?.photoUrl.isNullOrBlank()) {
                                 AsyncImage(
                                     model = recipient?.photoUrl,
@@ -812,22 +825,6 @@ fun ChatScreen(
                                     )
                                 }
                             }
-                            if (isRecipientOnline && showOnlineStatus && recipientPresence?.showOnlineStatus != false) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(11.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isDark) Color(0xFF0F172A) else Color.White)
-                                        .padding(1.5.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF22C55E))
-                                    )
-                                }
-                            }
                         }
 
                         Spacer(modifier = Modifier.width(10.dp))
@@ -838,14 +835,6 @@ fun ChatScreen(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isDark) Color.White else Color(0xFF0F172A),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = "@${recipient?.username}",
-                                fontSize = 12.sp,
-                                color = accentColor,
-                                fontWeight = FontWeight.Medium,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -873,18 +862,20 @@ fun ChatScreen(
                         }
                     }
 
-                    // 3) ACTIONS: its own glass pill (voice call + more menu)
+                    // 3) ACTIONS: small glass pill with voice call and more menu
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .height(56.dp)
                             .then(glassModifier(headerShape))
                             .clip(headerShape)
-                            .padding(horizontal = 4.dp)
+                            .padding(horizontal = 2.dp)
                     ) {
                         IconButton(
                             onClick = { initiateCall(false) },
-                            modifier = Modifier.testTag("conversation_voice_call_button")
+                            modifier = Modifier
+                                .size(44.dp)
+                                .testTag("conversation_voice_call_button")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Call,
@@ -897,7 +888,9 @@ fun ChatScreen(
                         Box {
                             IconButton(
                                 onClick = { showMoreMenu = true },
-                                modifier = Modifier.testTag("conversation_more_button")
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("conversation_more_button")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,

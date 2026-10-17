@@ -2,6 +2,8 @@ package com.example.chat.ui
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -134,10 +136,14 @@ class ChatViewModel(
         if (!_showOnlineStatus.value) return
         presenceHeartbeatJob = viewModelScope.launch {
             while (isActive) {
-                if (_showOnlineStatus.value) {
+                // Only mark online while the app is really in the foreground.
+                // Without this check, the heartbeat keeps the user "online" after the app is minimized.
+                val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+                    .isAtLeast(Lifecycle.State.STARTED)
+                if (_showOnlineStatus.value && inForeground) {
                     repository.setOnlinePresence(uid, true)
                 }
-                delay(45_000L) // Refresh presence every 45s while active in chat
+                delay(45_000L)
             }
         }
     }
