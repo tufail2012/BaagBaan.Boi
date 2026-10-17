@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -235,6 +236,11 @@ object ZegoCallManager {
     }
 
     fun ensureInitialized(context: Context, uid: String, username: String): Boolean {
+        val message = getCredentialsError()
+        if (message != null) {
+            Toast.makeText(context.applicationContext, message, Toast.LENGTH_LONG).show()
+            return false
+        }
         if (isInitialized && currentUserId == uid) {
             return true
         }
