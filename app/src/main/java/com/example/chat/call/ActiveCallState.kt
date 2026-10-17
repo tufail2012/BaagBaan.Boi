@@ -1,5 +1,13 @@
 package com.example.chat.call
 
+import java.util.Locale
+
+fun formatCallDuration(seconds: Long): String {
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", mins, secs)
+}
+
 data class ActiveCallState(
     val callId: String = "",
     val targetUid: String = "",

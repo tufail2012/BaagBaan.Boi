@@ -149,6 +149,9 @@ object ZegoCallManager {
     private val _activeCallState = MutableStateFlow<ActiveCallState?>(null)
     val activeCallState: StateFlow<ActiveCallState?> = _activeCallState.asStateFlow()
 
+    private val _callDurationSeconds = MutableStateFlow(0L)
+    val callDurationSeconds: StateFlow<Long> = _callDurationSeconds.asStateFlow()
+
     private val managerScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var durationJob: Job? = null
     private var applicationContext: Context? = null
@@ -408,6 +411,7 @@ object ZegoCallManager {
                                 try { ZegoUIKit.leaveRoom() } catch (_: Throwable) {}
                                 (getTopActivity() as? CallInviteActivity)?.finish()
                                 _activeCallState.value = null
+                                _callDurationSeconds.value = 0L
                                 applicationContext?.let { OutgoingCallNotificationService.stop(it) }
                             }
                             return
@@ -577,16 +581,18 @@ object ZegoCallManager {
     }
 
     private fun onCallConnected() {
+        _callDurationSeconds.value = 0L
         _activeCallState.update { it?.copy(isConnected = true, statusText = "00:00") }
-        // Keep ongoing notification alive throughout connected call to preserve foreground protection
+        // Keep ongoing notification alive throughout connected call using system chronometer
         applicationContext?.let { ctx ->
             val call = _activeCallState.value
             OutgoingCallNotificationService.update(
                 context = ctx,
                 targetName = call?.targetName ?: "Member",
-                statusText = "Ongoing call • 00:00",
+                statusText = "Ongoing call",
                 photoUrl = call?.targetPhotoUrl,
-                isVideo = call?.isVideo ?: false
+                isVideo = call?.isVideo ?: false,
+                connectedAtMillis = System.currentTimeMillis()
             )
         }
         durationJob?.cancel()
@@ -595,20 +601,7 @@ object ZegoCallManager {
             while (isActive) {
                 delay(1000L)
                 elapsed++
-                val minutes = elapsed / 60
-                val seconds = elapsed % 60
-                val formatted = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-                _activeCallState.update { it?.copy(durationSeconds = elapsed, statusText = formatted) }
-                applicationContext?.let { ctx ->
-                    val call = _activeCallState.value
-                    OutgoingCallNotificationService.update(
-                        context = ctx,
-                        targetName = call?.targetName ?: "Member",
-                        statusText = "Ongoing call • $formatted",
-                        photoUrl = call?.targetPhotoUrl,
-                        isVideo = call?.isVideo ?: false
-                    )
-                }
+                _callDurationSeconds.value = elapsed
             }
         }
     }
@@ -620,7 +613,7 @@ object ZegoCallManager {
         } else {
             suggestedOutcome
         }
-        val duration = call?.durationSeconds ?: 0L
+        val duration = _callDurationSeconds.value
         val callerId = call?.callerId?.ifBlank { currentUserId.orEmpty() } ?: currentUserId.orEmpty()
         val calleeId = call?.calleeId?.ifBlank { call.targetUid } ?: call?.targetUid.orEmpty()
         val callType = if (call?.isVideo == true) "video" else "voice"
@@ -677,6 +670,7 @@ object ZegoCallManager {
         durationJob?.cancel()
         durationJob = null
         _activeCallState.value = null
+        _callDurationSeconds.value = 0L
     }
 
     private fun endCallInternal() {

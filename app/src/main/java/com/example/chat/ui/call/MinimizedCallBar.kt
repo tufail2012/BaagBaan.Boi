@@ -22,6 +22,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chat.call.ActiveCallState
 import com.example.chat.call.ZegoCallManager
+import com.example.chat.call.formatCallDuration
 
 @Composable
 fun MinimizedCallBar(
@@ -83,14 +86,11 @@ fun MinimizedCallBar(
             Spacer(modifier = Modifier.width(10.dp))
 
             // "📞 ContactName - Calling/status" in the middle (accent-colored text)
-            val statusLabel = if (state.isConnected) state.formattedDuration else state.statusText
-            Text(
-                text = "📞 ${state.targetName.ifBlank { "Contact" }} - $statusLabel",
-                color = accentColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            CallBarDurationText(
+                targetName = state.targetName,
+                connected = state.isConnected,
+                statusText = state.statusText,
+                accentColor = accentColor,
                 modifier = Modifier.weight(1f)
             )
 
@@ -115,4 +115,25 @@ fun MinimizedCallBar(
             }
         }
     }
+}
+
+@Composable
+private fun CallBarDurationText(
+    targetName: String,
+    connected: Boolean,
+    statusText: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val seconds by ZegoCallManager.callDurationSeconds.collectAsState()
+    val statusLabel = if (connected) formatCallDuration(seconds) else statusText
+    Text(
+        text = "📞 ${targetName.ifBlank { "Contact" }} - $statusLabel",
+        color = accentColor,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
 }

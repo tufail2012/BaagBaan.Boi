@@ -39,6 +39,7 @@ class OutgoingCallNotificationService : Service() {
         private const val EXTRA_STATUS_TEXT = "extra_status_text"
         private const val EXTRA_PHOTO_URL = "extra_photo_url"
         private const val EXTRA_IS_VIDEO = "extra_is_video"
+        private const val EXTRA_CONNECTED_AT_MILLIS = "extra_connected_at_millis"
 
         fun start(
             context: Context,
@@ -70,7 +71,8 @@ class OutgoingCallNotificationService : Service() {
             targetName: String,
             statusText: String,
             photoUrl: String?,
-            isVideo: Boolean
+            isVideo: Boolean,
+            connectedAtMillis: Long = 0L
         ) {
             val intent = Intent(context, OutgoingCallNotificationService::class.java).apply {
                 action = ACTION_UPDATE
@@ -78,6 +80,7 @@ class OutgoingCallNotificationService : Service() {
                 putExtra(EXTRA_STATUS_TEXT, statusText)
                 putExtra(EXTRA_PHOTO_URL, photoUrl)
                 putExtra(EXTRA_IS_VIDEO, isVideo)
+                putExtra(EXTRA_CONNECTED_AT_MILLIS, connectedAtMillis)
             }
             try {
                 context.startService(intent)
@@ -143,8 +146,9 @@ class OutgoingCallNotificationService : Service() {
                 val statusText = intent.getStringExtra(EXTRA_STATUS_TEXT) ?: "Calling…"
                 val photoUrl = intent.getStringExtra(EXTRA_PHOTO_URL)
                 val isVideo = intent.getBooleanExtra(EXTRA_IS_VIDEO, false)
+                val connectedAtMillis = intent.getLongExtra(EXTRA_CONNECTED_AT_MILLIS, 0L)
 
-                handleShowNotification(targetName, statusText, photoUrl, isVideo)
+                handleShowNotification(targetName, statusText, photoUrl, isVideo, connectedAtMillis)
             }
         }
         return START_NOT_STICKY
@@ -154,9 +158,10 @@ class OutgoingCallNotificationService : Service() {
         targetName: String,
         statusText: String,
         photoUrl: String?,
-        isVideo: Boolean
+        isVideo: Boolean,
+        connectedAtMillis: Long = 0L
     ) {
-        val notification = buildNotification(targetName, statusText, cachedAvatarBitmap, isVideo)
+        val notification = buildNotification(targetName, statusText, cachedAvatarBitmap, isVideo, connectedAtMillis)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             startForeground(
@@ -182,7 +187,7 @@ class OutgoingCallNotificationService : Service() {
                 val bitmap = loadBitmapFromUrl(photoUrl)
                 if (bitmap != null) {
                     cachedAvatarBitmap = bitmap
-                    val updatedNotification = buildNotification(targetName, statusText, bitmap, isVideo)
+                    val updatedNotification = buildNotification(targetName, statusText, bitmap, isVideo, connectedAtMillis)
                     val manager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                     manager?.notify(NOTIFICATION_ID, updatedNotification)
                 }
@@ -194,7 +199,8 @@ class OutgoingCallNotificationService : Service() {
         targetName: String,
         statusText: String,
         avatarBitmap: Bitmap?,
-        isVideo: Boolean
+        isVideo: Boolean,
+        connectedAtMillis: Long = 0L
     ): Notification {
         // Tapping notification reopens call screen
         val contentIntent = Intent(this, CallInviteActivity::class.java).apply {
@@ -233,6 +239,12 @@ class OutgoingCallNotificationService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingContentIntent)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline / End", pendingHangUpIntent)
+
+        if (connectedAtMillis > 0L) {
+            builder.setUsesChronometer(true)
+                .setWhen(connectedAtMillis)
+                .setShowWhen(true)
+        }
 
         if (avatarBitmap != null) {
             builder.setLargeIcon(avatarBitmap)

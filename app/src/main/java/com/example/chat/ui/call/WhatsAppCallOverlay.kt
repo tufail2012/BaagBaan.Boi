@@ -84,6 +84,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.call.ActiveCallState
 import com.example.chat.call.ZegoCallManager
+import com.example.chat.call.formatCallDuration
 import com.example.chat.data.ChatRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -298,12 +299,9 @@ private fun CallHeaderRow(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = if (state.isConnected) state.formattedDuration else state.statusText,
-                color = Color(0xFF8696A0),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-                textAlign = TextAlign.Center
+            CallDurationText(
+                connected = state.isConnected,
+                statusText = state.statusText
             )
         }
 
@@ -320,6 +318,21 @@ private fun CallHeaderRow(
             )
         }
     }
+}
+
+@Composable
+private fun CallDurationText(
+    connected: Boolean,
+    statusText: String
+) {
+    val seconds by ZegoCallManager.callDurationSeconds.collectAsState()
+    Text(
+        text = if (connected) formatCallDuration(seconds) else statusText,
+        color = Color(0xFF8696A0),
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Normal,
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable
