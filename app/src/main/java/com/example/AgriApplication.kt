@@ -54,14 +54,14 @@ class AgriApplication : Application() {
                     val prefs = com.example.chat.data.ChatPreferences(this@AgriApplication)
                     if (!prefs.isOnlineStatusEnabled) return
                     presenceScope.launch {
-                        com.example.chat.data.ChatRepository(this@AgriApplication).setOnlinePresence(uid, true)
+                        com.example.chat.data.ChatRepository(this@AgriApplication).markOnlineIfForeground(uid)
                     }
                 }
 
                 override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
                     isAppInForeground = false
                     val uid = SafeFirebase.getAuth(this@AgriApplication)?.currentUser?.uid ?: return
-                    presenceScope.launch {
+                    presenceScope.launch(kotlinx.coroutines.NonCancellable) {
                         com.example.chat.data.ChatRepository(this@AgriApplication).setOnlinePresence(uid, false)
                     }
                 }
@@ -75,7 +75,7 @@ class AgriApplication : Application() {
                 val prefs = com.example.chat.data.ChatPreferences(this@AgriApplication)
                 if (prefs.isOnlineStatusEnabled) {
                     presenceScope.launch {
-                        com.example.chat.data.ChatRepository(this@AgriApplication).setOnlinePresence(uid, true)
+                        com.example.chat.data.ChatRepository(this@AgriApplication).markOnlineIfForeground(uid)
                     }
                 }
             }

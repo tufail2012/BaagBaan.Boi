@@ -141,9 +141,9 @@ class ChatViewModel(
                 val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
                     .isAtLeast(Lifecycle.State.STARTED)
                 if (_showOnlineStatus.value && inForeground) {
-                    repository.setOnlinePresence(uid, true)
+                    repository.markOnlineIfForeground(uid)
                 }
-                delay(45_000L)
+                delay(30_000L)
             }
         }
     }
@@ -350,7 +350,7 @@ class ChatViewModel(
                 startListeningToMessages(chatId)
                 startObservingRecipientPresence(otherUser.uid)
                 if (_showOnlineStatus.value) {
-                    repository.setOnlinePresence(current.uid, true)
+                    repository.markOnlineIfForeground(current.uid)
                 }
             }.onFailure { err ->
                 _toastMessage.value = "Failed to start chat: ${err.message}"
@@ -369,7 +369,7 @@ class ChatViewModel(
         startObservingRecipientPresence(other.uid)
         if (_showOnlineStatus.value) {
             viewModelScope.launch {
-                repository.setOnlinePresence(currentUid, true)
+                repository.markOnlineIfForeground(currentUid)
             }
         }
     }

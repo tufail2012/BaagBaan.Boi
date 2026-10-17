@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
@@ -140,7 +142,11 @@ fun ChatSectionScreen(
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 containerColor = Color.Transparent,
-                contentWindowInsets = if (activeSubScreen == ChatSubScreen.CONVERSATION) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+                contentWindowInsets = when (activeSubScreen) {
+                    ChatSubScreen.CONVERSATION -> WindowInsets(0, 0, 0, 0)
+                    ChatSubScreen.TABS -> ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars)
+                    else -> ScaffoldDefaults.contentWindowInsets
+                },
                 bottomBar = {
                     // Only show bottom navigation on main tabs, not inside active search or conversation
                     if (activeSubScreen == ChatSubScreen.TABS) {

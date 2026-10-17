@@ -16,10 +16,9 @@ data class ChatUser(
 
 fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {
     if (!isOnline) return false
-    if (lastSeenAt == null) return true
-    val elapsedMs = System.currentTimeMillis() - lastSeenAt.toDate().time
-    // Within 2.5 minutes (150,000 ms) considered active online; otherwise offline due to disconnect/app-kill
-    return elapsedMs < 150_000L
+    if (lastSeenAt == null) return false
+    val elapsed = System.currentTimeMillis() - lastSeenAt.toDate().time
+    return elapsed < 90_000L
 }
 
 fun formatLastSeen(timestamp: Timestamp?): String {

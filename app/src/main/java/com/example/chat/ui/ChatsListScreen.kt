@@ -92,7 +92,7 @@ fun ChatsListScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
         ) {
             // Left glass pill: chat icon + "Chats" title
             Row(

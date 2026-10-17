@@ -15,11 +15,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 class ChatRepository(private val context: Context) {
@@ -29,6 +33,7 @@ class ChatRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "ChatRepository"
+        private val presenceMutex = Mutex()
         val USERNAME_REGEX = Regex("^[a-z0-9_]{3,20}$")
 
         fun isValidUsername(username: String): Boolean {
@@ -827,32 +832,48 @@ class ChatRepository(private val context: Context) {
         awaitClose { listener.remove() }
     }
 
+    suspend fun markOnlineIfForeground(uid: String) {
+        val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+            .isAtLeast(Lifecycle.State.STARTED)
+        if (!inForeground) return
+        setOnlinePresence(uid, true)
+    }
+
     suspend fun setOnlinePresence(uid: String, online: Boolean) {
         val firestore = db ?: return
-        try {
-            val updates = hashMapOf<String, Any>(
-                "isOnline" to online,
-                "lastSeenAt" to FieldValue.serverTimestamp()
-            )
-            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting online presence for $uid: ${e.message}", e)
+        presenceMutex.withLock {
+            if (online) {
+                val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+                    .isAtLeast(Lifecycle.State.STARTED)
+                if (!inForeground) return
+            }
+            try {
+                val updates = hashMapOf<String, Any>(
+                    "isOnline" to online,
+                    "lastSeenAt" to FieldValue.serverTimestamp()
+                )
+                firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting online presence for $uid: ${e.message}", e)
+            }
         }
     }
 
     suspend fun setShowOnlineStatus(uid: String, enabled: Boolean): Result<Unit> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
-        return try {
-            val updates = hashMapOf<String, Any>("showOnlineStatus" to enabled)
-            if (!enabled) {
-                updates["isOnline"] = false
-                updates["lastSeenAt"] = FieldValue.serverTimestamp()
+        return presenceMutex.withLock {
+            try {
+                val updates = hashMapOf<String, Any>("showOnlineStatus" to enabled)
+                if (!enabled) {
+                    updates["isOnline"] = false
+                    updates["lastSeenAt"] = FieldValue.serverTimestamp()
+                }
+                firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)
+                Result.failure(e)
             }
-            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)
-            Result.failure(e)
         }
     }
 }
