@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.chat.data.ChatItemLocalState
+import com.example.chat.data.ChatList
 import com.example.chat.data.ChatListLocalPrefs
 import com.example.chat.data.ChatPreferences
 import com.example.chat.data.ChatRepository
@@ -32,7 +33,16 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.UUID
 import android.net.Uri
+
+sealed class ChatFilter {
+    data object All : ChatFilter()
+    data object Unread : ChatFilter()
+    data object Favourites : ChatFilter()
+    data object Groups : ChatFilter()
+    data class Custom(val listId: String) : ChatFilter()
+}
 
 class ChatViewModel(
     private val context: Context,
@@ -61,6 +71,15 @@ class ChatViewModel(
 
     private val _chatLocalStates = MutableStateFlow<Map<String, ChatItemLocalState>>(localChatPrefs.loadAll())
     val chatLocalStates: StateFlow<Map<String, ChatItemLocalState>> = _chatLocalStates.asStateFlow()
+
+    private val _selectedFilter = MutableStateFlow<ChatFilter>(ChatFilter.All)
+    val selectedFilter: StateFlow<ChatFilter> = _selectedFilter.asStateFlow()
+
+    private val _customLists = MutableStateFlow<List<ChatList>>(localChatPrefs.loadCustomLists())
+    val customLists: StateFlow<List<ChatList>> = _customLists.asStateFlow()
+
+    private val _allChatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
+    val allChatsList: StateFlow<List<ChatSummary>> = _allChatsList.asStateFlow()
 
     private val _chatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val chatsList: StateFlow<List<ChatSummary>> = _chatsList.asStateFlow()
@@ -287,9 +306,22 @@ class ChatViewModel(
                 !state.isHidden(lastMsgTimeMs)
             }
         }
-        _chatsList.value = nonHidden
+        val allNonArchived = nonHidden
             .filter { chat -> states[chat.chatId]?.archived != true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+        _allChatsList.value = allNonArchived
+
+        val filter = _selectedFilter.value
+        _chatsList.value = when (filter) {
+            ChatFilter.All -> allNonArchived
+            ChatFilter.Unread -> allNonArchived.filter { chat -> states[chat.chatId]?.markedUnread == true }
+            ChatFilter.Favourites -> allNonArchived.filter { chat -> states[chat.chatId]?.favourite == true }
+            ChatFilter.Groups -> allNonArchived.filter { chat -> chat.type == "group" }
+            is ChatFilter.Custom -> {
+                val listIds = _customLists.value.find { it.id == filter.listId }?.chatIds?.toSet().orEmpty()
+                allNonArchived.filter { chat -> chat.chatId in listIds }
+            }
+        }
         _archivedChatsList.value = nonHidden
             .filter { chat -> states[chat.chatId]?.archived == true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
@@ -418,6 +450,63 @@ class ChatViewModel(
         val allFavourite = chatIds.all { currentStates[it]?.favourite == true }
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
             it.copy(favourite = !allFavourite)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun selectFilter(filter: ChatFilter) {
+        _selectedFilter.value = filter
+        refreshVisibleChatsList()
+    }
+
+    fun createList(name: String, chatIds: List<String>): Boolean {
+        val trimmed = name.trim().take(30)
+        if (trimmed.isEmpty() || chatIds.isEmpty()) return false
+        val current = _customLists.value
+        if (current.any { it.name.equals(trimmed, ignoreCase = true) }) {
+            _toastMessage.value = "A list with this name already exists"
+            return false
+        }
+        val newList = ChatList(
+            id = UUID.randomUUID().toString(),
+            name = trimmed,
+            chatIds = chatIds.distinct()
+        )
+        val updated = current + newList
+        _customLists.value = updated
+        localChatPrefs.saveCustomLists(updated)
+        refreshVisibleChatsList()
+        return true
+    }
+
+    fun updateList(id: String, name: String, chatIds: List<String>): Boolean {
+        val trimmed = name.trim().take(30)
+        if (trimmed.isEmpty() || chatIds.isEmpty()) return false
+        val current = _customLists.value
+        if (current.any { it.id != id && it.name.equals(trimmed, ignoreCase = true) }) {
+            _toastMessage.value = "A list with this name already exists"
+            return false
+        }
+        val updated = current.map { existing ->
+            if (existing.id == id) {
+                ChatList(id = id, name = trimmed, chatIds = chatIds.distinct())
+            } else {
+                existing
+            }
+        }
+        _customLists.value = updated
+        localChatPrefs.saveCustomLists(updated)
+        refreshVisibleChatsList()
+        return true
+    }
+
+    fun deleteList(id: String) {
+        val updated = _customLists.value.filterNot { it.id == id }
+        _customLists.value = updated
+        localChatPrefs.saveCustomLists(updated)
+        val currentFilter = _selectedFilter.value
+        if (currentFilter is ChatFilter.Custom && currentFilter.listId == id) {
+            _selectedFilter.value = ChatFilter.All
         }
         refreshVisibleChatsList()
     }

@@ -2,7 +2,14 @@ package com.example.chat.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
 import org.json.JSONObject
+
+data class ChatList(
+    val id: String,
+    val name: String,
+    val chatIds: List<String>
+)
 
 data class ChatItemLocalState(
     val pinned: Boolean = false,
@@ -81,8 +88,54 @@ class ChatListLocalPrefs(context: Context) {
         return current
     }
 
+    fun loadCustomLists(): List<ChatList> {
+        val raw = prefs.getString(KEY_CUSTOM_LISTS_JSON, null) ?: return emptyList()
+        return try {
+            val array = JSONArray(raw)
+            val result = mutableListOf<ChatList>()
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                val id = obj.optString("id", "").trim()
+                val name = obj.optString("name", "").trim()
+                if (id.isEmpty() || name.isEmpty()) continue
+                val idsArray = obj.optJSONArray("chatIds")
+                val chatIds = mutableListOf<String>()
+                if (idsArray != null) {
+                    for (j in 0 until idsArray.length()) {
+                        val cid = idsArray.optString(j, "").trim()
+                        if (cid.isNotEmpty()) {
+                            chatIds.add(cid)
+                        }
+                    }
+                }
+                result.add(ChatList(id = id, name = name, chatIds = chatIds))
+            }
+            result
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveCustomLists(lists: List<ChatList>) {
+        val array = JSONArray()
+        for (list in lists) {
+            val idsArray = JSONArray()
+            for (cid in list.chatIds) {
+                idsArray.put(cid)
+            }
+            val obj = JSONObject().apply {
+                put("id", list.id)
+                put("name", list.name)
+                put("chatIds", idsArray)
+            }
+            array.put(obj)
+        }
+        prefs.edit().putString(KEY_CUSTOM_LISTS_JSON, array.toString()).apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "baagbaan_chat_list_local_prefs"
         private const val KEY_CHAT_STATES_JSON = "chat_item_local_states_json"
+        private const val KEY_CUSTOM_LISTS_JSON = "chat_custom_lists_json"
     }
 }

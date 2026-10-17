@@ -1,11 +1,14 @@
 package com.example.chat.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,18 +18,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -55,6 +60,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,28 +72,33 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.data.ChatItemLocalState
+import com.example.chat.data.ChatList
 import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatTab
 import com.example.chat.model.ParticipantInfo
 import com.example.chat.ui.call.MinimizedCallBar
 import com.example.ui.components.glassContentColor
+import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
-import com.example.ui.components.isGlassSupported
-import com.example.ui.components.liquidGlassNav
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun ChatsListScreen(
@@ -99,15 +110,27 @@ fun ChatsListScreen(
 ) {
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val allChats by viewModel.allChatsList.collectAsState()
     val chats by viewModel.chatsList.collectAsState()
     val archivedChats by viewModel.archivedChatsList.collectAsState()
     val chatLocalStates by viewModel.chatLocalStates.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val customLists by viewModel.customLists.collectAsState()
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
     var selectedChatIds by remember { mutableStateOf(emptySet<String>()) }
+    var showListSheet by remember { mutableStateOf(false) }
+    var editingList by remember { mutableStateOf<ChatList?>(null) }
+
+    val unreadCount = remember(allChats, chatLocalStates) {
+        allChats.count { chatLocalStates[it.chatId]?.markedUnread == true }
+    }
+    val favouritesCount = remember(allChats, chatLocalStates) {
+        allChats.count { chatLocalStates[it.chatId]?.favourite == true }
+    }
 
     // Keep selection clean if chats list updates and removes selected items
     LaunchedEffect(chats) {
@@ -125,6 +148,28 @@ fun ChatsListScreen(
     }
 
     val contentColor = glassContentColor()
+
+    if (showListSheet) {
+        ChatListSheet(
+            allChats = allChats,
+            currentUid = currentUid,
+            editingList = editingList,
+            backdrop = backdrop,
+            onDismiss = {
+                showListSheet = false
+                editingList = null
+            },
+            onCreateList = { name, chatIds ->
+                viewModel.createList(name, chatIds)
+            },
+            onUpdateList = { id, name, chatIds ->
+                viewModel.updateList(id, name, chatIds)
+            },
+            onDeleteList = { id ->
+                viewModel.deleteList(id)
+            }
+        )
+    }
 
     Column(
         modifier = modifier
@@ -246,6 +291,25 @@ fun ChatsListScreen(
                     }
                 }
             }
+
+            // Glass filter row
+            ChatFilterRow(
+                selectedFilter = selectedFilter,
+                unreadCount = unreadCount,
+                favouritesCount = favouritesCount,
+                customLists = customLists,
+                backdrop = backdrop,
+                contentColor = contentColor,
+                onSelectFilter = { viewModel.selectFilter(it) },
+                onAddListClick = {
+                    editingList = null
+                    showListSheet = true
+                },
+                onEditCustomList = { list ->
+                    editingList = list
+                    showListSheet = true
+                }
+            )
         }
 
         // Active Minimized Call Bar
@@ -258,7 +322,18 @@ fun ChatsListScreen(
         }
 
         // Content
-        if (isLoading && chats.isEmpty() && archivedChats.isEmpty()) {
+        val filterEmptyLabel: String? = when (val f = selectedFilter) {
+            ChatFilter.All -> if (chats.isEmpty() && allChats.isNotEmpty()) "No chats in All" else null
+            ChatFilter.Unread -> if (chats.isEmpty()) "No chats in Unread" else null
+            ChatFilter.Favourites -> if (chats.isEmpty()) "No chats in Favourites" else null
+            ChatFilter.Groups -> if (chats.isEmpty()) "No chats in Groups" else null
+            is ChatFilter.Custom -> if (chats.isEmpty()) {
+                val listName = customLists.find { it.id == f.listId }?.name ?: "list"
+                "No chats in $listName"
+            } else null
+        }
+
+        if (isLoading && allChats.isEmpty() && archivedChats.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -267,7 +342,22 @@ fun ChatsListScreen(
             ) {
                 CircularProgressIndicator(color = accentColor)
             }
-        } else if (chats.isEmpty() && archivedChats.isEmpty()) {
+        } else if (filterEmptyLabel != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 90.dp)
+                    .padding(horizontal = 32.dp)
+                    .testTag("empty_filter_state"),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = filterEmptyLabel,
+                    fontSize = 15.sp,
+                    color = contentColor.copy(alpha = 0.6f)
+                )
+            }
+        } else if (allChats.isEmpty() && archivedChats.isEmpty()) {
             // Empty State
             Box(
                 modifier = Modifier
@@ -343,7 +433,7 @@ fun ChatsListScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
-                if (archivedChats.isNotEmpty()) {
+                if (selectedFilter == ChatFilter.All && archivedChats.isNotEmpty()) {
                     item(key = "archived_header_row") {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1045,20 +1135,212 @@ private fun formatTimestamp(timestamp: Timestamp?): String {
     }
 }
 
+private data class FilterChipDescriptor(
+    val key: String,
+    val label: String,
+    val filter: ChatFilter,
+    val testTag: String,
+    val onLongClick: (() -> Unit)? = null
+)
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun Modifier.chatHeaderGlass(
+private fun ChatFilterRow(
+    selectedFilter: ChatFilter,
+    unreadCount: Int,
+    favouritesCount: Int,
+    customLists: List<ChatList>,
     backdrop: Backdrop?,
-    shape: CornerBasedShape = RoundedCornerShape(percent = 50)
-): Modifier {
-    return if (backdrop != null && isGlassSupported()) {
-        this.liquidGlassNav(shape = shape, backdrop = backdrop)
-    } else {
-        this
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-            .border(0.5.dp, glassContentColor().copy(alpha = 0.15f), shape)
+    contentColor: Color,
+    onSelectFilter: (ChatFilter) -> Unit,
+    onAddListClick: () -> Unit,
+    onEditCustomList: (ChatList) -> Unit
+) {
+    val density = LocalDensity.current
+    val scrollState = rememberScrollState()
+    val capsuleShape = RoundedCornerShape(percent = 50)
+    val indicatorColor = glassIndicatorColor().copy(alpha = 0.55f)
+
+    val chips = remember(unreadCount, favouritesCount, customLists) {
+        buildList {
+            add(
+                FilterChipDescriptor(
+                    key = "all",
+                    label = "All",
+                    filter = ChatFilter.All,
+                    testTag = "filter_chip_all"
+                )
+            )
+            add(
+                FilterChipDescriptor(
+                    key = "unread",
+                    label = if (unreadCount > 0) "Unread $unreadCount" else "Unread",
+                    filter = ChatFilter.Unread,
+                    testTag = "filter_chip_unread"
+                )
+            )
+            add(
+                FilterChipDescriptor(
+                    key = "favourites",
+                    label = if (favouritesCount > 0) "Favourites $favouritesCount" else "Favourites",
+                    filter = ChatFilter.Favourites,
+                    testTag = "filter_chip_favourites"
+                )
+            )
+            add(
+                FilterChipDescriptor(
+                    key = "groups",
+                    label = "Groups",
+                    filter = ChatFilter.Groups,
+                    testTag = "filter_chip_groups"
+                )
+            )
+            for (list in customLists) {
+                add(
+                    FilterChipDescriptor(
+                        key = "custom_${list.id}",
+                        label = list.name,
+                        filter = ChatFilter.Custom(list.id),
+                        testTag = "filter_chip_custom_${list.id}",
+                        onLongClick = { onEditCustomList(list) }
+                    )
+                )
+            }
+        }
+    }
+
+    val selectedKey = when (selectedFilter) {
+        ChatFilter.All -> "all"
+        ChatFilter.Unread -> "unread"
+        ChatFilter.Favourites -> "favourites"
+        ChatFilter.Groups -> "groups"
+        is ChatFilter.Custom -> "custom_${selectedFilter.listId}"
+    }
+
+    val chipBounds = remember { mutableStateMapOf<String, Pair<Int, Int>>() }
+    val targetBounds = chipBounds[selectedKey]
+
+    val pillSpring = remember {
+        spring<Float>(
+            stiffness = 500f,
+            dampingRatio = 0.85f
+        )
+    }
+
+    val animatedX by animateFloatAsState(
+        targetValue = (targetBounds?.first ?: 0).toFloat(),
+        animationSpec = pillSpring,
+        label = "chatFilterPillX"
+    )
+    val animatedWidth by animateFloatAsState(
+        targetValue = (targetBounds?.second ?: 0).toFloat(),
+        animationSpec = pillSpring,
+        label = "chatFilterPillWidth"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            .testTag("chat_filter_row")
+    ) {
+        // Layer 1: Glass capsule backgrounds for each chip and the + circle
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            chips.forEach { chip ->
+                val isSelected = chip.key == selectedKey
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = chip.label,
+                        color = Color.Transparent,
+                        fontSize = 14.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .chatHeaderGlass(backdrop = backdrop, shape = CircleShape)
+            )
+        }
+
+        // Layer 2: Animated selection pill behind the selected chip's text
+        if (targetBounds != null && animatedWidth > 0f) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(animatedX.roundToInt(), 0) }
+                    .width(with(density) { animatedWidth.toDp() })
+                    .height(40.dp)
+                    .clip(capsuleShape)
+                    .background(indicatorColor, capsuleShape)
+                    .border(0.5.dp, contentColor.copy(alpha = 0.25f), capsuleShape)
+            )
+        }
+
+        // Layer 3: Interactive foreground labels and + icon button
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            chips.forEach { chip ->
+                val isSelected = chip.key == selectedKey
+                Box(
+                    modifier = Modifier
+                        .height(40.dp)
+                        .onGloballyPositioned { coords ->
+                            val x = coords.positionInParent().x.roundToInt()
+                            val w = coords.size.width
+                            val current = chipBounds[chip.key]
+                            if (current == null || current.first != x || current.second != w) {
+                                chipBounds[chip.key] = x to w
+                            }
+                        }
+                        .clip(capsuleShape)
+                        .combinedClickable(
+                            onClick = { onSelectFilter(chip.filter) },
+                            onLongClick = chip.onLongClick
+                        )
+                        .padding(horizontal = 16.dp)
+                        .testTag(chip.testTag),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = chip.label,
+                        color = contentColor,
+                        fontSize = 14.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onAddListClick)
+                    .testTag("filter_chip_add_list"),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "New list",
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
     }
 }
-
-
-
