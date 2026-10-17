@@ -93,11 +93,13 @@ object ZegoCallManager {
     private const val TAG = "ZegoCallManager"
     private const val TRACE_FILE_NAME = "calltrace.txt"
     private const val TRACE_PREV_FILE_NAME = "calltrace_prev.txt"
+    private const val TRACE_ENABLED = false
     private var traceFlushedThisProcess = false
 
     private var sendButtonCount = 0
 
     internal fun trace(msg: String) {
+        if (!TRACE_ENABLED) return
         try {
             Log.i("CALLTRACE", msg)
             val ctx = com.example.AgriApplication.instance.applicationContext
@@ -110,6 +112,7 @@ object ZegoCallManager {
     }
 
     internal fun takeTraceForDisplay(): String? {
+        if (!TRACE_ENABLED) return null
         if (traceFlushedThisProcess) return null
         traceFlushedThisProcess = true
         return try {

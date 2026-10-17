@@ -122,12 +122,6 @@ class MainActivity : FragmentActivity() {
                         activeCrashLog = log
                     }
                 }
-                val traceText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    com.example.chat.call.ZegoCallManager.takeTraceForDisplay()
-                }
-                if (traceText != null && !com.example.util.CrashReporter.hasCrashLog(this@MainActivity)) {
-                    activeCrashLog = "CALLTRACE (lines up to this app start)\n\n" + traceText
-                }
             }
 
             if (activeCrashLog != null) {
