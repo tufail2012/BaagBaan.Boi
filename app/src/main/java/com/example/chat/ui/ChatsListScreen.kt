@@ -379,26 +379,11 @@ fun ChatsListScreen(
                     )
                 }
 
-                // Right side: search pill (icon only) and profile pill (no text)
+                // Right side: profile pill (no text)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    IconButton(
-                        onClick = { viewModel.openSearch() },
-                        modifier = Modifier
-                            .size(50.dp)
-                            .chatHeaderGlass(backdrop, CircleShape)
-                            .testTag("open_user_search_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search users",
-                            tint = contentColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
                     Box(
                         modifier = Modifier
                             .size(50.dp)
@@ -426,6 +411,43 @@ fun ChatsListScreen(
                                 modifier = Modifier.size(26.dp)
                             )
                         }
+                    }
+                }
+            }
+
+            // Expanded search bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .chatHeaderGlass(backdrop, RoundedCornerShape(percent = 50))
+                        .clip(RoundedCornerShape(percent = 50))
+                        .clickable { viewModel.openSearch() }
+                        .testTag("open_user_search_button"),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 18.dp, end = 18.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Search users",
+                            fontSize = 16.sp,
+                            color = contentColor.copy(alpha = 0.6f),
+                            maxLines = 1
+                        )
                     }
                 }
             }
