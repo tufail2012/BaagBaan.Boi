@@ -608,18 +608,4 @@ private fun formatCallLogTimestamp(timestamp: Timestamp?): String {
     }
 }
 
-@Composable
-private fun Modifier.chatHeaderGlass(
-    backdrop: Backdrop?,
-    shape: CornerBasedShape = RoundedCornerShape(percent = 50)
-): Modifier {
-    return if (backdrop != null && isGlassSupported()) {
-        this.liquidGlassNav(shape = shape, backdrop = backdrop)
-    } else {
-        this
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
-            .border(0.5.dp, glassContentColor().copy(alpha = 0.15f), shape)
-    }
-}
 

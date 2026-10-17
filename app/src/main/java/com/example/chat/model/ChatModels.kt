@@ -122,7 +122,8 @@ enum class ChatTab(val title: String) {
 enum class ChatSubScreen {
     TABS,
     SEARCH,
-    CONVERSATION
+    CONVERSATION,
+    ARCHIVED
 }
 
 data class CallLogItem(

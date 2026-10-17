@@ -64,6 +64,9 @@ class ChatViewModel(
     private val _chatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val chatsList: StateFlow<List<ChatSummary>> = _chatsList.asStateFlow()
 
+    private val _archivedChatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
+    val archivedChatsList: StateFlow<List<ChatSummary>> = _archivedChatsList.asStateFlow()
+
     private val _isChatsLoading = MutableStateFlow(false)
     val isChatsLoading: StateFlow<Boolean> = _isChatsLoading.asStateFlow()
 
@@ -260,20 +263,21 @@ class ChatViewModel(
 
     private fun refreshVisibleChatsList() {
         val states = _chatLocalStates.value
-        val filteredAndSorted = rawChatsList
-            .filter { chat ->
-                val state = states[chat.chatId]
-                if (state == null) {
-                    true
-                } else if (state.archived) {
-                    false
-                } else {
-                    val lastMsgTimeMs = chat.lastMessage?.timestamp?.toDate()?.time ?: 0L
-                    !state.isHidden(lastMsgTimeMs)
-                }
+        val nonHidden = rawChatsList.filter { chat ->
+            val state = states[chat.chatId]
+            if (state == null) {
+                true
+            } else {
+                val lastMsgTimeMs = chat.lastMessage?.timestamp?.toDate()?.time ?: 0L
+                !state.isHidden(lastMsgTimeMs)
             }
+        }
+        _chatsList.value = nonHidden
+            .filter { chat -> states[chat.chatId]?.archived != true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
-        _chatsList.value = filteredAndSorted
+        _archivedChatsList.value = nonHidden
+            .filter { chat -> states[chat.chatId]?.archived == true }
+            .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
     }
 
     private fun startListeningToChats(uid: String) {
@@ -334,7 +338,7 @@ class ChatViewModel(
         if (chatIds.isEmpty()) return
         val now = System.currentTimeMillis()
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
-            it.copy(hiddenAt = now, pinned = false)
+            it.copy(hiddenAt = now, pinned = false, archived = false)
         }
         refreshVisibleChatsList()
     }
@@ -347,10 +351,26 @@ class ChatViewModel(
         refreshVisibleChatsList()
     }
 
+    fun unmuteChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(mutedUntil = 0L)
+        }
+        refreshVisibleChatsList()
+    }
+
     fun archiveChats(chatIds: Set<String>) {
         if (chatIds.isEmpty()) return
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
             it.copy(archived = true)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun unarchiveChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(archived = false)
         }
         refreshVisibleChatsList()
     }
@@ -404,6 +424,14 @@ class ChatViewModel(
         _searchQuery.value = ""
         _searchResults.value = emptyList()
         _activeSubScreen.value = ChatSubScreen.SEARCH
+    }
+
+    fun openArchived() {
+        _activeSubScreen.value = ChatSubScreen.ARCHIVED
+    }
+
+    fun navigateBackFromArchived() {
+        _activeSubScreen.value = ChatSubScreen.TABS
     }
 
     fun updateSearchQuery(query: String) {

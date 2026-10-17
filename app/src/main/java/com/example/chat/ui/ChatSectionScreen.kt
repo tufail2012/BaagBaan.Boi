@@ -110,6 +110,7 @@ fun ChatSectionScreen(
         when {
             activeSubScreen == ChatSubScreen.CONVERSATION -> chatViewModel.navigateBackFromConversation()
             activeSubScreen == ChatSubScreen.SEARCH -> chatViewModel.navigateBackFromSearch()
+            activeSubScreen == ChatSubScreen.ARCHIVED -> chatViewModel.navigateBackFromArchived()
             else -> onBack()
         }
     }
@@ -144,7 +145,7 @@ fun ChatSectionScreen(
                 containerColor = Color.Transparent,
                 contentWindowInsets = when (activeSubScreen) {
                     ChatSubScreen.CONVERSATION -> WindowInsets(0, 0, 0, 0)
-                    ChatSubScreen.TABS -> ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars)
+                    ChatSubScreen.TABS, ChatSubScreen.ARCHIVED -> ScaffoldDefaults.contentWindowInsets.exclude(WindowInsets.statusBars)
                     else -> ScaffoldDefaults.contentWindowInsets
                 },
                 bottomBar = {
@@ -179,6 +180,15 @@ fun ChatSectionScreen(
                                 viewModel = chatViewModel,
                                 onBack = { chatViewModel.navigateBackFromConversation() },
                                 accentColor = accentColor
+                            )
+                        }
+
+                        ChatSubScreen.ARCHIVED -> {
+                            ArchivedChatsScreen(
+                                viewModel = chatViewModel,
+                                onBack = { chatViewModel.navigateBackFromArchived() },
+                                accentColor = accentColor,
+                                backdrop = backdrop
                             )
                         }
 
