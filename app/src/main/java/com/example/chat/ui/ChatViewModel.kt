@@ -3,6 +3,7 @@ package com.example.chat.ui
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -129,16 +130,28 @@ class ChatViewModel(
     private val _showOnlineStatus = MutableStateFlow(preferences.isOnlineStatusEnabled)
     val showOnlineStatus: StateFlow<Boolean> = _showOnlineStatus.asStateFlow()
 
+    // Read receipts preference
+    private val _readReceipts = MutableStateFlow(preferences.isReadReceiptsEnabled)
+    val readReceipts: StateFlow<Boolean> = _readReceipts.asStateFlow()
+
     private val _recipientPresence = MutableStateFlow<ChatUser?>(null)
     val recipientPresence: StateFlow<ChatUser?> = _recipientPresence.asStateFlow()
 
     private var chatsListenJob: Job? = null
     private var messagesListenJob: Job? = null
+    private var markReadJob: Job? = null
     private var searchJob: Job? = null
     private var presenceListenJob: Job? = null
     private var presenceHeartbeatJob: Job? = null
 
+    private val appLifecycleObserver = LifecycleEventObserver { _, event ->
+        if (event == Lifecycle.Event.ON_START) {
+            maybeMarkActiveChatMessagesAsRead()
+        }
+    }
+
     init {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
         checkUserSession()
     }
 
@@ -183,6 +196,8 @@ class ChatViewModel(
                 preferences.lastUsername = existing.username
                 preferences.isOnlineStatusEnabled = existing.showOnlineStatus
                 _showOnlineStatus.value = existing.showOnlineStatus
+                preferences.isReadReceiptsEnabled = existing.readReceipts
+                _readReceipts.value = existing.readReceipts
                 startPresenceHeartbeat(authUser.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, authUser.uid, existing.username)
@@ -530,20 +545,65 @@ class ChatViewModel(
         }
     }
 
+    fun setReadReceipts(enabled: Boolean) {
+        preferences.isReadReceiptsEnabled = enabled
+        _readReceipts.value = enabled
+        val uid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            repository.setReadReceipts(uid, enabled)
+        }
+        if (enabled) {
+            maybeMarkActiveChatMessagesAsRead()
+        }
+    }
+
+    private fun maybeMarkActiveChatMessagesAsRead() {
+        val chatId = _activeChatId.value ?: return
+        if (_activeSubScreen.value != ChatSubScreen.CONVERSATION) return
+        val currentUid = _currentUser.value?.uid ?: return
+        val msgs = _messages.value
+        val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+            .isAtLeast(Lifecycle.State.STARTED)
+        if (inForeground &&
+            _readReceipts.value &&
+            msgs.any { it.senderId != currentUid && it.status != "read" }
+        ) {
+            markReadJob?.cancel()
+            markReadJob = viewModelScope.launch {
+                delay(300L)
+                if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                    _readReceipts.value &&
+                    _activeChatId.value == chatId
+                ) {
+                    repository.markMessagesAsRead(chatId, currentUid)
+                }
+            }
+        }
+    }
+
     private fun startListeningToMessages(chatId: String) {
         messagesListenJob?.cancel()
+        markReadJob?.cancel()
         _messages.value = emptyList()
         val currentUid = _currentUser.value?.uid ?: return
 
         messagesListenJob = viewModelScope.launch {
             repository.getChatMessagesFlow(chatId, currentUid).collectLatest { msgs ->
                 _messages.value = msgs
+                val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+                    .isAtLeast(Lifecycle.State.STARTED)
+                if (inForeground &&
+                    _readReceipts.value &&
+                    msgs.any { it.senderId != currentUid && it.status != "read" }
+                ) {
+                    delay(300L)
+                    if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                        _readReceipts.value
+                    ) {
+                        repository.markMessagesAsRead(chatId, currentUid)
+                    }
+                }
             }
-        }
-
-        viewModelScope.launch {
-            kotlinx.coroutines.delay(400)
-            repository.markMessagesAsRead(chatId, currentUid)
         }
     }
 
@@ -785,6 +845,7 @@ class ChatViewModel(
         _activeRecipient.value = null
         _ghostModeEnabled.value = false
         messagesListenJob?.cancel()
+        markReadJob?.cancel()
         presenceListenJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()
@@ -826,12 +887,14 @@ class ChatViewModel(
         _activeChatId.value = null
         _activeRecipient.value = null
         presenceListenJob?.cancel()
+        markReadJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()
     }
 
     override fun onCleared() {
         super.onCleared()
+        ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         stopPresenceHeartbeat()
     }
 

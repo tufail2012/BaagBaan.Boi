@@ -213,6 +213,7 @@ fun ChatScreen(
         else -> Color(0xFFEF4444) // red: offline
     }
     val messages by viewModel.messages.collectAsState()
+    val readReceipts by viewModel.readReceipts.collectAsState()
     val ghostModeEnabled by viewModel.ghostModeEnabled.collectAsState()
     val messageInput by viewModel.messageInput.collectAsState()
     val isSending by viewModel.isSendingMessage.collectAsState()
@@ -709,6 +710,7 @@ fun ChatScreen(
                             MessageBubble(
                                 message = msg,
                                 isOwn = isOwnMessage,
+                                readReceipts = readReceipts,
                                 accentColor = accentColor,
                                 isDark = isDark,
                                 showTail = !isSameSenderAsNext,
@@ -1181,6 +1183,7 @@ private fun DateSeparator(date: Timestamp?, isDark: Boolean) {
 private fun MessageBubble(
     message: ChatMessage,
     isOwn: Boolean,
+    readReceipts: Boolean,
     accentColor: Color,
     isDark: Boolean,
     showTail: Boolean,
@@ -1344,7 +1347,9 @@ private fun MessageBubble(
                             }
                             Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
                             if (isOwn) {
-                                MessageStatusTicks(status = message.status)
+                                MessageStatusTicks(
+                                    status = if (!readReceipts && message.status == "read") "delivered" else message.status
+                                )
                             }
                         }
                     }

@@ -43,6 +43,21 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read, create: if request.auth != null
                     && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+        allow update: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds
+          && (
+            // Receiver: can only move status to delivered or read
+            (request.auth.uid != resource.data.senderId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+              && request.resource.data.status in ['delivered', 'read'])
+            // Any participant: can hide a message for themselves
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedFor'])
+            // Sender: can edit their own message (use the exact field names that editMessage writes)
+            || (request.auth.uid == resource.data.senderId
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'isEdited']))
+          );
+        allow delete: if request.auth != null
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
       }
     }
 

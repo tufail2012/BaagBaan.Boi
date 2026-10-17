@@ -11,7 +11,8 @@ data class ChatUser(
     val lastSeenAt: Timestamp? = null,
     val createdAt: Timestamp? = null,
     val isOnline: Boolean = false,
-    val showOnlineStatus: Boolean = true
+    val showOnlineStatus: Boolean = true,
+    val readReceipts: Boolean = true
 )
 
 fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {

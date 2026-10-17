@@ -1,9 +1,11 @@
 package com.example.chat.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,10 +26,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Visibility
@@ -64,23 +69,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
+import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import com.kyant.backdrop.Backdrop
 
 @Composable
 fun ChatSettingsScreen(
     viewModel: ChatViewModel,
     onBackToApp: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    backdrop: Backdrop? = null,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val contentColor = glassContentColor()
     val currentUser by viewModel.currentUser.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
+    val readReceipts by viewModel.readReceipts.collectAsState()
     val isSubmitting by viewModel.isSubmittingUsername.collectAsState()
     val serverError by viewModel.usernameError.collectAsState()
+
+    var privacyOpen by remember { mutableStateOf(false) }
+    BackHandler(enabled = privacyOpen) {
+        privacyOpen = false
+    }
 
     var showChangeUsernameDialog by remember { mutableStateOf(false) }
     var newUsernameInput by remember { mutableStateOf("") }
@@ -202,6 +217,173 @@ fun ChatSettingsScreen(
                 }
             }
         )
+    }
+
+    if (privacyOpen) {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+        ) {
+            // Top bar: back arrow and title "Privacy" in one glass pill (same style as Chats left pill)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .chatHeaderGlass(backdrop)
+                        .clip(RoundedCornerShape(percent = 50))
+                        .clickable { privacyOpen = false }
+                        .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                        .testTag("privacy_back_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = contentColor,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Privacy",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = contentColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 1. Online status and last seen toggle
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+                tonalElevation = 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(contentColor.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Online status and last seen",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = contentColor
+                        )
+                        Text(
+                            text = "Let other members see when you are online and your last seen timing",
+                            fontSize = 12.sp,
+                            color = contentColor.copy(alpha = 0.65f),
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Switch(
+                        checked = showOnlineStatus,
+                        onCheckedChange = { viewModel.setShowOnlineStatus(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = if (isDark) Color.Black else Color.White,
+                            checkedTrackColor = contentColor
+                        ),
+                        modifier = Modifier.testTag("online_status_toggle_switch")
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 2. Read receipts toggle
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+                tonalElevation = 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(contentColor.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DoneAll,
+                            contentDescription = null,
+                            tint = contentColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(14.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Read receipts",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = contentColor
+                        )
+                        Text(
+                            text = "If off, others will not see your blue ticks, and you will not see theirs.",
+                            fontSize = 12.sp,
+                            color = contentColor.copy(alpha = 0.65f),
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Switch(
+                        checked = readReceipts,
+                        onCheckedChange = { viewModel.setReadReceipts(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = if (isDark) Color.Black else Color.White,
+                            checkedTrackColor = contentColor
+                        ),
+                        modifier = Modifier.testTag("read_receipts_toggle_switch")
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+        return
     }
 
     Column(
@@ -384,7 +566,7 @@ fun ChatSettingsScreen(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Online Status & Last Seen Privacy Section
+        // Privacy Row
         Surface(
             shape = RoundedCornerShape(18.dp),
             color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
@@ -392,6 +574,9 @@ fun ChatSettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .clickable { privacyOpen = true }
+                .testTag("privacy_settings_row")
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -403,13 +588,13 @@ fun ChatSettingsScreen(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
+                        .background(contentColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Visibility,
+                        imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = Color(0xFF22C55E),
+                        tint = contentColor,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -418,27 +603,24 @@ fun ChatSettingsScreen(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Online Status & Last Seen",
+                        text = "Privacy",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                        color = contentColor
                     )
                     Text(
-                        text = "Let other members see when you are online and your last seen timing",
+                        text = "Online status, read receipts",
                         fontSize = 12.sp,
-                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        color = contentColor.copy(alpha = 0.65f),
                         lineHeight = 16.sp
                     )
                 }
 
-                Switch(
-                    checked = showOnlineStatus,
-                    onCheckedChange = { viewModel.setShowOnlineStatus(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = accentColor
-                    ),
-                    modifier = Modifier.testTag("online_status_toggle_switch")
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open Privacy",
+                    tint = contentColor.copy(alpha = 0.65f),
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
@@ -497,3 +679,4 @@ fun ChatSettingsScreen(
         Spacer(modifier = Modifier.height(100.dp))
     }
 }
+

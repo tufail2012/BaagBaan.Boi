@@ -2,33 +2,32 @@ package com.example.chat.ui
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,13 +42,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,13 +62,17 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
-import com.example.ui.animation.IosMotion
+import com.example.ui.components.backdrop.backdrops.layerBackdrop as navGlassLayerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop as rememberNavGlassBackdrop
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatSectionScreen(
@@ -76,6 +83,7 @@ fun ChatSectionScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModelFactory(context))
 
     val isDark = isAppInDarkMode()
@@ -88,6 +96,61 @@ fun ChatSectionScreen(
     val activeSubScreen by chatViewModel.activeSubScreen.collectAsState()
     val toastMessage by chatViewModel.toastMessage.collectAsState()
     val inAppBanner by chatViewModel.inAppBanner.collectAsState()
+
+    val effectiveHazeState = hazeState ?: remember { HazeState() }
+    val windowBackground = MaterialTheme.colorScheme.surface
+    val paintBackdrop: ContentDrawScope.() -> Unit =
+        remember(windowBackground) {
+            {
+                drawRect(windowBackground)
+                drawContent()
+            }
+        }
+    val navGlassBackdrop = rememberNavGlassBackdrop(onDraw = paintBackdrop)
+
+    val chatTabs = remember {
+        listOf(
+            ChatTab.CHATS,
+            ChatTab.CALLS,
+            ChatTab.GROUPS,
+            ChatTab.SETTINGS
+        )
+    }
+
+    val initialTabIndex = remember {
+        val idx = chatTabs.indexOf(activeTab)
+        if (idx >= 0) idx else 0
+    }
+
+    val pagerState = rememberPagerState(
+        initialPage = initialTabIndex,
+        pageCount = { chatTabs.size }
+    )
+
+    var animatingNavTargetPage by remember { mutableIntStateOf(-1) }
+    var navAnimationJob by remember { mutableStateOf<Job?>(null) }
+
+    // Synchronize tab when user finishes swiping to a new page
+    LaunchedEffect(pagerState.settledPage, pagerState.isScrollInProgress) {
+        if (!pagerState.isScrollInProgress && animatingNavTargetPage == -1 && pagerState.settledPage in chatTabs.indices) {
+            val targetTab = chatTabs[pagerState.settledPage]
+            if (activeTab != targetTab) {
+                chatViewModel.selectTab(targetTab)
+            }
+        }
+    }
+
+    // Synchronize pager when tab is selected from outside (e.g. in-app notification banner)
+    LaunchedEffect(activeTab) {
+        val targetIndex = chatTabs.indexOf(activeTab)
+        if (targetIndex >= 0 &&
+            targetIndex != pagerState.currentPage &&
+            targetIndex != pagerState.targetPage &&
+            targetIndex != animatingNavTargetPage
+        ) {
+            pagerState.scrollToPage(targetIndex)
+        }
+    }
 
     // Handle toast messages
     LaunchedEffect(toastMessage) {
@@ -153,10 +216,26 @@ fun ChatSectionScreen(
                     if (activeSubScreen == ChatSubScreen.TABS) {
                         ChatBottomNav(
                             selectedTab = activeTab,
-                            onTabSelected = { chatViewModel.selectTab(it) },
-                            accentColor = accentColor,
-                            hazeState = hazeState,
-                            backdrop = backdrop
+                            onTabSelected = { tab ->
+                                val targetIndex = chatTabs.indexOf(tab)
+                                chatViewModel.selectTab(tab)
+                                if (targetIndex >= 0 && targetIndex != pagerState.currentPage) {
+                                    animatingNavTargetPage = targetIndex
+                                    navAnimationJob?.cancel()
+                                    navAnimationJob = coroutineScope.launch {
+                                        try {
+                                            pagerState.scrollToPage(targetIndex)
+                                        } finally {
+                                            if (animatingNavTargetPage == targetIndex) {
+                                                animatingNavTargetPage = -1
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            pagerState = pagerState,
+                            glassBackdrop = navGlassBackdrop,
+                            hazeState = effectiveHazeState
                         )
                     }
                 }
@@ -164,6 +243,9 @@ fun ChatSectionScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .hazeSource(state = effectiveHazeState)
+                        .navGlassLayerBackdrop(navGlassBackdrop)
+                        .background(rootBgBrush)
                         .padding(padding)
                 ) {
                     when (activeSubScreen) {
@@ -193,16 +275,13 @@ fun ChatSectionScreen(
                         }
 
                         ChatSubScreen.TABS -> {
-                            AnimatedContent(
-                                targetState = activeTab,
-                                transitionSpec = {
-                                    val isReduced = IosMotion.isReducedMotion(context)
-                                    IosMotion.tabCrossfade(isReduced)
-                                },
-                                label = "ChatTabTransition",
-                                modifier = Modifier.fillMaxSize()
-                            ) { currentTab ->
-                                when (currentTab) {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize(),
+                                beyondViewportPageCount = 1,
+                                key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
+                            ) { page ->
+                                when (chatTabs.getOrElse(page) { ChatTab.CHATS }) {
                                     ChatTab.CHATS -> {
                                         ChatsListScreen(
                                             viewModel = chatViewModel,
@@ -235,7 +314,8 @@ fun ChatSectionScreen(
                                         ChatSettingsScreen(
                                             viewModel = chatViewModel,
                                             onBackToApp = onBack,
-                                            accentColor = accentColor
+                                            accentColor = accentColor,
+                                            backdrop = backdrop
                                         )
                                     }
                                 }

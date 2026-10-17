@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
@@ -61,7 +62,8 @@ class ChatRepository(private val context: Context) {
                         lastSeenAt = doc.getTimestamp("lastSeenAt"),
                         createdAt = doc.getTimestamp("createdAt"),
                         isOnline = doc.getBoolean("isOnline") ?: false,
-                        showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true
+                        showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
+                        readReceipts = doc.getBoolean("readReceipts") ?: true
                     )
                 } else null
             } else null
@@ -120,7 +122,8 @@ class ChatRepository(private val context: Context) {
                         "lastSeenAt" to FieldValue.serverTimestamp(),
                         "createdAt" to FieldValue.serverTimestamp(),
                         "isOnline" to false,
-                        "showOnlineStatus" to true
+                        "showOnlineStatus" to true,
+                        "readReceipts" to true
                     )
                     transaction.set(userRef, newUser)
                 }
@@ -422,7 +425,13 @@ class ChatRepository(private val context: Context) {
                         toMarkDelivered.forEach { doc ->
                             batch.update(doc.reference, "status", "delivered")
                         }
-                        batch.commit()
+                        launch {
+                            try {
+                                batch.commit().await()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error marking messages as delivered in $chatId: ${e.message}", e)
+                            }
+                        }
                     }
                 }
             }
@@ -822,7 +831,8 @@ class ChatRepository(private val context: Context) {
                             lastSeenAt = doc.getTimestamp("lastSeenAt"),
                             createdAt = doc.getTimestamp("createdAt"),
                             isOnline = doc.getBoolean("isOnline") ?: false,
-                            showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true
+                            showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
+                            readReceipts = doc.getBoolean("readReceipts") ?: true
                         )
                     )
                 } else {
@@ -874,6 +884,18 @@ class ChatRepository(private val context: Context) {
                 Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)
                 Result.failure(e)
             }
+        }
+    }
+
+    suspend fun setReadReceipts(uid: String, enabled: Boolean): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        return try {
+            val updates = hashMapOf<String, Any>("readReceipts" to enabled)
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting readReceipts for $uid: ${e.message}", e)
+            Result.failure(e)
         }
     }
 }
