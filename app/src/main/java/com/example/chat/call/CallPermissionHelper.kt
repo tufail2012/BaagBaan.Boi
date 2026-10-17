@@ -127,7 +127,7 @@ fun ZegoConfigRequiredDialog(
                 Spacer(modifier = Modifier.height(10.dp))
                 val reasonSuffix = if (!liveReason.isNullOrBlank()) "\n\nReason: $liveReason" else ""
                 Text(
-                    text = "1. Set credentials in gradle.properties (or ~/.gradle/gradle.properties or environment variables):\n   ZEGO_APP_ID=YOUR_APP_ID\n   ZEGO_APP_SIGN=YOUR_APP_SIGN\n2. Rebuild the app to initiate live calls.$reasonSuffix",
+                    text = "1. Add ZEGO_APP_ID and ZEGO_APP_SIGN as GitHub repository secrets (Settings > Secrets and variables > Actions), then run the Build Release APK workflow again.\n2. Install the new APK and try the call again.$reasonSuffix",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

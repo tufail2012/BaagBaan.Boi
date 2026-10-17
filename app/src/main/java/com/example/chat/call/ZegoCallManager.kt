@@ -267,7 +267,7 @@ object ZegoCallManager {
         applicationContext = application.applicationContext
         val credsError = getCredentialsError()
         if (credsError != null) {
-            Log.w(TAG, "$credsError (ZEGO_APP_ID=${getAppId()}). Please set in gradle.properties or .env.")
+            Log.w(TAG, "$credsError (ZEGO_APP_ID=${getAppId()}). Check the ZEGO_APP_ID and ZEGO_APP_SIGN GitHub secrets.")
             return
         }
         if (isInitialized && currentUserId == userId) {
