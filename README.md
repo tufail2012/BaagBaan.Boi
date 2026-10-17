@@ -38,4 +38,4 @@ To enable live audio and video calls, provide your ZegoCloud `AppID` and `AppSig
 ```bash
 gradle :app:assembleDebug
 ```
-test
+test new
