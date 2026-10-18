@@ -60,7 +60,10 @@ data class ParticipantInfo(
 data class ChatLastMessage(
     val text: String = "",
     val senderId: String = "",
-    val timestamp: Timestamp? = null
+    val timestamp: Timestamp? = null,
+    val messageId: String = "",
+    val isDeleted: Boolean = false,
+    val deletedFor: List<String> = emptyList()
 )
 
 data class ChatSummary(

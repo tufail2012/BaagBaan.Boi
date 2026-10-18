@@ -102,7 +102,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -240,6 +242,7 @@ fun ChatScreen(
             .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
     var showProfileDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
+    var selectedCallForAction by remember { mutableStateOf<ChatMessage?>(null) }
     val editingMessageId by viewModel.editingMessageId.collectAsState()
     val activeChatId by viewModel.activeChatId.collectAsState()
     val chatsList by viewModel.chatsList.collectAsState()
@@ -593,6 +596,24 @@ fun ChatScreen(
         )
     }
 
+    selectedCallForAction?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { selectedCallForAction = null },
+            title = { Text("Call options") },
+            text = {
+                Column {
+                    TextButton(onClick = {
+                        viewModel.deleteMessageForMe(msg.id)
+                        selectedCallForAction = null
+                    }) { Text("Delete for me") }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedCallForAction = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     if (showPermissionRationale) {
         CallPermissionRationaleDialog(
             onDismiss = {
@@ -704,7 +725,8 @@ fun ChatScreen(
                                 isDark = isDark,
                                 onCallBack = { isVideo ->
                                     initiateCall(isVideo)
-                                }
+                                },
+                                onLongPress = { selectedCallForAction = msg }
                             )
                         } else {
                             MessageBubble(
@@ -1436,14 +1458,17 @@ private fun VideoCallIcon(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CallLogBubble(
     message: ChatMessage,
     currentUid: String,
     accentColor: Color,
     isDark: Boolean,
-    onCallBack: (isVideo: Boolean) -> Unit
+    onCallBack: (isVideo: Boolean) -> Unit,
+    onLongPress: () -> Unit = {}
 ) {
+    val haptic = LocalHapticFeedback.current
     val isCaller = message.callCallerId == currentUid || (message.callCallerId.isBlank() && message.senderId == currentUid)
     val isVideo = message.callType == "video"
     val isMissed = message.callOutcome == "missed" || message.callOutcome == "no_answer"
@@ -1504,11 +1529,17 @@ private fun CallLogBubble(
             modifier = Modifier
                 .widthIn(min = 220.dp, max = 310.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .clickable {
-                    if (!isCaller && (isMissed || isDeclined)) {
-                        onCallBack(isVideo)
+                .combinedClickable(
+                    onClick = {
+                        if (!isCaller && (isMissed || isDeclined)) {
+                            onCallBack(isVideo)
+                        }
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongPress()
                     }
-                }
+                )
                 .testTag("call_log_bubble_${message.id}")
         ) {
             Row(

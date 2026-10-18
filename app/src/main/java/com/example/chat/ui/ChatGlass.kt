@@ -1,11 +1,13 @@
 package com.example.chat.ui
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -28,9 +30,11 @@ import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.liquidGlassNav
+import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 
 internal fun Backdrop.asNavBackdrop(): NavBackdrop {
@@ -66,22 +70,28 @@ internal fun Modifier.chatHeaderGlass(
     }
 }
 
-private const val STRIP_BLUR_RADIUS_DP = 8f
-private val STRIP_FADE_HEIGHT = 12.dp
+private const val STRIP_BLUR_RADIUS_DP = 16f
+private const val STRIP_LENS_HEIGHT = 0.5f
+private const val STRIP_LENS_AMOUNT = 0.5f
+private const val STRIP_LENS_MAX_DP = 48f
+private val STRIP_FADE_HEIGHT = 32.dp
 
 @Composable
 internal fun Modifier.chatHeaderStripGlass(
-    backdrop: Backdrop?
+    backdrop: Backdrop?,
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ): Modifier {
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
-    val surfaceColor = MaterialTheme.colorScheme.surface
     val contentColor = glassContentColor()
+    val bgBrush = remember(accentColor, isDark, isAmoled) {
+        getAppDimBackgroundBrush(accentColor, isDark = isDark, isAmoled = isAmoled)
+    }
 
     if (backdrop == null || !isGlassSupported()) {
         val dividerColor = contentColor.copy(alpha = 0.12f)
         return this
-            .background(surfaceColor.copy(alpha = 0.9f))
+            .background(brush = bgBrush, alpha = 0.9f)
             .drawBehind {
                 val strokePx = 0.5.dp.toPx()
                 val y = size.height - strokePx / 2f
@@ -96,8 +106,11 @@ internal fun Modifier.chatHeaderStripGlass(
 
     val density = LocalDensity.current
     val blurPx = with(density) { STRIP_BLUR_RADIUS_DP.dp.toPx() }
-    val tintAlpha = if (isDark || isAmoled) 0.6f else 0.7f
-    val stripShape = RoundedCornerShape(0.dp)
+    val lensHeightPx = with(density) { (STRIP_LENS_HEIGHT * STRIP_LENS_MAX_DP).dp.toPx() }
+    val lensAmountPx = with(density) { (STRIP_LENS_AMOUNT * STRIP_LENS_MAX_DP).dp.toPx() }
+    val tintAlpha = if (isDark || isAmoled) 0.55f else 0.6f
+    // Use 1.dp corner radius instead of 0.dp so lens() shader has a non-zero corner radius
+    val stripShape = RoundedCornerShape(1.dp)
 
     return this
         .graphicsLayer {
@@ -124,20 +137,20 @@ internal fun Modifier.chatHeaderStripGlass(
             effects = {
                 vibrancy()
                 blur(blurPx)
-                // lens() removed while debugging the native RenderThread crash; re-enable once verified:
-                // if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                //     lens(
-                //         refractionHeight = lensHeightPx,
-                //         refractionAmount = lensAmountPx,
-                //         depthEffect = true,
-                //         chromaticAberration = true
-                //     )
-                // }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensHeightPx,
+                        refractionAmount = lensAmountPx,
+                        depthEffect = true,
+                        chromaticAberration = true
+                    )
+                }
             },
             highlight = null,
             shadow = null,
             onDrawSurface = {
-                drawRect(surfaceColor.copy(alpha = tintAlpha))
+                drawRect(brush = bgBrush, alpha = tintAlpha)
             }
         )
 }
+

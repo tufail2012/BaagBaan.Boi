@@ -246,7 +246,7 @@ fun ChatsListScreen(
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
-                    top = stripHeightDp + 8.dp,
+                    top = (stripHeightDp - 8.dp).coerceAtLeast(0.dp),
                     bottom = 100.dp + navBarBottom
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -295,6 +295,7 @@ fun ChatsListScreen(
                     ChatListItemRow(
                         chat = chat,
                         other = other,
+                        currentUid = currentUid,
                         accentColor = accentColor,
                         isDark = isDark,
                         contentColor = contentColor,
@@ -366,7 +367,7 @@ internal fun ChatsTopHeaderOverlay(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .chatHeaderStripGlass(backdrop)
+                .chatHeaderStripGlass(backdrop = backdrop, accentColor = accentColor)
         )
 
         Column(
@@ -943,6 +944,7 @@ internal fun SelectionMenuItem(
 internal fun ChatListItemRow(
     chat: ChatSummary,
     other: ParticipantInfo?,
+    currentUid: String = "",
     accentColor: Color,
     isDark: Boolean,
     contentColor: Color,
@@ -952,8 +954,12 @@ internal fun ChatListItemRow(
     onLongClick: () -> Unit
 ) {
     val displayName = other?.displayName?.ifBlank { other.username } ?: "Member"
-    val username = other?.username ?: ""
     val lastMsg = chat.lastMessage
+    val previewText = when {
+        lastMsg == null -> "No messages yet"
+        lastMsg.isDeleted || (currentUid.isNotEmpty() && currentUid in lastMsg.deletedFor) -> ""
+        else -> lastMsg.text
+    }
     val formattedTime = remember(lastMsg?.timestamp) {
         formatTimestamp(lastMsg?.timestamp)
     }
@@ -1057,34 +1063,14 @@ internal fun ChatListItemRow(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        Text(
+                            text = previewText,
+                            fontSize = 13.sp,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
-                        ) {
-                            if (username.isNotEmpty()) {
-                                Text(
-                                    text = "@$username",
-                                    fontSize = 12.sp,
-                                    color = accentColor,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "•",
-                                    fontSize = 10.sp,
-                                    color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                            }
-
-                            Text(
-                                text = lastMsg?.text ?: "No messages yet",
-                                fontSize = 13.sp,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
+                        )
 
                         if (isMuted || isPinned || isMarkedUnread) {
                             Spacer(modifier = Modifier.width(8.dp))
@@ -1182,20 +1168,8 @@ private fun ChatFilterRow(
     val density = LocalDensity.current
     val scrollState = rememberScrollState()
     val capsuleShape = RoundedCornerShape(percent = 50)
-    val indicatorColor = glassIndicatorColor().copy(alpha = 0.55f)
     val unselectedTextColor = contentColor.copy(alpha = 0.7f)
-
-    // Ensure the pill is clearly visible on top of the header strip in Light, Dark, and AMOLED modes
-    val pillContrastOverlay = when {
-        isAmoled -> Color.White.copy(alpha = 0.16f)
-        isDark -> Color.White.copy(alpha = 0.12f)
-        else -> selectedTextColor.copy(alpha = 0.10f)
-    }
-    val pillBorderColor = when {
-        isAmoled -> Color.White.copy(alpha = 0.28f)
-        isDark -> Color.White.copy(alpha = 0.22f)
-        else -> selectedTextColor.copy(alpha = 0.32f)
-    }
+    val pillFillColor = selectedTextColor.copy(alpha = if (isDark || isAmoled) 0.22f else 0.16f)
 
     val chips = remember(unreadCount, favouritesCount, customLists) {
         buildList {
@@ -1264,8 +1238,8 @@ private fun ChatFilterRow(
     }
 
     var hasInitialMeasurement by remember { mutableStateOf(false) }
-    val pillXAnim = remember { androidx.compose.animation.core.Animatable(0f) }
-    val pillWidthAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+    val pillXAnim = remember { Animatable(0f) }
+    val pillWidthAnim = remember { Animatable(0f) }
 
     LaunchedEffect(targetBounds) {
         val bounds = targetBounds ?: return@LaunchedEffect
@@ -1290,26 +1264,10 @@ private fun ChatFilterRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scrollState)
-            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+            .padding(start = 16.dp, end = 16.dp, bottom = 20.dp)
             .testTag("chat_filter_row")
     ) {
-        // Sliding glass selection pill behind the active chip (never on the + chip)
-        if (targetBounds != null && currentPillWidth > 0f) {
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(currentPillX.roundToInt(), 0) }
-                    .width(with(density) { currentPillWidth.toDp() })
-                    .height(40.dp)
-                    .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
-                    .clip(capsuleShape)
-                    .background(indicatorColor, capsuleShape)
-                    .background(pillContrastOverlay, capsuleShape)
-                    .border(1.dp, pillBorderColor, capsuleShape)
-                    .testTag("chat_filter_selected_pill")
-            )
-        }
-
-        // Foreground chip labels and + circle button
+        // Each chip has its own glass capsule; + circle button sits at the end
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -1327,6 +1285,7 @@ private fun ChatFilterRow(
                                 chipBounds[chip.key] = x to w
                             }
                         }
+                        .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
                         .clip(capsuleShape)
                         .combinedClickable(
                             onClick = { onSelectFilter(chip.filter) },
@@ -1370,6 +1329,20 @@ private fun ChatFilterRow(
                     modifier = Modifier.size(20.dp)
                 )
             }
+        }
+
+        // Sliding accent-tinted pill and 2dp accent ring on top of the active chip's glass capsule
+        if (targetBounds != null && currentPillWidth > 0f) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(currentPillX.roundToInt(), 0) }
+                    .width(with(density) { currentPillWidth.toDp() })
+                    .height(40.dp)
+                    .clip(capsuleShape)
+                    .background(pillFillColor, capsuleShape)
+                    .border(2.dp, selectedTextColor, capsuleShape)
+                    .testTag("chat_filter_selected_pill")
+            )
         }
     }
 }

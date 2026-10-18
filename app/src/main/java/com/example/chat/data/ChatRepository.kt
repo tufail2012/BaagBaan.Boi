@@ -324,7 +324,10 @@ class ChatRepository(private val context: Context) {
                                 ChatLastMessage(
                                     text = it["text"]?.toString() ?: "",
                                     senderId = it["senderId"]?.toString() ?: "",
-                                    timestamp = it["timestamp"] as? Timestamp
+                                    timestamp = it["timestamp"] as? Timestamp,
+                                    messageId = it["messageId"]?.toString() ?: "",
+                                    isDeleted = it["isDeleted"] as? Boolean ?: false,
+                                    deletedFor = (it["deletedFor"] as? List<*>)?.mapNotNull { item -> item as? String } ?: emptyList()
                                 )
                             }
 
@@ -485,10 +488,28 @@ class ChatRepository(private val context: Context) {
     suspend fun deleteMessageForEveryone(chatId: String, messageId: String): Result<Unit> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
         return try {
-            firestore.collection("chats").document(chatId)
-                .collection("messages").document(messageId)
+            val chatRef = firestore.collection("chats").document(chatId)
+            chatRef.collection("messages").document(messageId)
                 .update(mapOf("isDeleted" to true, "text" to ""))
                 .await()
+            try {
+                firestore.runTransaction { transaction ->
+                    val chatSnap = transaction.get(chatRef)
+                    val lastMsgMap = chatSnap.get("lastMessage") as? Map<*, *>
+                    val lastMsgId = lastMsgMap?.get("messageId")?.toString() ?: ""
+                    if (lastMsgId == messageId) {
+                        transaction.update(
+                            chatRef,
+                            mapOf(
+                                "lastMessage.isDeleted" to true,
+                                "lastMessage.text" to ""
+                            )
+                        )
+                    }
+                }.await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating lastMessage on deleteMessageForEveryone for $messageId: ${e.message}", e)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting message $messageId for everyone: ${e.message}", e)
@@ -499,10 +520,26 @@ class ChatRepository(private val context: Context) {
     suspend fun deleteMessageForMe(chatId: String, messageId: String, currentUid: String): Result<Unit> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
         return try {
-            firestore.collection("chats").document(chatId)
-                .collection("messages").document(messageId)
+            val chatRef = firestore.collection("chats").document(chatId)
+            chatRef.collection("messages").document(messageId)
                 .update("deletedFor", FieldValue.arrayUnion(currentUid))
                 .await()
+            try {
+                firestore.runTransaction { transaction ->
+                    val chatSnap = transaction.get(chatRef)
+                    val lastMsgMap = chatSnap.get("lastMessage") as? Map<*, *>
+                    val lastMsgId = lastMsgMap?.get("messageId")?.toString() ?: ""
+                    if (lastMsgId == messageId) {
+                        transaction.update(
+                            chatRef,
+                            "lastMessage.deletedFor",
+                            FieldValue.arrayUnion(currentUid)
+                        )
+                    }
+                }.await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating lastMessage on deleteMessageForMe for $messageId: ${e.message}", e)
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting message $messageId for me: ${e.message}", e)
@@ -533,7 +570,8 @@ class ChatRepository(private val context: Context) {
             val lastMessageData = hashMapOf(
                 "text" to trimmed,
                 "senderId" to senderId,
-                "timestamp" to FieldValue.serverTimestamp()
+                "timestamp" to FieldValue.serverTimestamp(),
+                "messageId" to messageRef.id
             )
 
             val batch = firestore.batch()
@@ -614,7 +652,8 @@ class ChatRepository(private val context: Context) {
             val lastMessageData = hashMapOf(
                 "text" to previewText,
                 "senderId" to senderId,
-                "timestamp" to FieldValue.serverTimestamp()
+                "timestamp" to FieldValue.serverTimestamp(),
+                "messageId" to messageRef.id
             )
 
             val batch = firestore.batch()
@@ -678,7 +717,8 @@ class ChatRepository(private val context: Context) {
             val lastMessageData = hashMapOf(
                 "text" to summaryText,
                 "senderId" to callerId,
-                "timestamp" to FieldValue.serverTimestamp()
+                "timestamp" to FieldValue.serverTimestamp(),
+                "messageId" to messageRef.id
             )
 
             val batch = firestore.batch()
@@ -732,6 +772,9 @@ class ChatRepository(private val context: Context) {
                                 if (snapshot != null) {
                                     val logs = snapshot.documents.mapNotNull { doc ->
                                         try {
+                                            val deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList()
+                                            if (currentUid in deletedFor) return@mapNotNull null
+
                                             val cType = doc.getString("callType") ?: "voice"
                                             val cOutcome = doc.getString("callOutcome") ?: "ended"
                                             val cDuration = doc.getLong("callDurationSeconds") ?: 0L
