@@ -193,13 +193,35 @@ fun ChatScreen(
         }
     }
 
-    val isRecipientOnline = remember(recipientPresence, currentTimeTick) {
-        val p = recipientPresence
-        p != null && com.example.chat.model.isUserConsideredOnline(p.isOnline, p.lastSeenAt)
+    val isBlockedByMeState by viewModel.isActiveChatBlockedByMe.collectAsState()
+    val isBlockedByOtherState by viewModel.isActiveChatBlockedByOther.collectAsState()
+    val blockedUserIds by viewModel.blockedUserIds.collectAsState()
+    val editingMessageId by viewModel.editingMessageId.collectAsState()
+    val activeChatId by viewModel.activeChatId.collectAsState()
+    val chatsList by viewModel.chatsList.collectAsState()
+    val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
+    val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid }
+        ?.ifBlank { null }
+        ?: recipient?.uid.orEmpty()
+    val isBlockedByMe = isBlockedByMeState ||
+        (otherUid.isNotEmpty() && otherUid in blockedUserIds) ||
+        (currentUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(currentUid) == true)
+    val isBlockedByOther = isBlockedByOtherState ||
+        (otherUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(otherUid) == true) ||
+        (currentUid.isNotEmpty() && recipientPresence?.blockedUsers?.contains(currentUid) == true)
+    val isChatBlocked = isBlockedByMe || isBlockedByOther
+
+    val isRecipientOnline = remember(recipientPresence, currentTimeTick, isChatBlocked) {
+        if (isChatBlocked) {
+            false
+        } else {
+            val p = recipientPresence
+            p != null && com.example.chat.model.isUserConsideredOnline(p.isOnline, p.lastSeenAt)
+        }
     }
 
-    val recipientStatusText: String? = remember(recipientPresence, showOnlineStatus, isRecipientOnline, currentTimeTick) {
-        if (!showOnlineStatus || recipientPresence?.showOnlineStatus == false) {
+    val recipientStatusText: String? = remember(recipientPresence, showOnlineStatus, isRecipientOnline, currentTimeTick, isChatBlocked) {
+        if (isChatBlocked || !showOnlineStatus || recipientPresence?.showOnlineStatus == false) {
             null
         } else if (isRecipientOnline) {
             "online"
@@ -212,7 +234,7 @@ fun ChatScreen(
         }
     }
 
-    val presenceHidden = !showOnlineStatus || recipientPresence?.showOnlineStatus == false
+    val presenceHidden = isChatBlocked || !showOnlineStatus || recipientPresence?.showOnlineStatus == false
     val ringColor: Color = when {
         recipientPresence == null || presenceHidden -> Color(0xFF94A3B8) // grey: loading or hidden
         isRecipientOnline -> Color(0xFF22C55E) // green: online
@@ -247,13 +269,6 @@ fun ChatScreen(
     var showProfileDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
     var selectedCallForAction by remember { mutableStateOf<ChatMessage?>(null) }
-    val editingMessageId by viewModel.editingMessageId.collectAsState()
-    val activeChatId by viewModel.activeChatId.collectAsState()
-    val chatsList by viewModel.chatsList.collectAsState()
-    val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
-    val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid }
-        ?.ifBlank { null }
-        ?: recipient?.uid.orEmpty()
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
     var showMoreMenu by remember { mutableStateOf(false) }
@@ -449,7 +464,19 @@ fun ChatScreen(
         }
     }
 
+    LaunchedEffect(isChatBlocked) {
+        if (isChatBlocked) {
+            voiceRecorder.cancelRecording()
+            showAttachmentSheet = false
+            viewModel.cancelEditingMessage()
+        }
+    }
+
     fun initiateCall(isVideo: Boolean) {
+        if (isChatBlocked) {
+            Toast.makeText(context, "You can't call this contact while blocked", Toast.LENGTH_SHORT).show()
+            return
+        }
         val rec = recipient ?: return
         if (!hasCallPermissions) {
             pendingIsVideoCall = isVideo
@@ -1110,13 +1137,27 @@ fun ChatScreen(
                                         }
                                     )
                                 }
+                                if (otherUid.isNotEmpty()) {
+                                    DropdownMenuItem(
+                                        text = { Text(if (isBlockedByMe) "Unblock" else "Block") },
+                                        modifier = Modifier.testTag("conversation_menu_block_toggle"),
+                                        onClick = {
+                                            showMoreMenu = false
+                                            if (isBlockedByMe) {
+                                                viewModel.unblockUser(otherUid)
+                                            } else {
+                                                viewModel.blockUser(otherUid, recipient)
+                                            }
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Layer 3: floating bottom message composer overlay
+            // Layer 3: floating bottom message composer overlay (or blocked banner)
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -1126,141 +1167,176 @@ fun ChatScreen(
                     .onSizeChanged { composerHeightPx = it.height },
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // (a) editing banner: its own small glass pill ABOVE the composer pill
-                if (editingMessageId != null) {
+                if (isChatBlocked) {
+                    val bannerShape = RoundedCornerShape(22.dp)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(40.dp)
-                            .then(glassModifier(RoundedCornerShape(percent = 50)))
-                            .padding(start = 16.dp, end = 4.dp)
+                            .then(glassModifier(bannerShape))
+                            .clip(bannerShape)
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .testTag("chat_blocked_banner")
                     ) {
                         Text(
-                            text = "Editing message",
-                            fontSize = 12.sp,
-                            color = accentColor,
+                            text = "You can't send messages to this contact. Unblock to continue.",
+                            fontSize = 13.5.sp,
+                            lineHeight = 18.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { viewModel.cancelEditingMessage() }) {
-                            Icon(Icons.Default.Close, contentDescription = "Cancel edit", tint = accentColor)
+                        if (isBlockedByMe && otherUid.isNotEmpty()) {
+                            TextButton(
+                                onClick = { viewModel.unblockUser(otherUid) },
+                                modifier = Modifier.testTag("chat_banner_unblock_button")
+                            ) {
+                                Text(
+                                    text = "Unblock",
+                                    color = accentColor,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
-                }
-
-                // (b) the composer: three separate glass pieces
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    if (!recordingState.isRecording) {
-                        // LEFT: a 56.dp glass CIRCLE with the "+" (Icons.Default.Add) icon
-                        Box(
+                } else {
+                    // (a) editing banner: its own small glass pill ABOVE the composer pill
+                    if (editingMessageId != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .size(56.dp)
-                                .then(glassModifier(CircleShape)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .height(40.dp)
+                                .then(glassModifier(RoundedCornerShape(percent = 50)))
+                                .padding(start = 16.dp, end = 4.dp)
                         ) {
-                            IconButton(
-                                onClick = { showAttachmentSheet = true },
-                                modifier = Modifier.size(56.dp)
+                            Text(
+                                text = "Editing message",
+                                fontSize = 12.sp,
+                                color = accentColor,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = { viewModel.cancelEditingMessage() }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cancel edit", tint = accentColor)
+                            }
+                        }
+                    }
+
+                    // (b) the composer: three separate glass pieces
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        if (!recordingState.isRecording) {
+                            // LEFT: a 56.dp glass CIRCLE with the "+" (Icons.Default.Add) icon
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .then(glassModifier(CircleShape)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Attach",
-                                    tint = accentColor
+                                IconButton(
+                                    onClick = { showAttachmentSheet = true },
+                                    modifier = Modifier.size(56.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Attach",
+                                        tint = accentColor
+                                    )
+                                }
+                            }
+
+                            // MIDDLE: the message pill, containing ONLY the TextField
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = 56.dp)
+                                    .then(glassModifier(composerShape)),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                TextField(
+                                    value = messageInput,
+                                    onValueChange = { viewModel.updateMessageInput(it) },
+                                    placeholder = {
+                                        Text(
+                                            "Message...",
+                                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            fontSize = 14.sp
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("conversation_message_input"),
+                                    shape = RectangleShape,
+                                    colors = TextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        disabledContainerColor = Color.Transparent,
+                                        focusedIndicatorColor = Color.Transparent,
+                                        unfocusedIndicatorColor = Color.Transparent,
+                                        disabledIndicatorColor = Color.Transparent,
+                                        cursorColor = accentColor,
+                                        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                                        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                                    ),
+                                    maxLines = 4,
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                    keyboardActions = KeyboardActions(
+                                        onSend = {
+                                            if (messageInput.isNotBlank() && !isSending) {
+                                                if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
+                                            }
+                                        }
+                                    )
                                 )
                             }
                         }
 
-                        // MIDDLE: the message pill, containing ONLY the TextField
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 56.dp)
-                                .then(glassModifier(composerShape)),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            TextField(
-                                value = messageInput,
-                                onValueChange = { viewModel.updateMessageInput(it) },
-                                placeholder = {
-                                    Text(
-                                        "Message...",
-                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("conversation_message_input"),
-                                shape = RectangleShape,
-                                colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    disabledContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent,
-                                    disabledIndicatorColor = Color.Transparent,
-                                    cursorColor = accentColor,
-                                    focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-                                    unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
-                                ),
-                                maxLines = 4,
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                                keyboardActions = KeyboardActions(
-                                    onSend = {
-                                        if (messageInput.isNotBlank() && !isSending) {
-                                            if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                                        }
+                        // RIGHT: a 56.dp circle for send or mic
+                        if (messageInput.isNotBlank() && !recordingState.isRecording) {
+                            IconButton(
+                                onClick = {
+                                    if (!isSending) {
+                                        if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
                                     }
-                                )
+                                },
+                                enabled = !isSending,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(CircleShape)
+                                    .background(accentColor)
+                                    .testTag("conversation_send_button")
+                            ) {
+                                if (isSending) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        strokeWidth = 2.dp,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            VoiceNoteRecordBar(
+                                voiceRecorder = voiceRecorder,
+                                onVoiceNoteRecorded = { file, waveform, duration ->
+                                    viewModel.uploadAndSendVoiceNote(file, waveform, duration)
+                                },
+                                accentColor = accentColor,
+                                isDark = isDark,
+                                containerModifier = glassModifier(CircleShape),
+                                modifier = if (recordingState.isRecording) Modifier.fillMaxWidth() else Modifier.size(56.dp)
                             )
                         }
-                    }
-
-                    // RIGHT: a 56.dp circle for send or mic
-                    if (messageInput.isNotBlank() && !recordingState.isRecording) {
-                        IconButton(
-                            onClick = {
-                                if (!isSending) {
-                                    if (editingMessageId != null) viewModel.saveEditedMessage() else viewModel.sendMessage()
-                                }
-                            },
-                            enabled = !isSending,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(CircleShape)
-                                .background(accentColor)
-                                .testTag("conversation_send_button")
-                        ) {
-                            if (isSending) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    strokeWidth = 2.dp,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Send",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    } else {
-                        VoiceNoteRecordBar(
-                            voiceRecorder = voiceRecorder,
-                            onVoiceNoteRecorded = { file, waveform, duration ->
-                                viewModel.uploadAndSendVoiceNote(file, waveform, duration)
-                            },
-                            accentColor = accentColor,
-                            isDark = isDark,
-                            containerModifier = glassModifier(CircleShape),
-                            modifier = if (recordingState.isRecording) Modifier.fillMaxWidth() else Modifier.size(56.dp)
-                        )
                     }
                 }
             }

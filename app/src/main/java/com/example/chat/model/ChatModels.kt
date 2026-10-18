@@ -12,7 +12,8 @@ data class ChatUser(
     val createdAt: Timestamp? = null,
     val isOnline: Boolean = false,
     val showOnlineStatus: Boolean = true,
-    val readReceipts: Boolean = true
+    val readReceipts: Boolean = true,
+    val blockedUsers: List<String> = emptyList()
 )
 
 fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {
@@ -97,7 +98,8 @@ data class ChatSummary(
     val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
     val lastMessage: ChatLastMessage? = null,
     val createdAt: Timestamp? = null,
-    val ghostMode: Boolean = false
+    val ghostMode: Boolean = false,
+    val blockedBy: List<String> = emptyList()
 ) {
     fun getOtherParticipant(currentUid: String): ParticipantInfo? {
         val otherUid = participantIds.firstOrNull { it != currentUid } ?: return null

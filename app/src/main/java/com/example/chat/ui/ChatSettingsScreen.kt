@@ -29,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
@@ -92,6 +93,8 @@ fun ChatSettingsScreen(
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
     val readReceipts by viewModel.readReceipts.collectAsState()
+    val blockedContacts by viewModel.blockedContacts.collectAsState()
+    val nicknames by viewModel.nicknames.collectAsState()
     val isSubmitting by viewModel.isSubmittingUsername.collectAsState()
     val serverError by viewModel.usernameError.collectAsState()
 
@@ -351,6 +354,17 @@ fun ChatSettingsScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
+            BlockedContactsCard(
+                blockedContacts = blockedContacts,
+                nicknames = nicknames,
+                viewModel = viewModel,
+                isDark = isDark,
+                contentColor = contentColor,
+                accentColor = accentColor
+            )
+
             Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
         }
         return
@@ -579,7 +593,7 @@ fun ChatSettingsScreen(
                         color = contentColor
                     )
                     Text(
-                        text = "Online status, read receipts",
+                        text = "Online status, read receipts, blocked contacts",
                         fontSize = 12.sp,
                         color = contentColor.copy(alpha = 0.65f),
                         lineHeight = 16.sp
@@ -594,6 +608,17 @@ fun ChatSettingsScreen(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        BlockedContactsCard(
+            blockedContacts = blockedContacts,
+            nicknames = nicknames,
+            viewModel = viewModel,
+            isDark = isDark,
+            contentColor = contentColor,
+            accentColor = accentColor
+        )
 
         Spacer(modifier = Modifier.height(14.dp))
 
@@ -647,6 +672,144 @@ fun ChatSettingsScreen(
         }
 
         Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+    }
+}
+
+@Composable
+private fun BlockedContactsCard(
+    blockedContacts: List<com.example.chat.model.ParticipantInfo>,
+    nicknames: Map<String, String>,
+    viewModel: ChatViewModel,
+    isDark: Boolean,
+    contentColor: Color,
+    accentColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .testTag("blocked_contacts_section")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Block,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Blocked contacts",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = contentColor
+                    )
+                    Text(
+                        text = if (blockedContacts.isEmpty()) {
+                            "No blocked contacts"
+                        } else {
+                            "${blockedContacts.size} blocked"
+                        },
+                        fontSize = 12.sp,
+                        color = contentColor.copy(alpha = 0.65f)
+                    )
+                }
+            }
+
+            if (blockedContacts.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                blockedContacts.forEach { contact ->
+                    val resolvedName = remember(contact, nicknames) {
+                        viewModel.displayNameFor(contact.uid, contact)
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .testTag("blocked_contact_row_${contact.uid}")
+                    ) {
+                        if (!contact.photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = contact.photoUrl,
+                                contentDescription = resolvedName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(accentColor.copy(alpha = 0.20f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = resolvedName.take(1).uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = accentColor
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = resolvedName,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = contentColor
+                            )
+                            if (contact.username.isNotBlank()) {
+                                Text(
+                                    text = "@${contact.username}",
+                                    fontSize = 12.sp,
+                                    color = contentColor.copy(alpha = 0.65f)
+                                )
+                            }
+                        }
+
+                        TextButton(
+                            onClick = { viewModel.unblockUser(contact.uid) },
+                            modifier = Modifier.testTag("settings_unblock_button_${contact.uid}")
+                        ) {
+                            Text(
+                                text = "Unblock",
+                                color = accentColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

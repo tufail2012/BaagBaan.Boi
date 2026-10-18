@@ -63,7 +63,8 @@ class ChatRepository(private val context: Context) {
                         createdAt = doc.getTimestamp("createdAt"),
                         isOnline = doc.getBoolean("isOnline") ?: false,
                         showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
-                        readReceipts = doc.getBoolean("readReceipts") ?: true
+                        readReceipts = doc.getBoolean("readReceipts") ?: true,
+                        blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
                     )
                 } else null
             } else null
@@ -331,6 +332,10 @@ class ChatRepository(private val context: Context) {
                                 )
                             }
 
+                            val blockedBy = (doc.get("blockedBy") as? List<*>)
+                                ?.mapNotNull { it as? String }
+                                .orEmpty()
+
                             ChatSummary(
                                 chatId = chatId,
                                 type = type,
@@ -338,7 +343,8 @@ class ChatRepository(private val context: Context) {
                                 participantInfo = participantInfo,
                                 lastMessage = lastMessage,
                                 createdAt = doc.getTimestamp("createdAt"),
-                                ghostMode = doc.getBoolean("ghostMode") ?: false
+                                ghostMode = doc.getBoolean("ghostMode") ?: false,
+                                blockedBy = blockedBy
                             )
                         } catch (e: Exception) {
                             Log.e(TAG, "Error parsing chat doc ${doc.id}: ${e.message}")
@@ -654,6 +660,15 @@ class ChatRepository(private val context: Context) {
 
         return try {
             val chatRef = firestore.collection("chats").document(chatId)
+            val chatSnap = chatRef.get().await()
+            if (chatSnap.exists()) {
+                val blockedBy = (chatSnap.get("blockedBy") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+                if (blockedBy.isNotEmpty()) {
+                    return Result.failure(IllegalStateException("You can't send messages to this contact. Unblock to continue."))
+                }
+            }
             val messageRef = chatRef.collection("messages").document()
 
             val messageData = hashMapOf(
@@ -710,6 +725,15 @@ class ChatRepository(private val context: Context) {
 
         return try {
             val chatRef = firestore.collection("chats").document(chatId)
+            val chatSnap = chatRef.get().await()
+            if (chatSnap.exists()) {
+                val blockedBy = (chatSnap.get("blockedBy") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+                if (blockedBy.isNotEmpty()) {
+                    return Result.failure(IllegalStateException("You can't send messages to this contact. Unblock to continue."))
+                }
+            }
             val messageRef = chatRef.collection("messages").document()
 
             val messageData = hashMapOf<String, Any?>(
@@ -842,7 +866,8 @@ class ChatRepository(private val context: Context) {
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun getCallLogsFlow(currentUid: String): Flow<List<CallLogItem>> {
-        return getUserChatsFlow(currentUid).flatMapLatest { chats ->
+        return getUserChatsFlow(currentUid).flatMapLatest { allChats ->
+            val chats = allChats.filter { currentUid !in it.blockedBy }
             if (chats.isEmpty()) {
                 flowOf(emptyList())
             } else {
@@ -984,7 +1009,8 @@ class ChatRepository(private val context: Context) {
                             createdAt = doc.getTimestamp("createdAt"),
                             isOnline = doc.getBoolean("isOnline") ?: false,
                             showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
-                            readReceipts = doc.getBoolean("readReceipts") ?: true
+                            readReceipts = doc.getBoolean("readReceipts") ?: true,
+                            blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
                         )
                     )
                 } else {
@@ -1102,6 +1128,137 @@ class ChatRepository(private val context: Context) {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error setting nickname for $otherUid by $myUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    fun getBlockedUsersFlow(myUid: String): Flow<Map<String, ParticipantInfo>> = callbackFlow {
+        val firestore = db
+        if (firestore == null || myUid.isBlank()) {
+            trySend(emptyMap())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("users")
+            .document(myUid)
+            .collection("blocked")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error listening to blocked users for $myUid: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val map = snapshot.documents.mapNotNull { doc ->
+                        val otherUid = (doc.getString("uid") ?: doc.id).trim()
+                        if (otherUid.isEmpty()) return@mapNotNull null
+                        otherUid to ParticipantInfo(
+                            uid = otherUid,
+                            username = doc.getString("username") ?: "",
+                            displayName = doc.getString("displayName") ?: "",
+                            photoUrl = doc.getString("photoUrl")
+                        )
+                    }.toMap()
+                    trySend(map)
+                }
+            }
+
+        awaitClose {
+            listener.remove()
+        }
+    }
+
+    suspend fun blockUser(
+        myUid: String,
+        otherUid: String,
+        otherInfo: ParticipantInfo? = null
+    ): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (myUid.isBlank() || otherUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("UIDs cannot be blank"))
+        }
+        return try {
+            val chatId = getDirectChatId(myUid, otherUid)
+            val chatRef = firestore.collection("chats").document(chatId)
+            val chatSnap = chatRef.get().await()
+            if (chatSnap.exists()) {
+                chatRef.update("blockedBy", FieldValue.arrayUnion(myUid)).await()
+            } else {
+                chatRef.set(
+                    mapOf(
+                        "type" to "direct",
+                        "participantIds" to listOf(myUid, otherUid),
+                        "blockedBy" to listOf(myUid),
+                        "createdAt" to FieldValue.serverTimestamp()
+                    ),
+                    SetOptions.merge()
+                ).await()
+            }
+
+            try {
+                firestore.collection("users").document(myUid)
+                    .set(mapOf("blockedUsers" to FieldValue.arrayUnion(otherUid)), SetOptions.merge())
+                    .await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating blockedUsers array on users/$myUid: ${e.message}", e)
+            }
+
+            try {
+                val blockedDoc = hashMapOf<String, Any?>(
+                    "uid" to otherUid,
+                    "username" to (otherInfo?.username ?: ""),
+                    "displayName" to (otherInfo?.displayName ?: ""),
+                    "photoUrl" to (otherInfo?.photoUrl ?: ""),
+                    "blockedAt" to FieldValue.serverTimestamp()
+                )
+                firestore.collection("users").document(myUid)
+                    .collection("blocked").document(otherUid)
+                    .set(blockedDoc, SetOptions.merge())
+                    .await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error writing users/$myUid/blocked/$otherUid: ${e.message}", e)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error blocking user $otherUid by $myUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unblockUser(myUid: String, otherUid: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (myUid.isBlank() || otherUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("UIDs cannot be blank"))
+        }
+        return try {
+            val chatId = getDirectChatId(myUid, otherUid)
+            val chatRef = firestore.collection("chats").document(chatId)
+            val chatSnap = chatRef.get().await()
+            if (chatSnap.exists()) {
+                chatRef.update("blockedBy", FieldValue.arrayRemove(myUid)).await()
+            }
+
+            try {
+                firestore.collection("users").document(myUid)
+                    .set(mapOf("blockedUsers" to FieldValue.arrayRemove(otherUid)), SetOptions.merge())
+                    .await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error removing from blockedUsers array on users/$myUid: ${e.message}", e)
+            }
+
+            try {
+                firestore.collection("users").document(myUid)
+                    .collection("blocked").document(otherUid)
+                    .delete()
+                    .await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deleting users/$myUid/blocked/$otherUid: ${e.message}", e)
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unblocking user $otherUid by $myUid: ${e.message}", e)
             Result.failure(e)
         }
     }

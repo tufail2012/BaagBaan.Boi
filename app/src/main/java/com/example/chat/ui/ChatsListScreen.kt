@@ -845,9 +845,118 @@ internal fun ChatSelectionBar(
 }
 
 @Composable
+internal fun ChatSelectionOverflowMenuItems(
+    cachedSelectedIds: Set<String>,
+    cachedAnyUnread: Boolean,
+    cachedAllFavourite: Boolean,
+    allSelectableChatIds: Set<String>,
+    contentColor: Color,
+    dividerColor: Color,
+    viewModel: ChatViewModel,
+    onUpdateSelection: (Set<String>) -> Unit,
+    onClearSelection: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    SelectionMenuItem(
+        text = "Add chat shortcut",
+        contentColor = contentColor,
+        onClick = {
+            onDismiss()
+            viewModel.showToast("Coming soon")
+            onClearSelection()
+        }
+    )
+    SelectionMenuItem(
+        text = if (cachedAnyUnread) "Mark as read" else "Mark as unread",
+        contentColor = contentColor,
+        onClick = {
+            val targetIds = cachedSelectedIds
+            onDismiss()
+            if (cachedAnyUnread) {
+                viewModel.markChatsAsRead(targetIds)
+            } else {
+                viewModel.markChatsAsUnread(targetIds)
+            }
+            onClearSelection()
+        }
+    )
+    SelectionMenuItem(
+        text = "Select all",
+        contentColor = contentColor,
+        onClick = {
+            onDismiss()
+            onUpdateSelection(allSelectableChatIds)
+        }
+    )
+    SelectionMenuDivider(color = dividerColor)
+    SelectionMenuItem(
+        text = "Lock chat",
+        contentColor = contentColor,
+        onClick = {
+            onDismiss()
+            viewModel.showToast("Coming soon")
+            onClearSelection()
+        }
+    )
+    SelectionMenuItem(
+        text = if (cachedAllFavourite) "Remove from favourites" else "Add to favourites",
+        contentColor = contentColor,
+        onClick = {
+            val targetIds = cachedSelectedIds
+            onDismiss()
+            viewModel.toggleFavouriteChats(targetIds)
+            onClearSelection()
+        }
+    )
+    SelectionMenuDivider(color = dividerColor)
+    SelectionMenuItem(
+        text = "Add to list",
+        contentColor = contentColor,
+        onClick = {
+            onDismiss()
+            viewModel.showToast("Coming soon")
+            onClearSelection()
+        }
+    )
+    SelectionMenuItem(
+        text = "Clear chat",
+        contentColor = contentColor,
+        onClick = {
+            onDismiss()
+            viewModel.showToast("Coming soon")
+            onClearSelection()
+        }
+    )
+    SelectionMenuDivider(color = dividerColor)
+    SelectionMenuItem(
+        text = "Block",
+        contentColor = contentColor,
+        testTag = "selection_menu_block",
+        onClick = {
+            val targetIds = cachedSelectedIds
+            onDismiss()
+            viewModel.blockChats(targetIds)
+            onClearSelection()
+        }
+    )
+}
+
+@Composable
+internal fun SelectionMenuDivider(color: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .height(0.5.dp)
+            .background(color)
+    )
+}
+
+@Composable
 internal fun SelectionMenuItem(
     text: String,
     contentColor: Color,
+    testTag: String? = null,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -867,6 +976,7 @@ internal fun SelectionMenuItem(
                 indication = null,
                 onClick = onClick
             )
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.CenterStart
     ) {

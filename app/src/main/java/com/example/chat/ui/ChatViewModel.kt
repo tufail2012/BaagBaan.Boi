@@ -159,8 +159,25 @@ class ChatViewModel(
     private val _nicknames = MutableStateFlow<Map<String, String>>(emptyMap())
     val nicknames: StateFlow<Map<String, String>> = _nicknames.asStateFlow()
 
+    private val _blockedUsersMap = MutableStateFlow<Map<String, ParticipantInfo>>(emptyMap())
+    private val _blockedUserIds = MutableStateFlow<Set<String>>(emptySet())
+    val blockedUserIds: StateFlow<Set<String>> = _blockedUserIds.asStateFlow()
+
+    private val _blockedContacts = MutableStateFlow<List<ParticipantInfo>>(emptyList())
+    val blockedContacts: StateFlow<List<ParticipantInfo>> = _blockedContacts.asStateFlow()
+
+    private val _isActiveChatBlockedByMe = MutableStateFlow(false)
+    val isActiveChatBlockedByMe: StateFlow<Boolean> = _isActiveChatBlockedByMe.asStateFlow()
+
+    private val _isActiveChatBlockedByOther = MutableStateFlow(false)
+    val isActiveChatBlockedByOther: StateFlow<Boolean> = _isActiveChatBlockedByOther.asStateFlow()
+
+    private var rawCallHistory: List<com.example.chat.model.CallLogItem> = emptyList()
+    private val fetchingBlockedUserProfiles = mutableSetOf<String>()
+
     private var chatsListenJob: Job? = null
     private var nicknamesListenJob: Job? = null
+    private var blockedListenJob: Job? = null
     private var messagesListenJob: Job? = null
     private var markReadJob: Job? = null
     private var searchJob: Job? = null
@@ -206,7 +223,11 @@ class ChatViewModel(
             chatsListenJob?.cancel()
             callHistoryListenJob?.cancel()
             nicknamesListenJob?.cancel()
+            blockedListenJob?.cancel()
             _nicknames.value = emptyMap()
+            _blockedUsersMap.value = emptyMap()
+            _blockedUserIds.value = emptySet()
+            _blockedContacts.value = emptyList()
             _currentUser.value = null
             _isUserLoading.value = false
             _isUsernameSetupRequired.value = false
@@ -304,9 +325,112 @@ class ChatViewModel(
         }
     }
 
+    private fun refreshBlockedState() {
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val fromSubcollection = _blockedUsersMap.value
+        val fromUserDoc = _currentUser.value?.blockedUsers.orEmpty()
+        val fromChats = mutableMapOf<String, ParticipantInfo>()
+        if (currentUid.isNotEmpty()) {
+            for (chat in rawChatsList) {
+                if (currentUid in chat.blockedBy) {
+                    val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
+                    if (otherUid.isNotEmpty()) {
+                        val info = chat.getOtherParticipant(currentUid) ?: ParticipantInfo(uid = otherUid)
+                        fromChats[otherUid] = info
+                    }
+                }
+            }
+        }
+
+        val combinedIds = buildSet {
+            addAll(fromSubcollection.keys)
+            addAll(fromUserDoc)
+            addAll(fromChats.keys)
+            remove("")
+            if (currentUid.isNotEmpty()) remove(currentUid)
+        }
+        _blockedUserIds.value = combinedIds
+
+        val contacts = combinedIds.map { uid ->
+            val chatInfo = fromChats[uid]
+                ?: rawChatsList.firstOrNull { uid in it.participantIds }?.participantInfo?.get(uid)
+            val subInfo = fromSubcollection[uid]
+            val merged = ParticipantInfo(
+                uid = uid,
+                username = chatInfo?.username?.ifBlank { null } ?: subInfo?.username.orEmpty(),
+                displayName = chatInfo?.displayName?.ifBlank { null } ?: subInfo?.displayName.orEmpty(),
+                photoUrl = chatInfo?.photoUrl?.ifBlank { null } ?: subInfo?.photoUrl
+            )
+            if (merged.username.isBlank() && merged.displayName.isBlank() && uid !in fetchingBlockedUserProfiles) {
+                fetchingBlockedUserProfiles.add(uid)
+                viewModelScope.launch {
+                    val fetched = repository.getChatUser(uid)
+                    if (fetched != null) {
+                        _blockedUsersMap.update { current ->
+                            if (uid in _blockedUserIds.value) {
+                                current + (uid to ParticipantInfo(
+                                    uid = uid,
+                                    username = fetched.username,
+                                    displayName = fetched.displayName,
+                                    photoUrl = fetched.photoUrl
+                                ))
+                            } else {
+                                current
+                            }
+                        }
+                        refreshBlockedState()
+                    }
+                }
+            }
+            merged
+        }.sortedBy { displayNameFor(it.uid, it).lowercase() }
+
+        _blockedContacts.value = contacts
+        refreshActiveChatBlockFlags()
+    }
+
+    private fun refreshActiveChatBlockFlags() {
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val activeChatId = _activeChatId.value
+        val activeOtherUid = _activeRecipient.value?.uid.orEmpty()
+        val activeChat = if (!activeChatId.isNullOrBlank()) {
+            rawChatsList.firstOrNull { it.chatId == activeChatId }
+        } else null
+        val otherUid = activeOtherUid.ifBlank {
+            activeChat?.participantIds?.firstOrNull { it != currentUid }.orEmpty()
+        }
+
+        val byMe = (otherUid.isNotEmpty() && otherUid in _blockedUserIds.value) ||
+            (currentUid.isNotEmpty() && activeChat?.blockedBy?.contains(currentUid) == true)
+        val byOther = (otherUid.isNotEmpty() && activeChat?.blockedBy?.contains(otherUid) == true) ||
+            (currentUid.isNotEmpty() && _recipientPresence.value?.blockedUsers?.contains(currentUid) == true)
+
+        _isActiveChatBlockedByMe.value = byMe
+        _isActiveChatBlockedByOther.value = byOther
+    }
+
+    private fun refreshVisibleCallHistory() {
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val blockedIds = _blockedUserIds.value
+        _callHistory.value = rawCallHistory.filter { log ->
+            val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
+            val chat = rawChatsList.firstOrNull { it.chatId == log.chatId }
+            val blockedInChat = currentUid.isNotEmpty() && chat?.blockedBy?.contains(currentUid) == true
+            otherUid !in blockedIds && !blockedInChat
+        }
+    }
+
     private fun refreshVisibleChatsList() {
+        refreshBlockedState()
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val blockedIds = _blockedUserIds.value
         val states = _chatLocalStates.value
         val nonHidden = rawChatsList.filter { chat ->
+            val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
+            val isBlockedByMe = (currentUid.isNotEmpty() && currentUid in chat.blockedBy) ||
+                (otherUid.isNotEmpty() && otherUid in blockedIds)
+            if (isBlockedByMe) return@filter false
+
             val state = states[chat.chatId]
             if (state == null) {
                 true
@@ -334,6 +458,7 @@ class ChatViewModel(
         _archivedChatsList.value = nonHidden
             .filter { chat -> states[chat.chatId]?.archived == true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+        refreshVisibleCallHistory()
     }
 
     private fun startListeningToChats(uid: String) {
@@ -353,6 +478,8 @@ class ChatViewModel(
                     // In-app notification check for foreground messages
                     if (previousList.isNotEmpty() && preferences.isNotificationsEnabled) {
                         for (chat in list) {
+                            val otherUid = chat.participantIds.firstOrNull { it != uid }.orEmpty()
+                            if (chat.blockedBy.isNotEmpty() || otherUid in _blockedUserIds.value) continue
                             val last = chat.lastMessage ?: continue
                             val prevChat = previousList.find { it.chatId == chat.chatId }
                             val prevTime = prevChat?.lastMessage?.timestamp?.toDate()?.time ?: 0L
@@ -375,7 +502,8 @@ class ChatViewModel(
             repository.getCallLogsFlow(uid)
                 .catch { Log.w("ChatViewModel", "Error in call history flow: ${it.message}") }
                 .collectLatest { logs ->
-                    _callHistory.value = logs
+                    rawCallHistory = logs
+                    refreshVisibleCallHistory()
                 }
         }
 
@@ -386,6 +514,18 @@ class ChatViewModel(
                 .catch { Log.e("ChatViewModel", "Error in nicknames flow: ${it.message}", it) }
                 .collectLatest { map ->
                     _nicknames.value = map
+                    refreshBlockedState()
+                }
+        }
+
+        blockedListenJob?.cancel()
+        _blockedUsersMap.value = emptyMap()
+        blockedListenJob = viewModelScope.launch {
+            repository.getBlockedUsersFlow(uid)
+                .catch { Log.e("ChatViewModel", "Error in blocked users flow: ${it.message}", it) }
+                .collectLatest { map ->
+                    _blockedUsersMap.value = map
+                    refreshVisibleChatsList()
                 }
         }
     }
@@ -418,6 +558,116 @@ class ChatViewModel(
             it.copy(pinned = shouldPin)
         }
         refreshVisibleChatsList()
+    }
+
+    fun blockChats(chatIds: Set<String>) {
+        if (chatIds.isEmpty()) return
+        val currentUid = _currentUser.value?.uid ?: return
+        val targets = mutableListOf<Pair<String, ParticipantInfo>>()
+        for (chatId in chatIds) {
+            val chat = rawChatsList.firstOrNull { it.chatId == chatId }
+            val otherUid = chat?.participantIds?.firstOrNull { it != currentUid }
+                ?: chatId.split("_").firstOrNull { it.isNotBlank() && it != currentUid }
+                .orEmpty()
+            if (otherUid.isNotEmpty()) {
+                val info = chat?.getOtherParticipant(currentUid) ?: ParticipantInfo(uid = otherUid)
+                targets.add(otherUid to info)
+            }
+        }
+        if (targets.isEmpty()) return
+
+        val blockedIdsToAdd = targets.map { it.first }.toSet()
+        rawChatsList = rawChatsList.map { chat ->
+            if (chat.chatId in chatIds && currentUid !in chat.blockedBy) {
+                chat.copy(blockedBy = chat.blockedBy + currentUid)
+            } else {
+                chat
+            }
+        }
+        _blockedUsersMap.update { current ->
+            val mutable = current.toMutableMap()
+            targets.forEach { (uid, info) -> mutable[uid] = info }
+            mutable
+        }
+        _currentUser.update { user ->
+            user?.copy(blockedUsers = (user.blockedUsers + blockedIdsToAdd).distinct())
+        }
+        refreshVisibleChatsList()
+
+        viewModelScope.launch {
+            for ((otherUid, info) in targets) {
+                repository.blockUser(currentUid, otherUid, info).onFailure { err ->
+                    _toastMessage.value = "Failed to block: ${err.message ?: "unknown error"}"
+                }
+            }
+        }
+    }
+
+    fun blockUser(otherUid: String, otherInfo: ParticipantInfo? = null) {
+        val currentUid = _currentUser.value?.uid ?: return
+        if (otherUid.isBlank() || otherUid == currentUid) return
+        val chatId = ChatRepository.getDirectChatId(currentUid, otherUid)
+        val resolvedInfo = otherInfo
+            ?: rawChatsList.firstOrNull { it.chatId == chatId }?.getOtherParticipant(currentUid)
+            ?: _activeRecipient.value?.takeIf { it.uid == otherUid }
+            ?: ParticipantInfo(uid = otherUid)
+
+        rawChatsList = rawChatsList.map { chat ->
+            if (chat.chatId == chatId && currentUid !in chat.blockedBy) {
+                chat.copy(blockedBy = chat.blockedBy + currentUid)
+            } else {
+                chat
+            }
+        }
+        _blockedUsersMap.update { it + (otherUid to resolvedInfo) }
+        _currentUser.update { user ->
+            user?.copy(blockedUsers = (user.blockedUsers + otherUid).distinct())
+        }
+        refreshVisibleChatsList()
+
+        viewModelScope.launch {
+            repository.blockUser(currentUid, otherUid, resolvedInfo).onFailure { err ->
+                _toastMessage.value = "Failed to block: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun unblockUser(otherUid: String) {
+        val currentUid = _currentUser.value?.uid ?: return
+        if (otherUid.isBlank()) return
+        val chatId = ChatRepository.getDirectChatId(currentUid, otherUid)
+
+        rawChatsList = rawChatsList.map { chat ->
+            if (chat.chatId == chatId || otherUid in chat.participantIds) {
+                chat.copy(blockedBy = chat.blockedBy - currentUid)
+            } else {
+                chat
+            }
+        }
+        _blockedUsersMap.update { it - otherUid }
+        _currentUser.update { user ->
+            user?.copy(blockedUsers = user.blockedUsers - otherUid)
+        }
+        refreshVisibleChatsList()
+
+        viewModelScope.launch {
+            repository.unblockUser(currentUid, otherUid).onFailure { err ->
+                _toastMessage.value = "Failed to unblock: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun isActiveChatBlocked(): Boolean {
+        return _isActiveChatBlockedByMe.value || _isActiveChatBlockedByOther.value
+    }
+
+    fun isUserOrChatBlocked(otherUid: String): Boolean {
+        if (otherUid.isBlank()) return false
+        if (otherUid in _blockedUserIds.value) return true
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val chatId = if (currentUid.isNotEmpty()) ChatRepository.getDirectChatId(currentUid, otherUid) else ""
+        val chat = rawChatsList.firstOrNull { it.chatId == chatId || otherUid in it.participantIds }
+        return chat?.blockedBy?.isNotEmpty() == true
     }
 
     fun hideDeletedChatsLocally(chatIds: Set<String>) {
@@ -622,6 +872,7 @@ class ChatViewModel(
                 )
                 _activeSubScreen.value = ChatSubScreen.CONVERSATION
                 _ghostModeEnabled.value = false
+                refreshActiveChatBlockFlags()
                 startListeningToMessages(chatId)
                 startObservingRecipientPresence(otherUser.uid)
                 launch {
@@ -649,6 +900,7 @@ class ChatViewModel(
         _activeRecipient.value = other
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
         _ghostModeEnabled.value = summary.ghostMode
+        refreshActiveChatBlockFlags()
         startListeningToMessages(summary.chatId)
         startObservingRecipientPresence(other.uid)
         viewModelScope.launch {
@@ -667,6 +919,7 @@ class ChatViewModel(
         presenceListenJob = viewModelScope.launch {
             repository.getUserFlow(uid).collectLatest { user ->
                 _recipientPresence.value = user
+                refreshActiveChatBlockFlags()
             }
         }
     }
@@ -756,6 +1009,10 @@ class ChatViewModel(
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
         if (text.isEmpty()) return
+        if (isActiveChatBlocked()) {
+            _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
+            return
+        }
 
         _messageInput.value = ""
         viewModelScope.launch {
@@ -838,6 +1095,10 @@ class ChatViewModel(
     fun uploadAndSendMedia(mediaType: String, fileUri: Uri, context: Context, caption: String = "") {
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
+        if (isActiveChatBlocked()) {
+            _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
+            return
+        }
         val pendingId = "pending_${System.currentTimeMillis()}"
 
         val executeUpload: () -> Unit = {
@@ -893,6 +1154,11 @@ class ChatViewModel(
     fun uploadAndSendVoiceNote(file: File, waveform: List<Int>, durationSeconds: Long) {
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
+        if (isActiveChatBlocked()) {
+            try { file.delete() } catch (_: Exception) {}
+            _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
+            return
+        }
         val pendingId = "voice_${System.currentTimeMillis()}"
 
         val executeUpload: () -> Unit = {
@@ -949,6 +1215,10 @@ class ChatViewModel(
     fun sendLocation(latitude: Double, longitude: Double, address: String) {
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
+        if (isActiveChatBlocked()) {
+            _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
+            return
+        }
         viewModelScope.launch {
             repository.sendAttachmentMessage(
                 chatId = chatId,
@@ -965,6 +1235,10 @@ class ChatViewModel(
     fun sendContact(name: String, phone: String) {
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
+        if (isActiveChatBlocked()) {
+            _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
+            return
+        }
         viewModelScope.launch {
             repository.sendAttachmentMessage(
                 chatId = chatId,
@@ -1034,7 +1308,13 @@ class ChatViewModel(
         chatsListenJob?.cancel()
         callHistoryListenJob?.cancel()
         nicknamesListenJob?.cancel()
+        blockedListenJob?.cancel()
         _nicknames.value = emptyMap()
+        _blockedUsersMap.value = emptyMap()
+        _blockedUserIds.value = emptySet()
+        _blockedContacts.value = emptyList()
+        _isActiveChatBlockedByMe.value = false
+        _isActiveChatBlockedByOther.value = false
         _currentUser.value = null
         _activeChatId.value = null
         _activeRecipient.value = null

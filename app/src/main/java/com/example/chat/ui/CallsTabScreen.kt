@@ -98,6 +98,13 @@ fun CallsTabScreen(
     val chatSummaries by viewModel.chatsList.collectAsState()
     val callHistory by viewModel.callHistory.collectAsState()
     val nicknames by viewModel.nicknames.collectAsState()
+    val blockedUserIds by viewModel.blockedUserIds.collectAsState()
+    val visibleCallHistory = remember(callHistory, blockedUserIds, currentUid) {
+        callHistory.filter { log ->
+            val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
+            otherUid !in blockedUserIds
+        }
+    }
 
     LaunchedEffect(chatSummaries, currentUid) {
         val myUid = currentUid
@@ -147,6 +154,10 @@ fun CallsTabScreen(
     fun handleCallPress(targetUid: String, targetUsername: String, isVideo: Boolean) {
         if (targetUid.isBlank() || targetUid == currentUid) {
             Toast.makeText(context, "Cannot call yourself", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (viewModel.isUserOrChatBlocked(targetUid)) {
+            Toast.makeText(context, "You can't call this contact while blocked", Toast.LENGTH_SHORT).show()
             return
         }
         if (!hasPermissions) {
@@ -258,7 +269,7 @@ fun CallsTabScreen(
                 )
             }
 
-            if (callHistory.isEmpty()) {
+            if (visibleCallHistory.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -274,7 +285,7 @@ fun CallsTabScreen(
                     }
                 }
             } else {
-                items(callHistory, key = { it.id }) { log ->
+                items(visibleCallHistory, key = { it.id }) { log ->
                     val other = log.getOtherParticipant(currentUid)
                     val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
                     val resolvedName = remember(otherUid, other, nicknames) {
