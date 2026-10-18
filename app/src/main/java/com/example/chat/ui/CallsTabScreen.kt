@@ -57,10 +57,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -71,9 +73,6 @@ import com.example.chat.call.ZegoConfigRequiredDialog
 import com.example.chat.model.CallLogItem
 import com.example.chat.model.ChatTab
 import com.example.ui.components.glassContentColor
-import com.example.ui.components.isAppInDarkMode
-import com.example.ui.components.isGlassSupported
-import com.example.ui.components.liquidGlassNav
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
 import java.text.SimpleDateFormat
@@ -83,13 +82,10 @@ import java.util.Locale
 @Composable
 fun CallsTabScreen(
     viewModel: ChatViewModel,
-    onBackToApp: () -> Unit,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    backdrop: Backdrop? = null,
+    topPadding: Dp = 76.dp,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isDark = isAppInDarkMode()
     val contentColor = glassContentColor()
 
     val currentUser by viewModel.currentUser.collectAsState()
@@ -118,7 +114,6 @@ fun CallsTabScreen(
     var showZegoConfigDialog by remember { mutableStateOf(false) }
     var pendingCallAction by remember { mutableStateOf<Triple<String, String, Boolean>?>(null) }
     var hasPermissions by remember { mutableStateOf(CallPermissionHelper.hasCallPermissions(context)) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -132,13 +127,13 @@ fun CallsTabScreen(
                     return@let
                 }
                 if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
-                    Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Call service not ready yet, please try again in a moment", Toast.LENGTH_SHORT).show()
                     return@let
                 }
                 val safeName = username.ifBlank { "Member" }
                 val errorReason = ZegoCallManager.startCall(context, uid, safeName, isVideo)
                 if (errorReason == null) {
-                    Toast.makeText(context, "Calling @$safeName…", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Calling @$safeName...", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
                 }
@@ -162,13 +157,13 @@ fun CallsTabScreen(
                 return
             }
             if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
-                Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Call service not ready yet, please try again in a moment", Toast.LENGTH_SHORT).show()
                 return
             }
             val safeName = targetUsername.ifBlank { "Member" }
             val errorReason = ZegoCallManager.startCall(context, targetUid, safeName, isVideo)
             if (errorReason == null) {
-                Toast.makeText(context, "Calling @$safeName…", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Calling @$safeName...", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "Call failed: $errorReason", Toast.LENGTH_LONG).show()
             }
@@ -196,238 +191,246 @@ fun CallsTabScreen(
         )
     }
 
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .testTag("calls_list_column"),
+            contentPadding = PaddingValues(
+                top = topPadding,
+                bottom = 120.dp + navBarBottom
+            )
         ) {
-            // 1. Top bar: two liquid glass pills matching ChatsListScreen.kt
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-            ) {
-                // Left glass pill: call icon + "Calls" title (copied from ChatsListScreen.kt)
+            // Four quick action circles
+            item {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .chatHeaderGlass(backdrop)
-                        .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Call,
-                        contentDescription = null,
-                        tint = contentColor,
-                        modifier = Modifier.size(26.dp)
+                    CallQuickActionCircle(
+                        icon = Icons.Default.Call,
+                        label = "Call",
+                        contentColor = contentColor,
+                        testTag = "calls_quick_call",
+                        onClick = { viewModel.openSearch() }
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Calls",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
+                    CallQuickActionCircle(
+                        icon = Icons.Default.Event,
+                        label = "Schedule",
+                        contentColor = contentColor,
+                        testTag = "calls_quick_schedule",
+                        onClick = { viewModel.showToast("Coming soon") }
                     )
-                }
-
-                // Right glass pill: search and 3-dot in one glass pill
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .height(50.dp)
-                        .chatHeaderGlass(backdrop)
-                        .padding(start = 4.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
-                ) {
-                    IconButton(
-                        onClick = { viewModel.openSearch() },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .testTag("calls_search_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Box {
-                        IconButton(
-                            onClick = { showOverflowMenu = true },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .testTag("calls_more_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options",
-                                tint = contentColor,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showOverflowMenu,
-                            onDismissRequest = { showOverflowMenu = false },
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp
-                        ) {
-                            val menuShape = RoundedCornerShape(20.dp)
-                            Column(
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .clip(menuShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.surface.copy(
-                                            alpha = if (isDark) 0.82f else 0.88f
-                                        )
-                                    )
-                                    .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                                    .chatHeaderGlass(backdrop, menuShape)
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                CallsMenuItem(
-                                    text = "Clear call log",
-                                    contentColor = contentColor,
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        viewModel.showToast("Coming soon")
-                                    }
-                                )
-                                CallsMenuItem(
-                                    text = "Settings",
-                                    contentColor = contentColor,
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        viewModel.selectTab(ChatTab.SETTINGS)
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    CallQuickActionCircle(
+                        icon = Icons.Default.Dialpad,
+                        label = "Keypad",
+                        contentColor = contentColor,
+                        testTag = "calls_quick_keypad",
+                        onClick = { viewModel.showToast("Coming soon") }
+                    )
+                    CallQuickActionCircle(
+                        icon = Icons.Default.FavoriteBorder,
+                        label = "Favourites",
+                        contentColor = contentColor,
+                        testTag = "calls_quick_favourites",
+                        onClick = { viewModel.showToast("Coming soon") }
+                    )
                 }
             }
 
-            val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("calls_list_column"),
-                contentPadding = PaddingValues(bottom = 120.dp + navBarBottom)
-            ) {
-                // 2. Four quick action circles
+            // "Recent" section header
+            item {
+                Text(
+                    text = "Recent",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
+                )
+            }
+
+            if (callHistory.isEmpty()) {
                 item {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 24.dp, vertical = 48.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        CallQuickActionCircle(
-                            icon = Icons.Default.Call,
-                            label = "Call",
-                            contentColor = contentColor,
-                            backdrop = backdrop,
-                            testTag = "calls_quick_call",
-                            onClick = { viewModel.openSearch() }
-                        )
-                        CallQuickActionCircle(
-                            icon = Icons.Default.Event,
-                            label = "Schedule",
-                            contentColor = contentColor,
-                            backdrop = backdrop,
-                            testTag = "calls_quick_schedule",
-                            onClick = { viewModel.showToast("Coming soon") }
-                        )
-                        CallQuickActionCircle(
-                            icon = Icons.Default.Dialpad,
-                            label = "Keypad",
-                            contentColor = contentColor,
-                            backdrop = backdrop,
-                            testTag = "calls_quick_keypad",
-                            onClick = { viewModel.showToast("Coming soon") }
-                        )
-                        CallQuickActionCircle(
-                            icon = Icons.Default.FavoriteBorder,
-                            label = "Favourites",
-                            contentColor = contentColor,
-                            backdrop = backdrop,
-                            testTag = "calls_quick_favourites",
-                            onClick = { viewModel.showToast("Coming soon") }
+                        Text(
+                            text = "No recent calls",
+                            fontSize = 15.sp,
+                            color = contentColor.copy(alpha = 0.6f)
                         )
                     }
                 }
-
-                // 3. "Recent" section header
-                item {
-                    Text(
-                        text = "Recent",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 6.dp)
-                    )
-                }
-
-                if (callHistory.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 48.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No recent calls",
-                                fontSize = 15.sp,
-                                color = contentColor.copy(alpha = 0.6f)
-                            )
+            } else {
+                items(callHistory, key = { it.id }) { log ->
+                    CallHistoryRow(
+                        log = log,
+                        currentUid = currentUid,
+                        contentColor = contentColor,
+                        onCallClick = { otherUid, targetUsername, isVideo ->
+                            handleCallPress(otherUid, targetUsername, isVideo)
                         }
-                    }
-                } else {
-                    items(callHistory, key = { it.id }) { log ->
-                        CallHistoryRow(
-                            log = log,
-                            currentUid = currentUid,
-                            contentColor = contentColor,
-                            onCallClick = { otherUid, targetUsername, isVideo ->
-                                handleCallPress(otherUid, targetUsername, isVideo)
-                            }
-                        )
-                    }
+                    )
                 }
             }
         }
+    }
+}
 
-        // 4. Floating call button at bottom right (above floating nav bar)
-        Box(
+@Composable
+internal fun CallsTopHeaderOverlay(
+    viewModel: ChatViewModel,
+    backdrop: Backdrop?,
+    onHeaderHeightChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = glassContentColor()
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .onSizeChanged { onHeaderHeightChanged(it.height) }
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+    ) {
+        // Left glass pill: call icon + "Calls" title
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
-                .padding(end = 20.dp, bottom = 104.dp)
-                .size(56.dp)
-                .chatHeaderGlass(backdrop, RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp))
-                .clickable { viewModel.openSearch() }
-                .testTag("calls_fab_button"),
-            contentAlignment = Alignment.Center
+                .chatHeaderGlass(backdrop)
+                .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.AddIcCall,
-                contentDescription = "New call",
+                imageVector = Icons.Default.Call,
+                contentDescription = null,
                 tint = contentColor,
                 modifier = Modifier.size(26.dp)
             )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Calls",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
         }
+
+        // Right glass pill: search and 3-dot in one glass pill
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(50.dp)
+                .chatHeaderGlass(backdrop)
+                .padding(start = 4.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+        ) {
+            IconButton(
+                onClick = { viewModel.openSearch() },
+                modifier = Modifier
+                    .size(40.dp)
+                    .testTag("calls_search_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = contentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Box {
+                IconButton(
+                    onClick = { showOverflowMenu = true },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .testTag("calls_more_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = contentColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showOverflowMenu,
+                    onDismissRequest = { showOverflowMenu = false },
+                    containerColor = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp
+                ) {
+                    val menuShape = RoundedCornerShape(20.dp)
+                    Column(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .clip(menuShape)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
+                            .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
+                            .padding(vertical = 8.dp)
+                    ) {
+                        CallsMenuItem(
+                            text = "Clear call log",
+                            contentColor = contentColor,
+                            onClick = {
+                                showOverflowMenu = false
+                                viewModel.showToast("Coming soon")
+                            }
+                        )
+                        CallsMenuItem(
+                            text = "Settings",
+                            contentColor = contentColor,
+                            onClick = {
+                                showOverflowMenu = false
+                                viewModel.selectTab(ChatTab.SETTINGS)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun CallsFloatingCallButton(
+    onClick: () -> Unit,
+    backdrop: Backdrop?,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = glassContentColor()
+    Box(
+        modifier = modifier
+            .navigationBarsPadding()
+            .padding(end = 20.dp, bottom = 104.dp)
+            .size(56.dp)
+            .chatHeaderGlass(backdrop, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .testTag("calls_fab_button"),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.AddIcCall,
+            contentDescription = "New call",
+            tint = contentColor,
+            modifier = Modifier.size(26.dp)
+        )
     }
 }
 
@@ -436,7 +439,6 @@ private fun CallQuickActionCircle(
     icon: ImageVector,
     label: String,
     contentColor: Color,
-    backdrop: Backdrop?,
     testTag: String,
     onClick: () -> Unit
 ) {
@@ -447,8 +449,9 @@ private fun CallQuickActionCircle(
         Box(
             modifier = Modifier
                 .size(58.dp)
-                .chatHeaderGlass(backdrop, CircleShape)
                 .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                .border(0.5.dp, contentColor.copy(alpha = 0.15f), CircleShape)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {

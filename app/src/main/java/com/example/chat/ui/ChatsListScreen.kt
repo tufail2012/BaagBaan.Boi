@@ -82,10 +82,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.data.ChatItemLocalState
@@ -96,7 +96,6 @@ import com.example.chat.model.ParticipantInfo
 import com.example.chat.ui.call.MinimizedCallBar
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassIndicatorColor
-import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
@@ -108,13 +107,13 @@ import kotlin.math.roundToInt
 @Composable
 fun ChatsListScreen(
     viewModel: ChatViewModel,
-    onBackToApp: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    backdrop: Backdrop? = null,
+    selectedChatIds: Set<String> = emptySet(),
+    onUpdateSelection: (Set<String>) -> Unit = {},
+    stripHeightDp: Dp = 210.dp,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
-    val isAmoled = isAppInAmoledMode()
     val allChats by viewModel.allChatsList.collectAsState()
     val chats by viewModel.chatsList.collectAsState()
     val archivedChats by viewModel.archivedChatsList.collectAsState()
@@ -124,67 +123,14 @@ fun ChatsListScreen(
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
-    val activeCall by ZegoCallManager.activeCallState.collectAsState()
-
-    var selectedChatIds by remember { mutableStateOf(emptySet<String>()) }
-    var showListSheet by remember { mutableStateOf(false) }
-    var editingList by remember { mutableStateOf<ChatList?>(null) }
-
-    val unreadCount = remember(allChats, chatLocalStates) {
-        allChats.count { chatLocalStates[it.chatId]?.markedUnread == true }
-    }
-    val favouritesCount = remember(allChats, chatLocalStates) {
-        allChats.count { chatLocalStates[it.chatId]?.favourite == true }
-    }
-
-    // Keep selection clean if chats list updates and removes selected items
-    LaunchedEffect(chats) {
-        if (selectedChatIds.isNotEmpty()) {
-            val visibleIds = chats.map { it.chatId }.toSet()
-            val remaining = selectedChatIds.intersect(visibleIds)
-            if (remaining.size != selectedChatIds.size) {
-                selectedChatIds = remaining
-            }
-        }
-    }
-
-    BackHandler(enabled = selectedChatIds.isNotEmpty()) {
-        selectedChatIds = emptySet()
-    }
 
     val contentColor = glassContentColor()
-
-    if (showListSheet) {
-        ChatListSheet(
-            allChats = allChats,
-            currentUid = currentUid,
-            editingList = editingList,
-            backdrop = backdrop,
-            onDismiss = {
-                showListSheet = false
-                editingList = null
-            },
-            onCreateList = { name, chatIds ->
-                viewModel.createList(name, chatIds)
-            },
-            onUpdateList = { id, name, chatIds ->
-                viewModel.updateList(id, name, chatIds)
-            },
-            onDeleteList = { id ->
-                viewModel.deleteList(id)
-            }
-        )
-    }
-
-    val density = LocalDensity.current
-    var stripHeightPx by remember { mutableIntStateOf(0) }
-    val stripHeightDp = with(density) { stripHeightPx.toDp() }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Content fills the whole Box and scrolls underneath the floating glass strip
+        // Scrollable page content only (no glass composables inside layerBackdrop)
         val filterEmptyLabel: String? = when (val f = selectedFilter) {
             ChatFilter.All -> if (chats.isEmpty() && allChats.isNotEmpty()) "No chats in All" else null
             ChatFilter.Unread -> if (chats.isEmpty()) "No chats in Unread" else null
@@ -352,60 +298,90 @@ fun ChatsListScreen(
                         localState = localState,
                         onClick = {
                             if (selectedChatIds.isNotEmpty()) {
-                                selectedChatIds = if (isSelected) {
+                                val updated = if (isSelected) {
                                     selectedChatIds - chat.chatId
                                 } else {
                                     selectedChatIds + chat.chatId
                                 }
+                                onUpdateSelection(updated)
                             } else {
                                 viewModel.openChatFromSummary(chat)
                             }
                         },
                         onLongClick = {
-                            selectedChatIds = if (isSelected) {
+                            val updated = if (isSelected) {
                                 selectedChatIds - chat.chatId
                             } else {
                                 selectedChatIds + chat.chatId
                             }
+                            onUpdateSelection(updated)
                         }
                     )
                 }
             }
         }
+    }
+}
 
-        // Floating glass strip at TopCenter covering full width from top of screen to bottom of chip row
+@Composable
+internal fun ChatsTopHeaderOverlay(
+    viewModel: ChatViewModel,
+    accentColor: Color,
+    backdrop: Backdrop?,
+    selectedChatIds: Set<String>,
+    onUpdateSelection: (Set<String>) -> Unit,
+    onClearSelection: () -> Unit,
+    onAddListClick: () -> Unit,
+    onEditCustomList: (ChatList) -> Unit,
+    onStripHeightChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isAppInDarkMode()
+    val contentColor = glassContentColor()
+    val allChats by viewModel.allChatsList.collectAsState()
+    val chats by viewModel.chatsList.collectAsState()
+    val chatLocalStates by viewModel.chatLocalStates.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val customLists by viewModel.customLists.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val activeCall by ZegoCallManager.activeCallState.collectAsState()
+
+    val unreadCount = remember(allChats, chatLocalStates) {
+        allChats.count { chatLocalStates[it.chatId]?.markedUnread == true }
+    }
+    val favouritesCount = remember(allChats, chatLocalStates) {
+        allChats.count { chatLocalStates[it.chatId]?.favourite == true }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .onSizeChanged { onStripHeightChanged(it.height) }
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-                .zIndex(10f)
-                .onSizeChanged { stripHeightPx = it.height }
-                .skipWhenRecordingChatBackdrop()
-        ) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .chatHeaderStripGlass(backdrop)
-            )
+                .matchParentSize()
+                .chatHeaderStripGlass(backdrop)
+        )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-            ) {
-                if (selectedChatIds.isNotEmpty()) {
-                    ChatSelectionBar(
-                        selectedChatIds = selectedChatIds,
-                        allSelectableChatIds = chats.map { it.chatId }.toSet(),
-                        chatLocalStates = chatLocalStates,
-                        viewModel = viewModel,
-                        backdrop = backdrop,
-                        isDark = isDark,
-                        contentColor = contentColor,
-                        onUpdateSelection = { selectedChatIds = it },
-                        onClearSelection = { selectedChatIds = emptySet() }
-                    )
-                } else {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+        ) {
+            if (selectedChatIds.isNotEmpty()) {
+                ChatSelectionBar(
+                    selectedChatIds = selectedChatIds,
+                    allSelectableChatIds = chats.map { it.chatId }.toSet(),
+                    chatLocalStates = chatLocalStates,
+                    viewModel = viewModel,
+                    backdrop = backdrop,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    onUpdateSelection = onUpdateSelection,
+                    onClearSelection = onClearSelection
+                )
+            } else {
                     // Top App Bar: glass pills, icons and text black or white by theme only
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -517,15 +493,10 @@ fun ChatsListScreen(
                         customLists = customLists,
                         backdrop = backdrop,
                         contentColor = contentColor,
+                        selectedTextColor = accentColor,
                         onSelectFilter = { viewModel.selectFilter(it) },
-                        onAddListClick = {
-                            editingList = null
-                            showListSheet = true
-                        },
-                        onEditCustomList = { list ->
-                            editingList = list
-                            showListSheet = true
-                        }
+                        onAddListClick = onAddListClick,
+                        onEditCustomList = onEditCustomList
                     )
                 }
 
@@ -539,7 +510,6 @@ fun ChatsListScreen(
                 }
             }
         }
-    }
 }
 
 @Composable
@@ -727,13 +697,8 @@ internal fun ChatSelectionBar(
                         modifier = Modifier
                             .width(220.dp)
                             .clip(menuShape)
-                            .background(
-                                MaterialTheme.colorScheme.surface.copy(
-                                    alpha = if (isDark) 0.82f else 0.88f
-                                )
-                            )
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
                             .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                            .chatHeaderGlass(backdrop, menuShape)
                             .padding(vertical = 8.dp)
                     ) {
                         SelectionMenuItem(
@@ -1183,6 +1148,7 @@ private fun ChatFilterRow(
     customLists: List<ChatList>,
     backdrop: Backdrop?,
     contentColor: Color,
+    selectedTextColor: Color,
     onSelectFilter: (ChatFilter) -> Unit,
     onAddListClick: () -> Unit,
     onEditCustomList: (ChatList) -> Unit
@@ -1191,6 +1157,7 @@ private fun ChatFilterRow(
     val scrollState = rememberScrollState()
     val capsuleShape = RoundedCornerShape(percent = 50)
     val indicatorColor = glassIndicatorColor().copy(alpha = 0.55f)
+    val unselectedTextColor = contentColor.copy(alpha = 0.7f)
 
     val chips = remember(unreadCount, favouritesCount, customLists) {
         buildList {
@@ -1276,51 +1243,21 @@ private fun ChatFilterRow(
             .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
             .testTag("chat_filter_row")
     ) {
-        // Layer 1: Glass capsule backgrounds for each chip and the + circle
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            chips.forEach { chip ->
-                val isSelected = chip.key == selectedKey
-                Box(
-                    modifier = Modifier
-                        .height(40.dp)
-                        .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = chip.label,
-                        color = Color.Transparent,
-                        fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        maxLines = 1
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .chatHeaderGlass(backdrop = backdrop, shape = CircleShape)
-            )
-        }
-
-        // Layer 2: Animated selection pill behind the selected chip's text
+        // Sliding glass selection pill behind the active chip (never on the + chip)
         if (targetBounds != null && animatedWidth > 0f) {
             Box(
                 modifier = Modifier
                     .offset { IntOffset(animatedX.roundToInt(), 0) }
                     .width(with(density) { animatedWidth.toDp() })
                     .height(40.dp)
+                    .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
                     .clip(capsuleShape)
                     .background(indicatorColor, capsuleShape)
-                    .border(0.5.dp, contentColor.copy(alpha = 0.25f), capsuleShape)
+                    .border(1.dp, selectedTextColor.copy(alpha = 0.45f), capsuleShape)
             )
         }
 
-        // Layer 3: Interactive foreground labels and + icon button
+        // Foreground chip labels and + circle button
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -1339,6 +1276,13 @@ private fun ChatFilterRow(
                             }
                         }
                         .clip(capsuleShape)
+                        .then(
+                            if (!isSelected) {
+                                Modifier.border(0.5.dp, contentColor.copy(alpha = 0.14f), capsuleShape)
+                            } else {
+                                Modifier
+                            }
+                        )
                         .combinedClickable(
                             onClick = { onSelectFilter(chip.filter) },
                             onLongClick = chip.onLongClick
@@ -1347,11 +1291,19 @@ private fun ChatFilterRow(
                         .testTag(chip.testTag),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Reserve bold width so chip bounds stay stable when selection moves
                     Text(
                         text = chip.label,
-                        color = contentColor,
+                        color = Color.Transparent,
                         fontSize = 14.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = chip.label,
+                        color = if (isSelected) selectedTextColor else unselectedTextColor,
+                        fontSize = 14.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         maxLines = 1
                     )
                 }
@@ -1360,6 +1312,7 @@ private fun ChatFilterRow(
             Box(
                 modifier = Modifier
                     .size(40.dp)
+                    .chatHeaderGlass(backdrop = backdrop, shape = CircleShape)
                     .clip(CircleShape)
                     .clickable(onClick = onAddListClick)
                     .testTag("filter_chip_add_list"),

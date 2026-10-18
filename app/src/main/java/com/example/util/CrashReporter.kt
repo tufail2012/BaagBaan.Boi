@@ -248,9 +248,17 @@ object CrashReporter {
                         if ((lastExit.reason == ApplicationExitInfo.REASON_CRASH_NATIVE ||
                              lastExit.reason == ApplicationExitInfo.REASON_SIGNALED ||
                              (lastExit.reason == ApplicationExitInfo.REASON_CRASH && !hasCrashLog(context)))) {
-                            val traceText = try {
-                                lastExit.traceInputStream?.bufferedReader()?.use { it.readText() } ?: ""
-                            } catch (_: Throwable) { "" }
+                            val traceFilePath: String? = try {
+                                lastExit.traceInputStream?.use { input ->
+                                    val traceFile = File(context.filesDir, "crash_trace.bin")
+                                    traceFile.outputStream().use { output ->
+                                        input.copyTo(output)
+                                    }
+                                    traceFile.absolutePath
+                                }
+                            } catch (_: Throwable) {
+                                null
+                            }
 
                             val exitReport = buildString {
                                 appendLine("========================================")
@@ -262,10 +270,10 @@ object CrashReporter {
                                 appendLine("Exit Description: ${lastExit.description ?: "None"}")
                                 appendLine("Process Importance: ${lastExit.importance}")
                                 appendLine("PSS Memory: ${lastExit.pss} kB, RSS: ${lastExit.rss} kB")
-                                if (traceText.isNotBlank()) {
+                                if (!traceFilePath.isNullOrBlank()) {
                                     appendLine()
                                     appendLine("Native Trace / Tombstone:")
-                                    appendLine(traceText)
+                                    appendLine(traceFilePath)
                                 }
                                 appendLine()
                                 appendLine("Android Version: ${Build.VERSION.RELEASE}")

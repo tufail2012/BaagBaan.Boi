@@ -62,16 +62,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
 import com.example.ui.components.glassContentColor
-import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
 
@@ -80,11 +81,12 @@ fun ChatSettingsScreen(
     viewModel: ChatViewModel,
     onBackToApp: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    backdrop: Backdrop? = null,
+    privacyOpen: Boolean = false,
+    onPrivacyOpenChange: (Boolean) -> Unit = {},
+    privacyTopPadding: Dp = 76.dp,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
-    val isAmoled = isAppInAmoledMode()
     val contentColor = glassContentColor()
     val currentUser by viewModel.currentUser.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
@@ -93,9 +95,8 @@ fun ChatSettingsScreen(
     val isSubmitting by viewModel.isSubmittingUsername.collectAsState()
     val serverError by viewModel.usernameError.collectAsState()
 
-    var privacyOpen by remember { mutableStateOf(false) }
     BackHandler(enabled = privacyOpen) {
-        privacyOpen = false
+        onPrivacyOpenChange(false)
     }
 
     var showChangeUsernameDialog by remember { mutableStateOf(false) }
@@ -121,7 +122,7 @@ fun ChatSettingsScreen(
             text = {
                 Column {
                     Text(
-                        text = "Enter a new unique handle (3–20 lowercase letters, numbers, or underscores).",
+                        text = "Enter a new unique handle (3-20 lowercase letters, numbers, or underscores).",
                         fontSize = 13.sp,
                         color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                     )
@@ -226,40 +227,8 @@ fun ChatSettingsScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
+                .padding(top = privacyTopPadding)
         ) {
-            // Top bar: back arrow and title "Privacy" in one glass pill (same style as Chats left pill)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .chatHeaderGlass(backdrop)
-                        .clip(RoundedCornerShape(percent = 50))
-                        .clickable { privacyOpen = false }
-                        .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
-                        .testTag("privacy_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = contentColor,
-                        modifier = Modifier.size(26.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Privacy",
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
-                    )
-                }
-            }
-
             Spacer(modifier = Modifier.height(8.dp))
 
             // 1. Online status and last seen toggle
@@ -576,7 +545,7 @@ fun ChatSettingsScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .clickable { privacyOpen = true }
+                .clickable { onPrivacyOpenChange(true) }
                 .testTag("privacy_settings_row")
         ) {
             Row(
@@ -678,6 +647,49 @@ fun ChatSettingsScreen(
         }
 
         Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+    }
+}
+
+@Composable
+internal fun PrivacyTopHeaderOverlay(
+    onBack: () -> Unit,
+    backdrop: Backdrop?,
+    onHeaderHeightChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = glassContentColor()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .onSizeChanged { onHeaderHeightChanged(it.height) }
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .chatHeaderGlass(backdrop)
+                .clip(RoundedCornerShape(percent = 50))
+                .clickable(onClick = onBack)
+                .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                .testTag("privacy_back_button")
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = contentColor,
+                modifier = Modifier.size(26.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Privacy",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+        }
     }
 }
 

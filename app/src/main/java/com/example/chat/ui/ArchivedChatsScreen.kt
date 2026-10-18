@@ -39,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.glassContentColor
@@ -51,9 +53,10 @@ import com.kyant.backdrop.Backdrop
 @Composable
 fun ArchivedChatsScreen(
     viewModel: ChatViewModel,
-    onBack: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    backdrop: Backdrop? = null,
+    selectedChatIds: Set<String> = emptySet(),
+    onUpdateSelection: (Set<String>) -> Unit = {},
+    topPadding: Dp = 76.dp,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
@@ -63,31 +66,109 @@ fun ArchivedChatsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
 
-    var selectedChatIds by remember { mutableStateOf(emptySet<String>()) }
-    var showOverflowMenu by remember { mutableStateOf(false) }
-
-    LaunchedEffect(archivedChats) {
-        if (selectedChatIds.isNotEmpty()) {
-            val visibleIds = archivedChats.map { it.chatId }.toSet()
-            val remaining = selectedChatIds.intersect(visibleIds)
-            if (remaining.size != selectedChatIds.size) {
-                selectedChatIds = remaining
-            }
-        }
-    }
-
-    BackHandler {
-        if (selectedChatIds.isNotEmpty()) {
-            selectedChatIds = emptySet()
-        } else {
-            onBack()
-        }
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .padding(top = topPadding)
+    ) {
+        Text(
+            text = "These chats stay archived until you move them back.",
+            fontSize = 13.sp,
+            color = contentColor.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+
+        if (archivedChats.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No archived chats",
+                    fontSize = 15.sp,
+                    color = contentColor.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag("archived_chats_list_column"),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                items(archivedChats, key = { it.chatId }) { chat ->
+                    val other = chat.getOtherParticipant(currentUid)
+                    val isSelected = chat.chatId in selectedChatIds
+                    val localState = chatLocalStates[chat.chatId]
+                    ChatListItemRow(
+                        chat = chat,
+                        other = other,
+                        accentColor = accentColor,
+                        isDark = isDark,
+                        contentColor = contentColor,
+                        isSelected = isSelected,
+                        localState = localState,
+                        onClick = {
+                            if (selectedChatIds.isNotEmpty()) {
+                                val updated = if (isSelected) {
+                                    selectedChatIds - chat.chatId
+                                } else {
+                                    selectedChatIds + chat.chatId
+                                }
+                                onUpdateSelection(updated)
+                            } else {
+                                viewModel.openChatFromSummary(chat)
+                            }
+                        },
+                        onLongClick = {
+                            val updated = if (isSelected) {
+                                selectedChatIds - chat.chatId
+                            } else {
+                                selectedChatIds + chat.chatId
+                            }
+                            onUpdateSelection(updated)
+                        }
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ArchivedChatsTopHeaderOverlay(
+    viewModel: ChatViewModel,
+    onBack: () -> Unit,
+    backdrop: Backdrop?,
+    selectedChatIds: Set<String>,
+    onUpdateSelection: (Set<String>) -> Unit,
+    onClearSelection: () -> Unit,
+    onHeaderHeightChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDark = isAppInDarkMode()
+    val contentColor = glassContentColor()
+    val archivedChats by viewModel.archivedChatsList.collectAsState()
+    val chatLocalStates by viewModel.chatLocalStates.collectAsState()
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .onSizeChanged { onHeaderHeightChanged(it.height) }
     ) {
         if (selectedChatIds.isNotEmpty()) {
             ChatSelectionBar(
@@ -98,8 +179,8 @@ fun ArchivedChatsScreen(
                 backdrop = backdrop,
                 isDark = isDark,
                 contentColor = contentColor,
-                onUpdateSelection = { selectedChatIds = it },
-                onClearSelection = { selectedChatIds = emptySet() }
+                onUpdateSelection = onUpdateSelection,
+                onClearSelection = onClearSelection
             )
         } else {
             Row(
@@ -169,13 +250,8 @@ fun ArchivedChatsScreen(
                                 modifier = Modifier
                                     .width(220.dp)
                                     .clip(menuShape)
-                                    .background(
-                                        MaterialTheme.colorScheme.surface.copy(
-                                            alpha = if (isDark) 0.82f else 0.88f
-                                        )
-                                    )
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
                                     .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                                    .chatHeaderGlass(backdrop, menuShape)
                                     .padding(vertical = 8.dp)
                             ) {
                                 SelectionMenuItem(
@@ -183,83 +259,12 @@ fun ArchivedChatsScreen(
                                     contentColor = contentColor,
                                     onClick = {
                                         showOverflowMenu = false
-                                        selectedChatIds = archivedChats.map { it.chatId }.toSet()
+                                        onUpdateSelection(archivedChats.map { it.chatId }.toSet())
                                     }
                                 )
                             }
                         }
                     }
-                }
-            }
-        }
-
-        Text(
-            text = "These chats stay archived until you move them back.",
-            fontSize = 13.sp,
-            color = contentColor.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        if (archivedChats.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No archived chats",
-                    fontSize = 15.sp,
-                    color = contentColor.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("archived_chats_list_column"),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                items(archivedChats, key = { it.chatId }) { chat ->
-                    val other = chat.getOtherParticipant(currentUid)
-                    val isSelected = chat.chatId in selectedChatIds
-                    val localState = chatLocalStates[chat.chatId]
-                    ChatListItemRow(
-                        chat = chat,
-                        other = other,
-                        accentColor = accentColor,
-                        isDark = isDark,
-                        contentColor = contentColor,
-                        isSelected = isSelected,
-                        localState = localState,
-                        onClick = {
-                            if (selectedChatIds.isNotEmpty()) {
-                                selectedChatIds = if (isSelected) {
-                                    selectedChatIds - chat.chatId
-                                } else {
-                                    selectedChatIds + chat.chatId
-                                }
-                            } else {
-                                viewModel.openChatFromSummary(chat)
-                            }
-                        },
-                        onLongClick = {
-                            selectedChatIds = if (isSelected) {
-                                selectedChatIds - chat.chatId
-                            } else {
-                                selectedChatIds + chat.chatId
-                            }
-                        }
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }

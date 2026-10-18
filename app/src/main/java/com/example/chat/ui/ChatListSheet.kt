@@ -1,16 +1,20 @@
 package com.example.chat.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,16 +28,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,10 +56,10 @@ import com.example.chat.data.ChatList
 import com.example.chat.model.ChatSummary
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassIndicatorColor
-import com.example.ui.components.isGlassSupported
+import com.example.ui.components.isAppInAmoledMode
+import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ChatListSheet(
     allChats: List<ChatSummary>,
@@ -68,11 +69,14 @@ internal fun ChatListSheet(
     onDismiss: () -> Unit,
     onCreateList: (name: String, chatIds: List<String>) -> Boolean,
     onUpdateList: (id: String, name: String, chatIds: List<String>) -> Boolean,
-    onDeleteList: (id: String) -> Unit
+    onDeleteList: (id: String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
     val contentColor = glassContentColor()
     val indicatorColor = glassIndicatorColor()
+    val surfaceColor = MaterialTheme.colorScheme.surface
 
     var listName by remember(editingList) { mutableStateOf(editingList?.name ?: "") }
     var selectedChatIds by remember(editingList) {
@@ -83,32 +87,57 @@ internal fun ChatListSheet(
     val isEditMode = editingList != null
     val canSubmit = listName.trim().isNotEmpty() && selectedChatIds.isNotEmpty()
     val panelShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    val glassSupported = backdrop != null && isGlassSupported()
+    val scrimAlpha = if (isDark || isAmoled) 0.35f else 0.25f
+    val sheetTintAlpha = if (isDark || isAmoled) 0.82f else 0.78f
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
-        tonalElevation = 0.dp,
-        dragHandle = null
+    BackHandler(onBack = onDismiss)
+
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
+        // Full-screen scrim behind the sheet
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = scrimAlpha))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss
+                )
+                .testTag("chat_list_sheet_scrim")
+        )
+
+        // Bottom glass panel reading chatBackdrop as a sibling
         Column(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .then(
-                    if (glassSupported) {
-                        Modifier.chatHeaderGlass(backdrop = backdrop, shape = panelShape)
-                    } else {
-                        Modifier
-                            .clip(panelShape)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), panelShape)
-                            .border(0.5.dp, contentColor.copy(alpha = 0.15f), panelShape)
-                    }
+                .chatHeaderGlass(backdrop = backdrop, shape = panelShape)
+                .clip(panelShape)
+                .background(surfaceColor.copy(alpha = sheetTintAlpha), panelShape)
+                .border(0.5.dp, contentColor.copy(alpha = 0.15f), panelShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}
                 )
+                .imePadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 14.dp)
                 .testTag("chat_list_sheet")
         ) {
+            // Drag handle
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 10.dp)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(contentColor.copy(alpha = 0.28f))
+            )
+
             // Top row: close (X) icon on the left, and title "New list" / "Edit list" centred
             Box(
                 modifier = Modifier
@@ -216,7 +245,8 @@ internal fun ChatListSheet(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
+                        .weight(1f, fill = false)
+                        .heightIn(max = 280.dp)
                         .testTag("chat_list_sheet_checklist"),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
@@ -300,15 +330,16 @@ internal fun ChatListSheet(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Full-width "Create list" or "Save" button using glass pill style
+            // Fixed bottom full-width "Create list" or "Save" button
             val buttonShape = RoundedCornerShape(percent = 50)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
                     .alpha(if (canSubmit) 1f else 0.4f)
-                    .chatHeaderGlass(backdrop = backdrop, shape = buttonShape)
                     .clip(buttonShape)
+                    .background(indicatorColor.copy(alpha = 0.55f), buttonShape)
+                    .border(0.5.dp, contentColor.copy(alpha = 0.2f), buttonShape)
                     .clickable(enabled = canSubmit) {
                         val orderedIds = allChats
                             .map { it.chatId }
