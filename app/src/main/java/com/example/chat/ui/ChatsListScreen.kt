@@ -826,9 +826,10 @@ internal fun ChatSelectionBar(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.hideDeletedChatsLocally(selectedChatIds)
+                        val idsToDelete = selectedChatIds.toSet()
                         showDeleteDialog = false
                         onClearSelection()
+                        viewModel.hideDeletedChatsLocally(idsToDelete)
                     }
                 ) {
                     Text(

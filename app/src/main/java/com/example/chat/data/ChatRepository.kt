@@ -485,31 +485,68 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    suspend fun refreshLastMessage(chatId: String) {
+        val firestore = db ?: return
+        try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            val latestSnap = chatRef.collection("messages")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .limit(1)
+                .get()
+                .await()
+
+            val latestDoc = latestSnap.documents.firstOrNull()
+            if (latestDoc == null) {
+                chatRef.update("lastMessage", null).await()
+            } else {
+                val messageType = latestDoc.getString("messageType") ?: "text"
+                val rawText = latestDoc.getString("text") ?: ""
+                val previewText = when (messageType) {
+                    "text", "call" -> rawText
+                    "image" -> if (rawText.isNotBlank()) "📷 $rawText" else "📷 Photo"
+                    "video" -> if (rawText.isNotBlank()) "🎥 $rawText" else "🎥 Video"
+                    "document" -> "📄 ${latestDoc.getString("fileName") ?: "Document"}"
+                    "voice" -> {
+                        val s = latestDoc.getLong("durationSeconds") ?: 0L
+                        val m = s / 60
+                        val rem = s % 60
+                        val durStr = String.format(java.util.Locale.getDefault(), "%d:%02d", m, rem)
+                        "🎤 Voice message ($durStr)"
+                    }
+                    "location" -> {
+                        val addr = latestDoc.getString("locationAddress")?.ifBlank { "Location" } ?: "Location"
+                        "📍 $addr"
+                    }
+                    "contact" -> "👤 ${latestDoc.getString("contactName") ?: "Contact"}"
+                    else -> rawText.ifBlank { "Attachment" }
+                }
+                val deletedFor = (latestDoc.get("deletedFor") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+                val isDeleted = latestDoc.getBoolean("isDeleted") ?: false
+                val lastMessageData = hashMapOf<String, Any?>(
+                    "text" to previewText,
+                    "senderId" to (latestDoc.getString("senderId") ?: ""),
+                    "timestamp" to latestDoc.getTimestamp("timestamp"),
+                    "messageId" to latestDoc.id,
+                    "isDeleted" to isDeleted,
+                    "deletedFor" to deletedFor
+                )
+                chatRef.update("lastMessage", lastMessageData).await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error refreshing lastMessage for $chatId: ${e.message}", e)
+        }
+    }
+
     suspend fun deleteMessageForEveryone(chatId: String, messageId: String): Result<Unit> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
         return try {
             val chatRef = firestore.collection("chats").document(chatId)
             chatRef.collection("messages").document(messageId)
-                .update(mapOf("isDeleted" to true, "text" to ""))
+                .delete()
                 .await()
-            try {
-                firestore.runTransaction { transaction ->
-                    val chatSnap = transaction.get(chatRef)
-                    val lastMsgMap = chatSnap.get("lastMessage") as? Map<*, *>
-                    val lastMsgId = lastMsgMap?.get("messageId")?.toString() ?: ""
-                    if (lastMsgId == messageId) {
-                        transaction.update(
-                            chatRef,
-                            mapOf(
-                                "lastMessage.isDeleted" to true,
-                                "lastMessage.text" to ""
-                            )
-                        )
-                    }
-                }.await()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error updating lastMessage on deleteMessageForEveryone for $messageId: ${e.message}", e)
-            }
+            refreshLastMessage(chatId)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting message $messageId for everyone: ${e.message}", e)
@@ -521,29 +558,88 @@ class ChatRepository(private val context: Context) {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
         return try {
             val chatRef = firestore.collection("chats").document(chatId)
-            chatRef.collection("messages").document(messageId)
-                .update("deletedFor", FieldValue.arrayUnion(currentUid))
-                .await()
+            val msgRef = chatRef.collection("messages").document(messageId)
+            msgRef.update("deletedFor", FieldValue.arrayUnion(currentUid)).await()
             try {
-                firestore.runTransaction { transaction ->
-                    val chatSnap = transaction.get(chatRef)
-                    val lastMsgMap = chatSnap.get("lastMessage") as? Map<*, *>
-                    val lastMsgId = lastMsgMap?.get("messageId")?.toString() ?: ""
-                    if (lastMsgId == messageId) {
-                        transaction.update(
-                            chatRef,
-                            "lastMessage.deletedFor",
-                            FieldValue.arrayUnion(currentUid)
-                        )
+                val chatSnap = chatRef.get().await()
+                val participantIds = (chatSnap.get("participantIds") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+                val msgSnap = msgRef.get().await()
+                if (msgSnap.exists()) {
+                    val deletedFor = (msgSnap.get("deletedFor") as? List<*>)
+                        ?.mapNotNull { it as? String }
+                        .orEmpty()
+                    if (participantIds.isNotEmpty() && participantIds.all { it in deletedFor }) {
+                        msgRef.delete().await()
                     }
-                }.await()
+                }
             } catch (e: Exception) {
-                Log.e(TAG, "Error updating lastMessage on deleteMessageForMe for $messageId: ${e.message}", e)
+                Log.e(TAG, "Error checking/hard-deleting message $messageId on deleteMessageForMe: ${e.message}", e)
             }
+            refreshLastMessage(chatId)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting message $messageId for me: ${e.message}", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun deleteChatForMe(chatId: String, currentUid: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (chatId.isBlank() || currentUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("chatId and currentUid must not be blank"))
+        }
+        return try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            chatRef.update("chatDeletedFor", FieldValue.arrayUnion(currentUid)).await()
+
+            val chatSnap = chatRef.get().await()
+            if (chatSnap.exists()) {
+                val participantIds = (chatSnap.get("participantIds") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+                val chatDeletedFor = (chatSnap.get("chatDeletedFor") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    .orEmpty()
+
+                if (participantIds.isNotEmpty() && participantIds.all { it in chatDeletedFor }) {
+                    val messagesSnap = chatRef.collection("messages").get().await()
+                    for (chunk in messagesSnap.documents.chunked(400)) {
+                        val batch = firestore.batch()
+                        chunk.forEach { doc -> batch.delete(doc.reference) }
+                        batch.commit().await()
+                    }
+                    chatRef.update(
+                        mapOf(
+                            "lastMessage" to null,
+                            "chatDeletedFor" to emptyList<String>()
+                        )
+                    ).await()
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting chat $chatId for $currentUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun clearChatDeletedForMe(chatId: String, currentUid: String) {
+        val firestore = db ?: return
+        if (chatId.isBlank() || currentUid.isBlank()) return
+        try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            val snap = chatRef.get().await()
+            if (!snap.exists()) return
+            val chatDeletedFor = (snap.get("chatDeletedFor") as? List<*>)
+                ?.mapNotNull { it as? String }
+                .orEmpty()
+            if (currentUid in chatDeletedFor) {
+                chatRef.update("chatDeletedFor", FieldValue.arrayRemove(currentUid)).await()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error clearing chatDeletedFor for $currentUid in $chatId: ${e.message}", e)
         }
     }
 
@@ -577,6 +673,11 @@ class ChatRepository(private val context: Context) {
             val batch = firestore.batch()
             batch.set(messageRef, messageData)
             batch.update(chatRef, "lastMessage", lastMessageData)
+            try {
+                batch.update(chatRef, "chatDeletedFor", FieldValue.arrayRemove(senderId))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding chatDeletedFor removal in sendMessage batch for $chatId: ${e.message}", e)
+            }
             batch.commit().await()
 
             Result.success(Unit)
@@ -659,6 +760,11 @@ class ChatRepository(private val context: Context) {
             val batch = firestore.batch()
             batch.set(messageRef, messageData)
             batch.update(chatRef, "lastMessage", lastMessageData)
+            try {
+                batch.update(chatRef, "chatDeletedFor", FieldValue.arrayRemove(senderId))
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding chatDeletedFor removal in sendAttachmentMessage batch for $chatId: ${e.message}", e)
+            }
             batch.commit().await()
 
             Result.success(Unit)
@@ -840,11 +946,14 @@ class ChatRepository(private val context: Context) {
 
             if (snapshot.isEmpty) return
 
-            val batch = firestore.batch()
-            snapshot.documents.forEach { doc ->
-                batch.delete(doc.reference)
+            for (chunk in snapshot.documents.chunked(400)) {
+                val batch = firestore.batch()
+                chunk.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
             }
-            batch.commit().await()
+            refreshLastMessage(chatId)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting read messages in $chatId: ${e.message}", e)
         }

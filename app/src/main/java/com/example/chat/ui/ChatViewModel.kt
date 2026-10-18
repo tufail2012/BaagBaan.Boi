@@ -427,6 +427,12 @@ class ChatViewModel(
             it.copy(hiddenAt = now, pinned = false, archived = false)
         }
         refreshVisibleChatsList()
+        val currentUid = _currentUser.value?.uid ?: return
+        viewModelScope.launch {
+            for (chatId in chatIds) {
+                repository.deleteChatForMe(chatId, currentUid)
+            }
+        }
     }
 
     fun muteChats(chatIds: Set<String>, mutedUntil: Long) {
@@ -618,6 +624,9 @@ class ChatViewModel(
                 _ghostModeEnabled.value = false
                 startListeningToMessages(chatId)
                 startObservingRecipientPresence(otherUser.uid)
+                launch {
+                    repository.clearChatDeletedForMe(chatId, current.uid)
+                }
                 if (_showOnlineStatus.value) {
                     repository.markOnlineIfForeground(current.uid)
                 }
@@ -642,6 +651,9 @@ class ChatViewModel(
         _ghostModeEnabled.value = summary.ghostMode
         startListeningToMessages(summary.chatId)
         startObservingRecipientPresence(other.uid)
+        viewModelScope.launch {
+            repository.clearChatDeletedForMe(summary.chatId, currentUid)
+        }
         if (_showOnlineStatus.value) {
             viewModelScope.launch {
                 repository.markOnlineIfForeground(currentUid)
@@ -782,6 +794,10 @@ class ChatViewModel(
 
     fun deleteMessageForEveryone(messageId: String) {
         val chatId = _activeChatId.value ?: return
+        if (_editingMessageId.value == messageId) {
+            cancelEditingMessage()
+        }
+        _messages.update { list -> list.filterNot { it.id == messageId } }
         viewModelScope.launch {
             repository.deleteMessageForEveryone(chatId, messageId).onFailure { err ->
                 _toastMessage.value = "Failed to delete: ${err.message}"
@@ -792,6 +808,10 @@ class ChatViewModel(
     fun deleteMessageForMe(messageId: String) {
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
+        if (_editingMessageId.value == messageId) {
+            cancelEditingMessage()
+        }
+        _messages.update { list -> list.filterNot { it.id == messageId } }
         viewModelScope.launch {
             repository.deleteMessageForMe(chatId, messageId, currentUid).onFailure { err ->
                 _toastMessage.value = "Failed to delete: ${err.message}"
