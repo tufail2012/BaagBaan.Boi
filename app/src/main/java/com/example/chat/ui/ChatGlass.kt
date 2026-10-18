@@ -55,6 +55,8 @@ internal fun Backdrop.asNavBackdrop(): NavBackdrop {
     }
 }
 
+internal const val SELECTION_MENU_REAL_GLASS_ENABLED = true
+
 @Composable
 internal fun Modifier.chatHeaderGlass(
     backdrop: Backdrop?,

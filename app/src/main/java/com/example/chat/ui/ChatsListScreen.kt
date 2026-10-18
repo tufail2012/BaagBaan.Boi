@@ -45,11 +45,12 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -72,10 +73,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
@@ -342,6 +345,8 @@ internal fun ChatsTopHeaderOverlay(
     selectedChatIds: Set<String>,
     onUpdateSelection: (Set<String>) -> Unit,
     onClearSelection: () -> Unit,
+    onOpenSelectionMenu: (Rect) -> Unit = {},
+    onCloseSelectionMenu: () -> Unit = {},
     onAddListClick: () -> Unit,
     onEditCustomList: (ChatList) -> Unit,
     onStripHeightChanged: (Int) -> Unit,
@@ -391,7 +396,9 @@ internal fun ChatsTopHeaderOverlay(
                     isDark = isDark,
                     contentColor = contentColor,
                     onUpdateSelection = onUpdateSelection,
-                    onClearSelection = onClearSelection
+                    onClearSelection = onClearSelection,
+                    onOpenSelectionMenu = onOpenSelectionMenu,
+                    onCloseSelectionMenu = onCloseSelectionMenu
                 )
             } else {
                     // Top App Bar: glass pills, icons and text black or white by theme only
@@ -553,11 +560,13 @@ internal fun ChatSelectionBar(
     isDark: Boolean,
     contentColor: Color,
     onUpdateSelection: (Set<String>) -> Unit,
-    onClearSelection: () -> Unit
+    onClearSelection: () -> Unit,
+    onOpenSelectionMenu: (Rect) -> Unit = {},
+    onCloseSelectionMenu: () -> Unit = {}
 ) {
-    var showOverflowMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showMuteDialog by remember { mutableStateOf(false) }
+    var moreButtonBounds by remember { mutableStateOf(Rect.Zero) }
 
     val allPinned = selectedChatIds.isNotEmpty() &&
         selectedChatIds.all { chatLocalStates[it]?.pinned == true }
@@ -565,9 +574,6 @@ internal fun ChatSelectionBar(
         selectedChatIds.all { chatLocalStates[it]?.isMuted() == true }
     val allArchived = selectedChatIds.isNotEmpty() &&
         selectedChatIds.all { chatLocalStates[it]?.archived == true }
-    val anyUnread = selectedChatIds.any { chatLocalStates[it]?.markedUnread == true }
-    val allFavourite = selectedChatIds.isNotEmpty() &&
-        selectedChatIds.all { chatLocalStates[it]?.favourite == true }
 
     // Selection top bar: one glass pill across the full width
     Box(
@@ -584,7 +590,10 @@ internal fun ChatSelectionBar(
                 .padding(horizontal = 6.dp)
         ) {
             IconButton(
-                onClick = onClearSelection,
+                onClick = {
+                    onCloseSelectionMenu()
+                    onClearSelection()
+                },
                 modifier = Modifier
                     .size(42.dp)
                     .testTag("selection_back_button")
@@ -609,6 +618,7 @@ internal fun ChatSelectionBar(
             // Pin / Unpin (diagonal slash when all selected are pinned)
             IconButton(
                 onClick = {
+                    onCloseSelectionMenu()
                     viewModel.togglePinChats(selectedChatIds)
                     onClearSelection()
                 },
@@ -643,7 +653,10 @@ internal fun ChatSelectionBar(
 
             // Delete
             IconButton(
-                onClick = { showDeleteDialog = true },
+                onClick = {
+                    onCloseSelectionMenu()
+                    showDeleteDialog = true
+                },
                 modifier = Modifier
                     .size(42.dp)
                     .testTag("selection_delete_button")
@@ -659,6 +672,7 @@ internal fun ChatSelectionBar(
             // Mute (plain bell) / Unmute (bell with diagonal line)
             IconButton(
                 onClick = {
+                    onCloseSelectionMenu()
                     if (allMuted) {
                         viewModel.unmuteChats(selectedChatIds)
                         onClearSelection()
@@ -681,6 +695,7 @@ internal fun ChatSelectionBar(
             // Archive / Unarchive
             IconButton(
                 onClick = {
+                    onCloseSelectionMenu()
                     if (allArchived) {
                         viewModel.unarchiveChats(selectedChatIds)
                     } else {
@@ -700,115 +715,22 @@ internal fun ChatSelectionBar(
                 )
             }
 
-            // 3-dot overflow menu
-            Box {
-                IconButton(
-                    onClick = { showOverflowMenu = true },
-                    modifier = Modifier
-                        .size(42.dp)
-                        .testTag("selection_more_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = contentColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showOverflowMenu,
-                    onDismissRequest = { showOverflowMenu = false },
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp
-                ) {
-                    val menuShape = RoundedCornerShape(20.dp)
-                    Column(
-                        modifier = Modifier
-                            .width(220.dp)
-                            .clip(menuShape)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
-                            .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                            .padding(vertical = 8.dp)
-                    ) {
-                        SelectionMenuItem(
-                            text = "Add chat shortcut",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = if (anyUnread) "Mark as read" else "Mark as unread",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                if (anyUnread) {
-                                    viewModel.markChatsAsRead(selectedChatIds)
-                                } else {
-                                    viewModel.markChatsAsUnread(selectedChatIds)
-                                }
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = "Select all",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                onUpdateSelection(allSelectableChatIds)
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = "Lock chat",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = if (allFavourite) "Remove from favourites" else "Add to favourites",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.toggleFavouriteChats(selectedChatIds)
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = "Add to list",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = "Clear chat",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                                onClearSelection()
-                            }
-                        )
-                        SelectionMenuItem(
-                            text = "Block",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                                onClearSelection()
-                            }
-                        )
+            // 3-dot overflow menu button (opens window-level glass overlay in ChatSectionScreen)
+            IconButton(
+                onClick = { onOpenSelectionMenu(moreButtonBounds) },
+                modifier = Modifier
+                    .size(42.dp)
+                    .onGloballyPositioned { coords ->
+                        moreButtonBounds = coords.boundsInWindow()
                     }
-                }
+                    .testTag("selection_more_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = contentColor,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
     }
@@ -826,10 +748,9 @@ internal fun ChatSelectionBar(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val idsToDelete = selectedChatIds.toSet()
+                        viewModel.hideDeletedChatsLocally(selectedChatIds)
                         showDeleteDialog = false
                         onClearSelection()
-                        viewModel.hideDeletedChatsLocally(idsToDelete)
                     }
                 ) {
                     Text(
@@ -929,12 +850,24 @@ internal fun SelectionMenuItem(
     contentColor: Color,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val itemShape = RoundedCornerShape(12.dp)
+    val pressedHighlight = glassIndicatorColor().copy(alpha = 0.3f)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 6.dp)
             .height(48.dp)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp),
+            .clip(itemShape)
+            .background(if (isPressed) pressedHighlight else Color.Transparent, itemShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(

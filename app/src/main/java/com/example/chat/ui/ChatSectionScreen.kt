@@ -3,18 +3,26 @@ package com.example.chat.ui
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -46,13 +54,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -60,8 +77,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat.data.ChatList
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
+import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import kotlin.math.roundToInt
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -117,8 +136,11 @@ fun ChatSectionScreen(
     val toastMessage by chatViewModel.toastMessage.collectAsState()
     val inAppBanner by chatViewModel.inAppBanner.collectAsState()
 
+    val chatLocalStates by chatViewModel.chatLocalStates.collectAsState()
     var chatsSelectedChatIds by remember { mutableStateOf(emptySet<String>()) }
     var archivedSelectedChatIds by remember { mutableStateOf(emptySet<String>()) }
+    var showSelectionMenu by remember { mutableStateOf(false) }
+    var selectionMenuAnchorRect by remember { mutableStateOf(Rect.Zero) }
     var showListSheet by remember { mutableStateOf(false) }
     var editingList by remember { mutableStateOf<ChatList?>(null) }
     var settingsPrivacyOpen by remember { mutableStateOf(false) }
@@ -215,11 +237,20 @@ fun ChatSectionScreen(
         }
     }
 
-    // Dismiss the New/Edit list sheet if the user leaves the Chats tab or TABS sub-screen
+    // Dismiss the New/Edit list sheet or selection overflow menu if the user leaves the Chats tab or TABS sub-screen
     LaunchedEffect(activeTab, activeSubScreen) {
         if (showListSheet && (activeTab != ChatTab.CHATS || activeSubScreen != ChatSubScreen.TABS)) {
             showListSheet = false
             editingList = null
+        }
+        if (showSelectionMenu && (activeTab != ChatTab.CHATS || activeSubScreen != ChatSubScreen.TABS)) {
+            showSelectionMenu = false
+        }
+    }
+
+    LaunchedEffect(chatsSelectedChatIds) {
+        if (chatsSelectedChatIds.isEmpty() && showSelectionMenu) {
+            showSelectionMenu = false
         }
     }
 
@@ -242,6 +273,9 @@ fun ChatSectionScreen(
     // Hardware/gesture Back handling
     BackHandler {
         when {
+            showSelectionMenu -> {
+                showSelectionMenu = false
+            }
             showListSheet -> {
                 showListSheet = false
                 editingList = null
@@ -394,7 +428,17 @@ fun ChatSectionScreen(
                                         backdrop = chatBackdrop,
                                         selectedChatIds = chatsSelectedChatIds,
                                         onUpdateSelection = { chatsSelectedChatIds = it },
-                                        onClearSelection = { chatsSelectedChatIds = emptySet() },
+                                        onClearSelection = {
+                                            showSelectionMenu = false
+                                            chatsSelectedChatIds = emptySet()
+                                        },
+                                        onOpenSelectionMenu = { anchorRect ->
+                                            selectionMenuAnchorRect = anchorRect
+                                            showSelectionMenu = !showSelectionMenu
+                                        },
+                                        onCloseSelectionMenu = {
+                                            showSelectionMenu = false
+                                        },
                                         onAddListClick = {
                                             editingList = null
                                             showListSheet = true
@@ -475,7 +519,37 @@ fun ChatSectionScreen(
                             )
                         }
 
-                        // 4. Sibling New/Edit list sheet overlay above everything else with zIndex(30f)
+                        // 4. Sibling selection overflow glass menu overlay (outside layerBackdrop)
+                        val anyUnreadSelected = remember(chatsSelectedChatIds, chatLocalStates) {
+                            chatsSelectedChatIds.any { chatLocalStates[it]?.markedUnread == true }
+                        }
+                        val allFavouriteSelected = remember(chatsSelectedChatIds, chatLocalStates) {
+                            chatsSelectedChatIds.isNotEmpty() &&
+                                chatsSelectedChatIds.all { chatLocalStates[it]?.favourite == true }
+                        }
+                        val allSelectableIds = remember(chats) {
+                            chats.map { it.chatId }.toSet()
+                        }
+                        ChatsSelectionOverflowMenuOverlay(
+                            visible = showSelectionMenu,
+                            anchorRect = selectionMenuAnchorRect,
+                            backdrop = chatBackdrop,
+                            selectedChatIds = chatsSelectedChatIds,
+                            anyUnread = anyUnreadSelected,
+                            allFavourite = allFavouriteSelected,
+                            allSelectableChatIds = allSelectableIds,
+                            contentColor = glassContentColor(),
+                            viewModel = chatViewModel,
+                            onUpdateSelection = { chatsSelectedChatIds = it },
+                            onClearSelection = {
+                                showSelectionMenu = false
+                                chatsSelectedChatIds = emptySet()
+                            },
+                            onDismiss = { showSelectionMenu = false },
+                            modifier = Modifier.zIndex(20f)
+                        )
+
+                        // 5. Sibling New/Edit list sheet overlay above everything else with zIndex(30f)
                         if (showListSheet) {
                             ChatListSheet(
                                 allChats = allChats,
@@ -585,3 +659,236 @@ fun ChatSectionScreen(
         }
     }
 }
+
+@Composable
+private fun ChatsSelectionOverflowMenuOverlay(
+    visible: Boolean,
+    anchorRect: Rect,
+    backdrop: Backdrop?,
+    selectedChatIds: Set<String>,
+    anyUnread: Boolean,
+    allFavourite: Boolean,
+    allSelectableChatIds: Set<String>,
+    contentColor: Color,
+    viewModel: ChatViewModel,
+    onUpdateSelection: (Set<String>) -> Unit,
+    onClearSelection: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val transitionState = remember { MutableTransitionState(false) }
+    LaunchedEffect(visible) {
+        transitionState.targetState = visible
+    }
+
+    if (!transitionState.currentState && !transitionState.targetState) {
+        return
+    }
+
+    var cachedSelectedIds by remember { mutableStateOf(selectedChatIds) }
+    var cachedAnyUnread by remember { mutableStateOf(anyUnread) }
+    var cachedAllFavourite by remember { mutableStateOf(allFavourite) }
+    if (selectedChatIds.isNotEmpty()) {
+        cachedSelectedIds = selectedChatIds
+        cachedAnyUnread = anyUnread
+        cachedAllFavourite = allFavourite
+    }
+
+    val density = LocalDensity.current
+    var containerWindowOffset by remember { mutableStateOf(Offset.Zero) }
+    var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var panelHeightPx by remember { mutableIntStateOf(0) }
+
+    val menuWidthDp = 220.dp
+    val menuWidthPx = with(density) { menuWidthDp.roundToPx() }
+    val gapPx = with(density) { 8.dp.roundToPx() }
+    val edgeMarginPx = with(density) { 8.dp.roundToPx() }
+
+    val anchorRight = (anchorRect.right - containerWindowOffset.x).roundToInt()
+    val anchorBottom = (anchorRect.bottom - containerWindowOffset.y).roundToInt()
+
+    val minX = edgeMarginPx
+    val maxX = if (containerSize.width > 0) {
+        (containerSize.width - menuWidthPx - edgeMarginPx).coerceAtLeast(minX)
+    } else {
+        Int.MAX_VALUE
+    }
+    val xPx = if (anchorRect.width > 0f && containerSize.width > 0) {
+        (anchorRight - menuWidthPx).coerceIn(minX, maxX)
+    } else {
+        minX
+    }
+
+    val minY = edgeMarginPx
+    val maxY = if (panelHeightPx > 0 && containerSize.height > 0) {
+        (containerSize.height - panelHeightPx - edgeMarginPx).coerceAtLeast(minY)
+    } else {
+        Int.MAX_VALUE
+    }
+    val yPx = if (anchorRect.height > 0f) {
+        (anchorBottom + gapPx).coerceIn(minY, maxY)
+    } else {
+        with(density) { 64.dp.roundToPx() }
+    }
+
+    val menuShape = RoundedCornerShape(20.dp)
+    val borderColor = contentColor.copy(alpha = 0.15f)
+    val dividerColor = contentColor.copy(alpha = 0.12f)
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onGloballyPositioned { coords ->
+                containerWindowOffset = coords.positionInWindow()
+                containerSize = coords.size
+            }
+    ) {
+        // Full-screen transparent clickable box under the panel: no dim, no ripple
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismiss
+                )
+                .testTag("selection_menu_outside_dismiss")
+        )
+
+        AnimatedVisibility(
+            visibleState = transitionState,
+            enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
+                scaleIn(
+                    initialScale = 0.92f,
+                    transformOrigin = TransformOrigin(1f, 0f),
+                    animationSpec = tween(durationMillis = 150)
+                ),
+            exit = fadeOut(animationSpec = tween(durationMillis = 150)) +
+                scaleOut(
+                    targetScale = 0.92f,
+                    transformOrigin = TransformOrigin(1f, 0f),
+                    animationSpec = tween(durationMillis = 150)
+                ),
+            modifier = Modifier.offset { IntOffset(xPx, yPx) }
+        ) {
+            val panelGlassModifier = if (SELECTION_MENU_REAL_GLASS_ENABLED) {
+                Modifier
+                    .chatHeaderGlass(backdrop = backdrop, shape = menuShape)
+                    .border(0.5.dp, borderColor, menuShape)
+                    .clip(menuShape)
+            } else {
+                Modifier
+                    .clip(menuShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
+                    .border(0.5.dp, borderColor, menuShape)
+            }
+
+            Column(
+                modifier = Modifier
+                    .width(menuWidthDp)
+                    .onSizeChanged { panelHeightPx = it.height }
+                    .then(panelGlassModifier)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {}
+                    )
+                    .padding(vertical = 8.dp)
+                    .testTag("selection_overflow_glass_menu")
+            ) {
+                SelectionMenuItem(
+                    text = "Add chat shortcut",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        viewModel.showToast("Coming soon")
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuItem(
+                    text = if (cachedAnyUnread) "Mark as read" else "Mark as unread",
+                    contentColor = contentColor,
+                    onClick = {
+                        val targetIds = cachedSelectedIds
+                        onDismiss()
+                        if (cachedAnyUnread) {
+                            viewModel.markChatsAsRead(targetIds)
+                        } else {
+                            viewModel.markChatsAsUnread(targetIds)
+                        }
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuItem(
+                    text = "Select all",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        onUpdateSelection(allSelectableChatIds)
+                    }
+                )
+                SelectionMenuDivider(color = dividerColor)
+                SelectionMenuItem(
+                    text = "Lock chat",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        viewModel.showToast("Coming soon")
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuItem(
+                    text = if (cachedAllFavourite) "Remove from favourites" else "Add to favourites",
+                    contentColor = contentColor,
+                    onClick = {
+                        val targetIds = cachedSelectedIds
+                        onDismiss()
+                        viewModel.toggleFavouriteChats(targetIds)
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuDivider(color = dividerColor)
+                SelectionMenuItem(
+                    text = "Add to list",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        viewModel.showToast("Coming soon")
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuItem(
+                    text = "Clear chat",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        viewModel.showToast("Coming soon")
+                        onClearSelection()
+                    }
+                )
+                SelectionMenuDivider(color = dividerColor)
+                SelectionMenuItem(
+                    text = "Block",
+                    contentColor = contentColor,
+                    onClick = {
+                        onDismiss()
+                        viewModel.showToast("Coming soon")
+                        onClearSelection()
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionMenuDivider(color: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .height(0.5.dp)
+            .background(color)
+    )
+}
+
