@@ -50,6 +50,30 @@ fun formatLastSeen(timestamp: Timestamp?): String {
     return "last seen on ${dateFmt.format(date)}"
 }
 
+fun formatLastSeenCompact(timestamp: Timestamp?): String {
+    if (timestamp == null) return "offline"
+    val date = timestamp.toDate()
+    val nowMs = System.currentTimeMillis()
+    val diffMs = nowMs - date.time
+
+    if (diffMs in -5_000L..59_999L) {
+        return "last seen just now"
+    }
+
+    val now = java.util.Calendar.getInstance()
+    val then = java.util.Calendar.getInstance().apply { time = date }
+    val timeFmt = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+    val isToday = now.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        now.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    if (isToday) return "last seen ${timeFmt.format(date)}"
+    val yesterday = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -1) }
+    val isYesterday = yesterday.get(java.util.Calendar.YEAR) == then.get(java.util.Calendar.YEAR) &&
+        yesterday.get(java.util.Calendar.DAY_OF_YEAR) == then.get(java.util.Calendar.DAY_OF_YEAR)
+    if (isYesterday) return "last seen yesterday ${timeFmt.format(date)}"
+    val dateFmt = java.text.SimpleDateFormat("MMM d h:mm a", java.util.Locale.getDefault())
+    return "last seen ${dateFmt.format(date)}"
+}
+
 data class ParticipantInfo(
     val uid: String = "",
     val username: String = "",

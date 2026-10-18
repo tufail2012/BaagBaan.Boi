@@ -40,6 +40,7 @@ import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -110,6 +111,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -202,7 +204,7 @@ fun ChatScreen(
         } else if (isRecipientOnline) {
             "online"
         } else if (recipientPresence?.lastSeenAt != null) {
-            com.example.chat.model.formatLastSeen(recipientPresence?.lastSeenAt)
+            com.example.chat.model.formatLastSeenCompact(recipientPresence?.lastSeenAt)
         } else if (recipientPresence != null) {
             "offline"
         } else {
@@ -967,7 +969,7 @@ fun ChatScreen(
 
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = effectiveDisplayName,
                                 fontSize = 15.sp,
@@ -977,7 +979,16 @@ fun ChatScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (recipientStatusText != null) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                val textMeasurer = rememberTextMeasurer()
+                                val statusFontWeight = if (isRecipientOnline) FontWeight.Medium else FontWeight.Normal
+                                val statusStyle = androidx.compose.material3.LocalTextStyle.current.copy(
+                                    fontSize = 11.sp,
+                                    fontWeight = statusFontWeight
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     if (isRecipientOnline) {
                                         Box(
                                             modifier = Modifier
@@ -987,14 +998,40 @@ fun ChatScreen(
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                     }
-                                    Text(
-                                        text = recipientStatusText,
-                                        fontSize = 11.sp,
-                                        color = if (isRecipientOnline) Color(0xFF22C55E) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                        fontWeight = if (isRecipientOnline) FontWeight.Medium else FontWeight.Normal,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
+                                    BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                                        val availableWidthPx = constraints.maxWidth
+                                        val fittedStatusText = remember(
+                                            recipientStatusText,
+                                            availableWidthPx,
+                                            statusStyle
+                                        ) {
+                                            if (availableWidthPx <= 0) {
+                                                recipientStatusText
+                                            } else {
+                                                val fullWidthPx = textMeasurer.measure(
+                                                    text = recipientStatusText,
+                                                    style = statusStyle,
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                ).size.width
+                                                if (fullWidthPx <= availableWidthPx) {
+                                                    recipientStatusText
+                                                } else {
+                                                    val shortText = recipientStatusText.removePrefix("last seen ")
+                                                    shortText
+                                                }
+                                            }
+                                        }
+                                        Text(
+                                            text = fittedStatusText,
+                                            fontSize = 11.sp,
+                                            color = if (isRecipientOnline) Color(0xFF22C55E) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            fontWeight = statusFontWeight,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }
