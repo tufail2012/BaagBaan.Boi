@@ -941,4 +941,60 @@ class ChatRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+
+    fun getNicknamesFlow(myUid: String): Flow<Map<String, String>> = callbackFlow {
+        val firestore = db
+        if (firestore == null || myUid.isBlank()) {
+            trySend(emptyMap())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("users")
+            .document(myUid)
+            .collection("nicknames")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error listening to nicknames for $myUid: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val map = snapshot.documents.mapNotNull { doc ->
+                        val nick = doc.getString("nickname")?.trim().orEmpty()
+                        if (nick.isNotEmpty()) doc.id to nick else null
+                    }.toMap()
+                    trySend(map)
+                }
+            }
+
+        awaitClose {
+            listener.remove()
+        }
+    }
+
+    suspend fun setNickname(myUid: String, otherUid: String, nickname: String?): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (myUid.isBlank() || otherUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("UIDs cannot be blank"))
+        }
+        val docRef = firestore.collection("users").document(myUid)
+            .collection("nicknames").document(otherUid)
+        return try {
+            val trimmed = nickname?.trim().orEmpty().take(30)
+            if (trimmed.isEmpty()) {
+                docRef.delete().await()
+            } else {
+                val data = hashMapOf<String, Any>(
+                    "nickname" to trimmed,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                docRef.set(data, SetOptions.merge()).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting nickname for $otherUid by $myUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
 }
+

@@ -97,6 +97,7 @@ fun CallsTabScreen(
         ?: "user_${currentUid.take(6)}"
     val chatSummaries by viewModel.chatsList.collectAsState()
     val callHistory by viewModel.callHistory.collectAsState()
+    val nicknames by viewModel.nicknames.collectAsState()
 
     LaunchedEffect(chatSummaries, currentUid) {
         val myUid = currentUid
@@ -274,12 +275,18 @@ fun CallsTabScreen(
                 }
             } else {
                 items(callHistory, key = { it.id }) { log ->
+                    val other = log.getOtherParticipant(currentUid)
+                    val otherUid = if (log.callerId == currentUid) log.calleeId else log.callerId
+                    val resolvedName = remember(otherUid, other, nicknames) {
+                        viewModel.displayNameFor(otherUid, other)
+                    }
                     CallHistoryRow(
                         log = log,
                         currentUid = currentUid,
+                        displayNameOverride = resolvedName,
                         contentColor = contentColor,
-                        onCallClick = { otherUid, targetUsername, isVideo ->
-                            handleCallPress(otherUid, targetUsername, isVideo)
+                        onCallClick = { targetUid, targetUsername, isVideo ->
+                            handleCallPress(targetUid, targetUsername, isVideo)
                         }
                     )
                 }
@@ -476,6 +483,7 @@ private fun CallQuickActionCircle(
 private fun CallHistoryRow(
     log: CallLogItem,
     currentUid: String,
+    displayNameOverride: String? = null,
     contentColor: Color,
     onCallClick: (otherUid: String, targetUsername: String, isVideo: Boolean) -> Unit
 ) {
@@ -487,7 +495,9 @@ private fun CallHistoryRow(
     val isMissedIncoming = isMissed && !isCaller
     val missedRed = Color(0xFFEF4444)
 
-    val displayName = other?.displayName?.ifBlank { other.username } ?: "Member"
+    val displayName = displayNameOverride?.ifBlank { null }
+        ?: other?.displayName?.ifBlank { other.username }
+        ?: "Member"
     val targetUsername = other?.username ?: other?.displayName ?: ""
     val dateLabel = remember(log.startedAt) {
         formatCallLogTimestamp(log.startedAt)

@@ -156,7 +156,11 @@ class ChatViewModel(
     private val _recipientPresence = MutableStateFlow<ChatUser?>(null)
     val recipientPresence: StateFlow<ChatUser?> = _recipientPresence.asStateFlow()
 
+    private val _nicknames = MutableStateFlow<Map<String, String>>(emptyMap())
+    val nicknames: StateFlow<Map<String, String>> = _nicknames.asStateFlow()
+
     private var chatsListenJob: Job? = null
+    private var nicknamesListenJob: Job? = null
     private var messagesListenJob: Job? = null
     private var markReadJob: Job? = null
     private var searchJob: Job? = null
@@ -199,6 +203,10 @@ class ChatViewModel(
     fun checkUserSession() {
         val authUser = SafeFirebase.getAuth(context)?.currentUser
         if (authUser == null) {
+            chatsListenJob?.cancel()
+            callHistoryListenJob?.cancel()
+            nicknamesListenJob?.cancel()
+            _nicknames.value = emptyMap()
             _currentUser.value = null
             _isUserLoading.value = false
             _isUsernameSetupRequired.value = false
@@ -286,6 +294,7 @@ class ChatViewModel(
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, current.uid, updatedUsername)
                 }
+                startListeningToChats(current.uid)
                 onComplete(true)
             }.onFailure { err ->
                 _usernameError.value = err.message ?: "Failed to change username"
@@ -368,6 +377,36 @@ class ChatViewModel(
                 .collectLatest { logs ->
                     _callHistory.value = logs
                 }
+        }
+
+        nicknamesListenJob?.cancel()
+        _nicknames.value = emptyMap()
+        nicknamesListenJob = viewModelScope.launch {
+            repository.getNicknamesFlow(uid)
+                .catch { Log.e("ChatViewModel", "Error in nicknames flow: ${it.message}", it) }
+                .collectLatest { map ->
+                    _nicknames.value = map
+                }
+        }
+    }
+
+    fun displayNameFor(otherUid: String, info: ParticipantInfo?): String {
+        val nick = _nicknames.value[otherUid]?.trim().orEmpty()
+        if (nick.isNotEmpty()) return nick
+        val disp = info?.displayName?.trim().orEmpty()
+        if (disp.isNotEmpty()) return disp
+        val uname = info?.username?.trim().orEmpty()
+        if (uname.isNotEmpty()) return uname
+        return "Member"
+    }
+
+    fun saveNickname(otherUid: String, text: String) {
+        val myUid = _currentUser.value?.uid ?: return
+        val trimmed = text.trim()
+        viewModelScope.launch {
+            repository.setNickname(myUid, otherUid, trimmed).onFailure { err ->
+                _toastMessage.value = "Failed to save nickname: ${err.message ?: "unknown error"}"
+            }
         }
     }
 
@@ -972,6 +1011,10 @@ class ChatViewModel(
         com.example.chat.call.ZegoCallManager.unInit()
         preferences.lastUid = null
         preferences.lastUsername = null
+        chatsListenJob?.cancel()
+        callHistoryListenJob?.cancel()
+        nicknamesListenJob?.cancel()
+        _nicknames.value = emptyMap()
         _currentUser.value = null
         _activeChatId.value = null
         _activeRecipient.value = null

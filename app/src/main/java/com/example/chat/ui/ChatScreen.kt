@@ -69,6 +69,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -178,6 +179,7 @@ fun ChatScreen(
         ?: currentUser?.displayName?.ifBlank { null }
         ?: "user_${currentUid.take(6)}"
     val recipient by viewModel.activeRecipient.collectAsState()
+    val nicknames by viewModel.nicknames.collectAsState()
     val recipientPresence by viewModel.recipientPresence.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
 
@@ -484,12 +486,33 @@ fun ChatScreen(
         ZegoCallManager.cacheAvatarUrl(otherUid, recipient?.photoUrl)
     }
 
+    val effectiveDisplayName = remember(otherUid, recipient, nicknames) {
+        viewModel.displayNameFor(otherUid, recipient)
+    }
+    val currentNickname = nicknames[otherUid]?.trim().orEmpty()
+    val originalDisplayName = remember(recipient) {
+        recipient?.displayName?.ifBlank { recipient?.username } ?: "Member"
+    }
+
     // Profile Dialog Stub
     if (showProfileDialog && recipient != null) {
+        var isEditingNickname by remember { mutableStateOf(false) }
+        var nicknameDraft by remember(currentNickname, originalDisplayName) {
+            mutableStateOf(if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName)
+        }
+        val titleTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+        val secondaryNoteColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+
         AlertDialog(
-            onDismissRequest = { showProfileDialog = false },
+            onDismissRequest = {
+                isEditingNickname = false
+                showProfileDialog = false
+            },
             title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     if (!recipient?.photoUrl.isNullOrBlank()) {
                         AsyncImage(
                             model = recipient?.photoUrl,
@@ -512,17 +535,104 @@ fun ChatScreen(
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                     }
-                    Column {
-                        Text(
-                            text = recipient?.displayName?.ifBlank { recipient?.username } ?: "Member",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "@${recipient?.username}",
-                            fontSize = 13.sp,
-                            color = accentColor
-                        )
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (!isEditingNickname) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = effectiveDisplayName,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                IconButton(
+                                    onClick = {
+                                        nicknameDraft = if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName
+                                        isEditingNickname = true
+                                    },
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .testTag("edit_nickname_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit nickname",
+                                        tint = secondaryNoteColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            if (currentNickname.isNotEmpty()) {
+                                Text(
+                                    text = "Original name: $originalDisplayName",
+                                    fontSize = 11.sp,
+                                    color = secondaryNoteColor
+                                )
+                            }
+                            Text(
+                                text = "@${recipient?.username}",
+                                fontSize = 13.sp,
+                                color = accentColor
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = nicknameDraft,
+                                onValueChange = { if (it.length <= 30) nicknameDraft = it },
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 15.sp,
+                                    color = titleTextColor
+                                ),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = accentColor,
+                                    unfocusedBorderColor = secondaryNoteColor,
+                                    cursorColor = accentColor,
+                                    focusedTextColor = titleTextColor,
+                                    unfocusedTextColor = titleTextColor
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("nickname_input_field")
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Only you can see this name.",
+                                fontSize = 11.sp,
+                                color = secondaryNoteColor
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.saveNickname(otherUid, nicknameDraft)
+                                        isEditingNickname = false
+                                    },
+                                    modifier = Modifier.testTag("save_nickname_button")
+                                ) {
+                                    Text("Save", color = accentColor)
+                                }
+                                if (currentNickname.isNotEmpty()) {
+                                    TextButton(
+                                        onClick = {
+                                            viewModel.saveNickname(otherUid, "")
+                                            isEditingNickname = false
+                                        },
+                                        modifier = Modifier.testTag("reset_nickname_button")
+                                    ) {
+                                        Text("Reset", color = secondaryNoteColor)
+                                    }
+                                }
+                            }
+                            Text(
+                                text = "@${recipient?.username}",
+                                fontSize = 13.sp,
+                                color = accentColor
+                            )
+                        }
                     }
                 }
             },
@@ -560,7 +670,10 @@ fun ChatScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showProfileDialog = false }) {
+                TextButton(onClick = {
+                    isEditingNickname = false
+                    showProfileDialog = false
+                }) {
                     Text("Close", color = accentColor)
                 }
             }
@@ -843,7 +956,7 @@ fun ChatScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = (recipient?.displayName?.ifBlank { recipient?.username } ?: "U").take(1).uppercase(),
+                                        text = effectiveDisplayName.take(1).uppercase(),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
                                         color = accentColor
@@ -856,7 +969,7 @@ fun ChatScreen(
 
                         Column {
                             Text(
-                                text = recipient?.displayName?.ifBlank { recipient?.username } ?: "Member",
+                                text = effectiveDisplayName,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isDark) Color.White else Color(0xFF0F172A),

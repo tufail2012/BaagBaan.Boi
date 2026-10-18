@@ -124,6 +124,7 @@ fun ChatsListScreen(
     val chatLocalStates by viewModel.chatLocalStates.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val customLists by viewModel.customLists.collectAsState()
+    val nicknames by viewModel.nicknames.collectAsState()
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
@@ -290,12 +291,17 @@ fun ChatsListScreen(
 
                 items(chats, key = { it.chatId }) { chat ->
                     val other = chat.getOtherParticipant(currentUid)
+                    val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
+                    val resolvedName = remember(otherUid, other, nicknames) {
+                        viewModel.displayNameFor(otherUid, other)
+                    }
                     val isSelected = chat.chatId in selectedChatIds
                     val localState = chatLocalStates[chat.chatId]
                     ChatListItemRow(
                         chat = chat,
                         other = other,
                         currentUid = currentUid,
+                        displayNameOverride = resolvedName,
                         accentColor = accentColor,
                         isDark = isDark,
                         contentColor = contentColor,
@@ -945,6 +951,7 @@ internal fun ChatListItemRow(
     chat: ChatSummary,
     other: ParticipantInfo?,
     currentUid: String = "",
+    displayNameOverride: String? = null,
     accentColor: Color,
     isDark: Boolean,
     contentColor: Color,
@@ -953,7 +960,9 @@ internal fun ChatListItemRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val displayName = other?.displayName?.ifBlank { other.username } ?: "Member"
+    val displayName = displayNameOverride?.ifBlank { null }
+        ?: other?.displayName?.ifBlank { other.username }
+        ?: "Member"
     val lastMsg = chat.lastMessage
     val previewText = when {
         lastMsg == null -> "No messages yet"
