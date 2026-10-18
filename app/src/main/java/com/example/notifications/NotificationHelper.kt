@@ -28,6 +28,7 @@ object NotificationHelper {
     const val CHANNEL_REMINDERS_ID = "channel_reminders"
     const val CHANNEL_SEASONAL_ID = "channel_seasonal_reminders"
     const val CHANNEL_INVENTORY_ID = "channel_inventory_alerts"
+    const val CHANNEL_CHAT_MESSAGES_ID = "chat_messages"
 
     fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -71,11 +72,22 @@ object NotificationHelper {
                 enableVibration(true)
             }
 
+            val chatMessagesChannel = NotificationChannel(
+                CHANNEL_CHAT_MESSAGES_ID,
+                "Chat messages",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications for new chat messages"
+                setShowBadge(true)
+                enableVibration(true)
+            }
+
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(bookingChannel)
             manager.createNotificationChannel(reminderChannel)
             manager.createNotificationChannel(seasonalChannel)
             manager.createNotificationChannel(inventoryChannel)
+            manager.createNotificationChannel(chatMessagesChannel)
         }
     }
 

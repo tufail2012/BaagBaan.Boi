@@ -29,6 +29,10 @@ class ChatPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_READ_RECEIPTS, true)
         set(value) = prefs.edit().putBoolean(KEY_READ_RECEIPTS, value).apply()
 
+    var pendingFcmToken: String?
+        get() = prefs.getString(KEY_PENDING_FCM_TOKEN, null)
+        set(value) = prefs.edit().putString(KEY_PENDING_FCM_TOKEN, value).apply()
+
     companion object {
         private const val PREFS_NAME = "baagbaan_chat_prefs"
         private const val KEY_NOTIFICATIONS = "chat_notifications_enabled"
@@ -36,5 +40,6 @@ class ChatPreferences(context: Context) {
         private const val KEY_LAST_USERNAME = "chat_last_username"
         private const val KEY_ONLINE_STATUS = "chat_online_status_enabled"
         private const val KEY_READ_RECEIPTS = "chat_read_receipts_enabled"
+        private const val KEY_PENDING_FCM_TOKEN = "chat_pending_fcm_token"
     }
 }

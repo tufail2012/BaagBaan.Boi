@@ -1262,5 +1262,47 @@ class ChatRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+
+    suspend fun saveFcmToken(uid: String, token: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val cleanUid = uid.trim()
+        val cleanToken = token.trim()
+        if (cleanUid.isEmpty() || cleanToken.isEmpty()) {
+            return Result.failure(IllegalArgumentException("uid and token cannot be blank"))
+        }
+        return try {
+            val userRef = firestore.collection("users").document(cleanUid)
+            try {
+                userRef.update("fcmTokens", FieldValue.arrayUnion(cleanToken)).await()
+            } catch (_: Exception) {
+                userRef.set(
+                    mapOf("fcmTokens" to FieldValue.arrayUnion(cleanToken)),
+                    SetOptions.merge()
+                ).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error saving FCM token for $cleanUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun removeFcmToken(uid: String, token: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val cleanUid = uid.trim()
+        val cleanToken = token.trim()
+        if (cleanUid.isEmpty() || cleanToken.isEmpty()) {
+            return Result.failure(IllegalArgumentException("uid and token cannot be blank"))
+        }
+        return try {
+            firestore.collection("users").document(cleanUid)
+                .update("fcmTokens", FieldValue.arrayRemove(cleanToken))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error removing FCM token for $cleanUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
 }
 

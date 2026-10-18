@@ -130,11 +130,13 @@ fun ChatSectionScreen(
     val chats by chatViewModel.chatsList.collectAsState()
     val archivedChats by chatViewModel.archivedChatsList.collectAsState()
     val isUserLoading by chatViewModel.isUserLoading.collectAsState()
+    val isChatsLoading by chatViewModel.isChatsLoading.collectAsState()
     val isUsernameSetupRequired by chatViewModel.isUsernameSetupRequired.collectAsState()
     val activeTab by chatViewModel.activeTab.collectAsState()
     val activeSubScreen by chatViewModel.activeSubScreen.collectAsState()
     val toastMessage by chatViewModel.toastMessage.collectAsState()
     val inAppBanner by chatViewModel.inAppBanner.collectAsState()
+    val pendingOpenChatId by chatViewModel.pendingOpenChatId.collectAsState()
 
     val chatLocalStates by chatViewModel.chatLocalStates.collectAsState()
     var chatsSelectedChatIds by remember { mutableStateOf(emptySet<String>()) }
@@ -154,6 +156,12 @@ fun ChatSectionScreen(
     val callsHeaderHeightDp = if (callsHeaderHeightPx > 0) with(density) { callsHeaderHeightPx.toDp() } else 76.dp
     val archivedHeaderHeightDp = if (archivedHeaderHeightPx > 0) with(density) { archivedHeaderHeightPx.toDp() } else 76.dp
     val settingsPrivacyHeaderHeightDp = if (settingsPrivacyHeaderHeightPx > 0) with(density) { settingsPrivacyHeaderHeightPx.toDp() } else 76.dp
+
+    LaunchedEffect(pendingOpenChatId, chats, allChats, isUserLoading, isChatsLoading) {
+        if (pendingOpenChatId != null && !isUserLoading && !isChatsLoading) {
+            chatViewModel.tryOpenPendingChat()
+        }
+    }
 
     // Keep selections clean when chat lists update
     LaunchedEffect(chats) {

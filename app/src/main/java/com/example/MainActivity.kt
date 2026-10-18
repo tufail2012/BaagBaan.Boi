@@ -30,7 +30,11 @@ import com.example.ui.NotificationViewModelFactory
 
 import com.example.data.FirestoreSyncManager
 import kotlinx.coroutines.Dispatchers
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.os.Build
+import com.example.chat.ui.ChatViewModel
+import com.example.chat.ui.ChatViewModelFactory
 import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
@@ -40,6 +44,7 @@ class MainActivity : FragmentActivity() {
 
     private lateinit var appLockManager: AppLockManager
     private var cropViewModel: CropViewModel? = null
+    private var chatViewModel: ChatViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         createCount++
@@ -56,6 +61,14 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
 
         NotificationHelper.createNotificationChannels(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val chatChannel = NotificationChannel(
+                "chat_messages",
+                "Chat messages",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            getSystemService(NotificationManager::class.java)?.createNotificationChannel(chatChannel)
+        }
 
         val database = AppDatabase.getDatabase(this, lifecycleScope)
         val gardenPlanningRepository = GardenPlanningRepository(database.gardenPlanningDao(), database.farmerContactDao(), database.recycleBinDao())
@@ -64,10 +77,14 @@ class MainActivity : FragmentActivity() {
         val cropViewModel = ViewModelProvider(this, cropFactory)[CropViewModel::class.java]
         this.cropViewModel = cropViewModel
 
+        val chatViewModel = ViewModelProvider(this, ChatViewModelFactory(this))[ChatViewModel::class.java]
+        this.chatViewModel = chatViewModel
+
         cropViewModel.handleDeepLinkUri(intent?.data)
         handleWidgetPaymentIntent(intent)
         handleSeasonalIntent(intent)
         handleInventoryIntent(intent)
+        handleOpenChatIntent(intent)
 
         com.example.data.SeasonalTaskRepository.startListening(this)
 
@@ -171,6 +188,20 @@ class MainActivity : FragmentActivity() {
         handleWidgetPaymentIntent(intent)
         handleSeasonalIntent(intent)
         handleInventoryIntent(intent)
+        handleOpenChatIntent(intent)
+    }
+
+    private fun handleOpenChatIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val openChatId = intent.getStringExtra("open_chat_id")?.trim()?.ifEmpty { null }
+            ?: intent.getStringExtra("chatId")?.takeIf {
+                intent.getStringExtra("type") == "chat"
+            }?.trim()?.ifEmpty { null }
+        if (openChatId != null) {
+            intent.removeExtra("open_chat_id")
+            intent.removeExtra("chatId")
+            chatViewModel?.setPendingOpenChatId(openChatId)
+        }
     }
 
     private fun handleWidgetPaymentIntent(intent: android.content.Intent?) {

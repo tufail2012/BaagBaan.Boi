@@ -30,6 +30,8 @@ class AgriApplication : Application() {
         val firebaseApp = SafeFirebase.ensureFirebaseApp(this)
         Log.d("AgriApplication", "SafeFirebase.init(this) completed. FirebaseApp instance: $firebaseApp")
 
+        com.example.notifications.NotificationHelper.createNotificationChannels(this)
+
         // Initialize Zego call invitation service at process start if user session exists
         try {
             val prefs = com.example.chat.data.ChatPreferences(this)

@@ -22,7 +22,9 @@ import com.example.chat.model.ChatUser
 import com.example.chat.model.ParticipantInfo
 import com.example.util.SafeFirebase
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.util.UUID
 import android.net.Uri
@@ -172,6 +175,10 @@ class ChatViewModel(
     private val _isActiveChatBlockedByOther = MutableStateFlow(false)
     val isActiveChatBlockedByOther: StateFlow<Boolean> = _isActiveChatBlockedByOther.asStateFlow()
 
+    private val _pendingOpenChatId = MutableStateFlow<String?>(null)
+    val pendingOpenChatId: StateFlow<String?> = _pendingOpenChatId.asStateFlow()
+
+    private var hasLoadedChatsOnce = false
     private var rawCallHistory: List<com.example.chat.model.CallLogItem> = emptyList()
     private val fetchingBlockedUserProfiles = mutableSetOf<String>()
 
@@ -217,6 +224,55 @@ class ChatViewModel(
         presenceHeartbeatJob = null
     }
 
+    private fun syncFcmToken(uid: String) {
+        if (uid.isBlank()) return
+        viewModelScope.launch {
+            val pending = preferences.pendingFcmToken
+            if (!pending.isNullOrBlank()) {
+                repository.saveFcmToken(uid, pending)
+                    .onSuccess {
+                        if (preferences.pendingFcmToken == pending) {
+                            preferences.pendingFcmToken = null
+                        }
+                    }
+                    .onFailure { e ->
+                        Log.w(TAG, "Failed to save pending FCM token: ${e.message}", e)
+                    }
+            }
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                if (!token.isNullOrBlank()) {
+                    repository.saveFcmToken(uid, token).onFailure { e ->
+                        Log.w(TAG, "Failed to save FCM token: ${e.message}", e)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to get FCM token: ${e.message}", e)
+            }
+        }
+    }
+
+    fun setPendingOpenChatId(chatId: String?) {
+        _pendingOpenChatId.value = chatId?.trim()?.ifEmpty { null }
+    }
+
+    fun clearPendingOpenChatId() {
+        _pendingOpenChatId.value = null
+    }
+
+    fun tryOpenPendingChat() {
+        val targetChatId = _pendingOpenChatId.value ?: return
+        if (_isUserLoading.value || _isChatsLoading.value || !hasLoadedChatsOnce) return
+        if (_currentUser.value == null) return
+        val targetChat = _chatsList.value.firstOrNull { it.chatId == targetChatId }
+            ?: _allChatsList.value.firstOrNull { it.chatId == targetChatId }
+        _pendingOpenChatId.value = null
+        if (targetChat != null) {
+            _activeTab.value = ChatTab.CHATS
+            openChatFromSummary(targetChat)
+        }
+    }
+
     fun checkUserSession() {
         val authUser = SafeFirebase.getAuth(context)?.currentUser
         if (authUser == null) {
@@ -224,6 +280,7 @@ class ChatViewModel(
             callHistoryListenJob?.cancel()
             nicknamesListenJob?.cancel()
             blockedListenJob?.cancel()
+            hasLoadedChatsOnce = false
             _nicknames.value = emptyMap()
             _blockedUsersMap.value = emptyMap()
             _blockedUserIds.value = emptySet()
@@ -246,6 +303,7 @@ class ChatViewModel(
                 _showOnlineStatus.value = existing.showOnlineStatus
                 preferences.isReadReceiptsEnabled = existing.readReceipts
                 _readReceipts.value = existing.readReceipts
+                syncFcmToken(authUser.uid)
                 startPresenceHeartbeat(authUser.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, authUser.uid, existing.username)
@@ -282,6 +340,7 @@ class ChatViewModel(
                 _toastMessage.value = "Welcome, @${user.username}!"
                 preferences.lastUid = user.uid
                 preferences.lastUsername = user.username
+                syncFcmToken(user.uid)
                 startPresenceHeartbeat(user.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, user.uid, user.username)
@@ -312,6 +371,7 @@ class ChatViewModel(
                 _currentUser.value = current.copy(username = updatedUsername)
                 _toastMessage.value = "Username updated to @$updatedUsername"
                 preferences.lastUsername = updatedUsername
+                syncFcmToken(current.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
                     com.example.chat.call.ZegoCallManager.init(app, current.uid, updatedUsername)
                 }
@@ -473,6 +533,7 @@ class ChatViewModel(
                     _isChatsLoading.value = false
                     val previousList = rawChatsList
                     rawChatsList = list
+                    hasLoadedChatsOnce = true
                     refreshVisibleChatsList()
 
                     // In-app notification check for foreground messages
@@ -1294,21 +1355,21 @@ class ChatViewModel(
         _usernameError.value = null
     }
 
-    fun logout() {
+    fun logout(onComplete: (() -> Unit)? = null) {
         val uid = _currentUser.value?.uid
-        if (uid != null) {
-            viewModelScope.launch {
-                repository.setOnlinePresence(uid, false)
-            }
-        }
+            ?: SafeFirebase.getAuth(context)?.currentUser?.uid
+            ?: preferences.lastUid
         stopPresenceHeartbeat()
         com.example.chat.call.ZegoCallManager.unInit()
         preferences.lastUid = null
         preferences.lastUsername = null
+        preferences.pendingFcmToken = null
         chatsListenJob?.cancel()
         callHistoryListenJob?.cancel()
         nicknamesListenJob?.cancel()
         blockedListenJob?.cancel()
+        hasLoadedChatsOnce = false
+        _pendingOpenChatId.value = null
         _nicknames.value = emptyMap()
         _blockedUsersMap.value = emptyMap()
         _blockedUserIds.value = emptySet()
@@ -1322,6 +1383,24 @@ class ChatViewModel(
         markReadJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()
+        viewModelScope.launch(NonCancellable) {
+            if (!uid.isNullOrBlank()) {
+                try {
+                    val token = FirebaseMessaging.getInstance().token.await()
+                    if (!token.isNullOrBlank()) {
+                        repository.removeFcmToken(uid, token)
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to remove FCM token on sign-out: ${e.message}", e)
+                }
+                try {
+                    repository.setOnlinePresence(uid, false)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to set offline presence on sign-out: ${e.message}", e)
+                }
+            }
+            onComplete?.invoke()
+        }
     }
 
     override fun onCleared() {

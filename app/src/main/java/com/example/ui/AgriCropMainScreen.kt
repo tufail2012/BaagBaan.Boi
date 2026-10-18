@@ -99,7 +99,12 @@ import com.example.security.AppLockManager
 import com.example.ui.components.security.AppLockScreen
 import com.example.ui.components.security.SettingsScreen
 import com.example.chat.ui.ChatSectionScreen
+import com.example.chat.ui.ChatViewModel
+import com.example.chat.ui.ChatViewModelFactory
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 import androidx.credentials.CredentialManager
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.exceptions.ClearCredentialException
@@ -231,18 +236,54 @@ fun AgriCropMainScreen(
     val userDashboardViewModel = remember { UserDashboardViewModel() }
     val dashboardUserMsg by userDashboardViewModel.userMessage.collectAsState()
 
+    val chatViewModel: ChatViewModel = viewModel(factory = ChatViewModelFactory(context))
+    val pendingOpenChatId by chatViewModel.pendingOpenChatId.collectAsState()
+
+    LaunchedEffect(pendingOpenChatId, currentUser) {
+        if (!pendingOpenChatId.isNullOrBlank() && currentUser != null) {
+            isSettingsActive = false
+            isDashboardActive = false
+            isAttendanceActive = false
+            isMessageTemplatesActive = false
+            showInventoryDialog = false
+            showPaymentRemindersDialog = false
+            showSeasonalRemindersDialog = false
+            showContactDirectoryDialog = false
+            showQrScannerDialog = false
+            showThemePreferencesDialog = false
+            isChatActive = true
+        }
+    }
+
     LaunchedEffect(currentUser) {
         userDashboardViewModel.refreshUser()
+        if (currentUser != null) {
+            chatViewModel.checkUserSession()
+        }
     }
 
     val performLogout: () -> Unit = {
-        auth?.signOut()
+        val uidBeforeSignOut = auth?.currentUser?.uid
+            ?: com.example.chat.data.ChatPreferences(context).lastUid
         com.example.chat.call.ZegoCallManager.unInit()
         com.example.chat.data.ChatPreferences(context).apply {
             lastUid = null
             lastUsername = null
+            pendingFcmToken = null
         }
         coroutineScope.launch {
+            if (!uidBeforeSignOut.isNullOrBlank()) {
+                try {
+                    val token = FirebaseMessaging.getInstance().token.await()
+                    if (!token.isNullOrBlank()) {
+                        com.example.chat.data.ChatRepository(context).removeFcmToken(uidBeforeSignOut, token)
+                    }
+                } catch (e: Throwable) {
+                    android.util.Log.w("AgriCropMainScreen", "Failed to remove FCM token before sign-out: ${e.message}", e)
+                }
+            }
+            chatViewModel.logout()
+            auth?.signOut()
             try {
                 val credentialManager = CredentialManager.create(context)
                 credentialManager.clearCredentialState(ClearCredentialStateRequest())

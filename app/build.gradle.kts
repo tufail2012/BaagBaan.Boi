@@ -150,7 +150,7 @@ dependencies {
   // Firebase Firestore:
   implementation(libs.firebase.firestore)
   implementation("com.google.firebase:firebase-storage")
-  // implementation(libs.firebase.messaging)
+  implementation(libs.firebase.messaging)
 
   // ZegoCloud Call Kit with Invitation
   implementation("im.zego:zego_uikit_prebuilt_call_android:3.0.3")
