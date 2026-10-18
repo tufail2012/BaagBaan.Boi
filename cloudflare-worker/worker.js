@@ -4,12 +4,13 @@
  * Ports the exact push notification behavior of `functions/index.js` (`onMessageCreated`)
  * to run free on Cloudflare Workers without Firebase Cloud Functions:
  *  1. Authenticates the sender via their Firebase Auth ID token (`Authorization: Bearer <idToken>`).
- *  2. Reads `chats/{chatId}/messages/{messageId}` from Firestore REST API.
- *  3. Verifies caller UID === `message.senderId`, skips if `pushedAt` is already set,
- *     and skips if `messageType === "call"`.
- *  4. Reads `chats/{chatId}`, skips if `blockedBy` is non-empty, and finds recipients
- *     (`participantIds` minus `senderId`).
- *  5. Stamps `pushedAt` on the message document for idempotency and observability.
+ *  2. Reads `chats/{chatId}/messages/{messageId}` (with `updateTime`) from Firestore REST API.
+ *  3. Verifies caller UID === `message.senderId`, skips if `messageType === "call"`,
+ *     and verifies the message timestamp is within the last 180 seconds (`{skipped:"stale"}`).
+ *  4. Reads `chats/{chatId}`, verifies caller UID is in `chat.participantIds` (else 403),
+ *     skips if `blockedBy` is non-empty, and finds recipients (`participantIds` minus `senderId`).
+ *  5. Claims `pushedAt` on the message document BEFORE sending FCM using the
+ *     `currentDocument.updateTime` precondition; a failed claim returns 200 `{skipped:"duplicate"}`.
  *  6. Computes `senderName` (`displayName` -> `@username` -> `"New message"`) and
  *     message `body` (text truncated to 100 chars + `"..."`, or attachment label
  *     `"Photo"`, `"Video"`, `"Voice message"`, `"Document"`, `"Location"`, `"Contact"`).
@@ -19,10 +20,10 @@
  * Required Worker Environment Variables / Secrets:
  *  - FIREBASE_PROJECT_ID: "baagbaan-boi-20" (default if omitted)
  *  - FIREBASE_SERVICE_ACCOUNT_JSON: Full JSON string of a Firebase service account key
- *    (or individual FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY secrets).
  */
 
 const DEFAULT_PROJECT_ID = "baagbaan-boi-20";
+const MAX_MESSAGE_AGE_SECONDS = 180;
 const GOOGLE_SECURETOKEN_JWK_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -146,10 +147,10 @@ export async function verifyFirebaseIdToken(idToken, projectId) {
   const expectedIssuer = `https://securetoken.google.com/${projectId}`;
 
   if (payload.aud !== projectId) {
-    throw new Error(`Invalid audience: expected ${projectId}, got ${payload.aud}`);
+    throw new Error("Invalid audience claim");
   }
   if (payload.iss !== expectedIssuer) {
-    throw new Error(`Invalid issuer: expected ${expectedIssuer}, got ${payload.iss}`);
+    throw new Error("Invalid issuer claim");
   }
   if (typeof payload.sub !== "string" || payload.sub.trim().length === 0) {
     throw new Error("Invalid subject (sub) claim");
@@ -168,7 +169,7 @@ export async function verifyFirebaseIdToken(idToken, projectId) {
     jwk = keys.find((k) => k.kid === header.kid);
   }
   if (!jwk) {
-    throw new Error(`No matching Google JWK found for kid=${header.kid}`);
+    throw new Error("No matching Google JWK found for kid");
   }
 
   const cryptoKey = await crypto.subtle.importKey(
@@ -196,13 +197,13 @@ export async function verifyFirebaseIdToken(idToken, projectId) {
 }
 
 function getServiceAccountCredentials(env) {
-  const rawJson =
-    env?.FIREBASE_SERVICE_ACCOUNT_JSON ||
-    env?.SERVICE_ACCOUNT_JSON ||
-    env?.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const rawJson = env?.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (typeof rawJson === "string" && rawJson.trim().length > 0) {
     const parsed = JSON.parse(rawJson);
+    if (!parsed.client_email || !parsed.private_key) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is missing client_email or private_key");
+    }
     return {
       projectId: env?.FIREBASE_PROJECT_ID || parsed.project_id || DEFAULT_PROJECT_ID,
       clientEmail: parsed.client_email,
@@ -210,16 +211,8 @@ function getServiceAccountCredentials(env) {
     };
   }
 
-  if (env?.FIREBASE_CLIENT_EMAIL && env?.FIREBASE_PRIVATE_KEY) {
-    return {
-      projectId: env?.FIREBASE_PROJECT_ID || DEFAULT_PROJECT_ID,
-      clientEmail: env.FIREBASE_CLIENT_EMAIL,
-      privateKey: env.FIREBASE_PRIVATE_KEY,
-    };
-  }
-
   throw new Error(
-    "Missing service account credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON (or FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY) in Worker secrets."
+    "Missing service account credentials. Set FIREBASE_SERVICE_ACCOUNT_JSON in Worker secrets."
   );
 }
 
@@ -273,8 +266,7 @@ async function getGoogleAccessToken(clientEmail, privateKey) {
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Failed to exchange service account JWT for access token: HTTP ${res.status} ${errText}`);
+    throw new Error(`Failed to exchange service account JWT for access token: HTTP ${res.status}`);
   }
 
   const tokenData = await res.json();
@@ -318,6 +310,11 @@ export function parseFirestoreFields(fields) {
 }
 
 async function getFirestoreDocument(projectId, accessToken, docPath) {
+  const docWithMeta = await getFirestoreDocumentWithMeta(projectId, accessToken, docPath);
+  return docWithMeta ? docWithMeta.fields : null;
+}
+
+async function getFirestoreDocumentWithMeta(projectId, accessToken, docPath) {
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
     projectId
   )}/databases/(default)/documents/${docPath}`;
@@ -329,18 +326,64 @@ async function getFirestoreDocument(projectId, accessToken, docPath) {
     return null;
   }
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Firestore GET ${docPath} failed: HTTP ${res.status} ${errText}`);
+    throw new Error(`Firestore GET ${docPath} failed: HTTP ${res.status}`);
   }
   const doc = await res.json();
-  return parseFirestoreFields(doc.fields);
+  return {
+    fields: parseFirestoreFields(doc.fields),
+    createTime: typeof doc.createTime === "string" ? doc.createTime : "",
+    updateTime: typeof doc.updateTime === "string" ? doc.updateTime : "",
+  };
 }
 
-async function setMessagePushedAt(projectId, accessToken, chatId, messageId, isoTimestamp) {
+function parseTimestampMs(rawTimestamp, fallbackIso = "") {
+  if (typeof rawTimestamp === "number" && Number.isFinite(rawTimestamp)) {
+    return rawTimestamp < 1e12 ? rawTimestamp * 1000 : rawTimestamp;
+  }
+  if (typeof rawTimestamp === "string" && rawTimestamp.trim().length > 0) {
+    const trimmed = rawTimestamp.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const num = Number(trimmed);
+      return num < 1e12 ? num * 1000 : num;
+    }
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  if (typeof fallbackIso === "string" && fallbackIso.trim().length > 0) {
+    const parsedFallback = Date.parse(fallbackIso.trim());
+    if (!Number.isNaN(parsedFallback)) {
+      return parsedFallback;
+    }
+  }
+  return NaN;
+}
+
+/**
+ * Claims `pushedAt` on `chats/{chatId}/messages/{messageId}` using the
+ * `currentDocument.updateTime` precondition BEFORE sending any FCM requests.
+ * Returns `true` if claimed, or `false` if already claimed / precondition failed.
+ */
+async function claimMessagePushedAt(
+  projectId,
+  accessToken,
+  chatId,
+  messageId,
+  updateTime,
+  isoTimestamp
+) {
+  if (typeof updateTime !== "string" || updateTime.trim().length === 0) {
+    return false;
+  }
   const docPath = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
+  const query = new URLSearchParams({
+    "updateMask.fieldPaths": "pushedAt",
+    "currentDocument.updateTime": updateTime,
+  });
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
     projectId
-  )}/databases/(default)/documents/${docPath}?updateMask.fieldPaths=pushedAt`;
+  )}/databases/(default)/documents/${docPath}?${query.toString()}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
@@ -353,10 +396,13 @@ async function setMessagePushedAt(projectId, accessToken, chatId, messageId, iso
       },
     }),
   });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Firestore PATCH pushedAt on ${docPath} failed: HTTP ${res.status} ${errText}`);
+  if (res.status === 400 || res.status === 409 || res.status === 412) {
+    return false;
   }
+  if (!res.ok) {
+    throw new Error(`Firestore PATCH pushedAt on ${docPath} failed: HTTP ${res.status}`);
+  }
+  return true;
 }
 
 async function removeInvalidFcmTokens(projectId, accessToken, recipientUid, invalidTokens) {
@@ -392,8 +438,7 @@ async function removeInvalidFcmTokens(projectId, accessToken, recipientUid, inva
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    console.error(`Failed to remove invalid tokens for ${recipientUid}: HTTP ${res.status} ${errText}`);
+    console.error(`Failed to remove invalid tokens for ${recipientUid}: HTTP ${res.status}`);
   }
 }
 
@@ -498,8 +543,8 @@ export default {
     let creds;
     try {
       creds = getServiceAccountCredentials(env);
-    } catch (err) {
-      console.error("Worker configuration error:", err);
+    } catch {
+      console.error("Worker configuration error: invalid service account secret");
       return jsonResponse({ error: "Server configuration error" }, 500);
     }
 
@@ -515,8 +560,8 @@ export default {
     let callerUid;
     try {
       callerUid = await verifyFirebaseIdToken(match[1], projectId);
-    } catch (err) {
-      console.warn("Firebase ID token verification failed:", err.message);
+    } catch {
+      console.warn("Firebase ID token verification failed");
       return jsonResponse({ error: "Invalid ID token" }, 401);
     }
 
@@ -537,11 +582,26 @@ export default {
     try {
       const accessToken = await getGoogleAccessToken(creds.clientEmail, creds.privateKey);
 
-      // 3. Read chats/{chatId}/messages/{messageId}
+      // 3. Read chats/{chatId}/messages/{messageId} (with updateTime metadata)
       const messagePath = `chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`;
-      const message = await getFirestoreDocument(projectId, accessToken, messagePath);
-      if (!message) {
+      const messageDoc = await getFirestoreDocumentWithMeta(projectId, accessToken, messagePath);
+      if (!messageDoc) {
         return jsonResponse({ error: "Message not found" }, 404);
+      }
+
+      const message = messageDoc.fields;
+      const messageUpdateTime = messageDoc.updateTime;
+
+      // 4. Read chats/{chatId} and verify caller is in chat.participantIds
+      const chatPath = `chats/${encodeURIComponent(chatId)}`;
+      const chat = await getFirestoreDocument(projectId, accessToken, chatPath);
+      if (!chat) {
+        return jsonResponse({ error: "Chat not found" }, 404);
+      }
+
+      const participantIds = Array.isArray(chat.participantIds) ? chat.participantIds : [];
+      if (!participantIds.includes(callerUid)) {
+        return jsonResponse({ error: "Forbidden: caller is not in chat.participantIds" }, 403);
       }
 
       const senderId = typeof message.senderId === "string" ? message.senderId.trim() : "";
@@ -549,65 +609,49 @@ export default {
         return jsonResponse({ error: "Forbidden: caller is not the message sender" }, 403);
       }
 
-      if (message.pushedAt) {
-        return jsonResponse({
-          ok: true,
-          skipped: "already_pushed",
-          totalSent: 0,
-          totalFailed: 0,
-        });
-      }
-
       // Skip call logs (exact match with functions/index.js)
       const rawType =
         typeof message.messageType === "string" ? message.messageType.trim() : "";
       if (rawType === "call") {
-        return jsonResponse({
-          ok: true,
-          skipped: "call_message",
-          totalSent: 0,
-          totalFailed: 0,
-        });
+        return jsonResponse({ skipped: "call_message" }, 200);
       }
 
-      // 4. Read chats/{chatId}
-      const chatPath = `chats/${encodeURIComponent(chatId)}`;
-      const chat = await getFirestoreDocument(projectId, accessToken, chatPath);
-      if (!chat) {
-        return jsonResponse({ error: "Chat not found" }, 404);
+      // Verify message timestamp is within the last 180 s
+      const messageTimeMs = parseTimestampMs(message.timestamp, messageDoc.createTime);
+      const ageSeconds = (Date.now() - messageTimeMs) / 1000;
+      if (!Number.isFinite(messageTimeMs) || ageSeconds > MAX_MESSAGE_AGE_SECONDS) {
+        return jsonResponse({ skipped: "stale" }, 200);
       }
 
       // If chat.blockedBy exists and is not empty, stop
       if (Array.isArray(chat.blockedBy) && chat.blockedBy.length > 0) {
-        return jsonResponse({
-          ok: true,
-          skipped: "blocked",
-          totalSent: 0,
-          totalFailed: 0,
-        });
+        return jsonResponse({ skipped: "blocked" }, 200);
       }
 
-      const participantIds = Array.isArray(chat.participantIds) ? chat.participantIds : [];
+      // If pushedAt is already set, return 200 {skipped:"duplicate"}
+      if (message.pushedAt) {
+        return jsonResponse({ skipped: "duplicate" }, 200);
+      }
+
       const recipients = participantIds.filter(
         (uid) => typeof uid === "string" && uid.trim().length > 0 && uid !== senderId
       );
       if (recipients.length === 0) {
-        return jsonResponse({
-          ok: true,
-          skipped: "no_recipients",
-          totalSent: 0,
-          totalFailed: 0,
-        });
+        return jsonResponse({ skipped: "no_recipients" }, 200);
       }
 
-      // Stamp pushedAt on the message document so duplicate calls are ignored
-      await setMessagePushedAt(
+      // 5. Claim pushedAt with currentDocument.updateTime precondition BEFORE sending FCM
+      const claimed = await claimMessagePushedAt(
         projectId,
         accessToken,
         chatId,
         messageId,
+        messageUpdateTime,
         new Date().toISOString()
       );
+      if (!claimed) {
+        return jsonResponse({ skipped: "duplicate" }, 200);
+      }
 
       const { senderName, body } = buildNotificationContent(chat, message, senderId);
       const fcmSendUrl = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(
@@ -706,10 +750,9 @@ export default {
               invalidTokens
             );
           }
-        } catch (recipientError) {
+        } catch {
           console.error(
-            `Error sending notification to recipient ${recipientUid} for chat ${chatId}:`,
-            recipientError
+            `Error sending notification to recipient ${recipientUid} for chat ${chatId}`
           );
         }
       }
@@ -719,8 +762,8 @@ export default {
       );
 
       return jsonResponse({ ok: true, totalSent, totalFailed }, 200);
-    } catch (err) {
-      console.error("Error in Worker /notify:", err);
+    } catch {
+      console.error(`Error in Worker /notify for chatId=${chatId} messageId=${messageId}`);
       return jsonResponse({ error: "Internal server error" }, 500);
     }
   },

@@ -93,7 +93,12 @@ async function createTestKeySet() {
 
 function toFirestoreValue(val) {
   if (val === null || val === undefined) return { nullValue: null };
-  if (typeof val === "string") return { stringValue: val };
+  if (typeof val === "string") {
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
+      return { timestampValue: val };
+    }
+    return { stringValue: val };
+  }
   if (typeof val === "boolean") return { booleanValue: val };
   if (typeof val === "number") return { integerValue: String(val) };
   if (Array.isArray(val)) {
@@ -109,8 +114,13 @@ function toFirestoreValue(val) {
   return { stringValue: String(val) };
 }
 
-function toFirestoreDoc(obj) {
-  return { fields: toFirestoreValue(obj).mapValue.fields };
+function toFirestoreDoc(obj, meta = {}) {
+  const nowIso = new Date().toISOString();
+  return {
+    fields: toFirestoreValue(obj).mapValue.fields,
+    createTime: meta.createTime || nowIso,
+    updateTime: meta.updateTime || "2026-10-18T15:00:00.123456Z",
+  };
 }
 
 test("buildNotificationContent matches functions/index.js senderName & body rules", () => {
@@ -172,11 +182,14 @@ test("Worker /notify rejects missing or invalid ID token with 401", async () => 
   assert.equal(resMissing.status, 401);
 });
 
-test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGISTERED tokens", async () => {
+test("Worker /notify claims pushedAt with currentDocument.updateTime before FCM, sends FCM HTTP v1 push, and removes UNREGISTERED tokens", async () => {
   __resetWorkerCachesForTests();
   const { publicJwk, signFirebaseIdToken, env } = await createTestKeySet();
   const idToken = await signFirebaseIdToken({ uid: "alice" });
+  const expectedUpdateTime = "2026-10-18T15:00:00.123456Z";
+  const freshTimestamp = new Date().toISOString();
 
+  const callOrder = [];
   const fcmRequests = [];
   const patchRequests = [];
   const commitRequests = [];
@@ -206,11 +219,15 @@ test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGIST
     ) {
       return new Response(
         JSON.stringify(
-          toFirestoreDoc({
-            senderId: "alice",
-            text: "Assalamu Alaikum Bob!",
-            messageType: "text",
-          })
+          toFirestoreDoc(
+            {
+              senderId: "alice",
+              text: "Assalamu Alaikum Bob!",
+              messageType: "text",
+              timestamp: freshTimestamp,
+            },
+            { updateTime: expectedUpdateTime }
+          )
         ),
         { status: 200 }
       );
@@ -233,10 +250,11 @@ test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGIST
     }
 
     if (
-      url.includes("/documents/chats/alice_bob/messages/msg1?updateMask.fieldPaths=pushedAt") &&
+      url.includes("/documents/chats/alice_bob/messages/msg1?") &&
       method === "PATCH"
     ) {
-      patchRequests.push(JSON.parse(init.body));
+      callOrder.push("PATCH_pushedAt");
+      patchRequests.push({ url, body: JSON.parse(init.body) });
       return new Response(JSON.stringify({}), { status: 200 });
     }
 
@@ -253,6 +271,7 @@ test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGIST
     }
 
     if (url.endsWith(`/projects/${PROJECT_ID}/messages:send`) && method === "POST") {
+      callOrder.push("POST_FCM");
       const parsed = JSON.parse(init.body);
       fcmRequests.push(parsed);
       if (parsed.message.token === "dead_token_2") {
@@ -298,9 +317,15 @@ test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGIST
     const body = await response.json();
     assert.deepEqual(body, { ok: true, totalSent: 1, totalFailed: 1 });
 
-    // Verify pushedAt was written
+    // Verify pushedAt was claimed BEFORE sending FCM and included currentDocument.updateTime
     assert.equal(patchRequests.length, 1);
-    assert.ok(patchRequests[0].fields.pushedAt.timestampValue);
+    assert.equal(callOrder[0], "PATCH_pushedAt");
+    assert.ok(
+      patchRequests[0].url.includes(
+        `currentDocument.updateTime=${encodeURIComponent(expectedUpdateTime)}`
+      )
+    );
+    assert.ok(patchRequests[0].body.fields.pushedAt.timestampValue);
 
     // Verify FCM HTTP v1 requests
     assert.equal(fcmRequests.length, 2);
@@ -345,7 +370,7 @@ test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGIST
   }
 });
 
-test("Worker /notify skips call messages, blocked chats, already-pushed messages, and non-sender callers", async () => {
+test("Worker /notify enforces participantIds (403), 180s staleness ({skipped:'stale'}), precondition duplicate ({skipped:'duplicate'}), call skip, and blocked skip", async () => {
   __resetWorkerCachesForTests();
   const { publicJwk, signFirebaseIdToken, env } = await createTestKeySet();
   const aliceToken = await signFirebaseIdToken({ uid: "alice" });
@@ -355,11 +380,13 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
     senderId: "alice",
     text: "Voice call",
     messageType: "call",
+    timestamp: new Date().toISOString(),
   };
   let chatDoc = {
     participantIds: ["alice", "bob"],
     blockedBy: [],
   };
+  let patchStatus = 200;
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input, init = {}) => {
@@ -381,12 +408,15 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
     if (url.endsWith("/documents/chats/alice_bob") && method === "GET") {
       return new Response(JSON.stringify(toFirestoreDoc(chatDoc)), { status: 200 });
     }
+    if (url.includes("/documents/chats/alice_bob/messages/msg1?") && method === "PATCH") {
+      return new Response(JSON.stringify({}), { status: patchStatus });
+    }
     throw new Error(`Unexpected fetch: ${method} ${url}`);
   };
 
   try {
-    // 1. Caller != senderId -> 403
-    const res403 = await worker.fetch(
+    // 1. Caller not in chat.participantIds -> 403
+    const res403NotParticipant = await worker.fetch(
       new Request("https://push.example.workers.dev/notify", {
         method: "POST",
         headers: {
@@ -397,9 +427,27 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
       }),
       env
     );
-    assert.equal(res403.status, 403);
+    assert.equal(res403NotParticipant.status, 403);
 
-    // 2. messageType === "call" -> skipped: "call_message"
+    // 2. Caller is in participantIds, or senderId != callerUid, or sender removed from participantIds -> 403
+    chatDoc = { participantIds: ["bob"], blockedBy: [] };
+    const res403RemovedFromChat = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(res403RemovedFromChat.status, 403);
+
+    // Restore chat participants
+    chatDoc = { participantIds: ["alice", "bob"], blockedBy: [] };
+
+    // 3. messageType === "call" -> skipped: "call_message"
     const resCall = await worker.fetch(
       new Request("https://push.example.workers.dev/notify", {
         method: "POST",
@@ -412,14 +460,37 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
       env
     );
     assert.equal(resCall.status, 200);
-    assert.equal((await resCall.json()).skipped, "call_message");
+    assert.deepEqual(await resCall.json(), { skipped: "call_message" });
 
-    // 3. pushedAt already set -> skipped: "already_pushed"
+    // 4. Stale message (> 180 s old) -> 200 {skipped: "stale"}
+    const staleIso = new Date(Date.now() - 181 * 1000).toISOString();
+    messageDoc = {
+      senderId: "alice",
+      text: "Old message",
+      messageType: "text",
+      timestamp: staleIso,
+    };
+    const resStale = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(resStale.status, 200);
+    assert.deepEqual(await resStale.json(), { skipped: "stale" });
+
+    // 5. pushedAt already set -> 200 {skipped: "duplicate"}
     messageDoc = {
       senderId: "alice",
       text: "Hi",
       messageType: "text",
-      pushedAt: "2026-10-18T00:00:00.000Z",
+      timestamp: new Date().toISOString(),
+      pushedAt: new Date().toISOString(),
     };
     const resAlready = await worker.fetch(
       new Request("https://push.example.workers.dev/notify", {
@@ -433,14 +504,32 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
       env
     );
     assert.equal(resAlready.status, 200);
-    assert.equal((await resAlready.json()).skipped, "already_pushed");
+    assert.deepEqual(await resAlready.json(), { skipped: "duplicate" });
 
-    // 4. blockedBy non-empty -> skipped: "blocked"
+    // 6. Failed currentDocument.updateTime precondition claim (HTTP 400) -> 200 {skipped: "duplicate"}
     messageDoc = {
       senderId: "alice",
       text: "Hi",
       messageType: "text",
+      timestamp: new Date().toISOString(),
     };
+    patchStatus = 400;
+    const resPreconditionFailed = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(resPreconditionFailed.status, 200);
+    assert.deepEqual(await resPreconditionFailed.json(), { skipped: "duplicate" });
+    patchStatus = 200;
+
+    // 7. blockedBy non-empty -> 200 {skipped: "blocked"}
     chatDoc = {
       participantIds: ["alice", "bob"],
       blockedBy: ["bob"],
@@ -457,7 +546,7 @@ test("Worker /notify skips call messages, blocked chats, already-pushed messages
       env
     );
     assert.equal(resBlocked.status, 200);
-    assert.equal((await resBlocked.json()).skipped, "blocked");
+    assert.deepEqual(await resBlocked.json(), { skipped: "blocked" });
   } finally {
     globalThis.fetch = originalFetch;
   }
