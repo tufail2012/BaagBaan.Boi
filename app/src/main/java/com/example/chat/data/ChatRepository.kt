@@ -8,6 +8,7 @@ import com.example.chat.model.ChatMessage
 import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatUser
 import com.example.chat.model.ParticipantInfo
+import com.example.chat.notifications.PushRelay
 import com.example.util.SafeFirebase
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
@@ -694,6 +695,7 @@ class ChatRepository(private val context: Context) {
                 Log.e(TAG, "Error adding chatDeletedFor removal in sendMessage batch for $chatId: ${e.message}", e)
             }
             batch.commit().await()
+            PushRelay.notify(chatId, messageRef.id)
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -790,6 +792,7 @@ class ChatRepository(private val context: Context) {
                 Log.e(TAG, "Error adding chatDeletedFor removal in sendAttachmentMessage batch for $chatId: ${e.message}", e)
             }
             batch.commit().await()
+            PushRelay.notify(chatId, messageRef.id)
 
             Result.success(Unit)
         } catch (e: Exception) {

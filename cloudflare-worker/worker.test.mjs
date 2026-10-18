@@ -1,0 +1,464 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import worker, {
+  __resetWorkerCachesForTests,
+  buildNotificationContent,
+} from "./worker.js";
+
+const PROJECT_ID = "baagbaan-boi-20";
+const KID = "test-key-id-1";
+
+function uint8ArrayToBase64Url(bytes) {
+  return Buffer.from(bytes)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function arrayBufferToPem(buffer, label) {
+  const b64 = Buffer.from(buffer).toString("base64");
+  const lines = b64.match(/.{1,64}/g) || [];
+  return `-----BEGIN ${label}-----\n${lines.join("\n")}\n-----END ${label}-----`;
+}
+
+async function createTestKeySet() {
+  const idTokenKeyPair = await crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"]
+  );
+
+  const publicJwk = await crypto.subtle.exportKey("jwk", idTokenKeyPair.publicKey);
+  publicJwk.kid = KID;
+  publicJwk.alg = "RS256";
+  publicJwk.use = "sig";
+
+  const saKeyPair = await crypto.subtle.generateKey(
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      modulusLength: 2048,
+      publicExponent: new Uint8Array([1, 0, 1]),
+      hash: "SHA-256",
+    },
+    true,
+    ["sign", "verify"]
+  );
+  const pkcs8Der = await crypto.subtle.exportKey("pkcs8", saKeyPair.privateKey);
+  const saPrivateKeyPem = arrayBufferToPem(pkcs8Der, "PRIVATE KEY");
+
+  async function signFirebaseIdToken({
+    uid = "alice",
+    aud = PROJECT_ID,
+    iss = `https://securetoken.google.com/${PROJECT_ID}`,
+    expOffsetSec = 3600,
+  } = {}) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const header = { alg: "RS256", typ: "JWT", kid: KID };
+    const payload = {
+      iss,
+      aud,
+      sub: uid,
+      user_id: uid,
+      iat: nowSec - 10,
+      exp: nowSec + expOffsetSec,
+    };
+    const encHeader = uint8ArrayToBase64Url(Buffer.from(JSON.stringify(header)));
+    const encPayload = uint8ArrayToBase64Url(Buffer.from(JSON.stringify(payload)));
+    const signingInput = `${encHeader}.${encPayload}`;
+    const sig = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      idTokenKeyPair.privateKey,
+      new TextEncoder().encode(signingInput)
+    );
+    return `${signingInput}.${uint8ArrayToBase64Url(new Uint8Array(sig))}`;
+  }
+
+  const env = {
+    FIREBASE_PROJECT_ID: PROJECT_ID,
+    FIREBASE_SERVICE_ACCOUNT_JSON: JSON.stringify({
+      project_id: PROJECT_ID,
+      client_email: "firebase-adminsdk@baagbaan-boi-20.iam.gserviceaccount.com",
+      private_key: saPrivateKeyPem,
+    }),
+  };
+
+  return { publicJwk, signFirebaseIdToken, env };
+}
+
+function toFirestoreValue(val) {
+  if (val === null || val === undefined) return { nullValue: null };
+  if (typeof val === "string") return { stringValue: val };
+  if (typeof val === "boolean") return { booleanValue: val };
+  if (typeof val === "number") return { integerValue: String(val) };
+  if (Array.isArray(val)) {
+    return { arrayValue: { values: val.map(toFirestoreValue) } };
+  }
+  if (typeof val === "object") {
+    const fields = {};
+    for (const [k, v] of Object.entries(val)) {
+      fields[k] = toFirestoreValue(v);
+    }
+    return { mapValue: { fields } };
+  }
+  return { stringValue: String(val) };
+}
+
+function toFirestoreDoc(obj) {
+  return { fields: toFirestoreValue(obj).mapValue.fields };
+}
+
+test("buildNotificationContent matches functions/index.js senderName & body rules", () => {
+  // 1. displayName present + >100 char text
+  const longText = "a".repeat(125);
+  const res1 = buildNotificationContent(
+    {
+      participantInfo: {
+        alice: { displayName: "Alice Khan", username: "alice_k" },
+      },
+    },
+    { messageType: "text", text: longText },
+    "alice"
+  );
+  assert.equal(res1.senderName, "Alice Khan");
+  assert.equal(res1.body, `${"a".repeat(100)}...`);
+
+  // 2. displayName blank -> @username fallback + attachment labels
+  const types = [
+    ["image", "Photo"],
+    ["video", "Video"],
+    ["voice", "Voice message"],
+    ["document", "Document"],
+    ["location", "Location"],
+    ["contact", "Contact"],
+  ];
+  for (const [messageType, expectedBody] of types) {
+    const res = buildNotificationContent(
+      {
+        participantInfo: {
+          alice: { displayName: "   ", username: "alice_k" },
+        },
+      },
+      { messageType, text: "ignored" },
+      "alice"
+    );
+    assert.equal(res.senderName, "@alice_k");
+    assert.equal(res.body, expectedBody);
+  }
+
+  // 3. No participant info -> "New message"
+  const res3 = buildNotificationContent({}, { text: "Hello Bob!" }, "alice");
+  assert.equal(res3.senderName, "New message");
+  assert.equal(res3.body, "Hello Bob!");
+});
+
+test("Worker /notify rejects missing or invalid ID token with 401", async () => {
+  __resetWorkerCachesForTests();
+  const { env } = await createTestKeySet();
+
+  const resMissing = await worker.fetch(
+    new Request("https://push.example.workers.dev/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+    }),
+    env
+  );
+  assert.equal(resMissing.status, 401);
+});
+
+test("Worker /notify sends FCM HTTP v1 push, sets pushedAt, and removes UNREGISTERED tokens", async () => {
+  __resetWorkerCachesForTests();
+  const { publicJwk, signFirebaseIdToken, env } = await createTestKeySet();
+  const idToken = await signFirebaseIdToken({ uid: "alice" });
+
+  const fcmRequests = [];
+  const patchRequests = [];
+  const commitRequests = [];
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    const method = init.method || "GET";
+
+    if (url.includes("securetoken@system.gserviceaccount.com")) {
+      return new Response(JSON.stringify({ keys: [publicJwk] }), {
+        status: 200,
+        headers: { "Cache-Control": "public, max-age=3600" },
+      });
+    }
+
+    if (url === "https://oauth2.googleapis.com/token") {
+      return new Response(
+        JSON.stringify({ access_token: "ya29.mock-access-token", expires_in: 3600 }),
+        { status: 200 }
+      );
+    }
+
+    if (
+      url.endsWith("/documents/chats/alice_bob/messages/msg1") &&
+      method === "GET"
+    ) {
+      return new Response(
+        JSON.stringify(
+          toFirestoreDoc({
+            senderId: "alice",
+            text: "Assalamu Alaikum Bob!",
+            messageType: "text",
+          })
+        ),
+        { status: 200 }
+      );
+    }
+
+    if (url.endsWith("/documents/chats/alice_bob") && method === "GET") {
+      return new Response(
+        JSON.stringify(
+          toFirestoreDoc({
+            participantIds: ["alice", "bob"],
+            blockedBy: [],
+            participantInfo: {
+              alice: { displayName: "Alice", username: "alice" },
+              bob: { displayName: "Bob", username: "bob" },
+            },
+          })
+        ),
+        { status: 200 }
+      );
+    }
+
+    if (
+      url.includes("/documents/chats/alice_bob/messages/msg1?updateMask.fieldPaths=pushedAt") &&
+      method === "PATCH"
+    ) {
+      patchRequests.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({}), { status: 200 });
+    }
+
+    if (url.endsWith("/documents/users/bob") && method === "GET") {
+      return new Response(
+        JSON.stringify(
+          toFirestoreDoc({
+            uid: "bob",
+            fcmTokens: ["valid_token_1", "dead_token_2"],
+          })
+        ),
+        { status: 200 }
+      );
+    }
+
+    if (url.endsWith(`/projects/${PROJECT_ID}/messages:send`) && method === "POST") {
+      const parsed = JSON.parse(init.body);
+      fcmRequests.push(parsed);
+      if (parsed.message.token === "dead_token_2") {
+        return new Response(
+          JSON.stringify({
+            error: {
+              code: 404,
+              message: "Requested entity was not found.",
+              status: "NOT_FOUND",
+              details: [{ errorCode: "UNREGISTERED" }],
+            },
+          }),
+          { status: 404 }
+        );
+      }
+      return new Response(JSON.stringify({ name: "projects/baagbaan-boi-20/messages/1" }), {
+        status: 200,
+      });
+    }
+
+    if (url.endsWith("/documents:commit") && method === "POST") {
+      commitRequests.push(JSON.parse(init.body));
+      return new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 });
+    }
+
+    throw new Error(`Unexpected fetch in test: ${method} ${url}`);
+  };
+
+  try {
+    const response = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.deepEqual(body, { ok: true, totalSent: 1, totalFailed: 1 });
+
+    // Verify pushedAt was written
+    assert.equal(patchRequests.length, 1);
+    assert.ok(patchRequests[0].fields.pushedAt.timestampValue);
+
+    // Verify FCM HTTP v1 requests
+    assert.equal(fcmRequests.length, 2);
+    assert.deepEqual(fcmRequests[0], {
+      message: {
+        token: "valid_token_1",
+        notification: {
+          title: "Alice",
+          body: "Assalamu Alaikum Bob!",
+        },
+        data: {
+          type: "chat",
+          chatId: "alice_bob",
+          senderId: "alice",
+        },
+        android: {
+          priority: "HIGH",
+          notification: {
+            channel_id: "chat_messages",
+            title: "Alice",
+            body: "Assalamu Alaikum Bob!",
+            tag: "alice_bob",
+          },
+        },
+      },
+    });
+
+    // Verify dead_token_2 was removed via Firestore removeAllFromArray
+    assert.equal(commitRequests.length, 1);
+    const transform = commitRequests[0].writes[0].transform;
+    assert.ok(transform.document.endsWith("/users/bob"));
+    assert.deepEqual(transform.fieldTransforms, [
+      {
+        fieldPath: "fcmTokens",
+        removeAllFromArray: {
+          values: [{ stringValue: "dead_token_2" }],
+        },
+      },
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Worker /notify skips call messages, blocked chats, already-pushed messages, and non-sender callers", async () => {
+  __resetWorkerCachesForTests();
+  const { publicJwk, signFirebaseIdToken, env } = await createTestKeySet();
+  const aliceToken = await signFirebaseIdToken({ uid: "alice" });
+  const malloryToken = await signFirebaseIdToken({ uid: "mallory" });
+
+  let messageDoc = {
+    senderId: "alice",
+    text: "Voice call",
+    messageType: "call",
+  };
+  let chatDoc = {
+    participantIds: ["alice", "bob"],
+    blockedBy: [],
+  };
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    const method = init.method || "GET";
+
+    if (url.includes("securetoken@system.gserviceaccount.com")) {
+      return new Response(JSON.stringify({ keys: [publicJwk] }), { status: 200 });
+    }
+    if (url === "https://oauth2.googleapis.com/token") {
+      return new Response(
+        JSON.stringify({ access_token: "ya29.mock", expires_in: 3600 }),
+        { status: 200 }
+      );
+    }
+    if (url.endsWith("/documents/chats/alice_bob/messages/msg1") && method === "GET") {
+      return new Response(JSON.stringify(toFirestoreDoc(messageDoc)), { status: 200 });
+    }
+    if (url.endsWith("/documents/chats/alice_bob") && method === "GET") {
+      return new Response(JSON.stringify(toFirestoreDoc(chatDoc)), { status: 200 });
+    }
+    throw new Error(`Unexpected fetch: ${method} ${url}`);
+  };
+
+  try {
+    // 1. Caller != senderId -> 403
+    const res403 = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${malloryToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(res403.status, 403);
+
+    // 2. messageType === "call" -> skipped: "call_message"
+    const resCall = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(resCall.status, 200);
+    assert.equal((await resCall.json()).skipped, "call_message");
+
+    // 3. pushedAt already set -> skipped: "already_pushed"
+    messageDoc = {
+      senderId: "alice",
+      text: "Hi",
+      messageType: "text",
+      pushedAt: "2026-10-18T00:00:00.000Z",
+    };
+    const resAlready = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(resAlready.status, 200);
+    assert.equal((await resAlready.json()).skipped, "already_pushed");
+
+    // 4. blockedBy non-empty -> skipped: "blocked"
+    messageDoc = {
+      senderId: "alice",
+      text: "Hi",
+      messageType: "text",
+    };
+    chatDoc = {
+      participantIds: ["alice", "bob"],
+      blockedBy: ["bob"],
+    };
+    const resBlocked = await worker.fetch(
+      new Request("https://push.example.workers.dev/notify", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${aliceToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ chatId: "alice_bob", messageId: "msg1" }),
+      }),
+      env
+    );
+    assert.equal(resBlocked.status, 200);
+    assert.equal((await resBlocked.json()).skipped, "blocked");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
