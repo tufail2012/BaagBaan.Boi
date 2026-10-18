@@ -1,7 +1,7 @@
 package com.example.chat.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
@@ -96,9 +97,12 @@ import com.example.chat.model.ParticipantInfo
 import com.example.chat.ui.call.MinimizedCallBar
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassIndicatorColor
+import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -337,6 +341,7 @@ internal fun ChatsTopHeaderOverlay(
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
+    val isAmoled = isAppInAmoledMode()
     val contentColor = glassContentColor()
     val allChats by viewModel.allChatsList.collectAsState()
     val chats by viewModel.chatsList.collectAsState()
@@ -486,6 +491,23 @@ internal fun ChatsTopHeaderOverlay(
                     }
 
                     // Glass filter row
+                    val themePrimary = MaterialTheme.colorScheme.primary
+                    val resolvedSelectedChipTextColor = remember(accentColor, themePrimary, isDark, isAmoled, contentColor) {
+                        val candidate = if ((isDark || isAmoled) && accentColor.luminance() < 0.15f && themePrimary.luminance() >= 0.15f) {
+                            themePrimary
+                        } else if (!isDark && !isAmoled && accentColor.luminance() > 0.85f && themePrimary.luminance() <= 0.85f) {
+                            themePrimary
+                        } else {
+                            accentColor
+                        }
+                        if ((isDark || isAmoled) && candidate.luminance() < 0.15f) {
+                            contentColor
+                        } else if (!isDark && !isAmoled && candidate.luminance() > 0.85f) {
+                            contentColor
+                        } else {
+                            candidate
+                        }
+                    }
                     ChatFilterRow(
                         selectedFilter = selectedFilter,
                         unreadCount = unreadCount,
@@ -493,7 +515,9 @@ internal fun ChatsTopHeaderOverlay(
                         customLists = customLists,
                         backdrop = backdrop,
                         contentColor = contentColor,
-                        selectedTextColor = accentColor,
+                        selectedTextColor = resolvedSelectedChipTextColor,
+                        isDark = isDark,
+                        isAmoled = isAmoled,
                         onSelectFilter = { viewModel.selectFilter(it) },
                         onAddListClick = onAddListClick,
                         onEditCustomList = onEditCustomList
@@ -1149,6 +1173,8 @@ private fun ChatFilterRow(
     backdrop: Backdrop?,
     contentColor: Color,
     selectedTextColor: Color,
+    isDark: Boolean,
+    isAmoled: Boolean,
     onSelectFilter: (ChatFilter) -> Unit,
     onAddListClick: () -> Unit,
     onEditCustomList: (ChatList) -> Unit
@@ -1158,6 +1184,18 @@ private fun ChatFilterRow(
     val capsuleShape = RoundedCornerShape(percent = 50)
     val indicatorColor = glassIndicatorColor().copy(alpha = 0.55f)
     val unselectedTextColor = contentColor.copy(alpha = 0.7f)
+
+    // Ensure the pill is clearly visible on top of the header strip in Light, Dark, and AMOLED modes
+    val pillContrastOverlay = when {
+        isAmoled -> Color.White.copy(alpha = 0.16f)
+        isDark -> Color.White.copy(alpha = 0.12f)
+        else -> selectedTextColor.copy(alpha = 0.10f)
+    }
+    val pillBorderColor = when {
+        isAmoled -> Color.White.copy(alpha = 0.28f)
+        isDark -> Color.White.copy(alpha = 0.22f)
+        else -> selectedTextColor.copy(alpha = 0.32f)
+    }
 
     val chips = remember(unreadCount, favouritesCount, customLists) {
         buildList {
@@ -1216,7 +1254,7 @@ private fun ChatFilterRow(
     }
 
     val chipBounds = remember { mutableStateMapOf<String, Pair<Int, Int>>() }
-    val targetBounds = chipBounds[selectedKey]
+    val targetBounds = chipBounds[selectedKey] ?: chipBounds["all"]
 
     val pillSpring = remember {
         spring<Float>(
@@ -1225,16 +1263,28 @@ private fun ChatFilterRow(
         )
     }
 
-    val animatedX by animateFloatAsState(
-        targetValue = (targetBounds?.first ?: 0).toFloat(),
-        animationSpec = pillSpring,
-        label = "chatFilterPillX"
-    )
-    val animatedWidth by animateFloatAsState(
-        targetValue = (targetBounds?.second ?: 0).toFloat(),
-        animationSpec = pillSpring,
-        label = "chatFilterPillWidth"
-    )
+    var hasInitialMeasurement by remember { mutableStateOf(false) }
+    val pillXAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+    val pillWidthAnim = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    LaunchedEffect(targetBounds) {
+        val bounds = targetBounds ?: return@LaunchedEffect
+        val newX = bounds.first.toFloat()
+        val newW = bounds.second.toFloat()
+        if (!hasInitialMeasurement) {
+            hasInitialMeasurement = true
+            pillXAnim.snapTo(newX)
+            pillWidthAnim.snapTo(newW)
+        } else {
+            coroutineScope {
+                launch { pillXAnim.animateTo(newX, pillSpring) }
+                launch { pillWidthAnim.animateTo(newW, pillSpring) }
+            }
+        }
+    }
+
+    val currentPillX = if (hasInitialMeasurement) pillXAnim.value else (targetBounds?.first ?: 0).toFloat()
+    val currentPillWidth = if (hasInitialMeasurement) pillWidthAnim.value else (targetBounds?.second ?: 0).toFloat()
 
     Box(
         modifier = Modifier
@@ -1244,16 +1294,18 @@ private fun ChatFilterRow(
             .testTag("chat_filter_row")
     ) {
         // Sliding glass selection pill behind the active chip (never on the + chip)
-        if (targetBounds != null && animatedWidth > 0f) {
+        if (targetBounds != null && currentPillWidth > 0f) {
             Box(
                 modifier = Modifier
-                    .offset { IntOffset(animatedX.roundToInt(), 0) }
-                    .width(with(density) { animatedWidth.toDp() })
+                    .offset { IntOffset(currentPillX.roundToInt(), 0) }
+                    .width(with(density) { currentPillWidth.toDp() })
                     .height(40.dp)
                     .chatHeaderGlass(backdrop = backdrop, shape = capsuleShape)
                     .clip(capsuleShape)
                     .background(indicatorColor, capsuleShape)
-                    .border(1.dp, selectedTextColor.copy(alpha = 0.45f), capsuleShape)
+                    .background(pillContrastOverlay, capsuleShape)
+                    .border(1.dp, pillBorderColor, capsuleShape)
+                    .testTag("chat_filter_selected_pill")
             )
         }
 
@@ -1276,13 +1328,6 @@ private fun ChatFilterRow(
                             }
                         }
                         .clip(capsuleShape)
-                        .then(
-                            if (!isSelected) {
-                                Modifier.border(0.5.dp, contentColor.copy(alpha = 0.14f), capsuleShape)
-                            } else {
-                                Modifier
-                            }
-                        )
                         .combinedClickable(
                             onClick = { onSelectFilter(chip.filter) },
                             onLongClick = chip.onLongClick
@@ -1328,3 +1373,4 @@ private fun ChatFilterRow(
         }
     }
 }
+

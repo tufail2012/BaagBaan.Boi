@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -86,6 +87,23 @@ fun ChatSectionScreen(
 
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val effectiveAccentColor = remember(accentColor, themePrimary, isDark, isAmoled) {
+        val candidate = if ((isDark || isAmoled) && accentColor.luminance() < 0.15f && themePrimary.luminance() >= 0.15f) {
+            themePrimary
+        } else if (!isDark && !isAmoled && accentColor.luminance() > 0.85f && themePrimary.luminance() <= 0.85f) {
+            themePrimary
+        } else {
+            accentColor
+        }
+        if ((isDark || isAmoled) && candidate.luminance() < 0.15f) {
+            Color.White
+        } else if (!isDark && !isAmoled && candidate.luminance() > 0.85f) {
+            Color.Black
+        } else {
+            candidate
+        }
+    }
 
     val currentUser by chatViewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
@@ -197,6 +215,14 @@ fun ChatSectionScreen(
         }
     }
 
+    // Dismiss the New/Edit list sheet if the user leaves the Chats tab or TABS sub-screen
+    LaunchedEffect(activeTab, activeSubScreen) {
+        if (showListSheet && (activeTab != ChatTab.CHATS || activeSubScreen != ChatSubScreen.TABS)) {
+            showListSheet = false
+            editingList = null
+        }
+    }
+
     // Handle toast messages
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -289,7 +315,7 @@ fun ChatSectionScreen(
                             if (activeSubScreen == ChatSubScreen.ARCHIVED) {
                                 ArchivedChatsScreen(
                                     viewModel = chatViewModel,
-                                    accentColor = accentColor,
+                                    accentColor = effectiveAccentColor,
                                     selectedChatIds = archivedSelectedChatIds,
                                     onUpdateSelection = { archivedSelectedChatIds = it },
                                     topPadding = archivedHeaderHeightDp
@@ -298,6 +324,7 @@ fun ChatSectionScreen(
                                 HorizontalPager(
                                     state = pagerState,
                                     modifier = Modifier.fillMaxSize(),
+                                    userScrollEnabled = !showListSheet,
                                     beyondViewportPageCount = 1,
                                     key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
                                 ) { page ->
@@ -305,7 +332,7 @@ fun ChatSectionScreen(
                                         ChatTab.CHATS -> {
                                             ChatsListScreen(
                                                 viewModel = chatViewModel,
-                                                accentColor = accentColor,
+                                                accentColor = effectiveAccentColor,
                                                 selectedChatIds = chatsSelectedChatIds,
                                                 onUpdateSelection = { chatsSelectedChatIds = it },
                                                 stripHeightDp = chatsStripHeightDp
@@ -325,7 +352,7 @@ fun ChatSectionScreen(
                                                 subtitle = "Join regional grower associations and crop consultation groups to discuss techniques and market trends.",
                                                 icon = Icons.Default.Groups,
                                                 onBack = onBack,
-                                                accentColor = accentColor
+                                                accentColor = effectiveAccentColor
                                             )
                                         }
 
@@ -333,7 +360,7 @@ fun ChatSectionScreen(
                                             ChatSettingsScreen(
                                                 viewModel = chatViewModel,
                                                 onBackToApp = onBack,
-                                                accentColor = accentColor,
+                                                accentColor = effectiveAccentColor,
                                                 privacyOpen = settingsPrivacyOpen,
                                                 onPrivacyOpenChange = { settingsPrivacyOpen = it },
                                                 privacyTopPadding = settingsPrivacyHeaderHeightDp
@@ -363,7 +390,7 @@ fun ChatSectionScreen(
                                 ChatTab.CHATS -> {
                                     ChatsTopHeaderOverlay(
                                         viewModel = chatViewModel,
-                                        accentColor = accentColor,
+                                        accentColor = effectiveAccentColor,
                                         backdrop = chatBackdrop,
                                         selectedChatIds = chatsSelectedChatIds,
                                         onUpdateSelection = { chatsSelectedChatIds = it },

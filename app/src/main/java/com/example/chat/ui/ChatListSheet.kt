@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,7 +59,13 @@ import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import com.example.ui.components.isGlassSupported
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.vibrancy
+
+private const val SHEET_BLUR_RADIUS_DP = 16f
 
 @Composable
 internal fun ChatListSheet(
@@ -72,6 +79,7 @@ internal fun ChatListSheet(
     onDeleteList: (id: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val contentColor = glassContentColor()
@@ -88,7 +96,10 @@ internal fun ChatListSheet(
     val canSubmit = listName.trim().isNotEmpty() && selectedChatIds.isNotEmpty()
     val panelShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val scrimAlpha = if (isDark || isAmoled) 0.35f else 0.25f
-    val sheetTintAlpha = if (isDark || isAmoled) 0.82f else 0.78f
+    val sheetTintAlpha = if (isDark || isAmoled) 0.6f else 0.7f
+    val sheetTintColor = if (isAmoled) Color(0xFF0A0A0A) else surfaceColor
+    val blurPx = with(density) { SHEET_BLUR_RADIUS_DP.dp.toPx() }
+    val useGlass = backdrop != null && isGlassSupported()
 
     BackHandler(onBack = onDismiss)
 
@@ -108,15 +119,35 @@ internal fun ChatListSheet(
                 .testTag("chat_list_sheet_scrim")
         )
 
-        // Bottom glass panel reading chatBackdrop as a sibling
+        // Bottom glass panel reading chatBackdrop as a sibling (outside layerBackdrop)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .chatHeaderGlass(backdrop = backdrop, shape = panelShape)
-                .clip(panelShape)
-                .background(surfaceColor.copy(alpha = sheetTintAlpha), panelShape)
-                .border(0.5.dp, contentColor.copy(alpha = 0.15f), panelShape)
+                .then(
+                    if (useGlass && backdrop != null) {
+                        Modifier
+                            .drawBackdrop(
+                                backdrop = backdrop,
+                                shape = { panelShape },
+                                effects = {
+                                    vibrancy()
+                                    blur(blurPx)
+                                },
+                                highlight = null,
+                                shadow = null,
+                                onDrawSurface = {
+                                    drawRect(sheetTintColor.copy(alpha = sheetTintAlpha))
+                                }
+                            )
+                            .clip(panelShape)
+                    } else {
+                        Modifier
+                            .clip(panelShape)
+                            .background(surfaceColor.copy(alpha = 0.9f), panelShape)
+                    }
+                )
+                .border(0.5.dp, contentColor.copy(alpha = 0.18f), panelShape)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
