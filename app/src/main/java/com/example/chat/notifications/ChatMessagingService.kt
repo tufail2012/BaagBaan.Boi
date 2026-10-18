@@ -18,14 +18,14 @@ import com.example.chat.data.ChatListLocalPrefs
 import com.example.chat.data.ChatPreferences
 import com.example.chat.data.ChatRepository
 import com.example.util.SafeFirebase
-import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import im.zego.zpns_android_plugin_fcm.FCMMessageService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class ChatMessagingService : FirebaseMessagingService() {
+class ChatMessagingService : FCMMessageService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -62,18 +62,18 @@ class ChatMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        super.onMessageReceived(message)
+        // If message.data does not contain "chatId", forward untouched to Zego's FCM handler and return immediately.
+        val chatId = message.data["chatId"]?.trim()
+        if (chatId.isNullOrEmpty()) {
+            super.onMessageReceived(message)
+            return
+        }
+
         try {
             // a. If the app is in the foreground (ProcessLifecycleOwner state is at least STARTED), do nothing.
             val isForeground = ProcessLifecycleOwner.get().lifecycle.currentState
                 .isAtLeast(Lifecycle.State.STARTED)
             if (isForeground) {
-                return
-            }
-
-            // b. Read chatId from message.data. If it is missing, stop.
-            val chatId = message.data["chatId"]?.trim()
-            if (chatId.isNullOrEmpty()) {
                 return
             }
 
