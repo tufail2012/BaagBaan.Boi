@@ -17,7 +17,8 @@ data class ChatItemLocalState(
     val favourite: Boolean = false,
     val mutedUntil: Long = 0L,
     val hiddenAt: Long = 0L,
-    val markedUnread: Boolean = false
+    val markedUnread: Boolean = false,
+    val locked: Boolean = false
 ) {
     fun isMuted(nowMs: Long = System.currentTimeMillis()): Boolean {
         return mutedUntil == Long.MAX_VALUE || mutedUntil > nowMs
@@ -50,7 +51,8 @@ class ChatListLocalPrefs(context: Context) {
                     favourite = obj.optBoolean("favourite", false),
                     mutedUntil = obj.optLong("mutedUntil", 0L),
                     hiddenAt = obj.optLong("hiddenAt", 0L),
-                    markedUnread = obj.optBoolean("markedUnread", false)
+                    markedUnread = obj.optBoolean("markedUnread", false),
+                    locked = obj.optBoolean("locked", false)
                 )
             }
             result
@@ -69,6 +71,7 @@ class ChatListLocalPrefs(context: Context) {
                 put("mutedUntil", state.mutedUntil)
                 put("hiddenAt", state.hiddenAt)
                 put("markedUnread", state.markedUnread)
+                put("locked", state.locked)
             }
             root.put(chatId, obj)
         }

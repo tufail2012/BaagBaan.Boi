@@ -1,6 +1,13 @@
 package com.example.chat.ui
 
+import android.app.Activity
+import android.app.KeyguardManager
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -38,6 +45,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
@@ -82,6 +90,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +99,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import coil.compose.AsyncImage
 import com.example.chat.call.ZegoCallManager
 import com.example.chat.data.ChatItemLocalState
@@ -98,6 +108,7 @@ import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatTab
 import com.example.chat.model.ParticipantInfo
 import com.example.chat.ui.call.MinimizedCallBar
+import com.example.security.BiometricHelper
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isAppInAmoledMode
@@ -111,6 +122,12 @@ import java.util.Calendar
 import java.util.Locale
 import kotlin.math.roundToInt
 
+private tailrec fun Context.findFragmentActivity(): FragmentActivity? = when (this) {
+    is FragmentActivity -> this
+    is ContextWrapper -> baseContext.findFragmentActivity()
+    else -> null
+}
+
 @Composable
 fun ChatsListScreen(
     viewModel: ChatViewModel,
@@ -120,10 +137,13 @@ fun ChatsListScreen(
     stripHeightDp: Dp = 210.dp,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val isDark = isAppInDarkMode()
     val allChats by viewModel.allChatsList.collectAsState()
     val chats by viewModel.chatsList.collectAsState()
     val archivedChats by viewModel.archivedChatsList.collectAsState()
+    val lockedChats by viewModel.lockedChatsList.collectAsState()
+    val lockedChatsUnlocked by viewModel.lockedChatsUnlocked.collectAsState()
     val chatLocalStates by viewModel.chatLocalStates.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val customLists by viewModel.customLists.collectAsState()
@@ -135,9 +155,170 @@ fun ChatsListScreen(
     val contentColor = glassContentColor()
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    BackHandler(enabled = lockedChatsUnlocked) {
+        if (selectedChatIds.isNotEmpty()) {
+            onUpdateSelection(emptySet())
+        } else {
+            viewModel.setLockedChatsUnlocked(false)
+        }
+    }
+
+    val deviceCredentialLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            viewModel.setLockedChatsUnlocked(true)
+        }
+    }
+
+    val requestUnlockLockedChats = {
+        val activity = context.findFragmentActivity()
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        val isDeviceSecure = keyguardManager?.isDeviceSecure == true
+
+        fun launchScreenLockFallback(): Boolean {
+            if (activity != null && isDeviceSecure) {
+                @Suppress("DEPRECATION")
+                val intent = keyguardManager?.createConfirmDeviceCredentialIntent(
+                    "Locked chats",
+                    "Authenticate to view locked chats"
+                )
+                if (intent != null) {
+                    deviceCredentialLauncher.launch(intent)
+                    return true
+                }
+            }
+            return false
+        }
+
+        if (activity != null && BiometricHelper.isBiometricAvailable(context)) {
+            BiometricHelper.authenticate(
+                activity = activity,
+                title = "Locked chats",
+                subtitle = "Authenticate to view locked chats",
+                negativeButtonText = if (isDeviceSecure) "Use screen lock" else "Cancel",
+                onSuccess = {
+                    viewModel.setLockedChatsUnlocked(true)
+                },
+                onError = { errorCode, errString ->
+                    if (errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON && isDeviceSecure) {
+                        launchScreenLockFallback()
+                    } else if (
+                        errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                        errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
+                        errorCode != BiometricPrompt.ERROR_CANCELED
+                    ) {
+                        if (!launchScreenLockFallback()) {
+                            viewModel.showToast(errString.toString())
+                        }
+                    }
+                },
+                onFailed = {}
+            )
+        } else if (!launchScreenLockFallback()) {
+            if (activity != null) {
+                BiometricHelper.authenticate(
+                    activity = activity,
+                    title = "Locked chats",
+                    subtitle = "Authenticate to view locked chats",
+                    negativeButtonText = "Cancel",
+                    onSuccess = {
+                        viewModel.setLockedChatsUnlocked(true)
+                    },
+                    onError = { errorCode, errString ->
+                        if (
+                            errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                            errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
+                            errorCode != BiometricPrompt.ERROR_CANCELED
+                        ) {
+                            viewModel.showToast(errString.toString())
+                        }
+                    },
+                    onFailed = {}
+                )
+            } else {
+                viewModel.showToast("Authentication not available")
+            }
+        }
+    }
+
     Box(
         modifier = modifier.fillMaxSize()
     ) {
+        if (lockedChatsUnlocked) {
+            if (lockedChats.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = stripHeightDp, bottom = 100.dp + navBarBottom)
+                        .padding(horizontal = 32.dp)
+                        .testTag("empty_locked_chats_state"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No locked chats",
+                        fontSize = 15.sp,
+                        color = contentColor.copy(alpha = 0.6f)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("locked_chats_list_column"),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = (stripHeightDp - 8.dp).coerceAtLeast(0.dp),
+                        bottom = 100.dp + navBarBottom
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    items(lockedChats, key = { it.chatId }) { chat ->
+                        val other = chat.getOtherParticipant(currentUid)
+                        val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
+                        val resolvedName = remember(otherUid, other, nicknames) {
+                            viewModel.displayNameFor(otherUid, other)
+                        }
+                        val isSelected = chat.chatId in selectedChatIds
+                        val localState = chatLocalStates[chat.chatId]
+                        ChatListItemRow(
+                            chat = chat,
+                            other = other,
+                            currentUid = currentUid,
+                            displayNameOverride = resolvedName,
+                            accentColor = accentColor,
+                            isDark = isDark,
+                            contentColor = contentColor,
+                            isSelected = isSelected,
+                            localState = localState,
+                            onClick = {
+                                if (selectedChatIds.isNotEmpty()) {
+                                    val updated = if (isSelected) {
+                                        selectedChatIds - chat.chatId
+                                    } else {
+                                        selectedChatIds + chat.chatId
+                                    }
+                                    onUpdateSelection(updated)
+                                } else {
+                                    viewModel.openChatFromSummary(chat)
+                                }
+                            },
+                            onLongClick = {
+                                val updated = if (isSelected) {
+                                    selectedChatIds - chat.chatId
+                                } else {
+                                    selectedChatIds + chat.chatId
+                                }
+                                onUpdateSelection(updated)
+                            }
+                        )
+                    }
+                }
+            }
+            return@Box
+        }
+
         // Scrollable page content only (no glass composables inside layerBackdrop)
         val filterEmptyLabel: String? = when (val f = selectedFilter) {
             ChatFilter.All -> if (chats.isEmpty() && allChats.isNotEmpty()) "No chats in All" else null
@@ -150,7 +331,7 @@ fun ChatsListScreen(
             } else null
         }
 
-        if (isLoading && allChats.isEmpty() && archivedChats.isEmpty()) {
+        if (isLoading && allChats.isEmpty() && archivedChats.isEmpty() && lockedChats.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -174,7 +355,7 @@ fun ChatsListScreen(
                     color = contentColor.copy(alpha = 0.6f)
                 )
             }
-        } else if (allChats.isEmpty() && archivedChats.isEmpty()) {
+        } else if (allChats.isEmpty() && archivedChats.isEmpty() && lockedChats.isEmpty()) {
             // Empty State centred in the area below the floating header strip
             Box(
                 modifier = Modifier
@@ -255,6 +436,43 @@ fun ChatsListScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
+                if (lockedChats.isNotEmpty()) {
+                    item(key = "locked_header_row") {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { requestUnlockLockedChats() }
+                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .testTag("locked_chats_row")
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(CircleShape)
+                                    .background(contentColor.copy(alpha = 0.10f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Locked chats",
+                                    tint = contentColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = "Locked chats",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = contentColor
+                            )
+                        }
+                    }
+                }
+
                 if (selectedFilter == ChatFilter.All && archivedChats.isNotEmpty()) {
                     item(key = "archived_header_row") {
                         Row(
@@ -357,6 +575,8 @@ internal fun ChatsTopHeaderOverlay(
     val contentColor = glassContentColor()
     val allChats by viewModel.allChatsList.collectAsState()
     val chats by viewModel.chatsList.collectAsState()
+    val lockedChats by viewModel.lockedChatsList.collectAsState()
+    val lockedChatsUnlocked by viewModel.lockedChatsUnlocked.collectAsState()
     val chatLocalStates by viewModel.chatLocalStates.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val customLists by viewModel.customLists.collectAsState()
@@ -387,9 +607,10 @@ internal fun ChatsTopHeaderOverlay(
                 .statusBarsPadding()
         ) {
             if (selectedChatIds.isNotEmpty()) {
+                val activeList = if (lockedChatsUnlocked) lockedChats else chats
                 ChatSelectionBar(
                     selectedChatIds = selectedChatIds,
-                    allSelectableChatIds = chats.map { it.chatId }.toSet(),
+                    allSelectableChatIds = activeList.map { it.chatId }.toSet(),
                     chatLocalStates = chatLocalStates,
                     viewModel = viewModel,
                     backdrop = backdrop,
@@ -400,6 +621,42 @@ internal fun ChatsTopHeaderOverlay(
                     onOpenSelectionMenu = onOpenSelectionMenu,
                     onCloseSelectionMenu = onCloseSelectionMenu
                 )
+            } else if (lockedChatsUnlocked) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .chatHeaderGlass(backdrop)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .clickable {
+                                onCloseSelectionMenu()
+                                onClearSelection()
+                                viewModel.setLockedChatsUnlocked(false)
+                            }
+                            .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                            .testTag("locked_chats_back_pill")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = contentColor,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Locked chats",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor
+                        )
+                    }
+                }
             } else {
                     // Top App Bar: glass pills, icons and text black or white by theme only
                     Row(
@@ -849,6 +1106,7 @@ internal fun ChatSelectionOverflowMenuItems(
     cachedSelectedIds: Set<String>,
     cachedAnyUnread: Boolean,
     cachedAllFavourite: Boolean,
+    cachedAllLocked: Boolean = false,
     allSelectableChatIds: Set<String>,
     contentColor: Color,
     dividerColor: Color,
@@ -890,11 +1148,13 @@ internal fun ChatSelectionOverflowMenuItems(
     )
     SelectionMenuDivider(color = dividerColor)
     SelectionMenuItem(
-        text = "Lock chat",
+        text = if (cachedAllLocked) "Unlock chat" else "Lock chat",
         contentColor = contentColor,
+        testTag = "selection_menu_lock_chat",
         onClick = {
+            val targetIds = cachedSelectedIds
             onDismiss()
-            viewModel.showToast("Coming soon")
+            viewModel.lockChats(targetIds, !cachedAllLocked)
             onClearSelection()
         }
     )

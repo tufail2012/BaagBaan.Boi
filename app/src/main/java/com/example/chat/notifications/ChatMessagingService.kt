@@ -103,13 +103,23 @@ class ChatMessagingService : FCMMessageService() {
 
             ensureChatNotificationChannel()
 
-            // f. Title and text come from message.notification.
-            val title = message.notification?.title
-                ?: message.data["title"]
-                ?: "New message"
-            val body = message.notification?.body
-                ?: message.data["body"]
-                ?: ""
+            val isLocked = chatState?.locked == true
+
+            // f. Title and text come from message.notification (redacted when chat is locked).
+            val title = if (isLocked) {
+                "New message"
+            } else {
+                message.notification?.title
+                    ?: message.data["title"]
+                    ?: "New message"
+            }
+            val body = if (isLocked) {
+                ""
+            } else {
+                message.notification?.body
+                    ?: message.data["body"]
+                    ?: ""
+            }
 
             val notificationId = chatId.hashCode()
 
@@ -129,17 +139,22 @@ class ChatMessagingService : FCMMessageService() {
                 if (it != 0) it else android.R.drawable.sym_action_chat
             }
 
-            val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
+            val builder = NotificationCompat.Builder(appContext, CHANNEL_ID)
                 .setSmallIcon(smallIconRes)
                 .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
                 .setAutoCancel(true)
                 .setGroup(GROUP_KEY_CHATS)
                 .setContentIntent(pendingIntent)
-                .build()
+
+            if (body.isNotEmpty()) {
+                builder
+                    .setContentText(body)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            }
+
+            val notification = builder.build()
 
             NotificationManagerCompat.from(appContext).notify(notificationId, notification)
         } catch (e: Exception) {

@@ -90,6 +90,12 @@ class ChatViewModel(
     private val _archivedChatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val archivedChatsList: StateFlow<List<ChatSummary>> = _archivedChatsList.asStateFlow()
 
+    private val _lockedChatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
+    val lockedChatsList: StateFlow<List<ChatSummary>> = _lockedChatsList.asStateFlow()
+    val lockedChats: StateFlow<List<ChatSummary>> get() = lockedChatsList
+
+    val lockedChatsUnlocked = MutableStateFlow(false)
+
     private val _isChatsLoading = MutableStateFlow(false)
     val isChatsLoading: StateFlow<Boolean> = _isChatsLoading.asStateFlow()
 
@@ -194,6 +200,8 @@ class ChatViewModel(
     private val appLifecycleObserver = LifecycleEventObserver { _, event ->
         if (event == Lifecycle.Event.ON_START) {
             maybeMarkActiveChatMessagesAsRead()
+        } else if (event == Lifecycle.Event.ON_STOP) {
+            lockedChatsUnlocked.value = false
         }
     }
 
@@ -266,9 +274,13 @@ class ChatViewModel(
         if (_currentUser.value == null) return
         val targetChat = _chatsList.value.firstOrNull { it.chatId == targetChatId }
             ?: _allChatsList.value.firstOrNull { it.chatId == targetChatId }
+            ?: _lockedChatsList.value.firstOrNull { it.chatId == targetChatId }
         _pendingOpenChatId.value = null
         if (targetChat != null) {
             _activeTab.value = ChatTab.CHATS
+            if (_chatLocalStates.value[targetChatId]?.locked == true && !lockedChatsUnlocked.value) {
+                return
+            }
             openChatFromSummary(targetChat)
         }
     }
@@ -499,7 +511,15 @@ class ChatViewModel(
                 !state.isHidden(lastMsgTimeMs)
             }
         }
-        val allNonArchived = nonHidden
+        val lockedList = nonHidden
+            .filter { chat -> states[chat.chatId]?.locked == true }
+            .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+        _lockedChatsList.value = lockedList
+
+        val unlockedNonHidden = nonHidden
+            .filter { chat -> states[chat.chatId]?.locked != true }
+
+        val allNonArchived = unlockedNonHidden
             .filter { chat -> states[chat.chatId]?.archived != true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
         _allChatsList.value = allNonArchived
@@ -515,9 +535,14 @@ class ChatViewModel(
                 allNonArchived.filter { chat -> chat.chatId in listIds }
             }
         }
-        _archivedChatsList.value = nonHidden
+        _archivedChatsList.value = unlockedNonHidden
             .filter { chat -> states[chat.chatId]?.archived == true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+        if (_searchResults.value.isNotEmpty() && currentUid.isNotEmpty()) {
+            _searchResults.value = _searchResults.value.filterNot { user ->
+                isUserInLockedChat(user.uid, currentUid)
+            }
+        }
         refreshVisibleCallHistory()
     }
 
@@ -548,9 +573,15 @@ class ChatViewModel(
 
                             // If new message from other user and not currently inside this conversation
                             if (currTime > prevTime && last.senderId != uid && _activeChatId.value != chat.chatId) {
-                                val other = chat.getOtherParticipant(uid)
-                                val senderName = other?.displayName?.ifBlank { "@${other.username}" } ?: "New Message"
-                                _inAppBanner.value = Pair(senderName, last.text)
+                                val chatState = _chatLocalStates.value[chat.chatId]
+                                if (chatState?.isMuted() == true) continue
+                                if (chatState?.locked == true) {
+                                    _inAppBanner.value = Pair("New message", "")
+                                } else {
+                                    val other = chat.getOtherParticipant(uid)
+                                    val senderName = other?.displayName?.ifBlank { "@${other.username}" } ?: "New Message"
+                                    _inAppBanner.value = Pair(senderName, last.text)
+                                }
                                 break
                             }
                         }
@@ -762,6 +793,34 @@ class ChatViewModel(
         refreshVisibleChatsList()
     }
 
+    fun lockChats(chatIds: Set<String>, locked: Boolean = true) {
+        if (chatIds.isEmpty()) return
+        _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
+            it.copy(locked = locked)
+        }
+        refreshVisibleChatsList()
+    }
+
+    fun unlockChats(chatIds: Set<String>) {
+        lockChats(chatIds, false)
+    }
+
+    fun setLockedChatsUnlocked(unlocked: Boolean) {
+        lockedChatsUnlocked.value = unlocked
+    }
+
+    fun openLockedChats() {
+        lockedChatsUnlocked.value = true
+    }
+
+    fun closeLockedChats() {
+        lockedChatsUnlocked.value = false
+    }
+
+    fun navigateBackFromLockedChats() {
+        lockedChatsUnlocked.value = false
+    }
+
     fun archiveChats(chatIds: Set<String>) {
         if (chatIds.isEmpty()) return
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
@@ -894,6 +953,16 @@ class ChatViewModel(
         _activeSubScreen.value = ChatSubScreen.TABS
     }
 
+    private fun isUserInLockedChat(otherUid: String, currentUid: String): Boolean {
+        if (otherUid.isBlank() || currentUid.isBlank()) return false
+        val states = _chatLocalStates.value
+        val directChatId = ChatRepository.getDirectChatId(currentUid, otherUid)
+        if (states[directChatId]?.locked == true) return true
+        return rawChatsList.any { chat ->
+            otherUid in chat.participantIds && states[chat.chatId]?.locked == true
+        }
+    }
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         val currentUid = _currentUser.value?.uid ?: return
@@ -909,7 +978,9 @@ class ChatViewModel(
         searchJob = viewModelScope.launch {
             _isSearching.value = true
             val results = repository.searchUsers(trimmed, currentUid)
-            _searchResults.value = results
+            _searchResults.value = results.filterNot { user ->
+                isUserInLockedChat(user.uid, currentUid)
+            }
             _isSearching.value = false
         }
     }
@@ -1376,6 +1447,8 @@ class ChatViewModel(
         _blockedContacts.value = emptyList()
         _isActiveChatBlockedByMe.value = false
         _isActiveChatBlockedByOther.value = false
+        _lockedChatsList.value = emptyList()
+        lockedChatsUnlocked.value = false
         _currentUser.value = null
         _activeChatId.value = null
         _activeRecipient.value = null

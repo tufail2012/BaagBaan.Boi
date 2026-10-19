@@ -129,6 +129,8 @@ fun ChatSectionScreen(
     val allChats by chatViewModel.allChatsList.collectAsState()
     val chats by chatViewModel.chatsList.collectAsState()
     val archivedChats by chatViewModel.archivedChatsList.collectAsState()
+    val lockedChats by chatViewModel.lockedChatsList.collectAsState()
+    val lockedChatsUnlocked by chatViewModel.lockedChatsUnlocked.collectAsState()
     val isUserLoading by chatViewModel.isUserLoading.collectAsState()
     val isChatsLoading by chatViewModel.isChatsLoading.collectAsState()
     val isUsernameSetupRequired by chatViewModel.isUsernameSetupRequired.collectAsState()
@@ -163,10 +165,20 @@ fun ChatSectionScreen(
         }
     }
 
-    // Keep selections clean when chat lists update
-    LaunchedEffect(chats) {
+    LaunchedEffect(lockedChatsUnlocked) {
         if (chatsSelectedChatIds.isNotEmpty()) {
-            val visibleIds = chats.map { it.chatId }.toSet()
+            chatsSelectedChatIds = emptySet()
+        }
+        if (showSelectionMenu) {
+            showSelectionMenu = false
+        }
+    }
+
+    // Keep selections clean when chat lists update
+    LaunchedEffect(chats, lockedChats, lockedChatsUnlocked) {
+        if (chatsSelectedChatIds.isNotEmpty()) {
+            val activeList = if (lockedChatsUnlocked) lockedChats else chats
+            val visibleIds = activeList.map { it.chatId }.toSet()
             val remaining = chatsSelectedChatIds.intersect(visibleIds)
             if (remaining.size != chatsSelectedChatIds.size) {
                 chatsSelectedChatIds = remaining
@@ -297,6 +309,9 @@ fun ChatSectionScreen(
             activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.CHATS && chatsSelectedChatIds.isNotEmpty() -> {
                 chatsSelectedChatIds = emptySet()
             }
+            activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.CHATS && lockedChatsUnlocked -> {
+                chatViewModel.setLockedChatsUnlocked(false)
+            }
             activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.SETTINGS && settingsPrivacyOpen -> {
                 settingsPrivacyOpen = false
             }
@@ -366,7 +381,7 @@ fun ChatSectionScreen(
                                 HorizontalPager(
                                     state = pagerState,
                                     modifier = Modifier.fillMaxSize(),
-                                    userScrollEnabled = !showListSheet,
+                                    userScrollEnabled = !showListSheet && !lockedChatsUnlocked,
                                     beyondViewportPageCount = 1,
                                     key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
                                 ) { page ->
@@ -497,8 +512,8 @@ fun ChatSectionScreen(
                             }
                         }
 
-                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet is open)
-                        if (activeSubScreen == ChatSubScreen.TABS && !showListSheet) {
+                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet or Locked chats view is open)
+                        if (activeSubScreen == ChatSubScreen.TABS && !showListSheet && !(activeTab == ChatTab.CHATS && lockedChatsUnlocked)) {
                             ChatBottomNav(
                                 selectedTab = activeTab,
                                 onTabSelected = { tab ->
@@ -535,8 +550,13 @@ fun ChatSectionScreen(
                             chatsSelectedChatIds.isNotEmpty() &&
                                 chatsSelectedChatIds.all { chatLocalStates[it]?.favourite == true }
                         }
-                        val allSelectableIds = remember(chats) {
-                            chats.map { it.chatId }.toSet()
+                        val allLockedSelected = remember(chatsSelectedChatIds, chatLocalStates) {
+                            chatsSelectedChatIds.isNotEmpty() &&
+                                chatsSelectedChatIds.all { chatLocalStates[it]?.locked == true }
+                        }
+                        val allSelectableIds = remember(chats, lockedChats, lockedChatsUnlocked) {
+                            val activeList = if (lockedChatsUnlocked) lockedChats else chats
+                            activeList.map { it.chatId }.toSet()
                         }
                         ChatsSelectionOverflowMenuOverlay(
                             visible = showSelectionMenu,
@@ -545,6 +565,7 @@ fun ChatSectionScreen(
                             selectedChatIds = chatsSelectedChatIds,
                             anyUnread = anyUnreadSelected,
                             allFavourite = allFavouriteSelected,
+                            allLocked = allLockedSelected,
                             allSelectableChatIds = allSelectableIds,
                             contentColor = glassContentColor(),
                             viewModel = chatViewModel,
@@ -641,13 +662,15 @@ fun ChatSectionScreen(
                                 fontSize = 14.sp,
                                 color = if (isDark) Color.White else Color(0xFF0F172A)
                             )
-                            Text(
-                                text = text,
-                                fontSize = 12.sp,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            if (text.isNotBlank()) {
+                                Text(
+                                    text = text,
+                                    fontSize = 12.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
 
                         IconButton(
@@ -676,6 +699,7 @@ private fun ChatsSelectionOverflowMenuOverlay(
     selectedChatIds: Set<String>,
     anyUnread: Boolean,
     allFavourite: Boolean,
+    allLocked: Boolean,
     allSelectableChatIds: Set<String>,
     contentColor: Color,
     viewModel: ChatViewModel,
@@ -696,10 +720,12 @@ private fun ChatsSelectionOverflowMenuOverlay(
     var cachedSelectedIds by remember { mutableStateOf(selectedChatIds) }
     var cachedAnyUnread by remember { mutableStateOf(anyUnread) }
     var cachedAllFavourite by remember { mutableStateOf(allFavourite) }
+    var cachedAllLocked by remember { mutableStateOf(allLocked) }
     if (selectedChatIds.isNotEmpty()) {
         cachedSelectedIds = selectedChatIds
         cachedAnyUnread = anyUnread
         cachedAllFavourite = allFavourite
+        cachedAllLocked = allLocked
     }
 
     val density = LocalDensity.current
@@ -808,6 +834,7 @@ private fun ChatsSelectionOverflowMenuOverlay(
                     cachedSelectedIds = cachedSelectedIds,
                     cachedAnyUnread = cachedAnyUnread,
                     cachedAllFavourite = cachedAllFavourite,
+                    cachedAllLocked = cachedAllLocked,
                     allSelectableChatIds = allSelectableChatIds,
                     contentColor = contentColor,
                     dividerColor = dividerColor,
