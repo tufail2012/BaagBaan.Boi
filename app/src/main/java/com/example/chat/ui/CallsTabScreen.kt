@@ -415,7 +415,7 @@ internal fun CallsTopHeaderOverlay(
                             contentColor = contentColor,
                             onClick = {
                                 showOverflowMenu = false
-                                viewModel.selectTab(ChatTab.SETTINGS)
+                                viewModel.openSettings()
                             }
                         )
                     }

@@ -146,15 +146,52 @@ enum class ChatTab(val title: String) {
     CHATS("Chats"),
     CALLS("Calls"),
     GROUPS("Groups"),
-    SETTINGS("Settings")
+    UPDATES("Updates");
+
+    companion object {
+        fun fromNameOrChats(name: String?): ChatTab {
+            if (name.isNullOrBlank()) return CHATS
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: CHATS
+        }
+    }
 }
 
 enum class ChatSubScreen {
     TABS,
     SEARCH,
     CONVERSATION,
-    ARCHIVED
+    ARCHIVED,
+    SETTINGS
 }
+
+data class StatusItem(
+    val id: String = "",
+    val userId: String = "",
+    val username: String = "",
+    val displayName: String = "",
+    val photoUrl: String? = null,
+    val text: String = "",
+    val backgroundColor: String = "#0F766E",
+    val createdAt: Timestamp? = null,
+    val expiresAt: Timestamp? = null,
+    val viewerIds: List<String> = emptyList()
+) {
+    fun isExpired(nowMs: Long = System.currentTimeMillis()): Boolean {
+        val expMs = expiresAt?.toDate()?.time
+        if (expMs != null) return expMs <= nowMs
+        val createdMs = createdAt?.toDate()?.time ?: return false
+        return (nowMs - createdMs) >= 24L * 60L * 60L * 1000L
+    }
+}
+
+data class UserStatusGroup(
+    val userId: String,
+    val username: String,
+    val displayName: String,
+    val photoUrl: String?,
+    val statuses: List<StatusItem>,
+    val latestTimestamp: Timestamp?
+)
 
 data class CallLogItem(
     val id: String = "",

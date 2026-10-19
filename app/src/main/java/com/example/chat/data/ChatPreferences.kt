@@ -33,6 +33,17 @@ class ChatPreferences(context: Context) {
         get() = prefs.getString(KEY_PENDING_FCM_TOKEN, null)
         set(value) = prefs.edit().putString(KEY_PENDING_FCM_TOKEN, value).apply()
 
+    fun getViewedStatusIds(): Set<String> {
+        return prefs.getStringSet(KEY_VIEWED_STATUS_IDS, emptySet())?.toSet() ?: emptySet()
+    }
+
+    fun markStatusViewed(statusId: String): Set<String> {
+        if (statusId.isBlank()) return getViewedStatusIds()
+        val updated = (getViewedStatusIds() + statusId)
+        prefs.edit().putStringSet(KEY_VIEWED_STATUS_IDS, updated).apply()
+        return updated
+    }
+
     companion object {
         private const val PREFS_NAME = "baagbaan_chat_prefs"
         private const val KEY_NOTIFICATIONS = "chat_notifications_enabled"
@@ -41,5 +52,6 @@ class ChatPreferences(context: Context) {
         private const val KEY_ONLINE_STATUS = "chat_online_status_enabled"
         private const val KEY_READ_RECEIPTS = "chat_read_receipts_enabled"
         private const val KEY_PENDING_FCM_TOKEN = "chat_pending_fcm_token"
+        private const val KEY_VIEWED_STATUS_IDS = "chat_viewed_status_ids"
     }
 }

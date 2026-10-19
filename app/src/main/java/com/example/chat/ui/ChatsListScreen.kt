@@ -698,7 +698,7 @@ internal fun ChatsTopHeaderOverlay(
                                     .size(50.dp)
                                     .chatHeaderGlass(backdrop, CircleShape)
                                     .clip(CircleShape)
-                                    .clickable { viewModel.selectTab(ChatTab.SETTINGS) }
+                                    .clickable { viewModel.openSettings() }
                                     .testTag("chat_list_profile_button"),
                                 contentAlignment = Alignment.Center
                             ) {

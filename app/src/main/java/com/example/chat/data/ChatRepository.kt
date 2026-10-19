@@ -8,6 +8,7 @@ import com.example.chat.model.ChatMessage
 import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatUser
 import com.example.chat.model.ParticipantInfo
+import com.example.chat.model.StatusItem
 import com.example.chat.notifications.PushRelay
 import com.example.util.SafeFirebase
 import com.google.firebase.Timestamp
@@ -1307,5 +1308,167 @@ class ChatRepository(private val context: Context) {
             Result.failure(e)
         }
     }
+
+    private fun parseStatusDoc(doc: com.google.firebase.firestore.DocumentSnapshot): StatusItem? {
+        return try {
+            val id = doc.id
+            val userId = (doc.getString("userId") ?: doc.getString("uid") ?: doc.getString("authorId")).orEmpty().trim()
+            val text = doc.getString("text").orEmpty().trim()
+            if (userId.isEmpty() || text.isEmpty()) return null
+
+            val username = doc.getString("username").orEmpty()
+            val displayName = doc.getString("displayName").orEmpty()
+            val photoUrl = doc.getString("photoUrl")?.ifBlank { null }
+            val bgColorRaw = doc.get("backgroundColor") ?: doc.get("bgColor") ?: doc.get("color")
+            val backgroundColor = when (bgColorRaw) {
+                is String -> bgColorRaw.ifBlank { "#0F766E" }
+                is Number -> String.format("#%06X", (0xFFFFFF and bgColorRaw.toInt()))
+                else -> "#0F766E"
+            }
+            val createdAt = doc.getTimestamp("createdAt") ?: doc.getTimestamp("timestamp")
+            val expiresAt = doc.getTimestamp("expiresAt")
+            val viewerIds = ((doc.get("viewerIds") ?: doc.get("viewedBy")) as? List<*>)
+                ?.mapNotNull { it as? String }
+                .orEmpty()
+
+            StatusItem(
+                id = id,
+                userId = userId,
+                username = username,
+                displayName = displayName,
+                photoUrl = photoUrl,
+                text = text,
+                backgroundColor = backgroundColor,
+                createdAt = createdAt,
+                expiresAt = expiresAt,
+                viewerIds = viewerIds
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "Error parsing status doc ${doc.id}: ${e.message}")
+            null
+        }
+    }
+
+    fun getStatusesFlow(): Flow<List<StatusItem>> = callbackFlow {
+        val firestore = db
+        if (firestore == null) {
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        val listener = firestore.collection("statuses")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Error listening to statuses: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val nowMs = System.currentTimeMillis()
+                    val items = snapshot.documents
+                        .mapNotNull { parseStatusDoc(it) }
+                        .filter { !it.isExpired(nowMs) }
+                        .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
+                    trySend(items)
+                }
+            }
+
+        awaitClose {
+            listener.remove()
+        }
+    }
+
+    suspend fun fetchActiveStatuses(): List<StatusItem> {
+        val firestore = db ?: return emptyList()
+        return try {
+            val nowMs = System.currentTimeMillis()
+            val snapshot = firestore.collection("statuses").get().await()
+            snapshot.documents
+                .mapNotNull { parseStatusDoc(it) }
+                .filter { !it.isExpired(nowMs) }
+                .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error fetching active statuses: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun postTextStatus(
+        user: ChatUser,
+        text: String,
+        backgroundColor: String
+    ): Result<StatusItem> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val trimmed = text.trim().take(700)
+        if (user.uid.isBlank() || trimmed.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Status text cannot be empty"))
+        }
+        return try {
+            val docRef = firestore.collection("statuses").document()
+            val nowMs = System.currentTimeMillis()
+            val createdTs = Timestamp(java.util.Date(nowMs))
+            val expiresTs = Timestamp(java.util.Date(nowMs + 24L * 60L * 60L * 1000L))
+            val bg = backgroundColor.ifBlank { "#0F766E" }
+
+            val data = hashMapOf<String, Any?>(
+                "id" to docRef.id,
+                "userId" to user.uid,
+                "uid" to user.uid,
+                "username" to user.username,
+                "displayName" to user.displayName,
+                "photoUrl" to (user.photoUrl ?: ""),
+                "text" to trimmed,
+                "backgroundColor" to bg,
+                "type" to "text",
+                "createdAt" to FieldValue.serverTimestamp(),
+                "expiresAt" to expiresTs,
+                "viewerIds" to emptyList<String>()
+            )
+            docRef.set(data).await()
+
+            Result.success(
+                StatusItem(
+                    id = docRef.id,
+                    userId = user.uid,
+                    username = user.username,
+                    displayName = user.displayName,
+                    photoUrl = user.photoUrl,
+                    text = trimmed,
+                    backgroundColor = bg,
+                    createdAt = createdTs,
+                    expiresAt = expiresTs,
+                    viewerIds = emptyList()
+                )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error posting text status: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteStatus(statusId: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (statusId.isBlank()) return Result.failure(IllegalArgumentException("statusId cannot be blank"))
+        return try {
+            firestore.collection("statuses").document(statusId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting status $statusId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun markStatusViewedInFirestore(statusId: String, viewerUid: String) {
+        val firestore = db ?: return
+        if (statusId.isBlank() || viewerUid.isBlank()) return
+        try {
+            firestore.collection("statuses").document(statusId)
+                .update("viewerIds", FieldValue.arrayUnion(viewerUid))
+                .await()
+        } catch (_: Exception) {
+            // Ignore if security rules restrict updating another user's status doc; local prefs still track viewed state
+        }
+    }
 }
+
 

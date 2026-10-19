@@ -20,6 +20,8 @@ import com.example.chat.model.ChatSummary
 import com.example.chat.model.ChatTab
 import com.example.chat.model.ChatUser
 import com.example.chat.model.ParticipantInfo
+import com.example.chat.model.StatusItem
+import com.example.chat.model.UserStatusGroup
 import com.example.util.SafeFirebase
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.messaging.FirebaseMessaging
@@ -103,6 +105,21 @@ class ChatViewModel(
     private val _callHistory = MutableStateFlow<List<com.example.chat.model.CallLogItem>>(emptyList())
     val callHistory: StateFlow<List<com.example.chat.model.CallLogItem>> = _callHistory.asStateFlow()
     private var callHistoryListenJob: Job? = null
+
+    // Status updates state for Updates tab
+    private var rawStatuses: List<StatusItem> = emptyList()
+    private val _myStatuses = MutableStateFlow<List<StatusItem>>(emptyList())
+    val myStatuses: StateFlow<List<StatusItem>> = _myStatuses.asStateFlow()
+
+    private val _contactStatusGroups = MutableStateFlow<List<UserStatusGroup>>(emptyList())
+    val contactStatusGroups: StateFlow<List<UserStatusGroup>> = _contactStatusGroups.asStateFlow()
+
+    private val _viewedStatusIds = MutableStateFlow<Set<String>>(preferences.getViewedStatusIds())
+    val viewedStatusIds: StateFlow<Set<String>> = _viewedStatusIds.asStateFlow()
+
+    private val _isPostingStatus = MutableStateFlow(false)
+    val isPostingStatus: StateFlow<Boolean> = _isPostingStatus.asStateFlow()
+    private var statusesListenJob: Job? = null
 
     // Search state
     private val _searchQuery = MutableStateFlow("")
@@ -290,9 +307,13 @@ class ChatViewModel(
         if (authUser == null) {
             chatsListenJob?.cancel()
             callHistoryListenJob?.cancel()
+            statusesListenJob?.cancel()
             nicknamesListenJob?.cancel()
             blockedListenJob?.cancel()
             hasLoadedChatsOnce = false
+            rawStatuses = emptyList()
+            _myStatuses.value = emptyList()
+            _contactStatusGroups.value = emptyList()
             _nicknames.value = emptyMap()
             _blockedUsersMap.value = emptyMap()
             _blockedUserIds.value = emptySet()
@@ -544,6 +565,119 @@ class ChatViewModel(
             }
         }
         refreshVisibleCallHistory()
+        refreshVisibleStatuses()
+    }
+
+    private fun refreshVisibleStatuses() {
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val blockedIds = _blockedUserIds.value
+        val nowMs = System.currentTimeMillis()
+        val active = rawStatuses.filter { status ->
+            !status.isExpired(nowMs) && status.userId !in blockedIds
+        }
+
+        val mine = if (currentUid.isNotEmpty()) {
+            active.filter { it.userId == currentUid }
+                .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
+        } else {
+            emptyList()
+        }
+        _myStatuses.value = mine
+
+        val othersByUser = active
+            .filter { it.userId.isNotEmpty() && it.userId != currentUid }
+            .filter { status ->
+                val chat = rawChatsList.firstOrNull { status.userId in it.participantIds }
+                val blockedInChat = currentUid.isNotEmpty() && chat?.blockedBy?.contains(currentUid) == true
+                !blockedInChat
+            }
+            .groupBy { it.userId }
+
+        val groups = othersByUser.map { (userId, items) ->
+            val sortedItems = items.sortedBy { it.createdAt?.toDate()?.time ?: 0L }
+            val latest = sortedItems.last()
+            val chatParticipant = rawChatsList
+                .firstOrNull { userId in it.participantIds }
+                ?.participantInfo
+                ?.get(userId)
+            val resolvedUsername = latest.username.ifBlank { chatParticipant?.username.orEmpty() }
+            val resolvedDisplayName = latest.displayName.ifBlank { chatParticipant?.displayName.orEmpty() }
+            val resolvedPhoto = latest.photoUrl?.ifBlank { null } ?: chatParticipant?.photoUrl?.ifBlank { null }
+            UserStatusGroup(
+                userId = userId,
+                username = resolvedUsername,
+                displayName = resolvedDisplayName,
+                photoUrl = resolvedPhoto,
+                statuses = sortedItems,
+                latestTimestamp = latest.createdAt
+            )
+        }.sortedByDescending { it.latestTimestamp?.toDate()?.time ?: 0L }
+
+        _contactStatusGroups.value = groups
+    }
+
+    fun refreshStatuses() {
+        refreshVisibleStatuses()
+        val uid = _currentUser.value?.uid ?: return
+        if (uid.isBlank()) return
+        viewModelScope.launch {
+            val fresh = repository.fetchActiveStatuses()
+            rawStatuses = fresh
+            refreshVisibleStatuses()
+        }
+    }
+
+    fun postTextStatus(
+        text: String,
+        backgroundColor: String,
+        onComplete: (Boolean) -> Unit = {}
+    ) {
+        val user = _currentUser.value ?: run {
+            onComplete(false)
+            return
+        }
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) {
+            _toastMessage.value = "Status text cannot be empty"
+            onComplete(false)
+            return
+        }
+        viewModelScope.launch {
+            _isPostingStatus.value = true
+            val result = repository.postTextStatus(user, trimmed, backgroundColor)
+            _isPostingStatus.value = false
+            result.onSuccess { created ->
+                rawStatuses = (rawStatuses.filterNot { it.id == created.id } + created)
+                refreshVisibleStatuses()
+                _toastMessage.value = "Status posted"
+                onComplete(true)
+            }.onFailure { err ->
+                _toastMessage.value = "Failed to post status: ${err.message ?: "unknown error"}"
+                onComplete(false)
+            }
+        }
+    }
+
+    fun deleteStatus(statusId: String) {
+        if (statusId.isBlank()) return
+        rawStatuses = rawStatuses.filterNot { it.id == statusId }
+        refreshVisibleStatuses()
+        viewModelScope.launch {
+            repository.deleteStatus(statusId).onFailure { err ->
+                _toastMessage.value = "Failed to delete status: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun markStatusViewed(statusId: String) {
+        if (statusId.isBlank()) return
+        _viewedStatusIds.value = preferences.markStatusViewed(statusId)
+        val uid = _currentUser.value?.uid.orEmpty()
+        if (uid.isNotEmpty()) {
+            viewModelScope.launch {
+                repository.markStatusViewedInFirestore(statusId, uid)
+            }
+        }
     }
 
     private fun startListeningToChats(uid: String) {
@@ -618,6 +752,16 @@ class ChatViewModel(
                 .collectLatest { map ->
                     _blockedUsersMap.value = map
                     refreshVisibleChatsList()
+                }
+        }
+
+        statusesListenJob?.cancel()
+        statusesListenJob = viewModelScope.launch {
+            repository.getStatusesFlow()
+                .catch { Log.w("ChatViewModel", "Error in statuses flow: ${it.message}") }
+                .collectLatest { items ->
+                    rawStatuses = items
+                    refreshVisibleStatuses()
                 }
         }
     }
@@ -936,6 +1080,21 @@ class ChatViewModel(
 
     fun selectTab(tab: ChatTab) {
         _activeTab.value = tab
+        _activeSubScreen.value = ChatSubScreen.TABS
+        if (tab == ChatTab.UPDATES) {
+            refreshStatuses()
+        }
+    }
+
+    fun openSettings() {
+        _activeSubScreen.value = ChatSubScreen.SETTINGS
+    }
+
+    fun navigateBackFromSettings() {
+        _activeSubScreen.value = ChatSubScreen.TABS
+    }
+
+    fun closeSettings() {
         _activeSubScreen.value = ChatSubScreen.TABS
     }
 
@@ -1437,9 +1596,13 @@ class ChatViewModel(
         preferences.pendingFcmToken = null
         chatsListenJob?.cancel()
         callHistoryListenJob?.cancel()
+        statusesListenJob?.cancel()
         nicknamesListenJob?.cancel()
         blockedListenJob?.cancel()
         hasLoadedChatsOnce = false
+        rawStatuses = emptyList()
+        _myStatuses.value = emptyList()
+        _contactStatusGroups.value = emptyList()
         _pendingOpenChatId.value = null
         _nicknames.value = emptyMap()
         _blockedUsersMap.value = emptyMap()

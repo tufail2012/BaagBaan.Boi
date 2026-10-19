@@ -26,7 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -122,7 +122,7 @@ fun ChatBottomNav(
             ChatNavItem(ChatTab.CHATS, Icons.AutoMirrored.Filled.Chat, "chat_nav_chats"),
             ChatNavItem(ChatTab.CALLS, Icons.Default.Call, "chat_nav_calls"),
             ChatNavItem(ChatTab.GROUPS, Icons.Default.Groups, "chat_nav_groups"),
-            ChatNavItem(ChatTab.SETTINGS, Icons.Default.Settings, "chat_nav_settings")
+            ChatNavItem(ChatTab.UPDATES, Icons.Default.Update, "chat_nav_updates")
         )
     }
 

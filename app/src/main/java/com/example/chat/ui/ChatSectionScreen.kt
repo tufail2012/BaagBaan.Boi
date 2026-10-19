@@ -77,6 +77,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat.data.ChatList
 import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
+import com.example.chat.model.ParticipantInfo
+import com.example.chat.model.UserStatusGroup
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
@@ -141,6 +143,9 @@ fun ChatSectionScreen(
     val pendingOpenChatId by chatViewModel.pendingOpenChatId.collectAsState()
 
     val chatLocalStates by chatViewModel.chatLocalStates.collectAsState()
+    val myStatuses by chatViewModel.myStatuses.collectAsState()
+    val contactStatusGroups by chatViewModel.contactStatusGroups.collectAsState()
+    val nicknames by chatViewModel.nicknames.collectAsState()
     var chatsSelectedChatIds by remember { mutableStateOf(emptySet<String>()) }
     var archivedSelectedChatIds by remember { mutableStateOf(emptySet<String>()) }
     var showSelectionMenu by remember { mutableStateOf(false) }
@@ -148,14 +153,18 @@ fun ChatSectionScreen(
     var showListSheet by remember { mutableStateOf(false) }
     var editingList by remember { mutableStateOf<ChatList?>(null) }
     var settingsPrivacyOpen by remember { mutableStateOf(false) }
+    var showStatusComposer by remember { mutableStateOf(false) }
+    var viewingStatusUserId by remember { mutableStateOf<String?>(null) }
 
     var chatsStripHeightPx by remember { mutableIntStateOf(0) }
     var callsHeaderHeightPx by remember { mutableIntStateOf(0) }
+    var updatesHeaderHeightPx by remember { mutableIntStateOf(0) }
     var archivedHeaderHeightPx by remember { mutableIntStateOf(0) }
     var settingsPrivacyHeaderHeightPx by remember { mutableIntStateOf(0) }
 
     val chatsStripHeightDp = if (chatsStripHeightPx > 0) with(density) { chatsStripHeightPx.toDp() } else 210.dp
     val callsHeaderHeightDp = if (callsHeaderHeightPx > 0) with(density) { callsHeaderHeightPx.toDp() } else 76.dp
+    val updatesHeaderHeightDp = if (updatesHeaderHeightPx > 0) with(density) { updatesHeaderHeightPx.toDp() } else 76.dp
     val archivedHeaderHeightDp = if (archivedHeaderHeightPx > 0) with(density) { archivedHeaderHeightPx.toDp() } else 76.dp
     val settingsPrivacyHeaderHeightDp = if (settingsPrivacyHeaderHeightPx > 0) with(density) { settingsPrivacyHeaderHeightPx.toDp() } else 76.dp
 
@@ -218,7 +227,7 @@ fun ChatSectionScreen(
             ChatTab.CHATS,
             ChatTab.CALLS,
             ChatTab.GROUPS,
-            ChatTab.SETTINGS
+            ChatTab.UPDATES
         )
     }
 
@@ -257,7 +266,7 @@ fun ChatSectionScreen(
         }
     }
 
-    // Dismiss the New/Edit list sheet or selection overflow menu if the user leaves the Chats tab or TABS sub-screen
+    // Dismiss overlays if the user leaves the relevant tab or sub-screen
     LaunchedEffect(activeTab, activeSubScreen) {
         if (showListSheet && (activeTab != ChatTab.CHATS || activeSubScreen != ChatSubScreen.TABS)) {
             showListSheet = false
@@ -265,6 +274,13 @@ fun ChatSectionScreen(
         }
         if (showSelectionMenu && (activeTab != ChatTab.CHATS || activeSubScreen != ChatSubScreen.TABS)) {
             showSelectionMenu = false
+        }
+        if (activeSubScreen != ChatSubScreen.SETTINGS && settingsPrivacyOpen) {
+            settingsPrivacyOpen = false
+        }
+        if (activeTab != ChatTab.UPDATES || activeSubScreen != ChatSubScreen.TABS) {
+            showStatusComposer = false
+            viewingStatusUserId = null
         }
     }
 
@@ -293,6 +309,12 @@ fun ChatSectionScreen(
     // Hardware/gesture Back handling
     BackHandler {
         when {
+            viewingStatusUserId != null -> {
+                viewingStatusUserId = null
+            }
+            showStatusComposer -> {
+                showStatusComposer = false
+            }
             showSelectionMenu -> {
                 showSelectionMenu = false
             }
@@ -306,14 +328,17 @@ fun ChatSectionScreen(
                 archivedSelectedChatIds = emptySet()
             }
             activeSubScreen == ChatSubScreen.ARCHIVED -> chatViewModel.navigateBackFromArchived()
+            activeSubScreen == ChatSubScreen.SETTINGS && settingsPrivacyOpen -> {
+                settingsPrivacyOpen = false
+            }
+            activeSubScreen == ChatSubScreen.SETTINGS -> {
+                chatViewModel.navigateBackFromSettings()
+            }
             activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.CHATS && chatsSelectedChatIds.isNotEmpty() -> {
                 chatsSelectedChatIds = emptySet()
             }
             activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.CHATS && lockedChatsUnlocked -> {
                 chatViewModel.setLockedChatsUnlocked(false)
-            }
-            activeSubScreen == ChatSubScreen.TABS && activeTab == ChatTab.SETTINGS && settingsPrivacyOpen -> {
-                settingsPrivacyOpen = false
             }
             else -> onBack()
         }
@@ -357,6 +382,7 @@ fun ChatSectionScreen(
                 }
 
                 ChatSubScreen.ARCHIVED,
+                ChatSubScreen.SETTINGS,
                 ChatSubScreen.TABS -> {
                     Box(
                         modifier = Modifier.fillMaxSize()
@@ -369,59 +395,76 @@ fun ChatSectionScreen(
                                 .layerBackdrop(chatBackdrop)
                                 .background(rootBgBrush)
                         ) {
-                            if (activeSubScreen == ChatSubScreen.ARCHIVED) {
-                                ArchivedChatsScreen(
-                                    viewModel = chatViewModel,
-                                    accentColor = effectiveAccentColor,
-                                    selectedChatIds = archivedSelectedChatIds,
-                                    onUpdateSelection = { archivedSelectedChatIds = it },
-                                    topPadding = archivedHeaderHeightDp
-                                )
-                            } else {
-                                HorizontalPager(
-                                    state = pagerState,
-                                    modifier = Modifier.fillMaxSize(),
-                                    userScrollEnabled = !showListSheet && !lockedChatsUnlocked,
-                                    beyondViewportPageCount = 1,
-                                    key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
-                                ) { page ->
-                                    when (chatTabs.getOrElse(page) { ChatTab.CHATS }) {
-                                        ChatTab.CHATS -> {
-                                            ChatsListScreen(
-                                                viewModel = chatViewModel,
-                                                accentColor = effectiveAccentColor,
-                                                selectedChatIds = chatsSelectedChatIds,
-                                                onUpdateSelection = { chatsSelectedChatIds = it },
-                                                stripHeightDp = chatsStripHeightDp
-                                            )
-                                        }
+                            when (activeSubScreen) {
+                                ChatSubScreen.ARCHIVED -> {
+                                    ArchivedChatsScreen(
+                                        viewModel = chatViewModel,
+                                        accentColor = effectiveAccentColor,
+                                        selectedChatIds = archivedSelectedChatIds,
+                                        onUpdateSelection = { archivedSelectedChatIds = it },
+                                        topPadding = archivedHeaderHeightDp
+                                    )
+                                }
 
-                                        ChatTab.CALLS -> {
-                                            CallsTabScreen(
-                                                viewModel = chatViewModel,
-                                                topPadding = callsHeaderHeightDp
-                                            )
-                                        }
+                                ChatSubScreen.SETTINGS -> {
+                                    ChatSettingsScreen(
+                                        viewModel = chatViewModel,
+                                        onBackToApp = {
+                                            settingsPrivacyOpen = false
+                                            chatViewModel.navigateBackFromSettings()
+                                        },
+                                        accentColor = effectiveAccentColor,
+                                        privacyOpen = settingsPrivacyOpen,
+                                        onPrivacyOpenChange = { settingsPrivacyOpen = it },
+                                        privacyTopPadding = settingsPrivacyHeaderHeightDp
+                                    )
+                                }
 
-                                        ChatTab.GROUPS -> {
-                                            ChatPlaceholderTabScreen(
-                                                title = "Groups",
-                                                subtitle = "Join regional grower associations and crop consultation groups to discuss techniques and market trends.",
-                                                icon = Icons.Default.Groups,
-                                                onBack = onBack,
-                                                accentColor = effectiveAccentColor
-                                            )
-                                        }
+                                else -> {
+                                    HorizontalPager(
+                                        state = pagerState,
+                                        modifier = Modifier.fillMaxSize(),
+                                        userScrollEnabled = !showListSheet && !lockedChatsUnlocked && !showStatusComposer && viewingStatusUserId == null,
+                                        beyondViewportPageCount = 1,
+                                        key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
+                                    ) { page ->
+                                        when (chatTabs.getOrElse(page) { ChatTab.CHATS }) {
+                                            ChatTab.CHATS -> {
+                                                ChatsListScreen(
+                                                    viewModel = chatViewModel,
+                                                    accentColor = effectiveAccentColor,
+                                                    selectedChatIds = chatsSelectedChatIds,
+                                                    onUpdateSelection = { chatsSelectedChatIds = it },
+                                                    stripHeightDp = chatsStripHeightDp
+                                                )
+                                            }
 
-                                        ChatTab.SETTINGS -> {
-                                            ChatSettingsScreen(
-                                                viewModel = chatViewModel,
-                                                onBackToApp = onBack,
-                                                accentColor = effectiveAccentColor,
-                                                privacyOpen = settingsPrivacyOpen,
-                                                onPrivacyOpenChange = { settingsPrivacyOpen = it },
-                                                privacyTopPadding = settingsPrivacyHeaderHeightDp
-                                            )
+                                            ChatTab.CALLS -> {
+                                                CallsTabScreen(
+                                                    viewModel = chatViewModel,
+                                                    topPadding = callsHeaderHeightDp
+                                                )
+                                            }
+
+                                            ChatTab.GROUPS -> {
+                                                ChatPlaceholderTabScreen(
+                                                    title = "Groups",
+                                                    subtitle = "Join regional grower associations and crop consultation groups to discuss techniques and market trends.",
+                                                    icon = Icons.Default.Groups,
+                                                    onBack = onBack,
+                                                    accentColor = effectiveAccentColor
+                                                )
+                                            }
+
+                                            ChatTab.UPDATES -> {
+                                                UpdatesTabScreen(
+                                                    viewModel = chatViewModel,
+                                                    accentColor = effectiveAccentColor,
+                                                    topPadding = updatesHeaderHeightDp,
+                                                    onOpenComposer = { showStatusComposer = true },
+                                                    onOpenViewer = { group -> viewingStatusUserId = group.userId }
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -442,6 +485,17 @@ fun ChatSectionScreen(
                                     .align(Alignment.TopCenter)
                                     .zIndex(10f)
                             )
+                        } else if (activeSubScreen == ChatSubScreen.SETTINGS) {
+                            if (settingsPrivacyOpen) {
+                                PrivacyTopHeaderOverlay(
+                                    onBack = { settingsPrivacyOpen = false },
+                                    backdrop = chatBackdrop,
+                                    onHeaderHeightChanged = { settingsPrivacyHeaderHeightPx = it },
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .zIndex(10f)
+                                )
+                            }
                         } else if (activeSubScreen == ChatSubScreen.TABS) {
                             when (activeTab) {
                                 ChatTab.CHATS -> {
@@ -495,14 +549,21 @@ fun ChatSectionScreen(
                                     )
                                 }
 
-                                ChatTab.SETTINGS -> {
-                                    if (settingsPrivacyOpen) {
-                                        PrivacyTopHeaderOverlay(
-                                            onBack = { settingsPrivacyOpen = false },
+                                ChatTab.UPDATES -> {
+                                    UpdatesTopHeaderOverlay(
+                                        viewModel = chatViewModel,
+                                        backdrop = chatBackdrop,
+                                        onHeaderHeightChanged = { updatesHeaderHeightPx = it },
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .zIndex(10f)
+                                    )
+                                    if (!showStatusComposer && viewingStatusUserId == null) {
+                                        UpdatesFloatingStatusButton(
+                                            onClick = { showStatusComposer = true },
                                             backdrop = chatBackdrop,
-                                            onHeaderHeightChanged = { settingsPrivacyHeaderHeightPx = it },
                                             modifier = Modifier
-                                                .align(Alignment.TopCenter)
+                                                .align(Alignment.BottomEnd)
                                                 .zIndex(10f)
                                         )
                                     }
@@ -512,8 +573,13 @@ fun ChatSectionScreen(
                             }
                         }
 
-                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet or Locked chats view is open)
-                        if (activeSubScreen == ChatSubScreen.TABS && !showListSheet && !(activeTab == ChatTab.CHATS && lockedChatsUnlocked)) {
+                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet, Locked chats view, or Status composer/viewer is open)
+                        if (activeSubScreen == ChatSubScreen.TABS &&
+                            !showListSheet &&
+                            !(activeTab == ChatTab.CHATS && lockedChatsUnlocked) &&
+                            !showStatusComposer &&
+                            viewingStatusUserId == null
+                        ) {
                             ChatBottomNav(
                                 selectedTab = activeTab,
                                 onTabSelected = { tab ->
@@ -600,6 +666,64 @@ fun ChatSectionScreen(
                                 },
                                 modifier = Modifier.zIndex(30f)
                             )
+                        }
+
+                        // 6. Full-screen Text Status Composer overlay
+                        if (showStatusComposer) {
+                            TextStatusComposerOverlay(
+                                viewModel = chatViewModel,
+                                onDismiss = { showStatusComposer = false },
+                                modifier = Modifier.zIndex(30f)
+                            )
+                        }
+
+                        // 7. Full-screen Status Viewer overlay
+                        val activeViewingGroup = remember(viewingStatusUserId, currentUid, currentUser, myStatuses, contactStatusGroups) {
+                            val targetUid = viewingStatusUserId ?: return@remember null
+                            if (targetUid == currentUid) {
+                                if (myStatuses.isEmpty()) null else UserStatusGroup(
+                                    userId = currentUid,
+                                    username = currentUser?.username.orEmpty(),
+                                    displayName = currentUser?.displayName?.ifBlank { currentUser?.username }.orEmpty(),
+                                    photoUrl = currentUser?.photoUrl,
+                                    statuses = myStatuses,
+                                    latestTimestamp = myStatuses.lastOrNull()?.createdAt
+                                )
+                            } else {
+                                contactStatusGroups.firstOrNull { it.userId == targetUid }
+                            }
+                        }
+                        if (viewingStatusUserId != null) {
+                            if (activeViewingGroup == null) {
+                                LaunchedEffect(viewingStatusUserId) {
+                                    viewingStatusUserId = null
+                                }
+                            } else {
+                                val resolvedName = remember(activeViewingGroup, nicknames, currentUid) {
+                                    if (activeViewingGroup.userId == currentUid) {
+                                        "My status"
+                                    } else {
+                                        chatViewModel.displayNameFor(
+                                            activeViewingGroup.userId,
+                                            ParticipantInfo(
+                                                uid = activeViewingGroup.userId,
+                                                username = activeViewingGroup.username,
+                                                displayName = activeViewingGroup.displayName,
+                                                photoUrl = activeViewingGroup.photoUrl
+                                            )
+                                        )
+                                    }
+                                }
+                                StatusViewerOverlay(
+                                    group = activeViewingGroup,
+                                    currentUid = currentUid,
+                                    displayName = resolvedName,
+                                    accentColor = effectiveAccentColor,
+                                    viewModel = chatViewModel,
+                                    onDismiss = { viewingStatusUserId = null },
+                                    modifier = Modifier.zIndex(30f)
+                                )
+                            }
                         }
                     }
                 }
