@@ -85,8 +85,16 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -113,17 +121,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlin.math.roundToInt
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -166,8 +179,15 @@ fun ChatScreen(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
+    var showMoreMenu by remember { mutableStateOf(false) }
+    var moreButtonBounds by remember { mutableStateOf(Rect.Zero) }
+
     BackHandler {
-        onBack()
+        if (showMoreMenu) {
+            showMoreMenu = false
+        } else {
+            onBack()
+        }
     }
 
     val isDark = isAppInDarkMode()
@@ -183,6 +203,7 @@ fun ChatScreen(
     val recipient by viewModel.activeRecipient.collectAsState()
     val nicknames by viewModel.nicknames.collectAsState()
     val recipientPresence by viewModel.recipientPresence.collectAsState()
+    val recipientTyping by viewModel.recipientTyping.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
 
     var currentTimeTick by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -233,6 +254,7 @@ fun ChatScreen(
             null
         }
     }
+    val displayStatusText: String? = if (recipientTyping) "typing..." else recipientStatusText
 
     val presenceHidden = isChatBlocked || !showOnlineStatus || recipientPresence?.showOnlineStatus == false
     val ringColor: Color = when {
@@ -271,7 +293,6 @@ fun ChatScreen(
     var selectedCallForAction by remember { mutableStateOf<ChatMessage?>(null) }
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
 
-    var showMoreMenu by remember { mutableStateOf(false) }
     var wallpaperRevision by remember { mutableIntStateOf(0) }
     var wallpaperFile by remember(activeChatId) {
         mutableStateOf<java.io.File?>(
@@ -1005,9 +1026,9 @@ fun ChatScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            if (recipientStatusText != null) {
+                            if (displayStatusText != null) {
                                 val textMeasurer = rememberTextMeasurer()
-                                val statusFontWeight = if (isRecipientOnline) FontWeight.Medium else FontWeight.Normal
+                                val statusFontWeight = if (recipientTyping || isRecipientOnline) FontWeight.Medium else FontWeight.Normal
                                 val statusStyle = androidx.compose.material3.LocalTextStyle.current.copy(
                                     fontSize = 11.sp,
                                     fontWeight = statusFontWeight
@@ -1028,23 +1049,23 @@ fun ChatScreen(
                                     BoxWithConstraints(modifier = Modifier.weight(1f)) {
                                         val availableWidthPx = constraints.maxWidth
                                         val fittedStatusText = remember(
-                                            recipientStatusText,
+                                            displayStatusText,
                                             availableWidthPx,
                                             statusStyle
                                         ) {
                                             if (availableWidthPx <= 0) {
-                                                recipientStatusText
+                                                displayStatusText
                                             } else {
                                                 val fullWidthPx = textMeasurer.measure(
-                                                    text = recipientStatusText,
+                                                    text = displayStatusText,
                                                     style = statusStyle,
                                                     maxLines = 1,
                                                     softWrap = false
                                                 ).size.width
                                                 if (fullWidthPx <= availableWidthPx) {
-                                                    recipientStatusText
+                                                    displayStatusText
                                                 } else {
-                                                    val shortText = recipientStatusText.removePrefix("last seen ")
+                                                    val shortText = displayStatusText.removePrefix("last seen ")
                                                     shortText
                                                 }
                                             }
@@ -1052,7 +1073,7 @@ fun ChatScreen(
                                         Text(
                                             text = fittedStatusText,
                                             fontSize = 11.sp,
-                                            color = if (isRecipientOnline) Color(0xFF22C55E) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                            color = if (recipientTyping || isRecipientOnline) Color(0xFF22C55E) else if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
                                             fontWeight = statusFontWeight,
                                             maxLines = 1,
                                             softWrap = false,
@@ -1087,71 +1108,20 @@ fun ChatScreen(
                             )
                         }
 
-                        Box {
-                            IconButton(
-                                onClick = { showMoreMenu = true },
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .testTag("conversation_more_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More options",
-                                    tint = if (isDark) Color.White else Color(0xFF0F172A)
-                                )
-                            }
-                            DropdownMenu(expanded = showMoreMenu, onDismissRequest = { showMoreMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Video call") },
-                                    leadingIcon = {
-                                        VideoCallIcon(
-                                            tint = if (isDark) Color.White else Color(0xFF0F172A),
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    },
-                                    modifier = Modifier.testTag("conversation_video_call_button"),
-                                    onClick = { showMoreMenu = false; initiateCall(true) }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("View profile") },
-                                    onClick = { showMoreMenu = false; showProfileDialog = true }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Wallpaper") },
-                                    modifier = Modifier.testTag("menu_wallpaper"),
-                                    onClick = {
-                                        showMoreMenu = false
-                                        wallpaperPicker.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }
-                                )
-                                if (wallpaperFile != null) {
-                                    DropdownMenuItem(
-                                        text = { Text("Reset wallpaper") },
-                                        onClick = {
-                                            showMoreMenu = false
-                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                            wallpaperFile = null
-                                            wallpaperRevision++
-                                        }
-                                    )
+                        IconButton(
+                            onClick = { showMoreMenu = !showMoreMenu },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .onGloballyPositioned { coords ->
+                                    moreButtonBounds = coords.boundsInWindow()
                                 }
-                                if (otherUid.isNotEmpty()) {
-                                    DropdownMenuItem(
-                                        text = { Text(if (isBlockedByMe) "Unblock" else "Block") },
-                                        modifier = Modifier.testTag("conversation_menu_block_toggle"),
-                                        onClick = {
-                                            showMoreMenu = false
-                                            if (isBlockedByMe) {
-                                                viewModel.unblockUser(otherUid)
-                                            } else {
-                                                viewModel.blockUser(otherUid, recipient)
-                                            }
-                                        }
-                                    )
-                                }
-                            }
+                                .testTag("conversation_more_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
                         }
                     }
                 }
@@ -1336,6 +1306,174 @@ fun ChatScreen(
                                 containerModifier = glassModifier(CircleShape),
                                 modifier = if (recordingState.isRecording) Modifier.fillMaxWidth() else Modifier.size(56.dp)
                             )
+                        }
+                    }
+                }
+            }
+
+            // Layer 4: Sibling three-dot overflow glass panel (drawn inside the same screen, outside layerBackdrop)
+            val menuTransitionState = remember { MutableTransitionState(false) }
+            LaunchedEffect(showMoreMenu) {
+                menuTransitionState.targetState = showMoreMenu
+            }
+            if (menuTransitionState.currentState || menuTransitionState.targetState) {
+                val density = LocalDensity.current
+                var containerWindowOffset by remember { mutableStateOf(Offset.Zero) }
+                var containerSize by remember { mutableStateOf(IntSize.Zero) }
+                var panelHeightPx by remember { mutableIntStateOf(0) }
+
+                val menuWidthDp = 220.dp
+                val menuWidthPx = with(density) { menuWidthDp.roundToPx() }
+                val gapPx = with(density) { 8.dp.roundToPx() }
+                val edgeMarginPx = with(density) { 10.dp.roundToPx() }
+
+                val anchorRight = (moreButtonBounds.right - containerWindowOffset.x).roundToInt()
+                val anchorBottom = (moreButtonBounds.bottom - containerWindowOffset.y).roundToInt()
+
+                val minX = edgeMarginPx
+                val maxX = if (containerSize.width > 0) {
+                    (containerSize.width - menuWidthPx - edgeMarginPx).coerceAtLeast(minX)
+                } else {
+                    Int.MAX_VALUE
+                }
+                val xPx = if (moreButtonBounds.width > 0f && containerSize.width > 0) {
+                    (anchorRight - menuWidthPx).coerceIn(minX, maxX)
+                } else if (containerSize.width > 0) {
+                    maxX
+                } else {
+                    minX
+                }
+
+                val minY = edgeMarginPx
+                val maxY = if (panelHeightPx > 0 && containerSize.height > 0) {
+                    (containerSize.height - panelHeightPx - edgeMarginPx).coerceAtLeast(minY)
+                } else {
+                    Int.MAX_VALUE
+                }
+                val fallbackTopPx = with(density) { (statusTop + 60.dp).roundToPx() }
+                val yPx = if (moreButtonBounds.height > 0f) {
+                    (anchorBottom + gapPx).coerceIn(minY, maxY)
+                } else {
+                    fallbackTopPx
+                }
+
+                val menuShape = RoundedCornerShape(20.dp)
+                val menuContentColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val menuBorderColor = menuContentColor.copy(alpha = 0.15f)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(20f)
+                        .onGloballyPositioned { coords ->
+                            containerWindowOffset = coords.positionInWindow()
+                            containerSize = coords.size
+                        }
+                ) {
+                    // Full-screen transparent clickable scrim under the panel (no dim, no ripple)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { showMoreMenu = false }
+                            )
+                            .testTag("conversation_more_menu_outside_dismiss")
+                    )
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visibleState = menuTransitionState,
+                        enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
+                            scaleIn(
+                                initialScale = 0.92f,
+                                transformOrigin = TransformOrigin(1f, 0f),
+                                animationSpec = tween(durationMillis = 150)
+                            ),
+                        exit = fadeOut(animationSpec = tween(durationMillis = 150)) +
+                            scaleOut(
+                                targetScale = 0.92f,
+                                transformOrigin = TransformOrigin(1f, 0f),
+                                animationSpec = tween(durationMillis = 150)
+                            ),
+                        modifier = Modifier.offset { IntOffset(xPx, yPx) }
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .width(menuWidthDp)
+                                .onSizeChanged { panelHeightPx = it.height }
+                                .then(glassModifier(menuShape))
+                                .border(0.5.dp, menuBorderColor, menuShape)
+                                .clip(menuShape)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = {}
+                                )
+                                .padding(vertical = 8.dp)
+                                .testTag("conversation_overflow_glass_menu")
+                        ) {
+                            ConversationOverflowMenuItem(
+                                text = "Video call",
+                                contentColor = menuContentColor,
+                                leadingIcon = {
+                                    VideoCallIcon(
+                                        tint = menuContentColor,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                testTag = "conversation_video_call_button",
+                                onClick = {
+                                    showMoreMenu = false
+                                    initiateCall(true)
+                                }
+                            )
+                            ConversationOverflowMenuItem(
+                                text = "View profile",
+                                contentColor = menuContentColor,
+                                onClick = {
+                                    showMoreMenu = false
+                                    showProfileDialog = true
+                                }
+                            )
+                            ConversationOverflowMenuItem(
+                                text = "Wallpaper",
+                                contentColor = menuContentColor,
+                                testTag = "menu_wallpaper",
+                                onClick = {
+                                    showMoreMenu = false
+                                    wallpaperPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                }
+                            )
+                            if (wallpaperFile != null) {
+                                ConversationOverflowMenuItem(
+                                    text = "Reset wallpaper",
+                                    contentColor = menuContentColor,
+                                    onClick = {
+                                        showMoreMenu = false
+                                        activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                        wallpaperFile = null
+                                        wallpaperRevision++
+                                    }
+                                )
+                            }
+                            if (otherUid.isNotEmpty()) {
+                                ConversationOverflowMenuItem(
+                                    text = if (isBlockedByMe) "Unblock" else "Block",
+                                    contentColor = menuContentColor,
+                                    testTag = "conversation_menu_block_toggle",
+                                    onClick = {
+                                        showMoreMenu = false
+                                        if (isBlockedByMe) {
+                                            viewModel.unblockUser(otherUid)
+                                        } else {
+                                            viewModel.blockUser(otherUid, recipient)
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -1681,6 +1819,50 @@ private fun VideoCallIcon(
             close()
         }
         drawPath(path = lensPath, color = tint)
+    }
+}
+
+@Composable
+private fun ConversationOverflowMenuItem(
+    text: String,
+    contentColor: Color,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    testTag: String? = null,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val itemShape = RoundedCornerShape(12.dp)
+    val pressedHighlight = contentColor.copy(alpha = 0.12f)
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 6.dp)
+            .height(48.dp)
+            .clip(itemShape)
+            .background(if (isPressed) pressedHighlight else Color.Transparent, itemShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
+            .padding(horizontal = 14.dp)
+    ) {
+        if (leadingIcon != null) {
+            leadingIcon()
+            Spacer(modifier = Modifier.width(12.dp))
+        }
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

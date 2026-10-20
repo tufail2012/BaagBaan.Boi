@@ -182,6 +182,9 @@ class ChatViewModel(
     private val _recipientPresence = MutableStateFlow<ChatUser?>(null)
     val recipientPresence: StateFlow<ChatUser?> = _recipientPresence.asStateFlow()
 
+    private val _recipientTyping = MutableStateFlow(false)
+    val recipientTyping: StateFlow<Boolean> = _recipientTyping.asStateFlow()
+
     private val _nicknames = MutableStateFlow<Map<String, String>>(emptyMap())
     val nicknames: StateFlow<Map<String, String>> = _nicknames.asStateFlow()
 
@@ -213,12 +216,17 @@ class ChatViewModel(
     private var searchJob: Job? = null
     private var presenceListenJob: Job? = null
     private var presenceHeartbeatJob: Job? = null
+    private var typingIdleJob: Job? = null
+    private var lastTypingWriteMs: Long = 0L
+    private var lastTypingChatId: String? = null
+    private var recipientTypingExpiryJob: Job? = null
 
     private val appLifecycleObserver = LifecycleEventObserver { _, event ->
         if (event == Lifecycle.Event.ON_START) {
             maybeMarkActiveChatMessagesAsRead()
         } else if (event == Lifecycle.Event.ON_STOP) {
             lockedChatsUnlocked.value = false
+            stopTyping()
         }
     }
 
@@ -500,6 +508,12 @@ class ChatViewModel(
 
         _isActiveChatBlockedByMe.value = byMe
         _isActiveChatBlockedByOther.value = byOther
+        if (byMe || byOther) {
+            stopTyping()
+            recipientTypingExpiryJob?.cancel()
+            recipientTypingExpiryJob = null
+            _recipientTyping.value = false
+        }
     }
 
     private fun refreshVisibleCallHistory() {
@@ -1154,6 +1168,10 @@ class ChatViewModel(
                 otherUser = otherUser
             )
             result.onSuccess { chatId ->
+                stopTyping()
+                recipientTypingExpiryJob?.cancel()
+                recipientTypingExpiryJob = null
+                _recipientTyping.value = false
                 _activeChatId.value = chatId
                 _activeRecipient.value = ParticipantInfo(
                     uid = otherUser.uid,
@@ -1187,6 +1205,10 @@ class ChatViewModel(
             }
             refreshVisibleChatsList()
         }
+        stopTyping()
+        recipientTypingExpiryJob?.cancel()
+        recipientTypingExpiryJob = null
+        _recipientTyping.value = false
         _activeChatId.value = summary.chatId
         _activeRecipient.value = other
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
@@ -1206,11 +1228,51 @@ class ChatViewModel(
 
     private fun startObservingRecipientPresence(uid: String) {
         presenceListenJob?.cancel()
+        recipientTypingExpiryJob?.cancel()
+        recipientTypingExpiryJob = null
+        _recipientTyping.value = false
         _recipientPresence.value = null
         presenceListenJob = viewModelScope.launch {
             repository.getUserFlow(uid).collectLatest { user ->
                 _recipientPresence.value = user
                 refreshActiveChatBlockFlags()
+                val activeChatId = _activeChatId.value
+                val currentUid = _currentUser.value?.uid.orEmpty()
+                val activeChat = if (!activeChatId.isNullOrBlank()) {
+                    rawChatsList.firstOrNull { it.chatId == activeChatId }
+                } else null
+                val otherUid = _activeRecipient.value?.uid?.ifBlank { null }
+                    ?: activeChat?.participantIds?.firstOrNull { it != currentUid }.orEmpty()
+                val isBlocked = _isActiveChatBlockedByMe.value ||
+                    _isActiveChatBlockedByOther.value ||
+                    (otherUid.isNotEmpty() && otherUid in _blockedUserIds.value) ||
+                    (currentUid.isNotEmpty() && activeChat?.blockedBy?.contains(currentUid) == true) ||
+                    (otherUid.isNotEmpty() && activeChat?.blockedBy?.contains(otherUid) == true) ||
+                    (currentUid.isNotEmpty() && user?.blockedUsers?.contains(currentUid) == true)
+
+                val nowMs = System.currentTimeMillis()
+                val typingAtMs = user?.typingAt?.toDate()?.time
+                val remainingMs = if (typingAtMs != null) (typingAtMs + 6_000L) - nowMs else 0L
+                val isTyping = user != null &&
+                    !activeChatId.isNullOrBlank() &&
+                    user.typingChatId == activeChatId &&
+                    typingAtMs != null &&
+                    remainingMs > 0L &&
+                    user.showOnlineStatus &&
+                    !isBlocked
+
+                recipientTypingExpiryJob?.cancel()
+                recipientTypingExpiryJob = null
+                if (isTyping) {
+                    _recipientTyping.value = true
+                    val waitMs = remainingMs.coerceAtMost(6_000L)
+                    recipientTypingExpiryJob = viewModelScope.launch {
+                        delay(waitMs)
+                        _recipientTyping.value = false
+                    }
+                } else {
+                    _recipientTyping.value = false
+                }
             }
         }
     }
@@ -1218,6 +1280,9 @@ class ChatViewModel(
     fun setShowOnlineStatus(enabled: Boolean) {
         preferences.isOnlineStatusEnabled = enabled
         _showOnlineStatus.value = enabled
+        if (!enabled) {
+            stopTyping()
+        }
         val uid = _currentUser.value?.uid ?: return
         if (enabled) {
             startPresenceHeartbeat(uid)
@@ -1291,11 +1356,54 @@ class ChatViewModel(
         }
     }
 
+    private fun stopTyping() {
+        typingIdleJob?.cancel()
+        typingIdleJob = null
+        val prevChatId = lastTypingChatId ?: return
+        lastTypingChatId = null
+        lastTypingWriteMs = 0L
+        val currentUid = _currentUser.value?.uid?.ifBlank { null }
+            ?: SafeFirebase.getAuth(context)?.currentUser?.uid
+            ?: preferences.lastUid
+        if (!currentUid.isNullOrBlank() && prevChatId.isNotEmpty()) {
+            viewModelScope.launch(NonCancellable) {
+                repository.setTypingState(currentUid, null)
+            }
+        }
+    }
+
     fun updateMessageInput(input: String) {
         _messageInput.value = input
+        val activeChatId = _activeChatId.value
+        val currentUid = _currentUser.value?.uid
+        if (input.isBlank() ||
+            activeChatId.isNullOrBlank() ||
+            currentUid.isNullOrBlank() ||
+            isActiveChatBlocked() ||
+            !_showOnlineStatus.value
+        ) {
+            stopTyping()
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        if (now - lastTypingWriteMs >= 3_000L || lastTypingChatId != activeChatId) {
+            lastTypingChatId = activeChatId
+            lastTypingWriteMs = now
+            viewModelScope.launch {
+                repository.setTypingState(currentUid, activeChatId)
+            }
+        }
+
+        typingIdleJob?.cancel()
+        typingIdleJob = viewModelScope.launch {
+            delay(4_000L)
+            stopTyping()
+        }
     }
 
     fun sendMessage() {
+        stopTyping()
         val text = _messageInput.value.trim()
         val chatId = _activeChatId.value ?: return
         val currentUid = _currentUser.value?.uid ?: return
@@ -1547,6 +1655,7 @@ class ChatViewModel(
     }
 
     fun navigateBackFromConversation() {
+        stopTyping()
         val chatId = _activeChatId.value
         val wasGhostMode = _ghostModeEnabled.value
         if (chatId != null && wasGhostMode) {
@@ -1560,6 +1669,9 @@ class ChatViewModel(
         messagesListenJob?.cancel()
         markReadJob?.cancel()
         presenceListenJob?.cancel()
+        recipientTypingExpiryJob?.cancel()
+        recipientTypingExpiryJob = null
+        _recipientTyping.value = false
         _recipientPresence.value = null
         _messages.value = emptyList()
         _activeSubScreen.value = ChatSubScreen.TABS
@@ -1589,6 +1701,7 @@ class ChatViewModel(
         val uid = _currentUser.value?.uid
             ?: SafeFirebase.getAuth(context)?.currentUser?.uid
             ?: preferences.lastUid
+        stopTyping()
         stopPresenceHeartbeat()
         com.example.chat.call.ZegoCallManager.unInit()
         preferences.lastUid = null
@@ -1616,6 +1729,9 @@ class ChatViewModel(
         _activeChatId.value = null
         _activeRecipient.value = null
         presenceListenJob?.cancel()
+        recipientTypingExpiryJob?.cancel()
+        recipientTypingExpiryJob = null
+        _recipientTyping.value = false
         markReadJob?.cancel()
         _recipientPresence.value = null
         _messages.value = emptyList()

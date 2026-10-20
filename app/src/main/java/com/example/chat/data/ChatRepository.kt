@@ -1014,7 +1014,9 @@ class ChatRepository(private val context: Context) {
                             isOnline = doc.getBoolean("isOnline") ?: false,
                             showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
                             readReceipts = doc.getBoolean("readReceipts") ?: true,
-                            blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
+                            blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+                            typingChatId = doc.getString("typingChatId"),
+                            typingAt = doc.getTimestamp("typingAt")
                         )
                     )
                 } else {
@@ -1022,6 +1024,24 @@ class ChatRepository(private val context: Context) {
                 }
             }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun setTypingState(uid: String, chatId: String?): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (uid.isBlank()) {
+            return Result.failure(IllegalArgumentException("uid cannot be blank"))
+        }
+        return try {
+            val updates = hashMapOf<String, Any?>(
+                "typingChatId" to chatId,
+                "typingAt" to FieldValue.serverTimestamp()
+            )
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting typing state for $uid: ${e.message}", e)
+            Result.failure(e)
+        }
     }
 
     suspend fun markOnlineIfForeground(uid: String) {

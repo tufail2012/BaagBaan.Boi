@@ -13,7 +13,9 @@ data class ChatUser(
     val isOnline: Boolean = false,
     val showOnlineStatus: Boolean = true,
     val readReceipts: Boolean = true,
-    val blockedUsers: List<String> = emptyList()
+    val blockedUsers: List<String> = emptyList(),
+    val typingChatId: String? = null,
+    val typingAt: Timestamp? = null
 )
 
 fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {
