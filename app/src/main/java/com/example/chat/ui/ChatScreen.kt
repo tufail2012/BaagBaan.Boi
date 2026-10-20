@@ -34,10 +34,18 @@ import androidx.compose.ui.zIndex
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import com.example.ui.components.backdrop.Backdrop
 import com.example.ui.components.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
+import com.example.ui.components.backdrop.drawBackdrop
+import com.example.ui.components.backdrop.effects.blur
+import com.example.ui.components.backdrop.effects.colorControls
+import com.example.ui.components.backdrop.effects.lens
+import com.example.ui.components.backdrop.highlight.Highlight
+import com.example.ui.components.backdrop.shadow.Shadow
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -170,6 +178,8 @@ import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+
+private const val BUBBLE_GLASS_ENABLED = true
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -338,6 +348,7 @@ fun ChatScreen(
 
     val listState = rememberLazyListState()
     val chatGlass = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
+    val bubbleBackdrop = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
     val glassOn = com.example.ui.components.isGlassSupported()
     val chatHaze = remember { dev.chrisbanes.haze.HazeState() }
     val headerScrolled by remember { derivedStateOf { listState.canScrollBackward } }
@@ -904,30 +915,93 @@ fun ChatScreen(
                     .fillMaxSize()
                     .then(if (glassOn) Modifier.layerBackdrop(chatGlass) else Modifier)
                     .hazeSource(state = chatHaze)
-                    .background(if (isDark) Color(0xFF0B141A) else Color(0xFFF1F5F9))
             ) {
-                wallpaperFile?.let { file ->
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(file)
-                            .memoryCacheKey("chat_wp_${file.absolutePath}_$wallpaperRevision")
-                            .diskCachePolicy(CachePolicy.DISABLED)
-                            .build(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().testTag("conversation_wallpaper")
-                    )
-                    // readability scrim so bubbles and text stay legible on any photo
+                // Separate backdrop recording only the chat background (gradient, blobs, wallpaper)
+                // so text bubbles can refract the background without self-sampling the message list.
+                val baseBgGradient = remember(isDark) {
+                    if (isDark) {
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF0B141A), Color(0xFF13222E))
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0))
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (glassOn) Modifier.layerBackdrop(bubbleBackdrop) else Modifier)
+                        .background(baseBgGradient)
+                ) {
+                    // 3 soft accent-colored radial blobs placed at different corners (fixed behind messages)
                     Box(
-                        Modifier.fillMaxSize()
-                            .background(Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f))
+                        modifier = Modifier
+                            .size(290.dp)
+                            .align(Alignment.TopEnd)
+                            .offset(x = 48.dp, y = (-24).dp)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.36f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
                     )
-                    // status bar readability on a wallpaper
                     Box(
-                        Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                            .height(statusTop + 24.dp)
-                            .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.35f), Color.Transparent)))
+                        modifier = Modifier
+                            .size(250.dp)
+                            .align(Alignment.CenterStart)
+                            .offset(x = (-56).dp, y = 16.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.32f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
                     )
+                    Box(
+                        modifier = Modifier
+                            .size(310.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 36.dp, y = 48.dp)
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        accentColor.copy(alpha = 0.38f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    wallpaperFile?.let { file ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(file)
+                                .memoryCacheKey("chat_wp_${file.absolutePath}_$wallpaperRevision")
+                                .diskCachePolicy(CachePolicy.DISABLED)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().testTag("conversation_wallpaper")
+                        )
+                        // readability scrim so bubbles and text stay legible on any photo
+                        Box(
+                            Modifier.fillMaxSize()
+                                .background(Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f))
+                        )
+                        // status bar readability on a wallpaper
+                        Box(
+                            Modifier.align(Alignment.TopCenter).fillMaxWidth()
+                                .height(statusTop + 24.dp)
+                                .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.35f), Color.Transparent)))
+                        )
+                    }
                 }
 
                 LazyColumn(
@@ -993,6 +1067,8 @@ fun ChatScreen(
                                 accentColor = accentColor,
                                 isDark = isDark,
                                 showTail = !isSameSenderAsNext,
+                                glassOn = glassOn,
+                                bubbleBackdrop = bubbleBackdrop,
                                 uploadProgress = uploadProgressMap[msg.id],
                                 onRetryUpload = failedUploadsMap[msg.id],
                                 onLongPress = { selectedMessageForAction = msg }
@@ -2146,6 +2222,145 @@ private fun DateSeparator(date: Timestamp?, isDark: Boolean) {
     }
 }
 
+private const val BUBBLE_GLASS_SCALE = 0.33f
+private const val BUBBLE_BLUR_DP = 14f
+private const val BUBBLE_LENS_HEIGHT_DP = 18f
+private const val BUBBLE_LENS_AMOUNT_DP = 22f
+
+@Composable
+private fun Modifier.textBubbleLiquidGlass(
+    shape: CornerBasedShape,
+    backdrop: Backdrop?,
+    useGlass: Boolean,
+    isOwn: Boolean,
+    accentColor: Color,
+    isDark: Boolean
+): Modifier {
+    val surfaceBrush = remember(useGlass, isOwn, accentColor, isDark) {
+        if (useGlass) {
+            if (isOwn) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        accentColor.copy(alpha = if (isDark) 0.50f else 0.76f),
+                        accentColor.copy(alpha = if (isDark) 0.28f else 0.58f)
+                    )
+                )
+            } else {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF1E293B).copy(alpha = 0.60f),
+                            Color(0xFF0F172A).copy(alpha = 0.42f)
+                        )
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.74f),
+                            Color(0xFFF1F5F9).copy(alpha = 0.54f)
+                        )
+                    )
+                }
+            }
+        } else {
+            // Solid version of the same design when glassOn is false or BUBBLE_GLASS_ENABLED is false
+            if (isOwn) {
+                val deepAccent = Color(
+                    red = (accentColor.red * 0.80f).coerceIn(0f, 1f),
+                    green = (accentColor.green * 0.80f).coerceIn(0f, 1f),
+                    blue = (accentColor.blue * 0.80f).coerceIn(0f, 1f),
+                    alpha = 1f
+                )
+                Brush.linearGradient(colors = listOf(accentColor, deepAccent))
+            } else {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF243247), Color(0xFF182232))
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(Color.White, Color(0xFFEFF4F9))
+                    )
+                }
+            }
+        }
+    }
+
+    val topSheenBrush = remember(isOwn, isDark) {
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = if (isOwn) 0.24f else if (isDark) 0.14f else 0.45f),
+            0.42f to Color.Transparent,
+            1f to Color.Transparent
+        )
+    }
+
+    val rimBorderBrush = remember(isOwn, accentColor, isDark) {
+        if (isOwn) {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.48f),
+                    accentColor.copy(alpha = 0.35f),
+                    Color.White.copy(alpha = 0.18f)
+                )
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (isDark) 0.30f else 0.85f),
+                    accentColor.copy(alpha = if (isDark) 0.22f else 0.28f),
+                    Color.White.copy(alpha = if (isDark) 0.08f else 0.40f)
+                )
+            )
+        }
+    }
+
+    if (!useGlass || backdrop == null) {
+        return this
+            .clip(shape)
+            .background(brush = surfaceBrush, shape = shape)
+            .drawBehind {
+                drawRect(brush = topSheenBrush)
+            }
+            .border(width = 1.dp, brush = rimBorderBrush, shape = shape)
+    }
+
+    val density = LocalDensity.current
+    val blurPx = with(density) { BUBBLE_BLUR_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
+    val lensHeightPx = with(density) { BUBBLE_LENS_HEIGHT_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
+    val lensAmountPx = with(density) { BUBBLE_LENS_AMOUNT_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
+    val shadowColor = if (isOwn) {
+        accentColor.copy(alpha = if (isDark) 0.24f else 0.18f)
+    } else {
+        Color.Black.copy(alpha = if (isDark) 0.28f else 0.08f)
+    }
+
+    return this
+        .drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                colorControls(saturation = 1.45f)
+                blur(blurPx)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    lens(
+                        refractionHeight = lensHeightPx,
+                        refractionAmount = lensAmountPx,
+                        depthEffect = true,
+                        chromaticAberration = true
+                    )
+                }
+            },
+            highlight = { Highlight.Default },
+            shadow = { Shadow(radius = 12.dp, color = shadowColor) },
+            onDrawSurface = {
+                drawRect(brush = surfaceBrush, size = size)
+                drawRect(brush = topSheenBrush, size = size)
+            },
+            backdropScale = BUBBLE_GLASS_SCALE
+        )
+        .border(width = 0.8.dp, brush = rimBorderBrush, shape = shape)
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
@@ -2157,10 +2372,23 @@ private fun MessageBubble(
     accentColor: Color,
     isDark: Boolean,
     showTail: Boolean,
+    glassOn: Boolean = false,
+    bubbleBackdrop: Backdrop? = null,
     uploadProgress: Float? = null,
     onRetryUpload: (() -> Unit)? = null,
     onLongPress: () -> Unit
 ) {
+    val isMediaOrSpecialBubble = !message.isDeleted && (
+        message.messageType == "image" ||
+            message.messageType == "video" ||
+            message.messageType == "document" ||
+            message.messageType == "voice" ||
+            message.messageType == "location" ||
+            message.messageType == "contact"
+        )
+    val isTextBubble = !isMediaOrSpecialBubble
+    val useBubbleGlass = glassOn && BUBBLE_GLASS_ENABLED && bubbleBackdrop != null
+
     val bubbleColor = if (isOwn) {
         accentColor
     } else {
@@ -2174,22 +2402,27 @@ private fun MessageBubble(
     }
 
     val timeColor = if (isOwn) {
-        Color.White.copy(alpha = 0.75f)
+        Color.White.copy(alpha = 0.80f)
     } else {
         if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
     }
 
-    val tailCorner = 4.dp
-    val roundCorner = 18.dp
+    val tailCorner = if (isTextBubble) 6.dp else 4.dp
+    val roundCorner = if (isTextBubble) 22.dp else 18.dp
+    val outerSoftCorner = if (isTextBubble) 16.dp else 18.dp
     val bubbleShape = if (isOwn) {
         RoundedCornerShape(
-            topStart = roundCorner, topEnd = roundCorner,
-            bottomStart = roundCorner, bottomEnd = if (showTail) tailCorner else roundCorner
+            topStart = roundCorner,
+            topEnd = outerSoftCorner,
+            bottomStart = roundCorner,
+            bottomEnd = if (showTail) tailCorner else outerSoftCorner
         )
     } else {
         RoundedCornerShape(
-            topStart = roundCorner, topEnd = roundCorner,
-            bottomStart = if (showTail) tailCorner else roundCorner, bottomEnd = roundCorner
+            topStart = outerSoftCorner,
+            topEnd = roundCorner,
+            bottomStart = if (showTail) tailCorner else outerSoftCorner,
+            bottomEnd = roundCorner
         )
     }
 
@@ -2203,42 +2436,43 @@ private fun MessageBubble(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (isOwn) Alignment.CenterEnd else Alignment.CenterStart
     ) {
-        Box {
-            if (showTail) {
-                Canvas(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .align(if (isOwn) Alignment.BottomEnd else Alignment.BottomStart)
-                        .offset(x = if (isOwn) 6.dp else (-6).dp)
-                ) {
-                    val path = Path().apply {
-                        if (isOwn) {
-                            moveTo(0f, 0f)
-                            lineTo(size.width, size.height * 0.45f)
-                            lineTo(0f, size.height)
-                            close()
-                        } else {
-                            moveTo(size.width, 0f)
-                            lineTo(0f, size.height * 0.45f)
-                            lineTo(size.width, size.height)
-                            close()
-                        }
-                    }
-                    drawPath(path, color = bubbleColor)
-                }
-            }
-
-            Surface(
-                shape = bubbleShape,
-                color = bubbleColor,
-                tonalElevation = if (isOwn) 2.dp else 1.dp,
+        if (isTextBubble) {
+            Box(
                 modifier = Modifier
                     .widthIn(max = 290.dp)
-                    .clip(bubbleShape)
+                    .textBubbleLiquidGlass(
+                        shape = bubbleShape,
+                        backdrop = bubbleBackdrop,
+                        useGlass = useBubbleGlass,
+                        isOwn = isOwn,
+                        accentColor = accentColor,
+                        isDark = isDark
+                    )
                     .combinedClickable(onClick = {}, onLongClick = onLongPress)
                     .testTag("message_bubble_${message.id}")
             ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                // Subtle vertical liquid light accent capsule along the inner edge
+                Box(
+                    modifier = Modifier
+                        .align(if (isOwn) Alignment.CenterEnd else Alignment.CenterStart)
+                        .padding(vertical = 8.dp, horizontal = 3.dp)
+                        .width(2.5.dp)
+                        .height(18.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isOwn) Color.White.copy(alpha = 0.45f)
+                            else accentColor.copy(alpha = 0.65f)
+                        )
+                )
+
+                Column(
+                    modifier = Modifier.padding(
+                        start = if (isOwn) 13.dp else 15.dp,
+                        end = if (isOwn) 15.dp else 13.dp,
+                        top = 9.dp,
+                        bottom = 8.dp
+                    )
+                ) {
                     if (!isOwn && !senderName.isNullOrBlank()) {
                         Text(
                             text = senderName,
@@ -2253,11 +2487,87 @@ private fun MessageBubble(
                     if (message.isDeleted) {
                         Text(
                             text = "This message was deleted",
-                            color = textColor.copy(alpha = 0.6f),
+                            color = textColor.copy(alpha = 0.65f),
                             fontSize = 14.sp,
                             fontStyle = FontStyle.Italic
                         )
                     } else {
+                        Text(
+                            text = message.text,
+                            color = textColor,
+                            fontSize = 15.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
+
+                    if (timeFormatted.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            if (message.isEdited && !message.isDeleted) {
+                                Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
+                            }
+                            Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
+                            if (isOwn && !isGroup) {
+                                MessageStatusTicks(
+                                    status = if (!readReceipts && message.status == "read") "delivered" else message.status
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            Box {
+                if (showTail) {
+                    Canvas(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .align(if (isOwn) Alignment.BottomEnd else Alignment.BottomStart)
+                            .offset(x = if (isOwn) 6.dp else (-6).dp)
+                    ) {
+                        val path = Path().apply {
+                            if (isOwn) {
+                                moveTo(0f, 0f)
+                                lineTo(size.width, size.height * 0.45f)
+                                lineTo(0f, size.height)
+                                close()
+                            } else {
+                                moveTo(size.width, 0f)
+                                lineTo(0f, size.height * 0.45f)
+                                lineTo(size.width, size.height)
+                                close()
+                            }
+                        }
+                        drawPath(path, color = bubbleColor)
+                    }
+                }
+
+                Surface(
+                    shape = bubbleShape,
+                    color = bubbleColor,
+                    tonalElevation = if (isOwn) 2.dp else 1.dp,
+                    modifier = Modifier
+                        .widthIn(max = 290.dp)
+                        .clip(bubbleShape)
+                        .combinedClickable(onClick = {}, onLongClick = onLongPress)
+                        .testTag("message_bubble_${message.id}")
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        if (!isOwn && !senderName.isNullOrBlank()) {
+                            Text(
+                                text = senderName,
+                                color = accentColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                        }
                         when (message.messageType) {
                             "image", "video" -> {
                                 ImageVideoMessageBubble(
@@ -2305,32 +2615,24 @@ private fun MessageBubble(
                                     isDark = isDark
                                 )
                             }
-                            else -> {
-                                Text(
-                                    text = message.text,
-                                    color = textColor,
-                                    fontSize = 15.sp,
-                                    lineHeight = 20.sp
-                                )
-                            }
                         }
-                    }
 
-                    if (timeFormatted.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.align(Alignment.End)
-                        ) {
-                            if (message.isEdited && !message.isDeleted) {
-                                Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
-                            }
-                            Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
-                            if (isOwn && !isGroup) {
-                                MessageStatusTicks(
-                                    status = if (!readReceipts && message.status == "read") "delivered" else message.status
-                                )
+                        if (timeFormatted.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                if (message.isEdited && !message.isDeleted) {
+                                    Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
+                                }
+                                Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
+                                if (isOwn && !isGroup) {
+                                    MessageStatusTicks(
+                                        status = if (!readReceipts && message.status == "read") "delivered" else message.status
+                                    )
+                                }
                             }
                         }
                     }
