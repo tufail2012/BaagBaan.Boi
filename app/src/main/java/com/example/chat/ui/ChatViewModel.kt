@@ -89,6 +89,9 @@ class ChatViewModel(
     private val _chatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val chatsList: StateFlow<List<ChatSummary>> = _chatsList.asStateFlow()
 
+    private val _groupChats = MutableStateFlow<List<ChatSummary>>(emptyList())
+    val groupChats: StateFlow<List<ChatSummary>> = _groupChats.asStateFlow()
+
     private val _archivedChatsList = MutableStateFlow<List<ChatSummary>>(emptyList())
     val archivedChatsList: StateFlow<List<ChatSummary>> = _archivedChatsList.asStateFlow()
 
@@ -298,11 +301,12 @@ class ChatViewModel(
         if (_isUserLoading.value || _isChatsLoading.value || !hasLoadedChatsOnce) return
         if (_currentUser.value == null) return
         val targetChat = _chatsList.value.firstOrNull { it.chatId == targetChatId }
+            ?: _groupChats.value.firstOrNull { it.chatId == targetChatId }
             ?: _allChatsList.value.firstOrNull { it.chatId == targetChatId }
             ?: _lockedChatsList.value.firstOrNull { it.chatId == targetChatId }
         _pendingOpenChatId.value = null
         if (targetChat != null) {
-            _activeTab.value = ChatTab.CHATS
+            _activeTab.value = if (targetChat.isGroup) ChatTab.GROUPS else ChatTab.CHATS
             if (_chatLocalStates.value[targetChatId]?.locked == true && !lockedChatsUnlocked.value) {
                 return
             }
@@ -320,6 +324,7 @@ class ChatViewModel(
             blockedListenJob?.cancel()
             hasLoadedChatsOnce = false
             rawStatuses = emptyList()
+            _groupChats.value = emptyList()
             _myStatuses.value = emptyList()
             _contactStatusGroups.value = emptyList()
             _nicknames.value = emptyMap()
@@ -433,6 +438,7 @@ class ChatViewModel(
         val fromChats = mutableMapOf<String, ParticipantInfo>()
         if (currentUid.isNotEmpty()) {
             for (chat in rawChatsList) {
+                if (chat.isGroup) continue
                 if (currentUid in chat.blockedBy) {
                     val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
                     if (otherUid.isNotEmpty()) {
@@ -493,10 +499,15 @@ class ChatViewModel(
     private fun refreshActiveChatBlockFlags() {
         val currentUid = _currentUser.value?.uid.orEmpty()
         val activeChatId = _activeChatId.value
-        val activeOtherUid = _activeRecipient.value?.uid.orEmpty()
         val activeChat = if (!activeChatId.isNullOrBlank()) {
             rawChatsList.firstOrNull { it.chatId == activeChatId }
         } else null
+        if (activeChat?.isGroup == true) {
+            _isActiveChatBlockedByMe.value = false
+            _isActiveChatBlockedByOther.value = false
+            return
+        }
+        val activeOtherUid = _activeRecipient.value?.uid.orEmpty()
         val otherUid = activeOtherUid.ifBlank {
             activeChat?.participantIds?.firstOrNull { it != currentUid }.orEmpty()
         }
@@ -533,10 +544,12 @@ class ChatViewModel(
         val blockedIds = _blockedUserIds.value
         val states = _chatLocalStates.value
         val nonHidden = rawChatsList.filter { chat ->
-            val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
-            val isBlockedByMe = (currentUid.isNotEmpty() && currentUid in chat.blockedBy) ||
-                (otherUid.isNotEmpty() && otherUid in blockedIds)
-            if (isBlockedByMe) return@filter false
+            if (!chat.isGroup) {
+                val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
+                val isBlockedByMe = (currentUid.isNotEmpty() && currentUid in chat.blockedBy) ||
+                    (otherUid.isNotEmpty() && otherUid in blockedIds)
+                if (isBlockedByMe) return@filter false
+            }
 
             val state = states[chat.chatId]
             if (state == null) {
@@ -558,6 +571,7 @@ class ChatViewModel(
             .filter { chat -> states[chat.chatId]?.archived != true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
         _allChatsList.value = allNonArchived
+        _groupChats.value = allNonArchived.filter { chat -> chat.type == "group" }
 
         val filter = _selectedFilter.value
         _chatsList.value = when (filter) {
@@ -601,7 +615,7 @@ class ChatViewModel(
         val othersByUser = active
             .filter { it.userId.isNotEmpty() && it.userId != currentUid }
             .filter { status ->
-                val chat = rawChatsList.firstOrNull { status.userId in it.participantIds }
+                val chat = rawChatsList.firstOrNull { !it.isGroup && status.userId in it.participantIds }
                 val blockedInChat = currentUid.isNotEmpty() && chat?.blockedBy?.contains(currentUid) == true
                 !blockedInChat
             }
@@ -712,8 +726,10 @@ class ChatViewModel(
                     // In-app notification check for foreground messages
                     if (previousList.isNotEmpty() && preferences.isNotificationsEnabled) {
                         for (chat in list) {
-                            val otherUid = chat.participantIds.firstOrNull { it != uid }.orEmpty()
-                            if (chat.blockedBy.isNotEmpty() || otherUid in _blockedUserIds.value) continue
+                            if (!chat.isGroup) {
+                                val otherUid = chat.participantIds.firstOrNull { it != uid }.orEmpty()
+                                if (chat.blockedBy.isNotEmpty() || otherUid in _blockedUserIds.value) continue
+                            }
                             val last = chat.lastMessage ?: continue
                             val prevChat = previousList.find { it.chatId == chat.chatId }
                             val prevTime = prevChat?.lastMessage?.timestamp?.toDate()?.time ?: 0L
@@ -725,6 +741,11 @@ class ChatViewModel(
                                 if (chatState?.isMuted() == true) continue
                                 if (chatState?.locked == true) {
                                     _inAppBanner.value = Pair("New message", "")
+                                } else if (chat.isGroup) {
+                                    val groupTitle = chat.displayTitle(uid)
+                                    val sInfo = chat.participantInfo[last.senderId]
+                                    val sName = sInfo?.displayName?.ifBlank { sInfo.username }?.ifBlank { null } ?: "Member"
+                                    _inAppBanner.value = Pair(groupTitle, "$sName: ${last.text}")
                                 } else {
                                     val other = chat.getOtherParticipant(uid)
                                     val senderName = other?.displayName?.ifBlank { "@${other.username}" } ?: "New Message"
@@ -816,6 +837,7 @@ class ChatViewModel(
         val targets = mutableListOf<Pair<String, ParticipantInfo>>()
         for (chatId in chatIds) {
             val chat = rawChatsList.firstOrNull { it.chatId == chatId }
+            if (chat?.isGroup == true) continue
             val otherUid = chat?.participantIds?.firstOrNull { it != currentUid }
                 ?: chatId.split("_").firstOrNull { it.isNotBlank() && it != currentUid }
                 .orEmpty()
@@ -828,7 +850,7 @@ class ChatViewModel(
 
         val blockedIdsToAdd = targets.map { it.first }.toSet()
         rawChatsList = rawChatsList.map { chat ->
-            if (chat.chatId in chatIds && currentUid !in chat.blockedBy) {
+            if (!chat.isGroup && chat.chatId in chatIds && currentUid !in chat.blockedBy) {
                 chat.copy(blockedBy = chat.blockedBy + currentUid)
             } else {
                 chat
@@ -858,12 +880,12 @@ class ChatViewModel(
         if (otherUid.isBlank() || otherUid == currentUid) return
         val chatId = ChatRepository.getDirectChatId(currentUid, otherUid)
         val resolvedInfo = otherInfo
-            ?: rawChatsList.firstOrNull { it.chatId == chatId }?.getOtherParticipant(currentUid)
+            ?: rawChatsList.firstOrNull { it.chatId == chatId && !it.isGroup }?.getOtherParticipant(currentUid)
             ?: _activeRecipient.value?.takeIf { it.uid == otherUid }
             ?: ParticipantInfo(uid = otherUid)
 
         rawChatsList = rawChatsList.map { chat ->
-            if (chat.chatId == chatId && currentUid !in chat.blockedBy) {
+            if (!chat.isGroup && chat.chatId == chatId && currentUid !in chat.blockedBy) {
                 chat.copy(blockedBy = chat.blockedBy + currentUid)
             } else {
                 chat
@@ -888,7 +910,7 @@ class ChatViewModel(
         val chatId = ChatRepository.getDirectChatId(currentUid, otherUid)
 
         rawChatsList = rawChatsList.map { chat ->
-            if (chat.chatId == chatId || otherUid in chat.participantIds) {
+            if (!chat.isGroup && (chat.chatId == chatId || otherUid in chat.participantIds)) {
                 chat.copy(blockedBy = chat.blockedBy - currentUid)
             } else {
                 chat
@@ -908,6 +930,11 @@ class ChatViewModel(
     }
 
     fun isActiveChatBlocked(): Boolean {
+        val activeChatId = _activeChatId.value
+        if (!activeChatId.isNullOrBlank()) {
+            val activeChat = rawChatsList.firstOrNull { it.chatId == activeChatId }
+            if (activeChat?.isGroup == true) return false
+        }
         return _isActiveChatBlockedByMe.value || _isActiveChatBlockedByOther.value
     }
 
@@ -916,21 +943,46 @@ class ChatViewModel(
         if (otherUid in _blockedUserIds.value) return true
         val currentUid = _currentUser.value?.uid.orEmpty()
         val chatId = if (currentUid.isNotEmpty()) ChatRepository.getDirectChatId(currentUid, otherUid) else ""
-        val chat = rawChatsList.firstOrNull { it.chatId == chatId || otherUid in it.participantIds }
+        val chat = rawChatsList.firstOrNull { !it.isGroup && (it.chatId == chatId || otherUid in it.participantIds) }
         return chat?.blockedBy?.isNotEmpty() == true
     }
 
     fun hideDeletedChatsLocally(chatIds: Set<String>) {
         if (chatIds.isEmpty()) return
         val now = System.currentTimeMillis()
+        val groupChatIds = rawChatsList
+            .filter { it.chatId in chatIds && it.isGroup }
+            .map { it.chatId }
+            .toSet()
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
             it.copy(hiddenAt = now, pinned = false, archived = false)
         }
         refreshVisibleChatsList()
         val currentUid = _currentUser.value?.uid ?: return
+        val directChatIds = chatIds - groupChatIds
+        if (directChatIds.isNotEmpty()) {
+            viewModelScope.launch {
+                for (chatId in directChatIds) {
+                    val chat = rawChatsList.firstOrNull { it.chatId == chatId }
+                    if (chat?.isGroup == true) continue
+                    repository.deleteChatForMe(chatId, currentUid)
+                }
+            }
+        }
+    }
+
+    fun leaveGroup(chatId: String) {
+        if (chatId.isBlank()) return
+        val currentUid = _currentUser.value?.uid ?: return
+        val now = System.currentTimeMillis()
+        _chatLocalStates.value = localChatPrefs.updateChats(setOf(chatId)) {
+            it.copy(hiddenAt = now, pinned = false, archived = false)
+        }
+        rawChatsList = rawChatsList.filterNot { it.chatId == chatId }
+        refreshVisibleChatsList()
         viewModelScope.launch {
-            for (chatId in chatIds) {
-                repository.deleteChatForMe(chatId, currentUid)
+            repository.leaveGroup(chatId, currentUid).onFailure { err ->
+                _toastMessage.value = "Failed to leave group: ${err.message ?: "unknown error"}"
             }
         }
     }
@@ -1004,6 +1056,8 @@ class ChatViewModel(
         val currentUid = _currentUser.value?.uid ?: return
         viewModelScope.launch {
             for (chatId in chatIds) {
+                val chat = rawChatsList.firstOrNull { it.chatId == chatId }
+                if (chat?.isGroup == true) continue
                 repository.markMessagesAsRead(chatId, currentUid)
             }
         }
@@ -1132,7 +1186,7 @@ class ChatViewModel(
         val directChatId = ChatRepository.getDirectChatId(currentUid, otherUid)
         if (states[directChatId]?.locked == true) return true
         return rawChatsList.any { chat ->
-            otherUid in chat.participantIds && states[chat.chatId]?.locked == true
+            !chat.isGroup && otherUid in chat.participantIds && states[chat.chatId]?.locked == true
         }
     }
 
@@ -1155,6 +1209,81 @@ class ChatViewModel(
                 isUserInLockedChat(user.uid, currentUid)
             }
             _isSearching.value = false
+        }
+    }
+
+    fun createGroup(name: String, members: List<ChatUser>, onDone: (String?) -> Unit = {}) {
+        val current = _currentUser.value ?: run {
+            _toastMessage.value = "Please sign in to create a group"
+            onDone(null)
+            return
+        }
+        val trimmedName = name.trim().take(40)
+        if (trimmedName.isBlank()) {
+            _toastMessage.value = "Group name cannot be empty"
+            onDone(null)
+            return
+        }
+        val validMembers = members.filter { it.uid.isNotBlank() && it.uid != current.uid }.distinctBy { it.uid }
+        if (validMembers.isEmpty()) {
+            _toastMessage.value = "Select at least one member"
+            onDone(null)
+            return
+        }
+
+        viewModelScope.launch {
+            val result = repository.createGroupChat(
+                currentUid = current.uid,
+                currentUser = current,
+                name = trimmedName,
+                members = validMembers
+            )
+            result.onSuccess { chatId ->
+                val participantIds = (listOf(current.uid) + validMembers.map { it.uid }).distinct()
+                val participantInfo = buildMap {
+                    put(
+                        current.uid,
+                        ParticipantInfo(
+                            uid = current.uid,
+                            username = current.username,
+                            displayName = current.displayName,
+                            photoUrl = current.photoUrl
+                        )
+                    )
+                    for (member in validMembers) {
+                        put(
+                            member.uid,
+                            ParticipantInfo(
+                                uid = member.uid,
+                                username = member.username,
+                                displayName = member.displayName,
+                                photoUrl = member.photoUrl
+                            )
+                        )
+                    }
+                }
+                val newSummary = ChatSummary(
+                    chatId = chatId,
+                    type = "group",
+                    name = trimmedName,
+                    participantIds = participantIds,
+                    participantInfo = participantInfo,
+                    lastMessage = null,
+                    createdAt = com.google.firebase.Timestamp.now(),
+                    ghostMode = false,
+                    blockedBy = emptyList()
+                )
+                if (rawChatsList.none { it.chatId == chatId }) {
+                    rawChatsList = listOf(newSummary) + rawChatsList
+                    refreshVisibleChatsList()
+                }
+                val summaryToOpen = rawChatsList.firstOrNull { it.chatId == chatId } ?: newSummary
+                openChatFromSummary(summaryToOpen)
+                onDone(chatId)
+            }.onFailure { err ->
+                _toastMessage.value = "Failed to create group: ${err.message ?: "unknown error"}"
+                onDone(null)
+            }
         }
     }
 
@@ -1182,7 +1311,7 @@ class ChatViewModel(
                 _activeSubScreen.value = ChatSubScreen.CONVERSATION
                 _ghostModeEnabled.value = false
                 refreshActiveChatBlockFlags()
-                startListeningToMessages(chatId)
+                startListeningToMessages(chatId, isGroup = false)
                 startObservingRecipientPresence(otherUser.uid)
                 launch {
                     repository.clearChatDeletedForMe(chatId, current.uid)
@@ -1198,7 +1327,8 @@ class ChatViewModel(
 
     fun openChatFromSummary(summary: ChatSummary) {
         val currentUid = _currentUser.value?.uid ?: return
-        val other = summary.getOtherParticipant(currentUid) ?: return
+        val isGroup = summary.isGroup
+        val other = if (isGroup) null else (summary.getOtherParticipant(currentUid) ?: return)
         if (_chatLocalStates.value[summary.chatId]?.markedUnread == true) {
             _chatLocalStates.value = localChatPrefs.updateChats(listOf(summary.chatId)) {
                 it.copy(markedUnread = false)
@@ -1206,18 +1336,22 @@ class ChatViewModel(
             refreshVisibleChatsList()
         }
         stopTyping()
+        presenceListenJob?.cancel()
         recipientTypingExpiryJob?.cancel()
         recipientTypingExpiryJob = null
         _recipientTyping.value = false
+        _recipientPresence.value = null
         _activeChatId.value = summary.chatId
         _activeRecipient.value = other
         _activeSubScreen.value = ChatSubScreen.CONVERSATION
-        _ghostModeEnabled.value = summary.ghostMode
+        _ghostModeEnabled.value = if (isGroup) false else summary.ghostMode
         refreshActiveChatBlockFlags()
-        startListeningToMessages(summary.chatId)
-        startObservingRecipientPresence(other.uid)
-        viewModelScope.launch {
-            repository.clearChatDeletedForMe(summary.chatId, currentUid)
+        startListeningToMessages(summary.chatId, isGroup = isGroup)
+        if (!isGroup && other != null) {
+            startObservingRecipientPresence(other.uid)
+            viewModelScope.launch {
+                repository.clearChatDeletedForMe(summary.chatId, currentUid)
+            }
         }
         if (_showOnlineStatus.value) {
             viewModelScope.launch {
@@ -1309,6 +1443,8 @@ class ChatViewModel(
     private fun maybeMarkActiveChatMessagesAsRead() {
         val chatId = _activeChatId.value ?: return
         if (_activeSubScreen.value != ChatSubScreen.CONVERSATION) return
+        val activeChat = rawChatsList.firstOrNull { it.chatId == chatId }
+        if (activeChat?.isGroup == true) return
         val currentUid = _currentUser.value?.uid ?: return
         val msgs = _messages.value
         val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
@@ -1330,26 +1466,29 @@ class ChatViewModel(
         }
     }
 
-    private fun startListeningToMessages(chatId: String) {
+    private fun startListeningToMessages(chatId: String, isGroup: Boolean = false) {
         messagesListenJob?.cancel()
         markReadJob?.cancel()
         _messages.value = emptyList()
         val currentUid = _currentUser.value?.uid ?: return
+        val isGroupChat = isGroup || rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
 
         messagesListenJob = viewModelScope.launch {
-            repository.getChatMessagesFlow(chatId, currentUid).collectLatest { msgs ->
+            repository.getChatMessagesFlow(chatId, currentUid, isGroup = isGroupChat).collectLatest { msgs ->
                 _messages.value = msgs
-                val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
-                    .isAtLeast(Lifecycle.State.STARTED)
-                if (inForeground &&
-                    _readReceipts.value &&
-                    msgs.any { it.senderId != currentUid && it.status != "read" }
-                ) {
-                    delay(300L)
-                    if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
-                        _readReceipts.value
+                if (!isGroupChat) {
+                    val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
+                        .isAtLeast(Lifecycle.State.STARTED)
+                    if (inForeground &&
+                        _readReceipts.value &&
+                        msgs.any { it.senderId != currentUid && it.status != "read" }
                     ) {
-                        repository.markMessagesAsRead(chatId, currentUid)
+                        delay(300L)
+                        if (ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) &&
+                            _readReceipts.value
+                        ) {
+                            repository.markMessagesAsRead(chatId, currentUid)
+                        }
                     }
                 }
             }
@@ -1376,9 +1515,12 @@ class ChatViewModel(
         _messageInput.value = input
         val activeChatId = _activeChatId.value
         val currentUid = _currentUser.value?.uid
+        val isGroupChat = !activeChatId.isNullOrBlank() &&
+            rawChatsList.firstOrNull { it.chatId == activeChatId }?.isGroup == true
         if (input.isBlank() ||
             activeChatId.isNullOrBlank() ||
             currentUid.isNullOrBlank() ||
+            isGroupChat ||
             isActiveChatBlocked() ||
             !_showOnlineStatus.value
         ) {
@@ -1477,6 +1619,8 @@ class ChatViewModel(
 
     fun toggleGhostMode(enabled: Boolean) {
         val chatId = _activeChatId.value ?: return
+        val activeChat = rawChatsList.firstOrNull { it.chatId == chatId }
+        if (activeChat?.isGroup == true) return
         _ghostModeEnabled.value = enabled
         viewModelScope.launch {
             repository.setGhostMode(chatId, enabled)
@@ -1658,7 +1802,8 @@ class ChatViewModel(
         stopTyping()
         val chatId = _activeChatId.value
         val wasGhostMode = _ghostModeEnabled.value
-        if (chatId != null && wasGhostMode) {
+        val isGroup = chatId != null && rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
+        if (chatId != null && wasGhostMode && !isGroup) {
             viewModelScope.launch {
                 repository.deleteReadMessages(chatId)
             }
@@ -1714,6 +1859,7 @@ class ChatViewModel(
         blockedListenJob?.cancel()
         hasLoadedChatsOnce = false
         rawStatuses = emptyList()
+        _groupChats.value = emptyList()
         _myStatuses.value = emptyList()
         _contactStatusGroups.value = emptyList()
         _pendingOpenChatId.value = null

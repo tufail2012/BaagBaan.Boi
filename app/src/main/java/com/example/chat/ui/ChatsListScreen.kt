@@ -277,8 +277,8 @@ fun ChatsListScreen(
                     items(lockedChats, key = { it.chatId }) { chat ->
                         val other = chat.getOtherParticipant(currentUid)
                         val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
-                        val resolvedName = remember(otherUid, other, nicknames) {
-                            viewModel.displayNameFor(otherUid, other)
+                        val resolvedName = remember(chat.isGroup, chat.name, otherUid, other, nicknames) {
+                            if (chat.isGroup) chat.displayTitle(currentUid) else viewModel.displayNameFor(otherUid, other)
                         }
                         val isSelected = chat.chatId in selectedChatIds
                         val localState = chatLocalStates[chat.chatId]
@@ -513,8 +513,8 @@ fun ChatsListScreen(
                 items(chats, key = { it.chatId }) { chat ->
                     val other = chat.getOtherParticipant(currentUid)
                     val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
-                    val resolvedName = remember(otherUid, other, nicknames) {
-                        viewModel.displayNameFor(otherUid, other)
+                    val resolvedName = remember(chat.isGroup, chat.name, otherUid, other, nicknames) {
+                        if (chat.isGroup) chat.displayTitle(currentUid) else viewModel.displayNameFor(otherUid, other)
                     }
                     val isSelected = chat.chatId in selectedChatIds
                     val localState = chatLocalStates[chat.chatId]
@@ -1187,18 +1187,27 @@ internal fun ChatSelectionOverflowMenuItems(
             onClearSelection()
         }
     )
-    SelectionMenuDivider(color = dividerColor)
-    SelectionMenuItem(
-        text = "Block",
-        contentColor = contentColor,
-        testTag = "selection_menu_block",
-        onClick = {
-            val targetIds = cachedSelectedIds
-            onDismiss()
-            viewModel.blockChats(targetIds)
-            onClearSelection()
+    val allChats by viewModel.allChatsList.collectAsState()
+    val lockedChats by viewModel.lockedChatsList.collectAsState()
+    val anyGroupSelected = remember(cachedSelectedIds, allChats, lockedChats) {
+        cachedSelectedIds.any { id ->
+            (allChats.firstOrNull { it.chatId == id } ?: lockedChats.firstOrNull { it.chatId == id })?.isGroup == true
         }
-    )
+    }
+    if (!anyGroupSelected) {
+        SelectionMenuDivider(color = dividerColor)
+        SelectionMenuItem(
+            text = "Block",
+            contentColor = contentColor,
+            testTag = "selection_menu_block",
+            onClick = {
+                val targetIds = cachedSelectedIds
+                onDismiss()
+                viewModel.blockChats(targetIds)
+                onClearSelection()
+            }
+        )
+    }
 }
 
 @Composable
@@ -1264,13 +1273,26 @@ internal fun ChatListItemRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val displayName = displayNameOverride?.ifBlank { null }
-        ?: other?.displayName?.ifBlank { other.username }
-        ?: "Member"
+    val displayName = if (chat.isGroup) {
+        chat.displayTitle(currentUid)
+    } else {
+        displayNameOverride?.ifBlank { null }
+            ?: other?.displayName?.ifBlank { other.username }
+            ?: "Member"
+    }
     val lastMsg = chat.lastMessage
     val previewText = when {
         lastMsg == null -> "No messages yet"
         lastMsg.isDeleted || (currentUid.isNotEmpty() && currentUid in lastMsg.deletedFor) -> ""
+        chat.isGroup -> {
+            val senderName = if (lastMsg.senderId == currentUid) {
+                "You"
+            } else {
+                val p = chat.participantInfo[lastMsg.senderId]
+                p?.displayName?.ifBlank { p.username } ?: "Member"
+            }
+            if (lastMsg.text.isNotBlank()) "$senderName: ${lastMsg.text}" else ""
+        }
         else -> lastMsg.text
     }
     val formattedTime = remember(lastMsg?.timestamp) {
@@ -1316,7 +1338,7 @@ internal fun ChatListItemRow(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                } else if (!other?.photoUrl.isNullOrBlank()) {
+                } else if (!chat.isGroup && !other?.photoUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = other?.photoUrl,
                         contentDescription = displayName,

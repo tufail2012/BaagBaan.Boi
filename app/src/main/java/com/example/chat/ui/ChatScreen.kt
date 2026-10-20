@@ -180,13 +180,20 @@ fun ChatScreen(
     modifier: Modifier = Modifier
 ) {
     var showMoreMenu by remember { mutableStateOf(false) }
+    var showGroupInfo by remember { mutableStateOf(false) }
     var moreButtonBounds by remember { mutableStateOf(Rect.Zero) }
 
     BackHandler {
-        if (showMoreMenu) {
-            showMoreMenu = false
-        } else {
-            onBack()
+        when {
+            showGroupInfo -> {
+                showGroupInfo = false
+            }
+            showMoreMenu -> {
+                showMoreMenu = false
+            }
+            else -> {
+                onBack()
+            }
         }
     }
 
@@ -219,18 +226,40 @@ fun ChatScreen(
     val blockedUserIds by viewModel.blockedUserIds.collectAsState()
     val editingMessageId by viewModel.editingMessageId.collectAsState()
     val activeChatId by viewModel.activeChatId.collectAsState()
+    val allChatsList by viewModel.allChatsList.collectAsState()
     val chatsList by viewModel.chatsList.collectAsState()
-    val activeChatSummary = chatsList.firstOrNull { it.chatId == activeChatId }
+    val groupChats by viewModel.groupChats.collectAsState()
+    val lockedChatsList by viewModel.lockedChatsList.collectAsState()
+    val archivedChatsList by viewModel.archivedChatsList.collectAsState()
+    val activeChatSummary = remember(
+        activeChatId,
+        allChatsList,
+        chatsList,
+        groupChats,
+        lockedChatsList,
+        archivedChatsList
+    ) {
+        allChatsList.firstOrNull { it.chatId == activeChatId }
+            ?: groupChats.firstOrNull { it.chatId == activeChatId }
+            ?: chatsList.firstOrNull { it.chatId == activeChatId }
+            ?: lockedChatsList.firstOrNull { it.chatId == activeChatId }
+            ?: archivedChatsList.firstOrNull { it.chatId == activeChatId }
+    }
+    val isGroup = activeChatSummary?.isGroup == true
     val otherUid = activeChatSummary?.participantIds?.firstOrNull { it != currentUid }
         ?.ifBlank { null }
         ?: recipient?.uid.orEmpty()
-    val isBlockedByMe = isBlockedByMeState ||
-        (otherUid.isNotEmpty() && otherUid in blockedUserIds) ||
-        (currentUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(currentUid) == true)
-    val isBlockedByOther = isBlockedByOtherState ||
-        (otherUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(otherUid) == true) ||
-        (currentUid.isNotEmpty() && recipientPresence?.blockedUsers?.contains(currentUid) == true)
-    val isChatBlocked = isBlockedByMe || isBlockedByOther
+    val isBlockedByMe = !isGroup && (
+        isBlockedByMeState ||
+            (otherUid.isNotEmpty() && otherUid in blockedUserIds) ||
+            (currentUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(currentUid) == true)
+    )
+    val isBlockedByOther = !isGroup && (
+        isBlockedByOtherState ||
+            (otherUid.isNotEmpty() && activeChatSummary?.blockedBy?.contains(otherUid) == true) ||
+            (currentUid.isNotEmpty() && recipientPresence?.blockedUsers?.contains(currentUid) == true)
+    )
+    val isChatBlocked = !isGroup && (isBlockedByMe || isBlockedByOther)
 
     val isRecipientOnline = remember(recipientPresence, currentTimeTick, isChatBlocked) {
         if (isChatBlocked) {
@@ -892,9 +921,19 @@ fun ChatScreen(
                                 onLongPress = { selectedCallForAction = msg }
                             )
                         } else {
+                            val senderDisplayName = if (isGroup && !isOwnMessage && !isSameSenderAsPrev) {
+                                viewModel.displayNameFor(
+                                    msg.senderId,
+                                    activeChatSummary?.participantInfo?.get(msg.senderId)
+                                )
+                            } else {
+                                null
+                            }
                             MessageBubble(
                                 message = msg,
                                 isOwn = isOwnMessage,
+                                isGroup = isGroup,
+                                senderName = senderDisplayName,
                                 readReceipts = readReceipts,
                                 accentColor = accentColor,
                                 isDark = isDark,
@@ -970,6 +1009,9 @@ fun ChatScreen(
                     }
 
                     // 2) NAME: wide glass pill with avatar, name and status (username is in the profile dialog)
+                    val groupDisplayTitle = remember(activeChatSummary, currentUid) {
+                        activeChatSummary?.displayTitle(currentUid) ?: "Group"
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -977,27 +1019,20 @@ fun ChatScreen(
                             .height(56.dp)
                             .then(glassModifier(headerShape))
                             .clip(headerShape)
-                            .clickable { showProfileDialog = true }
+                            .clickable {
+                                if (isGroup) {
+                                    showGroupInfo = true
+                                } else {
+                                    showProfileDialog = true
+                                }
+                            }
                             .padding(horizontal = 6.dp, vertical = 4.dp)
                     ) {
-                        // Recipient avatar with status ring
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .border(width = 2.dp, color = ringColor, shape = CircleShape)
-                                .padding(2.dp)
-                        ) {
-                            if (!recipient?.photoUrl.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = recipient?.photoUrl,
-                                    contentDescription = recipient?.displayName,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                )
-                            } else {
+                        if (isGroup) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(48.dp)
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
@@ -1006,11 +1041,46 @@ fun ChatScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = effectiveDisplayName.take(1).uppercase(),
+                                        text = groupDisplayTitle.take(1).uppercase(),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 16.sp,
                                         color = accentColor
                                     )
+                                }
+                            }
+                        } else {
+                            // Recipient avatar with status ring
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .border(width = 2.dp, color = ringColor, shape = CircleShape)
+                                    .padding(2.dp)
+                            ) {
+                                if (!recipient?.photoUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = recipient?.photoUrl,
+                                        contentDescription = recipient?.displayName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(accentColor.copy(alpha = 0.20f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = effectiveDisplayName.take(1).uppercase(),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp,
+                                            color = accentColor
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1019,14 +1089,24 @@ fun ChatScreen(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = effectiveDisplayName,
+                                text = if (isGroup) groupDisplayTitle else effectiveDisplayName,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isDark) Color.White else Color(0xFF0F172A),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            if (displayStatusText != null) {
+                            if (isGroup) {
+                                val memberCount = activeChatSummary?.participantIds?.size ?: 0
+                                Text(
+                                    text = "$memberCount members",
+                                    fontSize = 11.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            } else if (displayStatusText != null) {
                                 val textMeasurer = rememberTextMeasurer()
                                 val statusFontWeight = if (recipientTyping || isRecipientOnline) FontWeight.Medium else FontWeight.Normal
                                 val statusStyle = androidx.compose.material3.LocalTextStyle.current.copy(
@@ -1085,7 +1165,7 @@ fun ChatScreen(
                         }
                     }
 
-                    // 3) ACTIONS: small glass pill with voice call and more menu
+                    // 3) ACTIONS: small glass pill with voice call (direct chats only) and more menu
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -1094,18 +1174,20 @@ fun ChatScreen(
                             .clip(headerShape)
                             .padding(horizontal = 2.dp)
                     ) {
-                        IconButton(
-                            onClick = { initiateCall(false) },
-                            modifier = Modifier
-                                .size(44.dp)
-                                .testTag("conversation_voice_call_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Call,
-                                contentDescription = "Voice call",
-                                tint = if (isDark) Color.White else Color(0xFF0F172A),
-                                modifier = Modifier.size(22.dp)
-                            )
+                        if (!isGroup) {
+                            IconButton(
+                                onClick = { initiateCall(false) },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("conversation_voice_call_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Call,
+                                    contentDescription = "Voice call",
+                                    tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
 
                         IconButton(
@@ -1413,65 +1495,333 @@ fun ChatScreen(
                                 .padding(vertical = 8.dp)
                                 .testTag("conversation_overflow_glass_menu")
                         ) {
-                            ConversationOverflowMenuItem(
-                                text = "Video call",
-                                contentColor = menuContentColor,
-                                leadingIcon = {
-                                    VideoCallIcon(
-                                        tint = menuContentColor,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                },
-                                testTag = "conversation_video_call_button",
-                                onClick = {
-                                    showMoreMenu = false
-                                    initiateCall(true)
-                                }
-                            )
-                            ConversationOverflowMenuItem(
-                                text = "View profile",
-                                contentColor = menuContentColor,
-                                onClick = {
-                                    showMoreMenu = false
-                                    showProfileDialog = true
-                                }
-                            )
-                            ConversationOverflowMenuItem(
-                                text = "Wallpaper",
-                                contentColor = menuContentColor,
-                                testTag = "menu_wallpaper",
-                                onClick = {
-                                    showMoreMenu = false
-                                    wallpaperPicker.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                            )
-                            if (wallpaperFile != null) {
+                            if (isGroup) {
                                 ConversationOverflowMenuItem(
-                                    text = "Reset wallpaper",
+                                    text = "Group info",
                                     contentColor = menuContentColor,
+                                    testTag = "conversation_menu_group_info",
                                     onClick = {
                                         showMoreMenu = false
-                                        activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                        wallpaperFile = null
-                                        wallpaperRevision++
+                                        showGroupInfo = true
                                     }
                                 )
-                            }
-                            if (otherUid.isNotEmpty()) {
                                 ConversationOverflowMenuItem(
-                                    text = if (isBlockedByMe) "Unblock" else "Block",
+                                    text = "Wallpaper",
                                     contentColor = menuContentColor,
-                                    testTag = "conversation_menu_block_toggle",
+                                    testTag = "menu_wallpaper",
                                     onClick = {
                                         showMoreMenu = false
-                                        if (isBlockedByMe) {
-                                            viewModel.unblockUser(otherUid)
+                                        wallpaperPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                                )
+                                if (wallpaperFile != null) {
+                                    ConversationOverflowMenuItem(
+                                        text = "Reset wallpaper",
+                                        contentColor = menuContentColor,
+                                        onClick = {
+                                            showMoreMenu = false
+                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                            wallpaperFile = null
+                                            wallpaperRevision++
+                                        }
+                                    )
+                                }
+                            } else {
+                                ConversationOverflowMenuItem(
+                                    text = "Video call",
+                                    contentColor = menuContentColor,
+                                    leadingIcon = {
+                                        VideoCallIcon(
+                                            tint = menuContentColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    },
+                                    testTag = "conversation_video_call_button",
+                                    onClick = {
+                                        showMoreMenu = false
+                                        initiateCall(true)
+                                    }
+                                )
+                                ConversationOverflowMenuItem(
+                                    text = "View profile",
+                                    contentColor = menuContentColor,
+                                    onClick = {
+                                        showMoreMenu = false
+                                        showProfileDialog = true
+                                    }
+                                )
+                                ConversationOverflowMenuItem(
+                                    text = "Wallpaper",
+                                    contentColor = menuContentColor,
+                                    testTag = "menu_wallpaper",
+                                    onClick = {
+                                        showMoreMenu = false
+                                        wallpaperPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                                )
+                                if (wallpaperFile != null) {
+                                    ConversationOverflowMenuItem(
+                                        text = "Reset wallpaper",
+                                        contentColor = menuContentColor,
+                                        onClick = {
+                                            showMoreMenu = false
+                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                            wallpaperFile = null
+                                            wallpaperRevision++
+                                        }
+                                    )
+                                }
+                                if (otherUid.isNotEmpty()) {
+                                    ConversationOverflowMenuItem(
+                                        text = if (isBlockedByMe) "Unblock" else "Block",
+                                        contentColor = menuContentColor,
+                                        testTag = "conversation_menu_block_toggle",
+                                        onClick = {
+                                            showMoreMenu = false
+                                            if (isBlockedByMe) {
+                                                viewModel.unblockUser(otherUid)
+                                            } else {
+                                                viewModel.blockUser(otherUid, recipient)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Full-screen Group Info Box inside ChatScreen (no AlertDialog or popup window)
+            if (showGroupInfo && isGroup) {
+                BackHandler { showGroupInfo = false }
+                val groupTitle = activeChatSummary?.displayTitle(currentUid) ?: "Group"
+                val memberIds = activeChatSummary?.participantIds.orEmpty()
+                val participantInfoMap = activeChatSummary?.participantInfo.orEmpty()
+                val bgColor = when {
+                    isAmoled -> Color.Black
+                    isDark -> Color(0xFF0B141A)
+                    else -> Color(0xFFF1F5F9)
+                }
+                val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(30f)
+                        .background(bgColor)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        )
+                        .testTag("group_info_screen")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                    ) {
+                        // Top bar: back button and "Group info" title
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        ) {
+                            IconButton(
+                                onClick = { showGroupInfo = false },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("group_info_back_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = primaryTextColor
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Group info",
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor
+                            )
+                        }
+
+                        // Body: big group avatar circle, group name, "${participantIds.size} members", then list of members
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            item(key = "group_info_header") {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(88.dp)
+                                            .clip(CircleShape)
+                                            .background(accentColor.copy(alpha = 0.20f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = groupTitle.take(1).uppercase(),
+                                            fontSize = 36.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = accentColor
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = groupTitle,
+                                        fontSize = 22.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = primaryTextColor
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "${memberIds.size} members",
+                                        fontSize = 14.sp,
+                                        color = secondaryTextColor
+                                    )
+                                    Spacer(modifier = Modifier.height(20.dp))
+                                }
+                            }
+
+                            items(memberIds.size, key = { idx -> memberIds[idx] }) { idx ->
+                                val memberUid = memberIds[idx]
+                                val pInfo = participantInfoMap[memberUid]
+                                val isMe = memberUid == currentUid
+                                val baseDisplayName = if (isMe) {
+                                    currentUser?.displayName?.ifBlank { currentUser?.username }
+                                        ?: pInfo?.displayName?.ifBlank { pInfo.username }
+                                        ?: "You"
+                                } else {
+                                    viewModel.displayNameFor(memberUid, pInfo)
+                                }
+                                val memberTitle = if (isMe) "$baseDisplayName (You)" else baseDisplayName
+                                val usernameStr = if (isMe) {
+                                    currentUser?.username?.ifBlank { pInfo?.username.orEmpty() }.orEmpty()
+                                } else {
+                                    pInfo?.username.orEmpty()
+                                }
+                                val photoUrl = if (isMe) {
+                                    currentUser?.photoUrl ?: pInfo?.photoUrl
+                                } else {
+                                    pInfo?.photoUrl
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = cardBgColor,
+                                    tonalElevation = 1.dp,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                        .testTag("group_member_row_$memberUid")
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                                    ) {
+                                        if (!photoUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = photoUrl,
+                                                contentDescription = baseDisplayName,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(44.dp)
+                                                    .clip(CircleShape)
+                                            )
                                         } else {
-                                            viewModel.blockUser(otherUid, recipient)
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(44.dp)
+                                                    .clip(CircleShape)
+                                                    .background(accentColor.copy(alpha = 0.20f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = baseDisplayName.take(1).uppercase(),
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = accentColor
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = memberTitle,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = primaryTextColor,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (usernameStr.isNotBlank()) {
+                                                Text(
+                                                    text = "@$usernameStr",
+                                                    fontSize = 13.sp,
+                                                    color = secondaryTextColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        // Bottom: red "Leave group" button (Color(0xFFEF4444))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            androidx.compose.material3.Button(
+                                onClick = {
+                                    val id = activeChatId
+                                    showGroupInfo = false
+                                    if (id != null) {
+                                        viewModel.leaveGroup(id)
+                                    } else {
+                                        onBack()
+                                    }
+                                },
+                                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFEF4444),
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp)
+                                    .testTag("leave_group_button")
+                            ) {
+                                Text(
+                                    text = "Leave group",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
                                 )
                             }
                         }
@@ -1569,6 +1919,8 @@ private fun DateSeparator(date: Timestamp?, isDark: Boolean) {
 private fun MessageBubble(
     message: ChatMessage,
     isOwn: Boolean,
+    isGroup: Boolean = false,
+    senderName: String? = null,
     readReceipts: Boolean,
     accentColor: Color,
     isDark: Boolean,
@@ -1655,6 +2007,17 @@ private fun MessageBubble(
                     .testTag("message_bubble_${message.id}")
             ) {
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    if (!isOwn && !senderName.isNullOrBlank()) {
+                        Text(
+                            text = senderName,
+                            color = accentColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
                     if (message.isDeleted) {
                         Text(
                             text = "This message was deleted",
@@ -1732,7 +2095,7 @@ private fun MessageBubble(
                                 Text(text = "edited", color = timeColor, fontSize = 9.sp, fontStyle = FontStyle.Italic)
                             }
                             Text(text = timeFormatted, color = timeColor, fontSize = 10.sp)
-                            if (isOwn) {
+                            if (isOwn && !isGroup) {
                                 MessageStatusTicks(
                                     status = if (!readReceipts && message.status == "read") "delivered" else message.status
                                 )

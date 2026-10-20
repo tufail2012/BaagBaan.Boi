@@ -155,15 +155,18 @@ fun ChatSectionScreen(
     var settingsPrivacyOpen by remember { mutableStateOf(false) }
     var showStatusComposer by remember { mutableStateOf(false) }
     var viewingStatusUserId by remember { mutableStateOf<String?>(null) }
+    var showCreateGroup by remember { mutableStateOf(false) }
 
     var chatsStripHeightPx by remember { mutableIntStateOf(0) }
     var callsHeaderHeightPx by remember { mutableIntStateOf(0) }
+    var groupsHeaderHeightPx by remember { mutableIntStateOf(0) }
     var updatesHeaderHeightPx by remember { mutableIntStateOf(0) }
     var archivedHeaderHeightPx by remember { mutableIntStateOf(0) }
     var settingsPrivacyHeaderHeightPx by remember { mutableIntStateOf(0) }
 
     val chatsStripHeightDp = if (chatsStripHeightPx > 0) with(density) { chatsStripHeightPx.toDp() } else 210.dp
     val callsHeaderHeightDp = if (callsHeaderHeightPx > 0) with(density) { callsHeaderHeightPx.toDp() } else 76.dp
+    val groupsHeaderHeightDp = if (groupsHeaderHeightPx > 0) with(density) { groupsHeaderHeightPx.toDp() } else 76.dp
     val updatesHeaderHeightDp = if (updatesHeaderHeightPx > 0) with(density) { updatesHeaderHeightPx.toDp() } else 76.dp
     val archivedHeaderHeightDp = if (archivedHeaderHeightPx > 0) with(density) { archivedHeaderHeightPx.toDp() } else 76.dp
     val settingsPrivacyHeaderHeightDp = if (settingsPrivacyHeaderHeightPx > 0) with(density) { settingsPrivacyHeaderHeightPx.toDp() } else 76.dp
@@ -282,6 +285,9 @@ fun ChatSectionScreen(
             showStatusComposer = false
             viewingStatusUserId = null
         }
+        if (activeTab != ChatTab.GROUPS || activeSubScreen != ChatSubScreen.TABS) {
+            showCreateGroup = false
+        }
     }
 
     LaunchedEffect(chatsSelectedChatIds) {
@@ -309,6 +315,9 @@ fun ChatSectionScreen(
     // Hardware/gesture Back handling
     BackHandler {
         when {
+            showCreateGroup -> {
+                showCreateGroup = false
+            }
             viewingStatusUserId != null -> {
                 viewingStatusUserId = null
             }
@@ -424,7 +433,7 @@ fun ChatSectionScreen(
                                     HorizontalPager(
                                         state = pagerState,
                                         modifier = Modifier.fillMaxSize(),
-                                        userScrollEnabled = !showListSheet && !lockedChatsUnlocked && !showStatusComposer && viewingStatusUserId == null,
+                                        userScrollEnabled = !showListSheet && !lockedChatsUnlocked && !showStatusComposer && viewingStatusUserId == null && !showCreateGroup,
                                         beyondViewportPageCount = 1,
                                         key = { chatTabs.getOrElse(it) { ChatTab.CHATS }.name }
                                     ) { page ->
@@ -447,12 +456,11 @@ fun ChatSectionScreen(
                                             }
 
                                             ChatTab.GROUPS -> {
-                                                ChatPlaceholderTabScreen(
-                                                    title = "Groups",
-                                                    subtitle = "Join regional grower associations and crop consultation groups to discuss techniques and market trends.",
-                                                    icon = Icons.Default.Groups,
-                                                    onBack = onBack,
-                                                    accentColor = effectiveAccentColor
+                                                GroupsTabScreen(
+                                                    viewModel = chatViewModel,
+                                                    accentColor = effectiveAccentColor,
+                                                    topPadding = groupsHeaderHeightDp,
+                                                    onOpenCreateGroup = { showCreateGroup = true }
                                                 )
                                             }
 
@@ -569,16 +577,35 @@ fun ChatSectionScreen(
                                     }
                                 }
 
-                                ChatTab.GROUPS -> Unit
+                                ChatTab.GROUPS -> {
+                                    GroupsTopHeaderOverlay(
+                                        viewModel = chatViewModel,
+                                        backdrop = chatBackdrop,
+                                        onHeaderHeightChanged = { groupsHeaderHeightPx = it },
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .zIndex(10f)
+                                    )
+                                    if (!showCreateGroup) {
+                                        GroupsFloatingCreateButton(
+                                            onClick = { showCreateGroup = true },
+                                            backdrop = chatBackdrop,
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .zIndex(10f)
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet, Locked chats view, or Status composer/viewer is open)
+                        // 3. Sibling floating bottom navigation (hidden while New/Edit list sheet, Locked chats view, Status composer/viewer, or Create Group is open)
                         if (activeSubScreen == ChatSubScreen.TABS &&
                             !showListSheet &&
                             !(activeTab == ChatTab.CHATS && lockedChatsUnlocked) &&
                             !showStatusComposer &&
-                            viewingStatusUserId == null
+                            viewingStatusUserId == null &&
+                            !showCreateGroup
                         ) {
                             ChatBottomNav(
                                 selectedTab = activeTab,
@@ -724,6 +751,16 @@ fun ChatSectionScreen(
                                     modifier = Modifier.zIndex(30f)
                                 )
                             }
+                        }
+
+                        // 8. Full-screen Create Group overlay
+                        if (showCreateGroup) {
+                            CreateGroupOverlay(
+                                viewModel = chatViewModel,
+                                accentColor = effectiveAccentColor,
+                                onDismiss = { showCreateGroup = false },
+                                modifier = Modifier.zIndex(30f)
+                            )
                         }
                     }
                 }

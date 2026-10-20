@@ -96,6 +96,7 @@ data class ChatLastMessage(
 data class ChatSummary(
     val chatId: String = "",
     val type: String = "direct",
+    val name: String? = null,
     val participantIds: List<String> = emptyList(),
     val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
     val lastMessage: ChatLastMessage? = null,
@@ -103,9 +104,21 @@ data class ChatSummary(
     val ghostMode: Boolean = false,
     val blockedBy: List<String> = emptyList()
 ) {
+    val isGroup: Boolean
+        get() = type == "group"
+
     fun getOtherParticipant(currentUid: String): ParticipantInfo? {
+        if (isGroup) return null
         val otherUid = participantIds.firstOrNull { it != currentUid } ?: return null
         return participantInfo[otherUid]
+    }
+
+    fun displayTitle(currentUid: String): String {
+        if (isGroup) {
+            return name?.trim()?.ifBlank { null } ?: "Group"
+        }
+        val other = getOtherParticipant(currentUid)
+        return other?.displayName?.ifBlank { other.username }?.ifBlank { null } ?: "Member"
     }
 }
 

@@ -305,6 +305,7 @@ class ChatRepository(private val context: Context) {
                         try {
                             val chatId = doc.id
                             val type = doc.getString("type") ?: "direct"
+                            val name = doc.getString("name")
                             @Suppress("UNCHECKED_CAST")
                             val participantIds = doc.get("participantIds") as? List<String> ?: emptyList()
 
@@ -341,6 +342,7 @@ class ChatRepository(private val context: Context) {
                             ChatSummary(
                                 chatId = chatId,
                                 type = type,
+                                name = name,
                                 participantIds = participantIds,
                                 participantInfo = participantInfo,
                                 lastMessage = lastMessage,
@@ -370,7 +372,84 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun getChatMessagesFlow(chatId: String, currentUid: String): Flow<List<ChatMessage>> = callbackFlow {
+    suspend fun createGroupChat(
+        currentUid: String,
+        currentUser: ChatUser,
+        name: String,
+        members: List<ChatUser>
+    ): Result<String> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (currentUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("Current user ID is blank"))
+        }
+        val trimmedName = name.trim().take(40)
+        if (trimmedName.isBlank()) {
+            return Result.failure(IllegalArgumentException("Group name cannot be empty"))
+        }
+        val validMembers = members.filter { it.uid.isNotBlank() && it.uid != currentUid }.distinctBy { it.uid }
+        if (validMembers.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Select at least one member"))
+        }
+
+        return try {
+            val participantIds = (listOf(currentUid) + validMembers.map { it.uid }).distinct()
+            val participantInfo = mutableMapOf<String, Map<String, Any?>>()
+            participantInfo[currentUid] = mapOf(
+                "username" to currentUser.username,
+                "displayName" to currentUser.displayName,
+                "photoUrl" to (currentUser.photoUrl ?: "")
+            )
+            for (member in validMembers) {
+                participantInfo[member.uid] = mapOf(
+                    "username" to member.username,
+                    "displayName" to member.displayName,
+                    "photoUrl" to (member.photoUrl ?: "")
+                )
+            }
+
+            val chatRef = firestore.collection("chats").document()
+            val newGroupData = hashMapOf(
+                "type" to "group",
+                "name" to trimmedName,
+                "createdBy" to currentUid,
+                "participantIds" to participantIds,
+                "participantInfo" to participantInfo,
+                "lastMessage" to null,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "ghostMode" to false,
+                "blockedBy" to emptyList<String>()
+            )
+            chatRef.set(newGroupData).await()
+            Result.success(chatRef.id)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating group chat: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun leaveGroup(chatId: String, currentUid: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (chatId.isBlank() || currentUid.isBlank()) {
+            return Result.failure(IllegalArgumentException("chatId and currentUid must not be blank"))
+        }
+        return try {
+            val updates = hashMapOf<String, Any>(
+                "participantIds" to FieldValue.arrayRemove(currentUid),
+                "participantInfo.$currentUid" to FieldValue.delete()
+            )
+            firestore.collection("chats").document(chatId).update(updates).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error leaving group $chatId for $currentUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    fun getChatMessagesFlow(
+        chatId: String,
+        currentUid: String,
+        isGroup: Boolean = false
+    ): Flow<List<ChatMessage>> = callbackFlow {
         val firestore = db
         if (firestore == null) {
             trySend(emptyList())
@@ -427,20 +506,22 @@ class ChatRepository(private val context: Context) {
                     val visibleMessages = messages.filter { currentUid !in it.deletedFor }
                     trySend(visibleMessages)
 
-                    val toMarkDelivered = snapshot.documents.filter { doc ->
-                        doc.getString("senderId") != currentUid &&
-                            (doc.getString("status") ?: "sent") == "sent"
-                    }
-                    if (toMarkDelivered.isNotEmpty()) {
-                        val batch = firestore.batch()
-                        toMarkDelivered.forEach { doc ->
-                            batch.update(doc.reference, "status", "delivered")
+                    if (!isGroup) {
+                        val toMarkDelivered = snapshot.documents.filter { doc ->
+                            doc.getString("senderId") != currentUid &&
+                                (doc.getString("status") ?: "sent") == "sent"
                         }
-                        launch {
-                            try {
-                                batch.commit().await()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error marking messages as delivered in $chatId: ${e.message}", e)
+                        if (toMarkDelivered.isNotEmpty()) {
+                            val batch = firestore.batch()
+                            toMarkDelivered.forEach { doc ->
+                                batch.update(doc.reference, "status", "delivered")
+                            }
+                            launch {
+                                try {
+                                    batch.commit().await()
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error marking messages as delivered in $chatId: ${e.message}", e)
+                                }
                             }
                         }
                     }
