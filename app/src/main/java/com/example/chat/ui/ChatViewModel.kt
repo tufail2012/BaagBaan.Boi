@@ -219,6 +219,12 @@ class ChatViewModel(
     private val _pendingOpenChatId = MutableStateFlow<String?>(null)
     val pendingOpenChatId: StateFlow<String?> = _pendingOpenChatId.asStateFlow()
 
+    val changedPeerUids: StateFlow<Set<String>> = repository.changedPeerUids
+
+    fun acceptNewKey(peerUid: String) {
+        repository.acceptPeerKey(peerUid)
+    }
+
     private var hasLoadedChatsOnce = false
     private var rawCallHistory: List<com.example.chat.model.CallLogItem> = emptyList()
     private val fetchingBlockedUserProfiles = mutableSetOf<String>()
@@ -233,6 +239,7 @@ class ChatViewModel(
     private var markReadJob: Job? = null
     private var searchJob: Job? = null
     private var presenceListenJob: Job? = null
+    private var peerKeyListenJob: Job? = null
     private var presenceHeartbeatJob: Job? = null
     private var typingIdleJob: Job? = null
     private var lastTypingWriteMs: Long = 0L
@@ -337,6 +344,7 @@ class ChatViewModel(
             statusesListenJob?.cancel()
             nicknamesListenJob?.cancel()
             blockedListenJob?.cancel()
+            peerKeyListenJob?.cancel()
             clearUserProfileListeners()
             hasLoadedChatsOnce = false
             rawStatuses = emptyList()
@@ -361,6 +369,7 @@ class ChatViewModel(
             repository.migrateOwnUserSplit(authUser.uid)
             val existing = repository.getChatUser(authUser.uid)
             if (existing != null && existing.username.isNotBlank()) {
+                repository.ensureE2eeIdentity(authUser.uid)
                 _currentUser.value = existing
                 _userProfiles.update { it + (existing.uid to existing) }
                 _isUsernameSetupRequired.value = false
@@ -399,6 +408,7 @@ class ChatViewModel(
             )
             result.onSuccess { user ->
                 repository.migrateOwnUserSplit(user.uid)
+                repository.ensureE2eeIdentity(user.uid)
                 _currentUser.value = user
                 _isUsernameSetupRequired.value = false
                 _toastMessage.value = "Welcome, @${user.username}!"
@@ -1707,6 +1717,7 @@ class ChatViewModel(
         }
         stopTyping()
         presenceListenJob?.cancel()
+        peerKeyListenJob?.cancel()
         recipientTypingExpiryJob?.cancel()
         recipientTypingExpiryJob = null
         _recipientTyping.value = false
@@ -1732,10 +1743,16 @@ class ChatViewModel(
 
     private fun startObservingRecipientPresence(uid: String) {
         presenceListenJob?.cancel()
+        peerKeyListenJob?.cancel()
         recipientTypingExpiryJob?.cancel()
         recipientTypingExpiryJob = null
         _recipientTyping.value = false
         _recipientPresence.value = null
+        peerKeyListenJob = viewModelScope.launch {
+            repository.observePeerPublicKey(uid)
+                .catch { Log.w(TAG, "Error observing peer public key for $uid: ${it.message}") }
+                .collectLatest { }
+        }
         presenceListenJob = viewModelScope.launch {
             observeMergedOtherUser(uid).collectLatest { user ->
                 _recipientPresence.value = user
@@ -1945,9 +1962,15 @@ class ChatViewModel(
         _messages.value = emptyList()
         val currentUid = _currentUser.value?.uid ?: return
         val isGroupChat = isGroup || rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
+        val peerUid = if (isGroupChat) null else _activeRecipient.value?.uid
 
         messagesListenJob = viewModelScope.launch {
-            repository.getChatMessagesFlow(chatId, currentUid, isGroup = isGroupChat).collectLatest { msgs ->
+            repository.getChatMessagesFlow(
+                chatId = chatId,
+                currentUid = currentUid,
+                isGroup = isGroupChat,
+                peerUid = peerUid
+            ).collectLatest { msgs ->
                 _messages.value = msgs
                 if (!isGroupChat) {
                     val inForeground = ProcessLifecycleOwner.get().lifecycle.currentState
@@ -2027,12 +2050,22 @@ class ChatViewModel(
             _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
             return
         }
+        val isGroupChat = rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
+        val peerUid = if (isGroupChat) null else _activeRecipient.value?.uid
+        if (!isGroupChat && !peerUid.isNullOrBlank() && peerUid in changedPeerUids.value) {
+            val peerName = displayNameFor(peerUid, _activeRecipient.value)
+            _toastMessage.value = "$peerName's security key changed. Accept the new key to continue."
+            return
+        }
 
         _messageInput.value = ""
         viewModelScope.launch {
             _isSendingMessage.value = true
             val result = repository.sendMessage(chatId, currentUid, text)
             result.onFailure { err ->
+                if (!peerUid.isNullOrBlank() && peerUid in changedPeerUids.value && _messageInput.value.isEmpty()) {
+                    _messageInput.value = text
+                }
                 _toastMessage.value = "Failed to send: ${err.message}"
             }
             _isSendingMessage.value = false
@@ -2054,6 +2087,13 @@ class ChatViewModel(
         val messageId = _editingMessageId.value ?: return
         val text = _messageInput.value.trim()
         if (text.isEmpty()) return
+        val isGroupChat = rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
+        val peerUid = if (isGroupChat) null else _activeRecipient.value?.uid
+        if (!isGroupChat && !peerUid.isNullOrBlank() && peerUid in changedPeerUids.value) {
+            val peerName = displayNameFor(peerUid, _activeRecipient.value)
+            _toastMessage.value = "$peerName's security key changed. Accept the new key to continue."
+            return
+        }
         _messageInput.value = ""
         _editingMessageId.value = null
         viewModelScope.launch {
@@ -2068,7 +2108,9 @@ class ChatViewModel(
         if (_editingMessageId.value == messageId) {
             cancelEditingMessage()
         }
-        _messages.update { list -> list.filterNot { it.id == messageId } }
+        _messages.update { list ->
+            list.map { if (it.id == messageId) it.copy(isDeleted = true, text = "") else it }
+        }
         viewModelScope.launch {
             repository.deleteMessageForEveryone(chatId, messageId).onFailure { err ->
                 _toastMessage.value = "Failed to delete: ${err.message}"
@@ -2287,6 +2329,7 @@ class ChatViewModel(
         messagesListenJob?.cancel()
         markReadJob?.cancel()
         presenceListenJob?.cancel()
+        peerKeyListenJob?.cancel()
         recipientTypingExpiryJob?.cancel()
         recipientTypingExpiryJob = null
         _recipientTyping.value = false
@@ -2354,6 +2397,7 @@ class ChatViewModel(
         _activeChatId.value = null
         _activeRecipient.value = null
         presenceListenJob?.cancel()
+        peerKeyListenJob?.cancel()
         recipientTypingExpiryJob?.cancel()
         recipientTypingExpiryJob = null
         _recipientTyping.value = false

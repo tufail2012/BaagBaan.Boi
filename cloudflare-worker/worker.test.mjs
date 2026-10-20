@@ -165,6 +165,27 @@ test("buildNotificationContent matches functions/index.js senderName & body rule
   const res3 = buildNotificationContent({}, { text: "Hello Bob!" }, "alice");
   assert.equal(res3.senderName, "New message");
   assert.equal(res3.body, "Hello Bob!");
+
+  // 4. Encrypted text message (ciphertext present, no text) -> body is "New message"
+  const res4 = buildNotificationContent(
+    {
+      participantInfo: {
+        alice: { displayName: "Alice", username: "alice_k" },
+      },
+    },
+    { messageType: "text", ciphertext: "base64ciphertext==", iv: "base64iv==", v: 1 },
+    "alice"
+  );
+  assert.equal(res4.senderName, "Alice");
+  assert.equal(res4.body, "New message");
+
+  // 5. Encrypted message with missing messageType -> body is "New message"
+  const res5 = buildNotificationContent(
+    {},
+    { ciphertext: "base64ciphertext==", iv: "base64iv==", v: 1 },
+    "alice"
+  );
+  assert.equal(res5.body, "New message");
 });
 
 test("Worker /notify rejects missing or invalid ID token with 401", async () => {

@@ -236,6 +236,7 @@ fun ChatScreen(
     val blockedUserIds by viewModel.blockedUserIds.collectAsState()
     val userProfiles by viewModel.userProfiles.collectAsState()
     val contactUserIds by viewModel.contactUserIds.collectAsState()
+    val changedPeerUids by viewModel.changedPeerUids.collectAsState()
     val editingMessageId by viewModel.editingMessageId.collectAsState()
     val activeChatId by viewModel.activeChatId.collectAsState()
     val allChatsList by viewModel.allChatsList.collectAsState()
@@ -272,6 +273,7 @@ fun ChatScreen(
             (currentUid.isNotEmpty() && recipientPresence?.blockedUsers?.contains(currentUid) == true)
     )
     val isChatBlocked = !isGroup && (isBlockedByMe || isBlockedByOther)
+    val isPeerKeyChanged = !isGroup && otherUid.isNotEmpty() && otherUid in changedPeerUids
 
     val canSeeRecipientLastSeen = remember(
         recipientPresence,
@@ -1350,6 +1352,39 @@ fun ChatScreen(
                     .onSizeChanged { composerHeightPx = it.height },
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                if (isPeerKeyChanged) {
+                    val keyBannerShape = RoundedCornerShape(22.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(glassModifier(keyBannerShape))
+                            .clip(keyBannerShape)
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                            .testTag("chat_key_changed_banner")
+                    ) {
+                        Text(
+                            text = "${effectiveDisplayName}'s security key changed",
+                            fontSize = 13.5.sp,
+                            lineHeight = 18.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = { viewModel.acceptNewKey(otherUid) },
+                            modifier = Modifier.testTag("chat_key_accept_button")
+                        ) {
+                            Text(
+                                text = "Accept",
+                                color = accentColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
                 if (isChatBlocked) {
                     val bannerShape = RoundedCornerShape(22.dp)
                     Row(

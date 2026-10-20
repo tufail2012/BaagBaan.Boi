@@ -2,6 +2,7 @@ package com.example.chat.data
 
 import android.content.Context
 import android.util.Log
+import com.example.chat.crypto.E2eeManager
 import com.example.chat.model.CallLogItem
 import com.example.chat.model.ChatLastMessage
 import com.example.chat.model.ChatMessage
@@ -22,9 +23,12 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -36,6 +40,62 @@ class ChatRepository(private val context: Context) {
 
     private val db: FirebaseFirestore?
         get() = SafeFirebase.getDb(context)
+
+    val e2eeManager: E2eeManager = E2eeManager.getInstance(context)
+    val changedPeerUids: StateFlow<Set<String>>
+        get() = e2eeManager.changedPeerUids
+
+    suspend fun ensureE2eeIdentity(uid: String) {
+        e2eeManager.ensureIdentity(uid)
+    }
+
+    suspend fun fetchPeerKey(peerUid: String): E2eeManager.PeerKeyResult {
+        return e2eeManager.fetchPeerKey(peerUid)
+    }
+
+    fun acceptPeerKey(peerUid: String) {
+        e2eeManager.acceptNewKey(peerUid)
+    }
+
+    fun observePeerPublicKey(peerUid: String): Flow<E2eeManager.PeerKeyResult> = callbackFlow {
+        val firestore = db
+        val cleanPeer = peerUid.trim()
+        if (firestore == null || cleanPeer.isEmpty()) {
+            trySend(E2eeManager.PeerKeyResult.Missing)
+            close()
+            return@callbackFlow
+        }
+        val listener = firestore.collection(E2eeManager.COLLECTION_PUBLIC_KEYS)
+            .document(cleanPeer)
+            .addSnapshotListener { doc, error ->
+                if (error != null) {
+                    Log.w(TAG, "PublicKey listener for $cleanPeer failed: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (doc != null && doc.exists()) {
+                    val pubKey = doc.getString("publicKey")?.trim().orEmpty()
+                    if (pubKey.isNotEmpty()) {
+                        trySend(e2eeManager.evaluateServerPeerKey(cleanPeer, pubKey))
+                    } else {
+                        trySend(E2eeManager.PeerKeyResult.Missing)
+                    }
+                } else {
+                    trySend(E2eeManager.PeerKeyResult.Missing)
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    private fun extractPeerUidFromDirectChatId(chatId: String, myUid: String): String {
+        val cleanChatId = chatId.trim()
+        val cleanMyUid = myUid.trim()
+        if (cleanChatId.isEmpty() || cleanMyUid.isEmpty()) return ""
+        return when {
+            cleanChatId.startsWith("${cleanMyUid}_") -> cleanChatId.removePrefix("${cleanMyUid}_")
+            cleanChatId.endsWith("_${cleanMyUid}") -> cleanChatId.removeSuffix("_${cleanMyUid}")
+            else -> cleanChatId.split("_").firstOrNull { it.isNotBlank() && it != cleanMyUid }.orEmpty()
+        }
+    }
 
     companion object {
         private const val TAG = "ChatRepository"
@@ -552,6 +612,137 @@ class ChatRepository(private val context: Context) {
             return@callbackFlow
         }
 
+        var latestSnapshot: com.google.firebase.firestore.QuerySnapshot? = null
+        var mapJob: Job? = null
+
+        fun processSnapshot(snapshot: com.google.firebase.firestore.QuerySnapshot) {
+            mapJob?.cancel()
+            mapJob = launch {
+                val list = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val chatId = doc.id
+                        val type = doc.getString("type") ?: "direct"
+                        val name = doc.getString("name")
+                        val createdBy = doc.getString("createdBy")
+                        @Suppress("UNCHECKED_CAST")
+                        val participantIds = doc.get("participantIds") as? List<String> ?: emptyList()
+
+                        @Suppress("UNCHECKED_CAST")
+                        val pInfoRaw = doc.get("participantInfo") as? Map<String, Any?> ?: emptyMap()
+                        val participantInfo = pInfoRaw.mapNotNull { (k, v) ->
+                            @Suppress("UNCHECKED_CAST")
+                            val map = v as? Map<String, Any?> ?: return@mapNotNull null
+                            k to ParticipantInfo(
+                                uid = k,
+                                username = map["username"]?.toString() ?: "",
+                                displayName = map["displayName"]?.toString() ?: "",
+                                photoUrl = null
+                            )
+                        }.toMap()
+
+                        @Suppress("UNCHECKED_CAST")
+                        val lMsgRaw = doc.get("lastMessage") as? Map<String, Any?>
+                        val lastMessage = if (lMsgRaw != null) {
+                            val isDeleted = lMsgRaw["isDeleted"] as? Boolean ?: false
+                            val deletedFor = (lMsgRaw["deletedFor"] as? List<*>)
+                                ?.mapNotNull { item -> item as? String }
+                                ?: emptyList()
+                            val senderId = lMsgRaw["senderId"]?.toString() ?: ""
+                            val timestamp = lMsgRaw["timestamp"] as? Timestamp
+                            val messageId = lMsgRaw["messageId"]?.toString() ?: ""
+                            val ciphertext = lMsgRaw["ciphertext"]?.toString()
+                            val iv = lMsgRaw["iv"]?.toString()
+
+                            val previewText = if (isDeleted) {
+                                ""
+                            } else if (!ciphertext.isNullOrBlank()) {
+                                val peerUid = participantIds.firstOrNull { it.isNotBlank() && it != currentUid }
+                                    ?: extractPeerUidFromDirectChatId(chatId, currentUid)
+                                if (type != "group" && peerUid.isNotBlank()) {
+                                    when (val keyRes = e2eeManager.resolveChatKey(chatId, currentUid, peerUid)) {
+                                        is E2eeManager.ChatKeyResult.Missing,
+                                        is E2eeManager.ChatKeyResult.Changed -> "Encrypted message"
+                                        is E2eeManager.ChatKeyResult.Success -> {
+                                            val decrypted = if (!iv.isNullOrBlank() && messageId.isNotBlank()) {
+                                                e2eeManager.decryptText(
+                                                    chatKey = keyRes.chatKey,
+                                                    chatId = chatId,
+                                                    messageId = messageId,
+                                                    ciphertextB64 = ciphertext,
+                                                    ivB64 = iv
+                                                )
+                                            } else {
+                                                null
+                                            }
+                                            if (decrypted != null) {
+                                                decrypted
+                                            } else {
+                                                when (e2eeManager.fetchPeerKey(peerUid)) {
+                                                    is E2eeManager.PeerKeyResult.Missing,
+                                                    is E2eeManager.PeerKeyResult.Changed -> "Encrypted message"
+                                                    is E2eeManager.PeerKeyResult.Ok -> "Message can't be opened on this device"
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    "Encrypted message"
+                                }
+                            } else {
+                                lMsgRaw["text"]?.toString() ?: ""
+                            }
+
+                            ChatLastMessage(
+                                text = previewText,
+                                senderId = senderId,
+                                timestamp = timestamp,
+                                messageId = messageId,
+                                isDeleted = isDeleted,
+                                deletedFor = deletedFor
+                            )
+                        } else {
+                            null
+                        }
+
+                        val blockedBy = (doc.get("blockedBy") as? List<*>)
+                            ?.mapNotNull { it as? String }
+                            .orEmpty()
+
+                        ChatSummary(
+                            chatId = chatId,
+                            type = type,
+                            name = name,
+                            createdBy = createdBy,
+                            participantIds = participantIds,
+                            participantInfo = participantInfo,
+                            lastMessage = lastMessage,
+                            createdAt = doc.getTimestamp("createdAt"),
+                            ghostMode = doc.getBoolean("ghostMode") ?: false,
+                            blockedBy = blockedBy
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing chat doc ${doc.id}: ${e.message}")
+                        null
+                    }
+                }
+
+                // Sort client-side by lastMessage timestamp descending
+                val sorted = list.sortedWith { a, b ->
+                    val timeA = a.lastMessage?.timestamp?.toDate()?.time ?: a.createdAt?.toDate()?.time ?: 0L
+                    val timeB = b.lastMessage?.timestamp?.toDate()?.time ?: b.createdAt?.toDate()?.time ?: 0L
+                    timeB.compareTo(timeA)
+                }
+
+                trySend(sorted)
+            }
+        }
+
+        val keyAcceptedJob = launch {
+            e2eeManager.keyAcceptedEvents.collectLatest {
+                latestSnapshot?.let { snap -> processSnapshot(snap) }
+            }
+        }
+
         val listener: ListenerRegistration = firestore.collection("chats")
             .whereArrayContains("participantIds", currentUid)
             .addSnapshotListener { snapshot, error ->
@@ -562,75 +753,14 @@ class ChatRepository(private val context: Context) {
                 }
 
                 if (snapshot != null) {
-                    val list = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            val chatId = doc.id
-                            val type = doc.getString("type") ?: "direct"
-                            val name = doc.getString("name")
-                            val createdBy = doc.getString("createdBy")
-                            @Suppress("UNCHECKED_CAST")
-                            val participantIds = doc.get("participantIds") as? List<String> ?: emptyList()
-
-                            @Suppress("UNCHECKED_CAST")
-                            val pInfoRaw = doc.get("participantInfo") as? Map<String, Any?> ?: emptyMap()
-                            val participantInfo = pInfoRaw.mapNotNull { (k, v) ->
-                                @Suppress("UNCHECKED_CAST")
-                                val map = v as? Map<String, Any?> ?: return@mapNotNull null
-                                k to ParticipantInfo(
-                                    uid = k,
-                                    username = map["username"]?.toString() ?: "",
-                                    displayName = map["displayName"]?.toString() ?: "",
-                                    photoUrl = null
-                                )
-                            }.toMap()
-
-                            @Suppress("UNCHECKED_CAST")
-                            val lMsgRaw = doc.get("lastMessage") as? Map<String, Any?>
-                            val lastMessage = lMsgRaw?.let {
-                                ChatLastMessage(
-                                    text = it["text"]?.toString() ?: "",
-                                    senderId = it["senderId"]?.toString() ?: "",
-                                    timestamp = it["timestamp"] as? Timestamp,
-                                    messageId = it["messageId"]?.toString() ?: "",
-                                    isDeleted = it["isDeleted"] as? Boolean ?: false,
-                                    deletedFor = (it["deletedFor"] as? List<*>)?.mapNotNull { item -> item as? String } ?: emptyList()
-                                )
-                            }
-
-                            val blockedBy = (doc.get("blockedBy") as? List<*>)
-                                ?.mapNotNull { it as? String }
-                                .orEmpty()
-
-                            ChatSummary(
-                                chatId = chatId,
-                                type = type,
-                                name = name,
-                                createdBy = createdBy,
-                                participantIds = participantIds,
-                                participantInfo = participantInfo,
-                                lastMessage = lastMessage,
-                                createdAt = doc.getTimestamp("createdAt"),
-                                ghostMode = doc.getBoolean("ghostMode") ?: false,
-                                blockedBy = blockedBy
-                            )
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error parsing chat doc ${doc.id}: ${e.message}")
-                            null
-                        }
-                    }
-
-                    // Sort client-side by lastMessage timestamp descending
-                    val sorted = list.sortedWith { a, b ->
-                        val timeA = a.lastMessage?.timestamp?.toDate()?.time ?: a.createdAt?.toDate()?.time ?: 0L
-                        val timeB = b.lastMessage?.timestamp?.toDate()?.time ?: b.createdAt?.toDate()?.time ?: 0L
-                        timeB.compareTo(timeA)
-                    }
-
-                    trySend(sorted)
+                    latestSnapshot = snapshot
+                    processSnapshot(snapshot)
                 }
             }
 
         awaitClose {
+            keyAcceptedJob.cancel()
+            mapJob?.cancel()
             listener.remove()
         }
     }
@@ -781,13 +911,155 @@ class ChatRepository(private val context: Context) {
     fun getChatMessagesFlow(
         chatId: String,
         currentUid: String,
-        isGroup: Boolean = false
+        isGroup: Boolean = false,
+        peerUid: String? = null
     ): Flow<List<ChatMessage>> = callbackFlow {
         val firestore = db
         if (firestore == null) {
             trySend(emptyList())
             close()
             return@callbackFlow
+        }
+
+        var latestSnapshot: com.google.firebase.firestore.QuerySnapshot? = null
+        var mapJob: Job? = null
+        var cachedPeerUid: String = peerUid?.trim().orEmpty()
+
+        suspend fun resolvePeerUid(docs: List<com.google.firebase.firestore.DocumentSnapshot>): String {
+            if (cachedPeerUid.isNotEmpty()) return cachedPeerUid
+            val fromDocs = docs.firstNotNullOfOrNull { doc ->
+                doc.getString("senderId")?.trim()?.takeIf { it.isNotEmpty() && it != currentUid }
+            }
+            if (!fromDocs.isNullOrEmpty()) {
+                cachedPeerUid = fromDocs
+                return cachedPeerUid
+            }
+            val fromChatId = extractPeerUidFromDirectChatId(chatId, currentUid)
+            if (fromChatId.isNotEmpty()) {
+                cachedPeerUid = fromChatId
+                return cachedPeerUid
+            }
+            return try {
+                val chatSnap = firestore.collection("chats").document(chatId).get().await()
+                val pIds = (chatSnap.get("participantIds") as? List<*>)
+                    ?.mapNotNull { (it as? String)?.trim() }
+                    .orEmpty()
+                val resolved = pIds.firstOrNull { it.isNotEmpty() && it != currentUid }.orEmpty()
+                cachedPeerUid = resolved
+                resolved
+            } catch (_: Exception) {
+                ""
+            }
+        }
+
+        fun processSnapshot(snapshot: com.google.firebase.firestore.QuerySnapshot) {
+            mapJob?.cancel()
+            mapJob = launch {
+                val hasEncryptedDocs = !isGroup && snapshot.documents.any { doc ->
+                    !(doc.getBoolean("isDeleted") ?: false) && !doc.getString("ciphertext").isNullOrBlank()
+                }
+                val targetPeerUid = if (hasEncryptedDocs) resolvePeerUid(snapshot.documents) else ""
+                val chatKey: ByteArray? = if (hasEncryptedDocs && targetPeerUid.isNotEmpty()) {
+                    when (val keyRes = e2eeManager.resolveChatKey(chatId, currentUid, targetPeerUid)) {
+                        is E2eeManager.ChatKeyResult.Success -> keyRes.chatKey
+                        is E2eeManager.ChatKeyResult.Missing,
+                        is E2eeManager.ChatKeyResult.Changed -> null
+                    }
+                } else {
+                    null
+                }
+
+                var refreshedPeerKeyOnFailure = false
+
+                val messages = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        val isDeleted = doc.getBoolean("isDeleted") ?: false
+                        val ciphertext = doc.getString("ciphertext")
+                        val iv = doc.getString("iv")
+
+                        val resolvedText = if (isDeleted) {
+                            ""
+                        } else if (!ciphertext.isNullOrBlank()) {
+                            val decrypted = if (chatKey != null && !iv.isNullOrBlank()) {
+                                e2eeManager.decryptText(
+                                    chatKey = chatKey,
+                                    chatId = chatId,
+                                    messageId = doc.id,
+                                    ciphertextB64 = ciphertext,
+                                    ivB64 = iv
+                                )
+                            } else {
+                                null
+                            }
+                            if (decrypted == null && chatKey != null && !refreshedPeerKeyOnFailure && targetPeerUid.isNotEmpty()) {
+                                refreshedPeerKeyOnFailure = true
+                                e2eeManager.fetchPeerKey(targetPeerUid)
+                            }
+                            decrypted ?: "Message can't be opened on this device"
+                        } else {
+                            doc.getString("text") ?: ""
+                        }
+
+                        ChatMessage(
+                            id = doc.id,
+                            senderId = doc.getString("senderId") ?: "",
+                            text = resolvedText,
+                            timestamp = doc.getTimestamp("timestamp"),
+                            status = doc.getString("status") ?: "sent",
+                            isEdited = doc.getBoolean("isEdited") ?: false,
+                            isDeleted = isDeleted,
+                            deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                            messageType = doc.getString("messageType") ?: "text",
+                            callType = doc.getString("callType") ?: "voice",
+                            callOutcome = doc.getString("callOutcome") ?: "ended",
+                            callDurationSeconds = doc.getLong("callDurationSeconds") ?: 0L,
+                            callCallerId = doc.getString("callCallerId") ?: "",
+                            callCalleeId = doc.getString("callCalleeId") ?: "",
+                            mediaUrl = doc.getString("mediaUrl"),
+                            thumbnailUrl = doc.getString("thumbnailUrl"),
+                            fileName = doc.getString("fileName"),
+                            fileSize = doc.getLong("fileSize"),
+                            mimeType = doc.getString("mimeType"),
+                            durationSeconds = doc.getLong("durationSeconds"),
+                            waveform = (doc.get("waveform") as? List<*>)?.mapNotNull { (it as? Number)?.toInt() },
+                            latitude = doc.getDouble("latitude"),
+                            longitude = doc.getDouble("longitude"),
+                            locationAddress = doc.getString("locationAddress"),
+                            contactName = doc.getString("contactName"),
+                            contactPhone = doc.getString("contactPhone"),
+                            contactEmail = doc.getString("contactEmail")
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                val visibleMessages = messages.filter { currentUid !in it.deletedFor }
+                trySend(visibleMessages)
+
+                if (!isGroup) {
+                    val toMarkDelivered = snapshot.documents.filter { doc ->
+                        doc.getString("senderId") != currentUid &&
+                            (doc.getString("status") ?: "sent") == "sent"
+                    }
+                    if (toMarkDelivered.isNotEmpty()) {
+                        val batch = firestore.batch()
+                        toMarkDelivered.forEach { doc ->
+                            batch.update(doc.reference, "status", "delivered")
+                        }
+                        try {
+                            batch.commit().await()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error marking messages as delivered in $chatId: ${e.message}", e)
+                        }
+                    }
+                }
+            }
+        }
+
+        val keyAcceptedJob = launch {
+            e2eeManager.keyAcceptedEvents.collectLatest {
+                latestSnapshot?.let { snap -> processSnapshot(snap) }
+            }
         }
 
         val listener = firestore.collection("chats")
@@ -801,67 +1073,14 @@ class ChatRepository(private val context: Context) {
                 }
 
                 if (snapshot != null) {
-                    val messages = snapshot.documents.mapNotNull { doc ->
-                        try {
-                            ChatMessage(
-                                id = doc.id,
-                                senderId = doc.getString("senderId") ?: "",
-                                text = doc.getString("text") ?: "",
-                                timestamp = doc.getTimestamp("timestamp"),
-                                status = doc.getString("status") ?: "sent",
-                                isEdited = doc.getBoolean("isEdited") ?: false,
-                                isDeleted = doc.getBoolean("isDeleted") ?: false,
-                                deletedFor = (doc.get("deletedFor") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-                                messageType = doc.getString("messageType") ?: "text",
-                                callType = doc.getString("callType") ?: "voice",
-                                callOutcome = doc.getString("callOutcome") ?: "ended",
-                                callDurationSeconds = doc.getLong("callDurationSeconds") ?: 0L,
-                                callCallerId = doc.getString("callCallerId") ?: "",
-                                callCalleeId = doc.getString("callCalleeId") ?: "",
-                                mediaUrl = doc.getString("mediaUrl"),
-                                thumbnailUrl = doc.getString("thumbnailUrl"),
-                                fileName = doc.getString("fileName"),
-                                fileSize = doc.getLong("fileSize"),
-                                mimeType = doc.getString("mimeType"),
-                                durationSeconds = doc.getLong("durationSeconds"),
-                                waveform = (doc.get("waveform") as? List<*>)?.mapNotNull { (it as? Number)?.toInt() },
-                                latitude = doc.getDouble("latitude"),
-                                longitude = doc.getDouble("longitude"),
-                                locationAddress = doc.getString("locationAddress"),
-                                contactName = doc.getString("contactName"),
-                                contactPhone = doc.getString("contactPhone"),
-                                contactEmail = doc.getString("contactEmail")
-                            )
-                        } catch (e: Exception) {
-                            null
-                        }
-                    }
-                    val visibleMessages = messages.filter { currentUid !in it.deletedFor }
-                    trySend(visibleMessages)
-
-                    if (!isGroup) {
-                        val toMarkDelivered = snapshot.documents.filter { doc ->
-                            doc.getString("senderId") != currentUid &&
-                                (doc.getString("status") ?: "sent") == "sent"
-                        }
-                        if (toMarkDelivered.isNotEmpty()) {
-                            val batch = firestore.batch()
-                            toMarkDelivered.forEach { doc ->
-                                batch.update(doc.reference, "status", "delivered")
-                            }
-                            launch {
-                                try {
-                                    batch.commit().await()
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Error marking messages as delivered in $chatId: ${e.message}", e)
-                                }
-                            }
-                        }
-                    }
+                    latestSnapshot = snapshot
+                    processSnapshot(snapshot)
                 }
             }
 
         awaitClose {
+            keyAcceptedJob.cancel()
+            mapJob?.cancel()
             listener.remove()
         }
     }
@@ -896,10 +1115,68 @@ class ChatRepository(private val context: Context) {
         val trimmed = newText.trim()
         if (trimmed.isEmpty()) return Result.failure(IllegalArgumentException("Message cannot be empty"))
         return try {
-            firestore.collection("chats").document(chatId)
-                .collection("messages").document(messageId)
-                .update(mapOf("text" to trimmed, "isEdited" to true))
-                .await()
+            val chatRef = firestore.collection("chats").document(chatId)
+            val chatSnap = chatRef.get().await()
+            val isGroup = (chatSnap.getString("type") ?: "direct") == "group"
+            val msgRef = chatRef.collection("messages").document(messageId)
+
+            @Suppress("UNCHECKED_CAST")
+            val lastMsgMap = chatSnap.get("lastMessage") as? Map<String, Any?>
+            val isLastMessage = lastMsgMap != null && lastMsgMap["messageId"]?.toString() == messageId
+
+            if (!isGroup) {
+                val myUid = SafeFirebase.getAuth(context)?.currentUser?.uid.orEmpty()
+                val participantIds = (chatSnap.get("participantIds") as? List<*>)
+                    ?.mapNotNull { (it as? String)?.trim() }
+                    .orEmpty()
+                val peerUid = participantIds.firstOrNull { it.isNotEmpty() && it != myUid }
+                    ?: extractPeerUidFromDirectChatId(chatId, myUid)
+
+                val chatKey = when (val keyRes = e2eeManager.resolveChatKey(chatId, myUid, peerUid)) {
+                    is E2eeManager.ChatKeyResult.Missing -> {
+                        return Result.failure(
+                            IllegalStateException("This contact hasn't updated the app for encryption yet.")
+                        )
+                    }
+                    is E2eeManager.ChatKeyResult.Changed -> {
+                        return Result.failure(
+                            IllegalStateException("Their security key changed. Open chat info and accept it.")
+                        )
+                    }
+                    is E2eeManager.ChatKeyResult.Success -> keyRes.chatKey
+                }
+
+                val encrypted = e2eeManager.encryptText(
+                    chatKey = chatKey,
+                    chatId = chatId,
+                    messageId = messageId,
+                    plain = trimmed
+                )
+
+                val msgUpdates = mapOf<String, Any>(
+                    "ciphertext" to encrypted.ciphertextB64,
+                    "iv" to encrypted.ivB64,
+                    "v" to encrypted.v,
+                    "isEdited" to true,
+                    "text" to FieldValue.delete()
+                )
+                msgRef.update(msgUpdates).await()
+
+                if (isLastMessage) {
+                    val lastMsgUpdates = mapOf<String, Any>(
+                        "lastMessage.ciphertext" to encrypted.ciphertextB64,
+                        "lastMessage.iv" to encrypted.ivB64,
+                        "lastMessage.v" to encrypted.v,
+                        "lastMessage.text" to FieldValue.delete()
+                    )
+                    chatRef.update(lastMsgUpdates).await()
+                }
+            } else {
+                msgRef.update(mapOf("text" to trimmed, "isEdited" to true)).await()
+                if (isLastMessage) {
+                    chatRef.update("lastMessage.text", trimmed).await()
+                }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error editing message $messageId: ${e.message}", e)
@@ -922,38 +1199,63 @@ class ChatRepository(private val context: Context) {
                 chatRef.update("lastMessage", null).await()
             } else {
                 val messageType = latestDoc.getString("messageType") ?: "text"
-                val rawText = latestDoc.getString("text") ?: ""
-                val previewText = when (messageType) {
-                    "text", "call" -> rawText
-                    "image" -> if (rawText.isNotBlank()) "📷 $rawText" else "📷 Photo"
-                    "video" -> if (rawText.isNotBlank()) "🎥 $rawText" else "🎥 Video"
-                    "document" -> "📄 ${latestDoc.getString("fileName") ?: "Document"}"
-                    "voice" -> {
-                        val s = latestDoc.getLong("durationSeconds") ?: 0L
-                        val m = s / 60
-                        val rem = s % 60
-                        val durStr = String.format(java.util.Locale.getDefault(), "%d:%02d", m, rem)
-                        "🎤 Voice message ($durStr)"
-                    }
-                    "location" -> {
-                        val addr = latestDoc.getString("locationAddress")?.ifBlank { "Location" } ?: "Location"
-                        "📍 $addr"
-                    }
-                    "contact" -> "👤 ${latestDoc.getString("contactName") ?: "Contact"}"
-                    else -> rawText.ifBlank { "Attachment" }
-                }
+                val ciphertext = latestDoc.getString("ciphertext")
+                val iv = latestDoc.getString("iv")
+                val v = (latestDoc.getLong("v") ?: 1L).toInt()
                 val deletedFor = (latestDoc.get("deletedFor") as? List<*>)
                     ?.mapNotNull { it as? String }
                     .orEmpty()
                 val isDeleted = latestDoc.getBoolean("isDeleted") ?: false
-                val lastMessageData = hashMapOf<String, Any?>(
-                    "text" to previewText,
-                    "senderId" to (latestDoc.getString("senderId") ?: ""),
-                    "timestamp" to latestDoc.getTimestamp("timestamp"),
-                    "messageId" to latestDoc.id,
-                    "isDeleted" to isDeleted,
-                    "deletedFor" to deletedFor
-                )
+
+                val lastMessageData = if (isDeleted) {
+                    hashMapOf<String, Any?>(
+                        "senderId" to (latestDoc.getString("senderId") ?: ""),
+                        "timestamp" to latestDoc.getTimestamp("timestamp"),
+                        "messageId" to latestDoc.id,
+                        "isDeleted" to true,
+                        "deletedFor" to deletedFor
+                    )
+                } else if (messageType == "text" && !ciphertext.isNullOrBlank() && !iv.isNullOrBlank()) {
+                    hashMapOf<String, Any?>(
+                        "ciphertext" to ciphertext,
+                        "iv" to iv,
+                        "v" to v,
+                        "senderId" to (latestDoc.getString("senderId") ?: ""),
+                        "timestamp" to latestDoc.getTimestamp("timestamp"),
+                        "messageId" to latestDoc.id,
+                        "isDeleted" to false,
+                        "deletedFor" to deletedFor
+                    )
+                } else {
+                    val rawText = latestDoc.getString("text") ?: ""
+                    val previewText = when (messageType) {
+                        "text", "call" -> rawText
+                        "image" -> if (rawText.isNotBlank()) "📷 $rawText" else "📷 Photo"
+                        "video" -> if (rawText.isNotBlank()) "🎥 $rawText" else "🎥 Video"
+                        "document" -> "📄 ${latestDoc.getString("fileName") ?: "Document"}"
+                        "voice" -> {
+                            val s = latestDoc.getLong("durationSeconds") ?: 0L
+                            val m = s / 60
+                            val rem = s % 60
+                            val durStr = String.format(java.util.Locale.getDefault(), "%d:%02d", m, rem)
+                            "🎤 Voice message ($durStr)"
+                        }
+                        "location" -> {
+                            val addr = latestDoc.getString("locationAddress")?.ifBlank { "Location" } ?: "Location"
+                            "📍 $addr"
+                        }
+                        "contact" -> "👤 ${latestDoc.getString("contactName") ?: "Contact"}"
+                        else -> rawText.ifBlank { "Attachment" }
+                    }
+                    hashMapOf<String, Any?>(
+                        "text" to previewText,
+                        "senderId" to (latestDoc.getString("senderId") ?: ""),
+                        "timestamp" to latestDoc.getTimestamp("timestamp"),
+                        "messageId" to latestDoc.id,
+                        "isDeleted" to false,
+                        "deletedFor" to deletedFor
+                    )
+                }
                 chatRef.update("lastMessage", lastMessageData).await()
             }
         } catch (e: Exception) {
@@ -966,7 +1268,14 @@ class ChatRepository(private val context: Context) {
         return try {
             val chatRef = firestore.collection("chats").document(chatId)
             chatRef.collection("messages").document(messageId)
-                .delete()
+                .update(
+                    mapOf(
+                        "isDeleted" to true,
+                        "ciphertext" to FieldValue.delete(),
+                        "iv" to FieldValue.delete(),
+                        "text" to FieldValue.delete()
+                    )
+                )
                 .await()
             refreshLastMessage(chatId)
             Result.success(Unit)
@@ -1085,21 +1394,75 @@ class ChatRepository(private val context: Context) {
                     return Result.failure(IllegalStateException("You can't send messages to this contact. Unblock to continue."))
                 }
             }
+
             val messageRef = chatRef.collection("messages").document()
+            val messageId = messageRef.id
+            val isGroup = (chatSnap.getString("type") ?: "direct") == "group"
 
-            val messageData = hashMapOf(
-                "senderId" to senderId,
-                "text" to trimmed,
-                "timestamp" to FieldValue.serverTimestamp(),
-                "status" to "sent"
-            )
+            val messageData: HashMap<String, Any>
+            val lastMessageData: HashMap<String, Any>
 
-            val lastMessageData = hashMapOf(
-                "text" to trimmed,
-                "senderId" to senderId,
-                "timestamp" to FieldValue.serverTimestamp(),
-                "messageId" to messageRef.id
-            )
+            if (!isGroup) {
+                val participantIds = (chatSnap.get("participantIds") as? List<*>)
+                    ?.mapNotNull { (it as? String)?.trim() }
+                    .orEmpty()
+                val peerUid = participantIds.firstOrNull { it.isNotEmpty() && it != senderId }
+                    ?: extractPeerUidFromDirectChatId(chatId, senderId)
+
+                val chatKey = when (val keyRes = e2eeManager.resolveChatKey(chatId, senderId, peerUid)) {
+                    is E2eeManager.ChatKeyResult.Missing -> {
+                        return Result.failure(
+                            IllegalStateException("This contact hasn't updated the app for encryption yet.")
+                        )
+                    }
+                    is E2eeManager.ChatKeyResult.Changed -> {
+                        return Result.failure(
+                            IllegalStateException("Their security key changed. Open chat info and accept it.")
+                        )
+                    }
+                    is E2eeManager.ChatKeyResult.Success -> keyRes.chatKey
+                }
+
+                val encrypted = e2eeManager.encryptText(
+                    chatKey = chatKey,
+                    chatId = chatId,
+                    messageId = messageId,
+                    plain = trimmed
+                )
+
+                messageData = hashMapOf(
+                    "senderId" to senderId,
+                    "ciphertext" to encrypted.ciphertextB64,
+                    "iv" to encrypted.ivB64,
+                    "v" to encrypted.v,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "status" to "sent",
+                    "messageType" to "text"
+                )
+
+                lastMessageData = hashMapOf(
+                    "ciphertext" to encrypted.ciphertextB64,
+                    "iv" to encrypted.ivB64,
+                    "v" to encrypted.v,
+                    "senderId" to senderId,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "messageId" to messageId
+                )
+            } else {
+                messageData = hashMapOf(
+                    "senderId" to senderId,
+                    "text" to trimmed,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "status" to "sent"
+                )
+
+                lastMessageData = hashMapOf(
+                    "text" to trimmed,
+                    "senderId" to senderId,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "messageId" to messageId
+                )
+            }
 
             val batch = firestore.batch()
             batch.set(messageRef, messageData)
@@ -1110,7 +1473,7 @@ class ChatRepository(private val context: Context) {
                 Log.e(TAG, "Error adding chatDeletedFor removal in sendMessage batch for $chatId: ${e.message}", e)
             }
             batch.commit().await()
-            PushRelay.notify(chatId, messageRef.id)
+            PushRelay.notify(chatId, messageId)
 
             Result.success(Unit)
         } catch (e: Exception) {

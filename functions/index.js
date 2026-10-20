@@ -79,13 +79,20 @@ exports.onMessageCreated = onDocumentCreated(
         senderName = `@${username}`;
       }
 
-      // 6. Body: for messageType "text" (or missing), use text cut to 100 chars with "..." if longer.
+      // 6. Body: for messageType "text" (or missing), use "New message" when message.ciphertext exists,
+      // otherwise use text cut to 100 chars with "..." if longer.
       // For other types use short label: "Photo", "Video", "Voice message", "Document", "Location" or "Contact".
       const messageType = rawType.length > 0 ? rawType : "text";
+      const hasCiphertext =
+        typeof message.ciphertext === "string" && message.ciphertext.trim().length > 0;
       let body = "";
       if (messageType === "text") {
-        const text = typeof message.text === "string" ? message.text : "";
-        body = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+        if (hasCiphertext) {
+          body = "New message";
+        } else {
+          const text = typeof message.text === "string" ? message.text : "";
+          body = text.length > 100 ? `${text.slice(0, 100)}...` : text;
+        }
       } else if (messageType === "image" || messageType === "photo") {
         body = "Photo";
       } else if (messageType === "video") {
@@ -98,6 +105,8 @@ exports.onMessageCreated = onDocumentCreated(
         body = "Location";
       } else if (messageType === "contact") {
         body = "Contact";
+      } else if (hasCiphertext) {
+        body = "New message";
       } else {
         const text = typeof message.text === "string" ? message.text : "";
         body = text.length > 100 ? `${text.slice(0, 100)}...` : text;
