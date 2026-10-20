@@ -97,6 +97,7 @@ data class ChatSummary(
     val chatId: String = "",
     val type: String = "direct",
     val name: String? = null,
+    val createdBy: String? = null,
     val participantIds: List<String> = emptyList(),
     val participantInfo: Map<String, ParticipantInfo> = emptyMap(),
     val lastMessage: ChatLastMessage? = null,

@@ -306,6 +306,7 @@ class ChatRepository(private val context: Context) {
                             val chatId = doc.id
                             val type = doc.getString("type") ?: "direct"
                             val name = doc.getString("name")
+                            val createdBy = doc.getString("createdBy")
                             @Suppress("UNCHECKED_CAST")
                             val participantIds = doc.get("participantIds") as? List<String> ?: emptyList()
 
@@ -343,6 +344,7 @@ class ChatRepository(private val context: Context) {
                                 chatId = chatId,
                                 type = type,
                                 name = name,
+                                createdBy = createdBy,
                                 participantIds = participantIds,
                                 participantInfo = participantInfo,
                                 lastMessage = lastMessage,
@@ -441,6 +443,52 @@ class ChatRepository(private val context: Context) {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error leaving group $chatId for $currentUid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun renameGroup(chatId: String, newName: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (chatId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Chat ID cannot be blank"))
+        }
+        val trimmedName = newName.trim().take(40)
+        if (trimmedName.isBlank()) {
+            return Result.failure(IllegalArgumentException("Group name cannot be empty"))
+        }
+        return try {
+            firestore.collection("chats")
+                .document(chatId)
+                .update("name", trimmedName)
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error renaming group $chatId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteGroup(chatId: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        if (chatId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Chat ID cannot be blank"))
+        }
+        return try {
+            val chatRef = firestore.collection("chats").document(chatId)
+            val messagesCol = chatRef.collection("messages")
+            while (true) {
+                val page = messagesCol.limit(400).get().await()
+                if (page.isEmpty) break
+                val batch = firestore.batch()
+                for (doc in page.documents) {
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
+            }
+            chatRef.delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error deleting group $chatId: ${e.message}", e)
             Result.failure(e)
         }
     }

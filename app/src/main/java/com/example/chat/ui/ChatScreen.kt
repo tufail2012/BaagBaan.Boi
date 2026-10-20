@@ -1598,8 +1598,17 @@ fun ChatScreen(
 
             // Full-screen Group Info Box inside ChatScreen (no AlertDialog or popup window)
             if (showGroupInfo && isGroup) {
-                BackHandler { showGroupInfo = false }
+                var showEditGroupNameDialog by remember { mutableStateOf(false) }
+                var showDeleteGroupConfirmDialog by remember { mutableStateOf(false) }
+                BackHandler {
+                    when {
+                        showEditGroupNameDialog -> showEditGroupNameDialog = false
+                        showDeleteGroupConfirmDialog -> showDeleteGroupConfirmDialog = false
+                        else -> showGroupInfo = false
+                    }
+                }
                 val groupTitle = activeChatSummary?.displayTitle(currentUid) ?: "Group"
+                val isCreator = currentUid.isNotEmpty() && activeChatSummary?.createdBy == currentUid
                 val memberIds = activeChatSummary?.participantIds.orEmpty()
                 val participantInfoMap = activeChatSummary?.participantInfo.orEmpty()
                 val bgColor = when {
@@ -1610,6 +1619,115 @@ fun ChatScreen(
                 val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
                 val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                 val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+
+                if (showEditGroupNameDialog) {
+                    var nameDraft by remember(activeChatSummary?.name, groupTitle) {
+                        mutableStateOf(activeChatSummary?.name?.takeIf { it.isNotBlank() } ?: groupTitle)
+                    }
+                    AlertDialog(
+                        onDismissRequest = { showEditGroupNameDialog = false },
+                        title = {
+                            Text(
+                                text = "Edit group name",
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor
+                            )
+                        },
+                        text = {
+                            OutlinedTextField(
+                                value = nameDraft,
+                                onValueChange = { if (it.length <= 40) nameDraft = it },
+                                singleLine = true,
+                                label = { Text("Group name") },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = accentColor,
+                                    unfocusedBorderColor = secondaryTextColor,
+                                    cursorColor = accentColor,
+                                    focusedTextColor = primaryTextColor,
+                                    unfocusedTextColor = primaryTextColor
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("edit_group_name_input")
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val id = activeChatId
+                                    val trimmed = nameDraft.trim().take(40)
+                                    if (id != null && trimmed.isNotEmpty()) {
+                                        viewModel.renameGroup(id, trimmed)
+                                        showEditGroupNameDialog = false
+                                    }
+                                },
+                                enabled = nameDraft.trim().isNotEmpty(),
+                                modifier = Modifier.testTag("edit_group_name_save_button")
+                            ) {
+                                Text(
+                                    text = "Save",
+                                    color = if (nameDraft.trim().isNotEmpty()) accentColor else secondaryTextColor,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showEditGroupNameDialog = false },
+                                modifier = Modifier.testTag("edit_group_name_cancel_button")
+                            ) {
+                                Text("Cancel", color = secondaryTextColor)
+                            }
+                        }
+                    )
+                }
+
+                if (showDeleteGroupConfirmDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteGroupConfirmDialog = false },
+                        title = {
+                            Text(
+                                text = "Delete group",
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = "Delete this group for everyone? All messages will be removed.",
+                                color = primaryTextColor
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val id = activeChatId
+                                    showDeleteGroupConfirmDialog = false
+                                    showGroupInfo = false
+                                    if (id != null) {
+                                        viewModel.deleteGroup(id)
+                                    }
+                                    onBack()
+                                },
+                                modifier = Modifier.testTag("delete_group_confirm_button")
+                            ) {
+                                Text(
+                                    text = "Delete",
+                                    color = Color(0xFFEF4444),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showDeleteGroupConfirmDialog = false },
+                                modifier = Modifier.testTag("delete_group_cancel_button")
+                            ) {
+                                Text("Cancel", color = secondaryTextColor)
+                            }
+                        }
+                    )
+                }
 
                 Box(
                     modifier = Modifier
@@ -1791,12 +1909,57 @@ fun ChatScreen(
                             }
                         }
 
-                        // Bottom: red "Leave group" button (Color(0xFFEF4444))
-                        Box(
+                        // Bottom actions: creator sees "Edit group name" and "Delete group" above "Leave group"
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
+                            if (isCreator) {
+                                androidx.compose.material3.Button(
+                                    onClick = { showEditGroupNameDialog = true },
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = cardBgColor,
+                                        contentColor = primaryTextColor
+                                    ),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                                        .testTag("edit_group_name_button")
+                                ) {
+                                    Text(
+                                        text = "Edit group name",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = primaryTextColor
+                                    )
+                                }
+
+                                androidx.compose.material3.Button(
+                                    onClick = { showDeleteGroupConfirmDialog = true },
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFEF4444).copy(alpha = 0.14f),
+                                        contentColor = Color(0xFFEF4444)
+                                    ),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                        .testTag("delete_group_button")
+                                ) {
+                                    Text(
+                                        text = "Delete group",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFFEF4444)
+                                    )
+                                }
+                            }
+
                             androidx.compose.material3.Button(
                                 onClick = {
                                     val id = activeChatId

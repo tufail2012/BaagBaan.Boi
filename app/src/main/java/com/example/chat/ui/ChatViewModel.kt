@@ -210,6 +210,8 @@ class ChatViewModel(
     private var hasLoadedChatsOnce = false
     private var rawCallHistory: List<com.example.chat.model.CallLogItem> = emptyList()
     private val fetchingBlockedUserProfiles = mutableSetOf<String>()
+    private val knownGroupChatIds = mutableSetOf<String>()
+    private val selfRemovedGroupChatIds = mutableSetOf<String>()
 
     private var chatsListenJob: Job? = null
     private var nicknamesListenJob: Job? = null
@@ -539,6 +541,11 @@ class ChatViewModel(
     }
 
     private fun refreshVisibleChatsList() {
+        for (chat in rawChatsList) {
+            if (chat.isGroup) {
+                knownGroupChatIds.add(chat.chatId)
+            }
+        }
         refreshBlockedState()
         val currentUid = _currentUser.value?.uid.orEmpty()
         val blockedIds = _blockedUserIds.value
@@ -587,6 +594,21 @@ class ChatViewModel(
         _archivedChatsList.value = unlockedNonHidden
             .filter { chat -> states[chat.chatId]?.archived == true }
             .sortedByDescending { chat -> states[chat.chatId]?.pinned == true }
+
+        val activeId = _activeChatId.value
+        if (hasLoadedChatsOnce &&
+            !activeId.isNullOrBlank() &&
+            _activeSubScreen.value == ChatSubScreen.CONVERSATION &&
+            activeId in knownGroupChatIds &&
+            activeId !in selfRemovedGroupChatIds &&
+            _chatsList.value.none { it.chatId == activeId } &&
+            rawChatsList.none { it.chatId == activeId }
+        ) {
+            knownGroupChatIds.remove(activeId)
+            navigateBackFromConversation()
+            _toastMessage.value = "This group was deleted"
+        }
+
         if (_searchResults.value.isNotEmpty() && currentUid.isNotEmpty()) {
             _searchResults.value = _searchResults.value.filterNot { user ->
                 isUserInLockedChat(user.uid, currentUid)
@@ -974,16 +996,61 @@ class ChatViewModel(
     fun leaveGroup(chatId: String) {
         if (chatId.isBlank()) return
         val currentUid = _currentUser.value?.uid ?: return
+        selfRemovedGroupChatIds.add(chatId)
+        knownGroupChatIds.remove(chatId)
         val now = System.currentTimeMillis()
         _chatLocalStates.value = localChatPrefs.updateChats(setOf(chatId)) {
             it.copy(hiddenAt = now, pinned = false, archived = false)
         }
         rawChatsList = rawChatsList.filterNot { it.chatId == chatId }
+        if (_activeChatId.value == chatId) {
+            navigateBackFromConversation()
+        }
         refreshVisibleChatsList()
         viewModelScope.launch {
             repository.leaveGroup(chatId, currentUid).onFailure { err ->
+                selfRemovedGroupChatIds.remove(chatId)
                 _toastMessage.value = "Failed to leave group: ${err.message ?: "unknown error"}"
             }
+        }
+    }
+
+    fun renameGroup(chatId: String, newName: String) {
+        if (chatId.isBlank()) return
+        val trimmedName = newName.trim().take(40)
+        if (trimmedName.isBlank()) {
+            _toastMessage.value = "Group name cannot be empty"
+            return
+        }
+        viewModelScope.launch {
+            repository.renameGroup(chatId, trimmedName)
+                .onSuccess {
+                    _toastMessage.value = "Group name updated"
+                }
+                .onFailure { err ->
+                    _toastMessage.value = "Failed to rename group: ${err.message ?: "unknown error"}"
+                }
+        }
+    }
+
+    fun deleteGroup(chatId: String) {
+        if (chatId.isBlank()) return
+        selfRemovedGroupChatIds.add(chatId)
+        viewModelScope.launch {
+            repository.deleteGroup(chatId)
+                .onSuccess {
+                    knownGroupChatIds.remove(chatId)
+                    rawChatsList = rawChatsList.filterNot { it.chatId == chatId }
+                    refreshVisibleChatsList()
+                    if (_activeChatId.value == chatId) {
+                        navigateBackFromConversation()
+                    }
+                    _toastMessage.value = "Group deleted"
+                }
+                .onFailure { err ->
+                    selfRemovedGroupChatIds.remove(chatId)
+                    _toastMessage.value = "Failed to delete group: ${err.message ?: "unknown error"}"
+                }
         }
     }
 
@@ -1266,6 +1333,7 @@ class ChatViewModel(
                     chatId = chatId,
                     type = "group",
                     name = trimmedName,
+                    createdBy = current.uid,
                     participantIds = participantIds,
                     participantInfo = participantInfo,
                     lastMessage = null,
@@ -1273,6 +1341,7 @@ class ChatViewModel(
                     ghostMode = false,
                     blockedBy = emptyList()
                 )
+                knownGroupChatIds.add(chatId)
                 if (rawChatsList.none { it.chatId == chatId }) {
                     rawChatsList = listOf(newSummary) + rawChatsList
                     refreshVisibleChatsList()
@@ -1858,6 +1927,8 @@ class ChatViewModel(
         nicknamesListenJob?.cancel()
         blockedListenJob?.cancel()
         hasLoadedChatsOnce = false
+        knownGroupChatIds.clear()
+        selfRemovedGroupChatIds.clear()
         rawStatuses = emptyList()
         _groupChats.value = emptyList()
         _myStatuses.value = emptyList()
