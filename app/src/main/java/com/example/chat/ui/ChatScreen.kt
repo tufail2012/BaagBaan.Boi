@@ -224,6 +224,8 @@ fun ChatScreen(
     val isBlockedByMeState by viewModel.isActiveChatBlockedByMe.collectAsState()
     val isBlockedByOtherState by viewModel.isActiveChatBlockedByOther.collectAsState()
     val blockedUserIds by viewModel.blockedUserIds.collectAsState()
+    val userProfiles by viewModel.userProfiles.collectAsState()
+    val contactUserIds by viewModel.contactUserIds.collectAsState()
     val editingMessageId by viewModel.editingMessageId.collectAsState()
     val activeChatId by viewModel.activeChatId.collectAsState()
     val allChatsList by viewModel.allChatsList.collectAsState()
@@ -261,8 +263,18 @@ fun ChatScreen(
     )
     val isChatBlocked = !isGroup && (isBlockedByMe || isBlockedByOther)
 
-    val isRecipientOnline = remember(recipientPresence, currentTimeTick, isChatBlocked) {
-        if (isChatBlocked) {
+    val canSeeRecipientLastSeen = remember(
+        recipientPresence,
+        showOnlineStatus,
+        currentUser,
+        contactUserIds,
+        isChatBlocked
+    ) {
+        !isChatBlocked && viewModel.canSeeUserLastSeen(recipientPresence)
+    }
+
+    val isRecipientOnline = remember(recipientPresence, currentTimeTick, isChatBlocked, canSeeRecipientLastSeen) {
+        if (isChatBlocked || !canSeeRecipientLastSeen) {
             false
         } else {
             val p = recipientPresence
@@ -270,8 +282,14 @@ fun ChatScreen(
         }
     }
 
-    val recipientStatusText: String? = remember(recipientPresence, showOnlineStatus, isRecipientOnline, currentTimeTick, isChatBlocked) {
-        if (isChatBlocked || !showOnlineStatus || recipientPresence?.showOnlineStatus == false) {
+    val recipientStatusText: String? = remember(
+        recipientPresence,
+        canSeeRecipientLastSeen,
+        isRecipientOnline,
+        currentTimeTick,
+        isChatBlocked
+    ) {
+        if (isChatBlocked || !canSeeRecipientLastSeen) {
             null
         } else if (isRecipientOnline) {
             "online"
@@ -283,13 +301,34 @@ fun ChatScreen(
             null
         }
     }
-    val displayStatusText: String? = if (recipientTyping) "typing..." else recipientStatusText
+    val displayStatusText: String? = if (recipientTyping && canSeeRecipientLastSeen) "typing..." else recipientStatusText
 
-    val presenceHidden = isChatBlocked || !showOnlineStatus || recipientPresence?.showOnlineStatus == false
+    val presenceHidden = isChatBlocked || !canSeeRecipientLastSeen
     val ringColor: Color = when {
         recipientPresence == null || presenceHidden -> Color(0xFF94A3B8) // grey: loading or hidden
         isRecipientOnline -> Color(0xFF22C55E) // green: online
         else -> Color(0xFFEF4444) // red: offline
+    }
+    val recipientVisiblePhotoUrl = remember(
+        otherUid,
+        recipient?.photoUrl,
+        recipientPresence,
+        userProfiles,
+        contactUserIds,
+        isChatBlocked
+    ) {
+        if (isChatBlocked) null
+        else viewModel.visiblePhotoUrl(otherUid, recipient?.photoUrl, recipientPresence ?: userProfiles[otherUid])
+    }
+    val recipientVisibleAbout = remember(
+        otherUid,
+        recipientPresence,
+        userProfiles,
+        contactUserIds,
+        isChatBlocked
+    ) {
+        if (isChatBlocked) null
+        else viewModel.visibleAbout(otherUid, recipientPresence ?: userProfiles[otherUid])
     }
     val messages by viewModel.messages.collectAsState()
     val readReceipts by viewModel.readReceipts.collectAsState()
@@ -561,8 +600,8 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(otherUid, recipient?.photoUrl) {
-        ZegoCallManager.cacheAvatarUrl(otherUid, recipient?.photoUrl)
+    LaunchedEffect(otherUid, recipientVisiblePhotoUrl) {
+        ZegoCallManager.cacheAvatarUrl(otherUid, recipientVisiblePhotoUrl)
     }
 
     val effectiveDisplayName = remember(otherUid, recipient, nicknames) {
@@ -592,9 +631,9 @@ fun ChatScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    if (!recipient?.photoUrl.isNullOrBlank()) {
+                    if (!recipientVisiblePhotoUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = recipient?.photoUrl,
+                            model = recipientVisiblePhotoUrl,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -717,6 +756,22 @@ fun ChatScreen(
             },
             text = {
                 Column {
+                    if (!recipientVisibleAbout.isNullOrBlank()) {
+                        Text(
+                            text = "About",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = recipientVisibleAbout,
+                            fontSize = 14.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            modifier = Modifier.testTag("profile_dialog_about_text")
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                     Text(
                         text = "Baagbaan Boi Verified Member.\nDirect encrypted messaging active.",
                         fontSize = 14.sp,
@@ -1057,9 +1112,9 @@ fun ChatScreen(
                                     .border(width = 2.dp, color = ringColor, shape = CircleShape)
                                     .padding(2.dp)
                             ) {
-                                if (!recipient?.photoUrl.isNullOrBlank()) {
+                                if (!recipientVisiblePhotoUrl.isNullOrBlank()) {
                                     AsyncImage(
-                                        model = recipient?.photoUrl,
+                                        model = recipientVisiblePhotoUrl,
                                         contentDescription = recipient?.displayName,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier
@@ -1841,7 +1896,12 @@ fun ChatScreen(
                                 val photoUrl = if (isMe) {
                                     currentUser?.photoUrl ?: pInfo?.photoUrl
                                 } else {
-                                    pInfo?.photoUrl
+                                    viewModel.visiblePhotoUrl(memberUid, pInfo?.photoUrl, userProfiles[memberUid])
+                                }
+                                val memberAbout = if (isMe) {
+                                    currentUser?.about?.trim()?.ifEmpty { null }
+                                } else {
+                                    viewModel.visibleAbout(memberUid, userProfiles[memberUid])
                                 }
 
                                 Surface(
@@ -1898,6 +1958,15 @@ fun ChatScreen(
                                                 Text(
                                                     text = "@$usernameStr",
                                                     fontSize = 13.sp,
+                                                    color = secondaryTextColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            if (!memberAbout.isNullOrBlank()) {
+                                                Text(
+                                                    text = memberAbout,
+                                                    fontSize = 12.sp,
                                                     color = secondaryTextColor,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis

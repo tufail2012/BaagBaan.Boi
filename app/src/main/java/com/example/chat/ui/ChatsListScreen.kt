@@ -148,6 +148,8 @@ fun ChatsListScreen(
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val customLists by viewModel.customLists.collectAsState()
     val nicknames by viewModel.nicknames.collectAsState()
+    val userProfiles by viewModel.userProfiles.collectAsState()
+    val contactUserIds by viewModel.contactUserIds.collectAsState()
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val currentUid = currentUser?.uid ?: ""
@@ -275,8 +277,13 @@ fun ChatsListScreen(
                     verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     items(lockedChats, key = { it.chatId }) { chat ->
-                        val other = chat.getOtherParticipant(currentUid)
-                        val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
+                        val rawOther = chat.getOtherParticipant(currentUid)
+                        val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: rawOther?.uid.orEmpty()
+                        val other = remember(rawOther, otherUid, userProfiles, contactUserIds) {
+                            rawOther?.copy(
+                                photoUrl = viewModel.visiblePhotoUrl(otherUid, rawOther.photoUrl, userProfiles[otherUid])
+                            )
+                        }
                         val resolvedName = remember(chat.isGroup, chat.name, otherUid, other, nicknames) {
                             if (chat.isGroup) chat.displayTitle(currentUid) else viewModel.displayNameFor(otherUid, other)
                         }
@@ -511,8 +518,13 @@ fun ChatsListScreen(
                 }
 
                 items(chats, key = { it.chatId }) { chat ->
-                    val other = chat.getOtherParticipant(currentUid)
-                    val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: other?.uid.orEmpty()
+                    val rawOther = chat.getOtherParticipant(currentUid)
+                    val otherUid = chat.participantIds.firstOrNull { it != currentUid } ?: rawOther?.uid.orEmpty()
+                    val other = remember(rawOther, otherUid, userProfiles, contactUserIds) {
+                        rawOther?.copy(
+                            photoUrl = viewModel.visiblePhotoUrl(otherUid, rawOther.photoUrl, userProfiles[otherUid])
+                        )
+                    }
                     val resolvedName = remember(chat.isGroup, chat.name, otherUid, other, nicknames) {
                         if (chat.isGroup) chat.displayTitle(currentUid) else viewModel.displayNameFor(otherUid, other)
                     }

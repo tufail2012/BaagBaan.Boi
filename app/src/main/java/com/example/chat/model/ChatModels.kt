@@ -15,8 +15,41 @@ data class ChatUser(
     val readReceipts: Boolean = true,
     val blockedUsers: List<String> = emptyList(),
     val typingChatId: String? = null,
-    val typingAt: Timestamp? = null
+    val typingAt: Timestamp? = null,
+    val about: String = "",
+    val lastSeenVisibility: String = "everyone", // "everyone" | "contacts" | "nobody"
+    val photoVisibility: String = "everyone",    // "everyone" | "contacts" | "nobody"
+    val aboutVisibility: String = "everyone",    // "everyone" | "contacts" | "nobody"
+    val statusVisibility: String = "contacts",   // "contacts" | "except" | "only"
+    val statusExceptIds: List<String> = emptyList(),
+    val statusOnlyIds: List<String> = emptyList(),
+    val groupsVisibility: String = "everyone"    // "everyone" | "contacts"
 )
+
+fun canViewerSeePrivacyField(visibility: String?, isSelf: Boolean, isContact: Boolean): Boolean {
+    if (isSelf) return true
+    return when (visibility?.trim()?.lowercase()) {
+        "nobody" -> false
+        "contacts" -> isContact
+        else -> true
+    }
+}
+
+fun formatPrivacyVisibilityLabel(visibility: String?): String {
+    return when (visibility?.trim()?.lowercase()) {
+        "contacts" -> "My contacts"
+        "nobody" -> "Nobody"
+        else -> "Everyone"
+    }
+}
+
+fun formatStatusPrivacyLabel(visibility: String?): String {
+    return when (visibility?.trim()?.lowercase()) {
+        "except" -> "My contacts except..."
+        "only" -> "Only share with..."
+        else -> "My contacts"
+    }
+}
 
 fun isUserConsideredOnline(isOnline: Boolean, lastSeenAt: Timestamp?): Boolean {
     if (!isOnline) return false

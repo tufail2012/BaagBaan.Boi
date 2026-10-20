@@ -48,28 +48,67 @@ class ChatRepository(private val context: Context) {
         }
     }
 
+    private fun parseChatUser(
+        doc: com.google.firebase.firestore.DocumentSnapshot,
+        fallbackUid: String = doc.id
+    ): ChatUser? {
+        if (!doc.exists()) return null
+        val uid = (doc.getString("uid") ?: fallbackUid).trim()
+        val username = doc.getString("username")?.trim().orEmpty()
+        if (uid.isEmpty() || username.isEmpty()) return null
+        val showOnline = doc.getBoolean("showOnlineStatus") ?: true
+        val lastSeenVis = doc.getString("lastSeenVisibility")?.trim()?.lowercase()
+            ?.takeIf { it in setOf("everyone", "contacts", "nobody") }
+            ?: if (showOnline) "everyone" else "nobody"
+        val photoVis = doc.getString("photoVisibility")?.trim()?.lowercase()
+            ?.takeIf { it in setOf("everyone", "contacts", "nobody") }
+            ?: "everyone"
+        val aboutVis = doc.getString("aboutVisibility")?.trim()?.lowercase()
+            ?.takeIf { it in setOf("everyone", "contacts", "nobody") }
+            ?: "everyone"
+        val statusVis = doc.getString("statusVisibility")?.trim()?.lowercase()
+            ?.takeIf { it in setOf("contacts", "except", "only") }
+            ?: "contacts"
+        val groupsVis = doc.getString("groupsVisibility")?.trim()?.lowercase()
+            ?.takeIf { it in setOf("everyone", "contacts") }
+            ?: "everyone"
+        val statusExcept = ((doc.get("statusExceptIds") ?: doc.get("statusExcept") ?: doc.get("statusExcludedIds")) as? List<*>)
+            ?.mapNotNull { it as? String }
+            .orEmpty()
+        val statusOnly = ((doc.get("statusOnlyIds") ?: doc.get("statusOnly") ?: doc.get("statusAllowedIds")) as? List<*>)
+            ?.mapNotNull { it as? String }
+            .orEmpty()
+
+        return ChatUser(
+            uid = uid,
+            username = username,
+            displayName = doc.getString("displayName") ?: "",
+            photoUrl = doc.getString("photoUrl"),
+            fcmToken = doc.getString("fcmToken"),
+            lastSeenAt = doc.getTimestamp("lastSeenAt"),
+            createdAt = doc.getTimestamp("createdAt"),
+            isOnline = doc.getBoolean("isOnline") ?: false,
+            showOnlineStatus = showOnline && lastSeenVis != "nobody",
+            readReceipts = doc.getBoolean("readReceipts") ?: true,
+            blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
+            typingChatId = doc.getString("typingChatId"),
+            typingAt = doc.getTimestamp("typingAt"),
+            about = doc.getString("about") ?: "",
+            lastSeenVisibility = lastSeenVis,
+            photoVisibility = photoVis,
+            aboutVisibility = aboutVis,
+            statusVisibility = statusVis,
+            statusExceptIds = statusExcept,
+            statusOnlyIds = statusOnly,
+            groupsVisibility = groupsVis
+        )
+    }
+
     suspend fun getChatUser(uid: String): ChatUser? {
         val firestore = db ?: return null
         return try {
             val doc = firestore.collection("users").document(uid).get().await()
-            if (doc.exists()) {
-                val username = doc.getString("username")
-                if (!username.isNullOrBlank()) {
-                    ChatUser(
-                        uid = uid,
-                        username = username,
-                        displayName = doc.getString("displayName") ?: "",
-                        photoUrl = doc.getString("photoUrl"),
-                        fcmToken = doc.getString("fcmToken"),
-                        lastSeenAt = doc.getTimestamp("lastSeenAt"),
-                        createdAt = doc.getTimestamp("createdAt"),
-                        isOnline = doc.getBoolean("isOnline") ?: false,
-                        showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
-                        readReceipts = doc.getBoolean("readReceipts") ?: true,
-                        blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty()
-                    )
-                } else null
-            } else null
+            parseChatUser(doc, uid)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching user $uid: ${e.message}", e)
             null
@@ -126,7 +165,15 @@ class ChatRepository(private val context: Context) {
                         "createdAt" to FieldValue.serverTimestamp(),
                         "isOnline" to false,
                         "showOnlineStatus" to true,
-                        "readReceipts" to true
+                        "readReceipts" to true,
+                        "about" to "",
+                        "lastSeenVisibility" to "everyone",
+                        "photoVisibility" to "everyone",
+                        "aboutVisibility" to "everyone",
+                        "statusVisibility" to "contacts",
+                        "statusExceptIds" to emptyList<String>(),
+                        "statusOnlyIds" to emptyList<String>(),
+                        "groupsVisibility" to "everyone"
                     )
                     transaction.set(userRef, newUser)
                 }
@@ -215,15 +262,7 @@ class ChatRepository(private val context: Context) {
             snapshot.documents.mapNotNull { doc ->
                 val uid = doc.getString("uid") ?: doc.id
                 if (uid == currentUid) return@mapNotNull null
-                val username = doc.getString("username") ?: return@mapNotNull null
-                ChatUser(
-                    uid = uid,
-                    username = username,
-                    displayName = doc.getString("displayName") ?: "",
-                    photoUrl = doc.getString("photoUrl"),
-                    lastSeenAt = doc.getTimestamp("lastSeenAt"),
-                    createdAt = doc.getTimestamp("createdAt")
-                )
+                parseChatUser(doc, uid)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error searching users: ${e.message}", e)
@@ -378,7 +417,8 @@ class ChatRepository(private val context: Context) {
         currentUid: String,
         currentUser: ChatUser,
         name: String,
-        members: List<ChatUser>
+        members: List<ChatUser>,
+        onMembersFiltered: ((allowed: List<ChatUser>, skipped: List<ChatUser>) -> Unit)? = null
     ): Result<String> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
         if (currentUid.isBlank()) {
@@ -394,14 +434,75 @@ class ChatRepository(private val context: Context) {
         }
 
         return try {
-            val participantIds = (listOf(currentUid) + validMembers.map { it.uid }).distinct()
+            val directChatsSnap = firestore.collection("chats")
+                .whereArrayContains("participantIds", currentUid)
+                .get()
+                .await()
+
+            val myContactUids = directChatsSnap.documents
+                .asSequence()
+                .filter { doc -> doc.getString("type") != "group" }
+                .flatMap { doc ->
+                    val participants = (doc.get("participantIds") as? List<*>)
+                        ?.mapNotNull { it as? String }
+                        .orEmpty()
+                    participants.asSequence()
+                }
+                .filter { it.isNotBlank() && it != currentUid }
+                .toSet()
+
+            val allowedMembers = mutableListOf<ChatUser>()
+            val skippedMembers = mutableListOf<ChatUser>()
+
+            for (member in validMembers) {
+                var canAdd = true
+                try {
+                    val memberDoc = firestore.collection("users").document(member.uid).get().await()
+                    if (memberDoc.exists()) {
+                        val groupsVis = memberDoc.getString("groupsVisibility")?.trim()?.lowercase() ?: "everyone"
+                        val blockedByMember = (memberDoc.get("blockedUsers") as? List<*>)
+                            ?.mapNotNull { it as? String }
+                            .orEmpty()
+                        if (currentUid in blockedByMember) {
+                            canAdd = false
+                        } else if (groupsVis == "contacts" && member.uid !in myContactUids) {
+                            canAdd = false
+                        }
+                    } else if (member.groupsVisibility.equals("contacts", ignoreCase = true) && member.uid !in myContactUids) {
+                        canAdd = false
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error checking groupsVisibility for ${member.uid}: ${e.message}")
+                    if (member.groupsVisibility.equals("contacts", ignoreCase = true) && member.uid !in myContactUids) {
+                        canAdd = false
+                    }
+                }
+                if (canAdd) {
+                    allowedMembers.add(member)
+                } else {
+                    skippedMembers.add(member)
+                }
+            }
+
+            onMembersFiltered?.invoke(allowedMembers, skippedMembers)
+
+            if (allowedMembers.isEmpty()) {
+                val skippedNames = skippedMembers.joinToString(", ") {
+                    it.displayName.ifBlank { "@${it.username}" }.ifBlank { "user" }
+                }
+                return Result.failure(
+                    IllegalStateException("Couldn't add $skippedNames to group due to their privacy settings")
+                )
+            }
+
+            val participantIds = (listOf(currentUid) + allowedMembers.map { it.uid }).distinct()
             val participantInfo = mutableMapOf<String, Map<String, Any?>>()
             participantInfo[currentUid] = mapOf(
                 "username" to currentUser.username,
                 "displayName" to currentUser.displayName,
                 "photoUrl" to (currentUser.photoUrl ?: "")
             )
-            for (member in validMembers) {
+            for (member in allowedMembers) {
                 participantInfo[member.uid] = mapOf(
                     "username" to member.username,
                     "displayName" to member.displayName,
@@ -1131,23 +1232,7 @@ class ChatRepository(private val context: Context) {
                     return@addSnapshotListener
                 }
                 if (doc != null && doc.exists()) {
-                    trySend(
-                        ChatUser(
-                            uid = uid,
-                            username = doc.getString("username") ?: "",
-                            displayName = doc.getString("displayName") ?: "",
-                            photoUrl = doc.getString("photoUrl"),
-                            fcmToken = doc.getString("fcmToken"),
-                            lastSeenAt = doc.getTimestamp("lastSeenAt"),
-                            createdAt = doc.getTimestamp("createdAt"),
-                            isOnline = doc.getBoolean("isOnline") ?: false,
-                            showOnlineStatus = doc.getBoolean("showOnlineStatus") ?: true,
-                            readReceipts = doc.getBoolean("readReceipts") ?: true,
-                            blockedUsers = (doc.get("blockedUsers") as? List<*>)?.mapNotNull { it as? String }.orEmpty(),
-                            typingChatId = doc.getString("typingChatId"),
-                            typingAt = doc.getTimestamp("typingAt")
-                        )
-                    )
+                    trySend(parseChatUser(doc, uid))
                 } else {
                     trySend(null)
                 }
@@ -1201,10 +1286,21 @@ class ChatRepository(private val context: Context) {
     }
 
     suspend fun setShowOnlineStatus(uid: String, enabled: Boolean): Result<Unit> {
+        return setLastSeenVisibility(uid, if (enabled) "everyone" else "nobody")
+    }
+
+    suspend fun setLastSeenVisibility(uid: String, visibility: String): Result<Unit> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        val enabled = normalized != "nobody"
         return presenceMutex.withLock {
             try {
-                val updates = hashMapOf<String, Any>("showOnlineStatus" to enabled)
+                val updates = hashMapOf<String, Any>(
+                    "lastSeenVisibility" to normalized,
+                    "showOnlineStatus" to enabled
+                )
                 if (!enabled) {
                     updates["isOnline"] = false
                     updates["lastSeenAt"] = FieldValue.serverTimestamp()
@@ -1212,9 +1308,93 @@ class ChatRepository(private val context: Context) {
                 firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
                 Result.success(Unit)
             } catch (e: Exception) {
-                Log.e(TAG, "Error setting showOnlineStatus for $uid: ${e.message}", e)
+                Log.e(TAG, "Error setting lastSeenVisibility for $uid: ${e.message}", e)
                 Result.failure(e)
             }
+        }
+    }
+
+    suspend fun setPhotoVisibility(uid: String, visibility: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        return try {
+            val updates = hashMapOf<String, Any>("photoVisibility" to normalized)
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting photoVisibility for $uid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setAboutVisibility(uid: String, visibility: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        return try {
+            val updates = hashMapOf<String, Any>("aboutVisibility" to normalized)
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting aboutVisibility for $uid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setStatusPrivacy(
+        uid: String,
+        visibility: String,
+        exceptIds: List<String>,
+        onlyIds: List<String>
+    ): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("contacts", "except", "only")) it else "contacts"
+        }
+        val cleanExcept = exceptIds.map { it.trim() }.filter { it.isNotEmpty() && it != uid }.distinct()
+        val cleanOnly = onlyIds.map { it.trim() }.filter { it.isNotEmpty() && it != uid }.distinct()
+        return try {
+            val updates = hashMapOf<String, Any>(
+                "statusVisibility" to normalized,
+                "statusExceptIds" to cleanExcept,
+                "statusOnlyIds" to cleanOnly
+            )
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting statusPrivacy for $uid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setGroupsVisibility(uid: String, visibility: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts")) it else "everyone"
+        }
+        return try {
+            val updates = hashMapOf<String, Any>("groupsVisibility" to normalized)
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting groupsVisibility for $uid: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun setAbout(uid: String, about: String): Result<Unit> {
+        val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
+        val trimmed = about.trim().take(139)
+        return try {
+            val updates = hashMapOf<String, Any>("about" to trimmed)
+            firestore.collection("users").document(uid).set(updates, SetOptions.merge()).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting about for $uid: ${e.message}", e)
+            Result.failure(e)
         }
     }
 
@@ -1605,7 +1785,7 @@ class ChatRepository(private val context: Context) {
                 .get()
                 .await()
 
-            val audience = chatsSnapshot.documents
+            val allContacts = chatsSnapshot.documents
                 .asSequence()
                 .filter { doc -> doc.getString("type") != "group" }
                 .flatMap { doc ->
@@ -1617,6 +1797,18 @@ class ChatRepository(private val context: Context) {
                 .filter { it.isNotBlank() && it != user.uid }
                 .distinct()
                 .toList()
+
+            val audience = when (user.statusVisibility.trim().lowercase()) {
+                "except" -> {
+                    val excluded = user.statusExceptIds.toSet()
+                    allContacts.filterNot { it in excluded }
+                }
+                "only" -> {
+                    val allowed = user.statusOnlyIds.toSet()
+                    allContacts.filter { it in allowed }
+                }
+                else -> allContacts
+            }
 
             val docRef = firestore.collection("statuses").document()
             val nowMs = System.currentTimeMillis()

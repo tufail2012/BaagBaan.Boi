@@ -28,25 +28,35 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -68,11 +78,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
+import com.example.chat.model.formatPrivacyVisibilityLabel
+import com.example.chat.model.formatStatusPrivacyLabel
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
@@ -94,6 +107,7 @@ fun ChatSettingsScreen(
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
     val readReceipts by viewModel.readReceipts.collectAsState()
     val blockedContacts by viewModel.blockedContacts.collectAsState()
+    val directContacts by viewModel.directContacts.collectAsState()
     val nicknames by viewModel.nicknames.collectAsState()
     val isSubmitting by viewModel.isSubmittingUsername.collectAsState()
     val serverError by viewModel.usernameError.collectAsState()
@@ -106,6 +120,350 @@ fun ChatSettingsScreen(
     var newUsernameInput by remember { mutableStateOf("") }
     val cleanedNewUsername = remember(newUsernameInput) { newUsernameInput.trim().lowercase() }
     val isValidNew = remember(cleanedNewUsername) { ChatRepository.isValidUsername(cleanedNewUsername) }
+
+    var showEditAboutDialog by remember { mutableStateOf(false) }
+    var aboutDraft by remember { mutableStateOf("") }
+
+    var activePrivacyDialog by remember { mutableStateOf<String?>(null) } // "lastSeen" | "photo" | "about" | "status" | "groups"
+    var statusModeDraft by remember { mutableStateOf("contacts") }
+    var statusSelectedIdsDraft by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    if (showEditAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditAboutDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = accentColor, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("About", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Write a short bio or status line (max 139 characters).",
+                        fontSize = 13.sp,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = aboutDraft,
+                        onValueChange = { input ->
+                            if (input.length <= 139) {
+                                aboutDraft = input
+                            } else {
+                                aboutDraft = input.take(139)
+                            }
+                        },
+                        placeholder = { Text("Hey there! I am using Baagbaan.") },
+                        maxLines = 4,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("edit_about_input"),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                            unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${aboutDraft.length}/139",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateAbout(aboutDraft) {
+                            showEditAboutDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                    modifier = Modifier.testTag("save_about_button")
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEditAboutDialog = false },
+                    modifier = Modifier.testTag("cancel_about_button")
+                ) {
+                    Text("Cancel", color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                }
+            }
+        )
+    }
+
+    when (activePrivacyDialog) {
+        "lastSeen" -> {
+            val currentVal = (currentUser?.lastSeenVisibility ?: if (showOnlineStatus) "everyone" else "nobody")
+                .trim().lowercase()
+            PrivacyOptionsDialog(
+                title = "Last seen and online",
+                options = listOf(
+                    "everyone" to "Everyone",
+                    "contacts" to "My contacts",
+                    "nobody" to "Nobody"
+                ),
+                selectedValue = if (currentVal in setOf("everyone", "contacts", "nobody")) currentVal else "everyone",
+                accentColor = accentColor,
+                isDark = isDark,
+                onSelect = { selected ->
+                    viewModel.setLastSeenVisibility(selected)
+                    activePrivacyDialog = null
+                },
+                onDismiss = { activePrivacyDialog = null }
+            )
+        }
+        "photo" -> {
+            val currentVal = (currentUser?.photoVisibility ?: "everyone").trim().lowercase()
+            PrivacyOptionsDialog(
+                title = "Profile photo",
+                options = listOf(
+                    "everyone" to "Everyone",
+                    "contacts" to "My contacts",
+                    "nobody" to "Nobody"
+                ),
+                selectedValue = if (currentVal in setOf("everyone", "contacts", "nobody")) currentVal else "everyone",
+                accentColor = accentColor,
+                isDark = isDark,
+                onSelect = { selected ->
+                    viewModel.setPhotoVisibility(selected)
+                    activePrivacyDialog = null
+                },
+                onDismiss = { activePrivacyDialog = null }
+            )
+        }
+        "about" -> {
+            val currentVal = (currentUser?.aboutVisibility ?: "everyone").trim().lowercase()
+            PrivacyOptionsDialog(
+                title = "About",
+                options = listOf(
+                    "everyone" to "Everyone",
+                    "contacts" to "My contacts",
+                    "nobody" to "Nobody"
+                ),
+                selectedValue = if (currentVal in setOf("everyone", "contacts", "nobody")) currentVal else "everyone",
+                accentColor = accentColor,
+                isDark = isDark,
+                onSelect = { selected ->
+                    viewModel.setAboutVisibility(selected)
+                    activePrivacyDialog = null
+                },
+                onDismiss = { activePrivacyDialog = null }
+            )
+        }
+        "groups" -> {
+            val currentVal = (currentUser?.groupsVisibility ?: "everyone").trim().lowercase()
+            PrivacyOptionsDialog(
+                title = "Groups",
+                options = listOf(
+                    "everyone" to "Everyone",
+                    "contacts" to "My contacts"
+                ),
+                selectedValue = if (currentVal in setOf("everyone", "contacts")) currentVal else "everyone",
+                accentColor = accentColor,
+                isDark = isDark,
+                onSelect = { selected ->
+                    viewModel.setGroupsVisibility(selected)
+                    activePrivacyDialog = null
+                },
+                onDismiss = { activePrivacyDialog = null }
+            )
+        }
+        "status" -> {
+            AlertDialog(
+                onDismissRequest = { activePrivacyDialog = null },
+                title = {
+                    Text("Status privacy", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Text(
+                            text = "Who can see my status updates",
+                            fontSize = 13.sp,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val statusOptions = listOf(
+                            "contacts" to "My contacts",
+                            "except" to "My contacts except...",
+                            "only" to "Only share with..."
+                        )
+                        statusOptions.forEach { (value, label) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        val prev = statusModeDraft
+                                        statusModeDraft = value
+                                        if (prev != value) {
+                                            statusSelectedIdsDraft = when (value) {
+                                                "except" -> currentUser?.statusExceptIds.orEmpty().toSet()
+                                                "only" -> currentUser?.statusOnlyIds.orEmpty().toSet()
+                                                else -> emptySet()
+                                            }
+                                        }
+                                    }
+                                    .padding(vertical = 6.dp)
+                                    .testTag("status_privacy_option_$value")
+                            ) {
+                                RadioButton(
+                                    selected = statusModeDraft == value,
+                                    onClick = {
+                                        val prev = statusModeDraft
+                                        statusModeDraft = value
+                                        if (prev != value) {
+                                            statusSelectedIdsDraft = when (value) {
+                                                "except" -> currentUser?.statusExceptIds.orEmpty().toSet()
+                                                "only" -> currentUser?.statusOnlyIds.orEmpty().toSet()
+                                                else -> emptySet()
+                                            }
+                                        }
+                                    },
+                                    colors = RadioButtonDefaults.colors(selectedColor = accentColor)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = label,
+                                    fontSize = 15.sp,
+                                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                                )
+                            }
+                        }
+
+                        if (statusModeDraft == "except" || statusModeDraft == "only") {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider(color = if (isDark) Color(0x3394A3B8) else Color(0x220F172A))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = if (statusModeDraft == "except") {
+                                    "Hide status from selected contacts:"
+                                } else {
+                                    "Only share status with selected contacts:"
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            if (directContacts.isEmpty()) {
+                                Text(
+                                    text = "No direct contacts yet.",
+                                    fontSize = 13.sp,
+                                    color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 220.dp)
+                                ) {
+                                    directContacts.forEach { contact ->
+                                        val contactName = remember(contact, nicknames) {
+                                            viewModel.displayNameFor(contact.uid, contact)
+                                        }
+                                        val checked = contact.uid in statusSelectedIdsDraft
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .clickable {
+                                                    statusSelectedIdsDraft = if (checked) {
+                                                        statusSelectedIdsDraft - contact.uid
+                                                    } else {
+                                                        statusSelectedIdsDraft + contact.uid
+                                                    }
+                                                }
+                                                .padding(vertical = 4.dp)
+                                                .testTag("status_privacy_contact_${contact.uid}")
+                                        ) {
+                                            Checkbox(
+                                                checked = checked,
+                                                onCheckedChange = { isChecked ->
+                                                    statusSelectedIdsDraft = if (isChecked) {
+                                                        statusSelectedIdsDraft + contact.uid
+                                                    } else {
+                                                        statusSelectedIdsDraft - contact.uid
+                                                    }
+                                                },
+                                                colors = CheckboxDefaults.colors(checkedColor = accentColor)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = contactName,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                if (contact.username.isNotBlank()) {
+                                                    Text(
+                                                        text = "@${contact.username}",
+                                                        fontSize = 11.sp,
+                                                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val exceptIds = if (statusModeDraft == "except") {
+                                statusSelectedIdsDraft.toList()
+                            } else {
+                                currentUser?.statusExceptIds.orEmpty()
+                            }
+                            val onlyIds = if (statusModeDraft == "only") {
+                                statusSelectedIdsDraft.toList()
+                            } else {
+                                currentUser?.statusOnlyIds.orEmpty()
+                            }
+                            viewModel.setStatusPrivacy(
+                                visibility = statusModeDraft,
+                                exceptIds = exceptIds,
+                                onlyIds = onlyIds
+                            )
+                            activePrivacyDialog = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                        modifier = Modifier.testTag("save_status_privacy_button")
+                    ) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { activePrivacyDialog = null }) {
+                        Text("Cancel", color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+                    }
+                }
+            )
+        }
+    }
 
     if (showChangeUsernameDialog) {
         AlertDialog(
@@ -234,64 +592,81 @@ fun ChatSettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 1. Online status and last seen toggle
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-                tonalElevation = 1.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(contentColor.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Visibility,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(20.dp)
-                        )
+            val lastSeenValueLabel = formatPrivacyVisibilityLabel(
+                currentUser?.lastSeenVisibility ?: if (showOnlineStatus) "everyone" else "nobody"
+            )
+            val photoValueLabel = formatPrivacyVisibilityLabel(currentUser?.photoVisibility ?: "everyone")
+            val aboutValueLabel = formatPrivacyVisibilityLabel(currentUser?.aboutVisibility ?: "everyone")
+            val statusValueLabel = formatStatusPrivacyLabel(currentUser?.statusVisibility ?: "contacts")
+            val groupsValueLabel = formatPrivacyVisibilityLabel(currentUser?.groupsVisibility ?: "everyone")
+
+            PrivacySelectionRowCard(
+                icon = Icons.Default.Visibility,
+                title = "Last seen and online",
+                valueLabel = lastSeenValueLabel,
+                isDark = isDark,
+                contentColor = contentColor,
+                testTag = "privacy_row_last_seen",
+                onClick = { activePrivacyDialog = "lastSeen" }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PrivacySelectionRowCard(
+                icon = Icons.Default.AccountCircle,
+                title = "Profile photo",
+                valueLabel = photoValueLabel,
+                isDark = isDark,
+                contentColor = contentColor,
+                testTag = "privacy_row_profile_photo",
+                onClick = { activePrivacyDialog = "photo" }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PrivacySelectionRowCard(
+                icon = Icons.Default.Info,
+                title = "About",
+                valueLabel = aboutValueLabel,
+                isDark = isDark,
+                contentColor = contentColor,
+                testTag = "privacy_row_about",
+                onClick = { activePrivacyDialog = "about" }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PrivacySelectionRowCard(
+                icon = Icons.Default.Update,
+                title = "Status",
+                valueLabel = statusValueLabel,
+                isDark = isDark,
+                contentColor = contentColor,
+                testTag = "privacy_row_status",
+                onClick = {
+                    val mode = (currentUser?.statusVisibility ?: "contacts").trim().lowercase()
+                        .let { if (it in setOf("contacts", "except", "only")) it else "contacts" }
+                    statusModeDraft = mode
+                    statusSelectedIdsDraft = when (mode) {
+                        "except" -> currentUser?.statusExceptIds.orEmpty().toSet()
+                        "only" -> currentUser?.statusOnlyIds.orEmpty().toSet()
+                        else -> emptySet()
                     }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Online status and last seen",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                            color = contentColor
-                        )
-                        Text(
-                            text = "Let other members see when you are online and your last seen timing",
-                            fontSize = 12.sp,
-                            color = contentColor.copy(alpha = 0.65f),
-                            lineHeight = 16.sp
-                        )
-                    }
-
-                    Switch(
-                        checked = showOnlineStatus,
-                        onCheckedChange = { viewModel.setShowOnlineStatus(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = if (isDark) Color.Black else Color.White,
-                            checkedTrackColor = contentColor
-                        ),
-                        modifier = Modifier.testTag("online_status_toggle_switch")
-                    )
+                    activePrivacyDialog = "status"
                 }
-            }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            PrivacySelectionRowCard(
+                icon = Icons.Default.Group,
+                title = "Groups",
+                valueLabel = groupsValueLabel,
+                isDark = isDark,
+                contentColor = contentColor,
+                testTag = "privacy_row_groups",
+                onClick = { activePrivacyDialog = "groups" }
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -485,6 +860,58 @@ fun ChatSettingsScreen(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Change Username")
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = if (isDark) Color(0x3394A3B8) else Color(0x220F172A))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            aboutDraft = currentUser?.about.orEmpty()
+                            showEditAboutDialog = true
+                        }
+                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .testTag("profile_about_row")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "About",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        )
+                        val aboutText = currentUser?.about?.trim().orEmpty()
+                        Text(
+                            text = aboutText.ifEmpty { "Hey there! I am using Baagbaan." },
+                            fontSize = 14.sp,
+                            color = if (aboutText.isEmpty()) {
+                                if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8)
+                            } else {
+                                if (isDark) Color.White else Color(0xFF0F172A)
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit About",
+                        tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
 
@@ -673,6 +1100,129 @@ fun ChatSettingsScreen(
 
         Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
     }
+}
+
+@Composable
+private fun PrivacySelectionRowCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    valueLabel: String,
+    isDark: Boolean,
+    contentColor: Color,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onClick)
+            .testTag(testTag)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(contentColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = contentColor,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = valueLabel,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = contentColor.copy(alpha = 0.7f)
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = contentColor.copy(alpha = 0.55f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrivacyOptionsDialog(
+    title: String,
+    options: List<Pair<String, String>>,
+    selectedValue: String,
+    accentColor: Color,
+    isDark: Boolean,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                options.forEach { (value, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelect(value) }
+                            .padding(vertical = 6.dp)
+                            .testTag("privacy_option_$value")
+                    ) {
+                        RadioButton(
+                            selected = selectedValue == value,
+                            onClick = { onSelect(value) },
+                            colors = RadioButtonDefaults.colors(selectedColor = accentColor)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = label,
+                            fontSize = 15.sp,
+                            color = if (isDark) Color.White else Color(0xFF0F172A)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+            }
+        }
+    )
 }
 
 @Composable

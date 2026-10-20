@@ -943,8 +943,14 @@ internal fun StatusViewerOverlay(
                     )
                 }
 
+                val userProfiles by viewModel.userProfiles.collectAsState()
+                val contactUserIds by viewModel.contactUserIds.collectAsState()
+                val viewerAvatarUrl = remember(group.userId, group.photoUrl, currentUid, userProfiles, contactUserIds) {
+                    if (group.userId == currentUid) group.photoUrl
+                    else viewModel.visiblePhotoUrl(group.userId, group.photoUrl, userProfiles[group.userId])
+                }
                 AvatarCircle(
-                    photoUrl = group.photoUrl,
+                    photoUrl = viewerAvatarUrl,
                     fallbackText = displayName,
                     size = 40.dp,
                     accentColor = accentColor

@@ -22,6 +22,7 @@ import com.example.chat.model.ChatUser
 import com.example.chat.model.ParticipantInfo
 import com.example.chat.model.StatusItem
 import com.example.chat.model.UserStatusGroup
+import com.example.chat.model.canViewerSeePrivacyField
 import com.example.util.SafeFirebase
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.messaging.FirebaseMessaging
@@ -198,6 +199,15 @@ class ChatViewModel(
     private val _blockedContacts = MutableStateFlow<List<ParticipantInfo>>(emptyList())
     val blockedContacts: StateFlow<List<ParticipantInfo>> = _blockedContacts.asStateFlow()
 
+    private val _userProfiles = MutableStateFlow<Map<String, ChatUser>>(emptyMap())
+    val userProfiles: StateFlow<Map<String, ChatUser>> = _userProfiles.asStateFlow()
+
+    private val _contactUserIds = MutableStateFlow<Set<String>>(emptySet())
+    val contactUserIds: StateFlow<Set<String>> = _contactUserIds.asStateFlow()
+
+    private val _directContacts = MutableStateFlow<List<ParticipantInfo>>(emptyList())
+    val directContacts: StateFlow<List<ParticipantInfo>> = _directContacts.asStateFlow()
+
     private val _isActiveChatBlockedByMe = MutableStateFlow(false)
     val isActiveChatBlockedByMe: StateFlow<Boolean> = _isActiveChatBlockedByMe.asStateFlow()
 
@@ -212,6 +222,7 @@ class ChatViewModel(
     private val fetchingBlockedUserProfiles = mutableSetOf<String>()
     private val knownGroupChatIds = mutableSetOf<String>()
     private val selfRemovedGroupChatIds = mutableSetOf<String>()
+    private val userProfileListeners = mutableMapOf<String, Job>()
 
     private var chatsListenJob: Job? = null
     private var nicknamesListenJob: Job? = null
@@ -324,6 +335,7 @@ class ChatViewModel(
             statusesListenJob?.cancel()
             nicknamesListenJob?.cancel()
             blockedListenJob?.cancel()
+            clearUserProfileListeners()
             hasLoadedChatsOnce = false
             rawStatuses = emptyList()
             _groupChats.value = emptyList()
@@ -333,6 +345,9 @@ class ChatViewModel(
             _blockedUsersMap.value = emptyMap()
             _blockedUserIds.value = emptySet()
             _blockedContacts.value = emptyList()
+            _userProfiles.value = emptyMap()
+            _contactUserIds.value = emptySet()
+            _directContacts.value = emptyList()
             _currentUser.value = null
             _isUserLoading.value = false
             _isUsernameSetupRequired.value = false
@@ -344,11 +359,13 @@ class ChatViewModel(
             val existing = repository.getChatUser(authUser.uid)
             if (existing != null && existing.username.isNotBlank()) {
                 _currentUser.value = existing
+                _userProfiles.update { it + (existing.uid to existing) }
                 _isUsernameSetupRequired.value = false
                 preferences.lastUid = authUser.uid
                 preferences.lastUsername = existing.username
-                preferences.isOnlineStatusEnabled = existing.showOnlineStatus
-                _showOnlineStatus.value = existing.showOnlineStatus
+                val effectiveShowOnline = existing.showOnlineStatus && existing.lastSeenVisibility != "nobody"
+                preferences.isOnlineStatusEnabled = effectiveShowOnline
+                _showOnlineStatus.value = effectiveShowOnline
                 preferences.isReadReceiptsEnabled = existing.readReceipts
                 _readReceipts.value = existing.readReceipts
                 syncFcmToken(authUser.uid)
@@ -431,6 +448,153 @@ class ChatViewModel(
             }
             _isSubmittingUsername.value = false
         }
+    }
+
+    fun updateAbout(newAbout: String, onComplete: (Boolean) -> Unit = {}) {
+        val current = _currentUser.value ?: run {
+            onComplete(false)
+            return
+        }
+        val trimmed = newAbout.trim().take(139)
+        _currentUser.update { it?.copy(about = trimmed) }
+        _userProfiles.update { profiles ->
+            val existing = profiles[current.uid] ?: current
+            profiles + (current.uid to existing.copy(about = trimmed))
+        }
+        viewModelScope.launch {
+            repository.setAbout(current.uid, trimmed)
+                .onSuccess {
+                    _toastMessage.value = "About updated"
+                    onComplete(true)
+                }
+                .onFailure { err ->
+                    _toastMessage.value = "Failed to update about: ${err.message ?: "unknown error"}"
+                    onComplete(false)
+                }
+        }
+    }
+
+    private fun clearUserProfileListeners() {
+        userProfileListeners.values.forEach { it.cancel() }
+        userProfileListeners.clear()
+    }
+
+    private fun syncUserProfileListeners() {
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        val targetUids = buildSet {
+            if (currentUid.isNotBlank()) add(currentUid)
+            for (chat in rawChatsList) {
+                for (pid in chat.participantIds) {
+                    if (pid.isNotBlank()) add(pid)
+                }
+            }
+            for (status in rawStatuses) {
+                if (status.userId.isNotBlank()) add(status.userId)
+            }
+        }
+
+        val toRemove = userProfileListeners.keys.filter { it !in targetUids }
+        for (uid in toRemove) {
+            userProfileListeners.remove(uid)?.cancel()
+        }
+
+        for (uid in targetUids) {
+            if (uid in userProfileListeners) continue
+            userProfileListeners[uid] = viewModelScope.launch {
+                repository.getUserFlow(uid)
+                    .catch { Log.w(TAG, "Error observing profile for $uid: ${it.message}") }
+                    .collectLatest { user ->
+                        if (user != null) {
+                            _userProfiles.update { it + (uid to user) }
+                            if (uid == _currentUser.value?.uid) {
+                                _currentUser.value = user
+                                val effectiveShowOnline = user.showOnlineStatus && user.lastSeenVisibility != "nobody"
+                                if (_showOnlineStatus.value != effectiveShowOnline) {
+                                    preferences.isOnlineStatusEnabled = effectiveShowOnline
+                                    _showOnlineStatus.value = effectiveShowOnline
+                                    if (effectiveShowOnline) {
+                                        startPresenceHeartbeat(uid)
+                                    } else {
+                                        stopPresenceHeartbeat()
+                                    }
+                                }
+                                if (_readReceipts.value != user.readReceipts) {
+                                    preferences.isReadReceiptsEnabled = user.readReceipts
+                                    _readReceipts.value = user.readReceipts
+                                }
+                            }
+                            refreshVisibleStatuses()
+                        }
+                    }
+            }
+        }
+    }
+
+    fun isDirectContact(otherUid: String): Boolean {
+        val clean = otherUid.trim()
+        if (clean.isEmpty()) return false
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (clean == currentUid) return true
+        if (clean in _contactUserIds.value) return true
+        return rawChatsList.any { !it.isGroup && clean in it.participantIds }
+    }
+
+    fun canSeeUserLastSeen(otherUser: ChatUser?): Boolean {
+        if (otherUser == null) return false
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (otherUser.uid.isNotBlank() && otherUser.uid == currentUid) return true
+        if (!_showOnlineStatus.value || _currentUser.value?.lastSeenVisibility == "nobody") return false
+        if (!otherUser.showOnlineStatus) return false
+        return canViewerSeePrivacyField(
+            visibility = otherUser.lastSeenVisibility,
+            isSelf = false,
+            isContact = isDirectContact(otherUser.uid)
+        )
+    }
+
+    fun canSeeUserPhoto(otherUid: String, otherUser: ChatUser? = _userProfiles.value[otherUid]): Boolean {
+        val clean = otherUid.trim()
+        if (clean.isEmpty()) return true
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (clean == currentUid) return true
+        if (isUserOrChatBlocked(clean)) return false
+        val visibility = otherUser?.photoVisibility ?: "everyone"
+        return canViewerSeePrivacyField(
+            visibility = visibility,
+            isSelf = false,
+            isContact = isDirectContact(clean)
+        )
+    }
+
+    fun visiblePhotoUrl(
+        otherUid: String,
+        fallbackUrl: String?,
+        otherUser: ChatUser? = _userProfiles.value[otherUid]
+    ): String? {
+        if (!canSeeUserPhoto(otherUid, otherUser)) return null
+        return otherUser?.photoUrl?.ifBlank { null } ?: fallbackUrl?.ifBlank { null }
+    }
+
+    fun canSeeUserAbout(otherUid: String, otherUser: ChatUser? = _userProfiles.value[otherUid]): Boolean {
+        val clean = otherUid.trim()
+        if (clean.isEmpty()) return false
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (clean == currentUid) return true
+        if (isUserOrChatBlocked(clean)) return false
+        val visibility = otherUser?.aboutVisibility ?: "everyone"
+        return canViewerSeePrivacyField(
+            visibility = visibility,
+            isSelf = false,
+            isContact = isDirectContact(clean)
+        )
+    }
+
+    fun visibleAbout(
+        otherUid: String,
+        otherUser: ChatUser? = _userProfiles.value[otherUid]
+    ): String? {
+        if (!canSeeUserAbout(otherUid, otherUser)) return null
+        return otherUser?.about?.trim()?.ifEmpty { null }
     }
 
     private fun refreshBlockedState() {
@@ -549,6 +713,27 @@ class ChatViewModel(
         refreshBlockedState()
         val currentUid = _currentUser.value?.uid.orEmpty()
         val blockedIds = _blockedUserIds.value
+        val directContactMap = LinkedHashMap<String, ParticipantInfo>()
+        val allDirectContactIds = mutableSetOf<String>()
+        for (chat in rawChatsList) {
+            if (chat.isGroup) continue
+            val otherUid = chat.participantIds.firstOrNull { it != currentUid }.orEmpty()
+            if (otherUid.isNotBlank()) {
+                allDirectContactIds.add(otherUid)
+                val isBlocked = (currentUid.isNotEmpty() && currentUid in chat.blockedBy) ||
+                    (otherUid in blockedIds)
+                if (!isBlocked && otherUid !in directContactMap) {
+                    val info = chat.getOtherParticipant(currentUid) ?: ParticipantInfo(uid = otherUid)
+                    directContactMap[otherUid] = info
+                }
+            }
+        }
+        _contactUserIds.value = allDirectContactIds
+        _directContacts.value = directContactMap.values
+            .sortedBy { displayNameFor(it.uid, it).lowercase() }
+
+        syncUserProfileListeners()
+
         val states = _chatLocalStates.value
         val nonHidden = rawChatsList.filter { chat ->
             if (!chat.isGroup) {
@@ -621,6 +806,7 @@ class ChatViewModel(
     private fun refreshVisibleStatuses() {
         val currentUid = _currentUser.value?.uid.orEmpty()
         val blockedIds = _blockedUserIds.value
+        val profiles = _userProfiles.value
         val nowMs = System.currentTimeMillis()
         val active = rawStatuses.filter { status ->
             !status.isExpired(nowMs) && status.userId !in blockedIds
@@ -650,15 +836,28 @@ class ChatViewModel(
                 .firstOrNull { userId in it.participantIds }
                 ?.participantInfo
                 ?.get(userId)
-            val resolvedUsername = latest.username.ifBlank { chatParticipant?.username.orEmpty() }
-            val resolvedDisplayName = latest.displayName.ifBlank { chatParticipant?.displayName.orEmpty() }
-            val resolvedPhoto = latest.photoUrl?.ifBlank { null } ?: chatParticipant?.photoUrl?.ifBlank { null }
+            val authorProfile = profiles[userId]
+            val resolvedUsername = latest.username.ifBlank {
+                authorProfile?.username?.ifBlank { null } ?: chatParticipant?.username.orEmpty()
+            }
+            val resolvedDisplayName = latest.displayName.ifBlank {
+                authorProfile?.displayName?.ifBlank { null } ?: chatParticipant?.displayName.orEmpty()
+            }
+            val rawPhoto = authorProfile?.photoUrl?.ifBlank { null }
+                ?: latest.photoUrl?.ifBlank { null }
+                ?: chatParticipant?.photoUrl?.ifBlank { null }
+            val resolvedPhoto = visiblePhotoUrl(userId, rawPhoto, authorProfile)
+            val sanitizedItems = if (resolvedPhoto == null) {
+                sortedItems.map { it.copy(photoUrl = null) }
+            } else {
+                sortedItems
+            }
             UserStatusGroup(
                 userId = userId,
                 username = resolvedUsername,
                 displayName = resolvedDisplayName,
                 photoUrl = resolvedPhoto,
-                statuses = sortedItems,
+                statuses = sanitizedItems,
                 latestTimestamp = latest.createdAt
             )
         }.sortedByDescending { it.latestTimestamp?.toDate()?.time ?: 0L }
@@ -818,6 +1017,7 @@ class ChatViewModel(
                 .catch { Log.w("ChatViewModel", "Error in statuses flow: ${it.message}") }
                 .collectLatest { items ->
                     rawStatuses = items
+                    syncUserProfileListeners()
                     refreshVisibleStatuses()
                 }
         }
@@ -1299,14 +1499,27 @@ class ChatViewModel(
         }
 
         viewModelScope.launch {
+            var filteredAllowed: List<ChatUser> = validMembers
+            var filteredSkipped: List<ChatUser> = emptyList()
             val result = repository.createGroupChat(
                 currentUid = current.uid,
                 currentUser = current,
                 name = trimmedName,
-                members = validMembers
+                members = validMembers,
+                onMembersFiltered = { allowed, skipped ->
+                    filteredAllowed = allowed
+                    filteredSkipped = skipped
+                }
             )
             result.onSuccess { chatId ->
-                val participantIds = (listOf(current.uid) + validMembers.map { it.uid }).distinct()
+                val actualMembers = filteredAllowed.ifEmpty { validMembers }
+                if (filteredSkipped.isNotEmpty()) {
+                    val skippedNames = filteredSkipped.joinToString(", ") {
+                        it.displayName.ifBlank { "@${it.username}" }
+                    }
+                    _toastMessage.value = "Skipped $skippedNames due to their group privacy settings"
+                }
+                val participantIds = (listOf(current.uid) + actualMembers.map { it.uid }).distinct()
                 val participantInfo = buildMap {
                     put(
                         current.uid,
@@ -1317,7 +1530,7 @@ class ChatViewModel(
                             photoUrl = current.photoUrl
                         )
                     )
-                    for (member in validMembers) {
+                    for (member in actualMembers) {
                         put(
                             member.uid,
                             ParticipantInfo(
@@ -1350,7 +1563,7 @@ class ChatViewModel(
                 openChatFromSummary(summaryToOpen)
                 onDone(chatId)
             }.onFailure { err ->
-                _toastMessage.value = "Failed to create group: ${err.message ?: "unknown error"}"
+                _toastMessage.value = err.message ?: "Failed to create group"
                 onDone(null)
             }
         }
@@ -1461,7 +1674,7 @@ class ChatViewModel(
                     user.typingChatId == activeChatId &&
                     typingAtMs != null &&
                     remainingMs > 0L &&
-                    user.showOnlineStatus &&
+                    canSeeUserLastSeen(user) &&
                     !isBlocked
 
                 recipientTypingExpiryJob?.cancel()
@@ -1481,19 +1694,120 @@ class ChatViewModel(
     }
 
     fun setShowOnlineStatus(enabled: Boolean) {
+        setLastSeenVisibility(if (enabled) "everyone" else "nobody")
+    }
+
+    fun setLastSeenVisibility(visibility: String) {
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        val enabled = normalized != "nobody"
         preferences.isOnlineStatusEnabled = enabled
         _showOnlineStatus.value = enabled
         if (!enabled) {
             stopTyping()
         }
         val uid = _currentUser.value?.uid ?: return
+        _currentUser.update { it?.copy(lastSeenVisibility = normalized, showOnlineStatus = enabled) }
+        _userProfiles.update { profiles ->
+            val existing = profiles[uid] ?: _currentUser.value
+            if (existing != null) profiles + (uid to existing.copy(lastSeenVisibility = normalized, showOnlineStatus = enabled)) else profiles
+        }
         if (enabled) {
             startPresenceHeartbeat(uid)
         } else {
             stopPresenceHeartbeat()
         }
         viewModelScope.launch {
-            repository.setShowOnlineStatus(uid, enabled)
+            repository.setLastSeenVisibility(uid, normalized).onFailure { err ->
+                _toastMessage.value = "Failed to update last seen privacy: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun setPhotoVisibility(visibility: String) {
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        val uid = _currentUser.value?.uid ?: return
+        _currentUser.update { it?.copy(photoVisibility = normalized) }
+        _userProfiles.update { profiles ->
+            val existing = profiles[uid] ?: _currentUser.value
+            if (existing != null) profiles + (uid to existing.copy(photoVisibility = normalized)) else profiles
+        }
+        viewModelScope.launch {
+            repository.setPhotoVisibility(uid, normalized).onFailure { err ->
+                _toastMessage.value = "Failed to update profile photo privacy: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun setAboutVisibility(visibility: String) {
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts", "nobody")) it else "everyone"
+        }
+        val uid = _currentUser.value?.uid ?: return
+        _currentUser.update { it?.copy(aboutVisibility = normalized) }
+        _userProfiles.update { profiles ->
+            val existing = profiles[uid] ?: _currentUser.value
+            if (existing != null) profiles + (uid to existing.copy(aboutVisibility = normalized)) else profiles
+        }
+        viewModelScope.launch {
+            repository.setAboutVisibility(uid, normalized).onFailure { err ->
+                _toastMessage.value = "Failed to update about privacy: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun setStatusPrivacy(
+        visibility: String,
+        exceptIds: List<String> = _currentUser.value?.statusExceptIds.orEmpty(),
+        onlyIds: List<String> = _currentUser.value?.statusOnlyIds.orEmpty()
+    ) {
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("contacts", "except", "only")) it else "contacts"
+        }
+        val cleanExcept = exceptIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val cleanOnly = onlyIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        val uid = _currentUser.value?.uid ?: return
+        _currentUser.update {
+            it?.copy(
+                statusVisibility = normalized,
+                statusExceptIds = cleanExcept,
+                statusOnlyIds = cleanOnly
+            )
+        }
+        _userProfiles.update { profiles ->
+            val existing = profiles[uid] ?: _currentUser.value
+            if (existing != null) {
+                profiles + (uid to existing.copy(
+                    statusVisibility = normalized,
+                    statusExceptIds = cleanExcept,
+                    statusOnlyIds = cleanOnly
+                ))
+            } else profiles
+        }
+        viewModelScope.launch {
+            repository.setStatusPrivacy(uid, normalized, cleanExcept, cleanOnly).onFailure { err ->
+                _toastMessage.value = "Failed to update status privacy: ${err.message ?: "unknown error"}"
+            }
+        }
+    }
+
+    fun setGroupsVisibility(visibility: String) {
+        val normalized = visibility.trim().lowercase().let {
+            if (it in setOf("everyone", "contacts")) it else "everyone"
+        }
+        val uid = _currentUser.value?.uid ?: return
+        _currentUser.update { it?.copy(groupsVisibility = normalized) }
+        _userProfiles.update { profiles ->
+            val existing = profiles[uid] ?: _currentUser.value
+            if (existing != null) profiles + (uid to existing.copy(groupsVisibility = normalized)) else profiles
+        }
+        viewModelScope.launch {
+            repository.setGroupsVisibility(uid, normalized).onFailure { err ->
+                _toastMessage.value = "Failed to update groups privacy: ${err.message ?: "unknown error"}"
+            }
         }
     }
 
@@ -1926,6 +2240,7 @@ class ChatViewModel(
         statusesListenJob?.cancel()
         nicknamesListenJob?.cancel()
         blockedListenJob?.cancel()
+        clearUserProfileListeners()
         hasLoadedChatsOnce = false
         knownGroupChatIds.clear()
         selfRemovedGroupChatIds.clear()
@@ -1938,6 +2253,9 @@ class ChatViewModel(
         _blockedUsersMap.value = emptyMap()
         _blockedUserIds.value = emptySet()
         _blockedContacts.value = emptyList()
+        _userProfiles.value = emptyMap()
+        _contactUserIds.value = emptySet()
+        _directContacts.value = emptyList()
         _isActiveChatBlockedByMe.value = false
         _isActiveChatBlockedByOther.value = false
         _lockedChatsList.value = emptyList()
@@ -1976,6 +2294,7 @@ class ChatViewModel(
         super.onCleared()
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
         stopPresenceHeartbeat()
+        clearUserProfileListeners()
     }
 
     companion object {
