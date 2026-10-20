@@ -1839,6 +1839,14 @@ class ChatRepository(private val context: Context) {
                         else null) as? List<*>)
                         ?.mapNotNull { (it as? String)?.trim()?.takeIf { s -> s.isNotEmpty() } }
                         .orEmpty()
+                    val mutedChats = (doc.get("mutedChats") as? Map<*, *>)
+                        ?.mapNotNull { (k, v) ->
+                            val key = (k as? String)?.trim()?.takeIf { s -> s.isNotEmpty() } ?: return@mapNotNull null
+                            val ts = v as? Timestamp ?: return@mapNotNull null
+                            key to ts
+                        }
+                        ?.toMap()
+                        ?: emptyMap()
                     trySend(
                         UserPrivate(
                             fcmTokens = fcmTokens,
@@ -1851,6 +1859,7 @@ class ChatRepository(private val context: Context) {
                             groupAddVisibility = groupAddVis,
                             statusMode = statusMode,
                             statusUids = statusUids,
+                            mutedChats = mutedChats,
                             updatedAt = doc.getTimestamp("updatedAt")
                         )
                     )
@@ -1859,6 +1868,50 @@ class ChatRepository(private val context: Context) {
                 }
             }
         awaitClose { listener.remove() }
+    }
+
+    suspend fun setMutedUntil(myUid: String, chatId: String, endTime: Timestamp?): Result<Unit> {
+        val cleanUid = myUid.trim()
+        val cleanChatId = chatId.trim()
+        if (cleanUid.isEmpty() || cleanChatId.isEmpty()) {
+            return Result.failure(IllegalArgumentException("UID and chatId are required"))
+        }
+        val database = db ?: return Result.failure(IllegalStateException("Firestore unavailable"))
+        return try {
+            val privRef = database.collection("userPrivate").document(cleanUid)
+            val value: Any = endTime ?: FieldValue.delete()
+            try {
+                privRef.update(
+                    com.google.firebase.firestore.FieldPath.of("mutedChats", cleanChatId), value,
+                    com.google.firebase.firestore.FieldPath.of("updatedAt"), FieldValue.serverTimestamp()
+                ).await()
+            } catch (_: Exception) {
+                val payload = if (endTime != null) {
+                    mapOf(
+                        "mutedChats" to mapOf(cleanChatId to endTime),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                } else {
+                    mapOf(
+                        "mutedChats" to emptyMap<String, Any>(),
+                        "updatedAt" to FieldValue.serverTimestamp()
+                    )
+                }
+                privRef.set(payload, SetOptions.merge()).await()
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "setMutedUntil failed for $cleanChatId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getSafetyNumberForPeer(myUid: String, peerUid: String): List<String>? {
+        return e2eeManager.computeSafetyNumberForPeer(myUid, peerUid)
+    }
+
+    suspend fun getMyPublicKeyB64(myUid: String): String? {
+        return e2eeManager.getMyPublicKeyB64(myUid)
     }
 
     fun observePresence(uid: String): Flow<PresenceInfo?> = callbackFlow {

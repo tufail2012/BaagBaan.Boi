@@ -572,3 +572,39 @@ test("Worker /notify enforces participantIds (403), 180s staleness ({skipped:'st
     globalThis.fetch = originalFetch;
   }
 });
+
+test("isChatMutedForRecipient suppresses notifications when mutedChats[chatId] is in the future", async () => {
+  const { isChatMutedForRecipient } = await import("./worker.js");
+  const nowMs = Date.parse("2026-10-20T12:00:00Z");
+
+  // 1. Future timestamp -> muted (true)
+  assert.equal(
+    isChatMutedForRecipient(
+      { mutedChats: { alice_bob: "2100-01-01T00:00:00Z" } },
+      "alice_bob",
+      nowMs
+    ),
+    true
+  );
+
+  // 2. Past timestamp -> expired (false)
+  assert.equal(
+    isChatMutedForRecipient(
+      { mutedChats: { alice_bob: "2026-10-20T10:00:00Z" } },
+      "alice_bob",
+      nowMs
+    ),
+    false
+  );
+
+  // 3. Missing chatId -> not muted (false)
+  assert.equal(
+    isChatMutedForRecipient(
+      { mutedChats: { other_chat: "2100-01-01T00:00:00Z" } },
+      "alice_bob",
+      nowMs
+    ),
+    false
+  );
+});
+

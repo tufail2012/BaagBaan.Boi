@@ -533,6 +533,27 @@ export function buildNotificationContent(chat, message, senderId) {
   return { senderName, body };
 }
 
+export function isChatMutedForRecipient(userDoc, chatId, nowMs = Date.now()) {
+  if (!userDoc || !chatId || typeof userDoc.mutedChats !== "object" || userDoc.mutedChats === null) {
+    return false;
+  }
+  const raw = userDoc.mutedChats[chatId];
+  if (!raw) return false;
+  let endMs = NaN;
+  if (typeof raw === "number") {
+    endMs = raw;
+  } else if (typeof raw === "string") {
+    endMs = Date.parse(raw);
+  } else if (raw instanceof Date) {
+    endMs = raw.getTime();
+  } else if (typeof raw.toMillis === "function") {
+    endMs = raw.toMillis();
+  } else if (typeof raw.seconds === "number") {
+    endMs = raw.seconds * 1000 + Math.floor((raw.nanoseconds || 0) / 1e6);
+  }
+  return Number.isFinite(endMs) && endMs > nowMs;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -677,6 +698,10 @@ export default {
             `userPrivate/${encodeURIComponent(recipientUid)}`
           );
           if (!userDoc) {
+            continue;
+          }
+
+          if (isChatMutedForRecipient(userDoc, chatId)) {
             continue;
           }
 

@@ -23,6 +23,7 @@ import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.MessageDigest
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
@@ -339,6 +340,22 @@ class E2eeManager(context: Context) {
         }
     }
 
+    suspend fun getMyPublicKeyB64(uid: String): String? {
+        val cleanUid = uid.trim()
+        if (cleanUid.isEmpty()) return null
+        return getOrCreateLocalIdentity(cleanUid)?.publicKeyB64
+    }
+
+    suspend fun computeSafetyNumberForPeer(myUid: String, peerUid: String): List<String>? {
+        val myKeyB64 = getMyPublicKeyB64(myUid) ?: return null
+        val peerKeyB64 = when (val res = fetchPeerKey(peerUid)) {
+            is PeerKeyResult.Ok -> res.publicKeyB64
+            is PeerKeyResult.Changed -> res.newKeyB64
+            is PeerKeyResult.Missing -> return null
+        }
+        return computeSafetyNumber(myKeyB64, peerKeyB64)
+    }
+
     private suspend fun getOrCreateLocalIdentity(uid: String): IdentityKeyMaterial? {
         identityCache[uid]?.let { return it }
         ensureIdentity(uid)
@@ -559,3 +576,51 @@ class E2eeManager(context: Context) {
         }
     }
 }
+
+fun computeSafetyNumber(myPublicKeyB64: String, peerPublicKeyB64: String): List<String>? {
+    return try {
+        val myClean = myPublicKeyB64.trim()
+        val peerClean = peerPublicKeyB64.trim()
+        if (myClean.isEmpty() || peerClean.isEmpty()) return null
+        val myBytes = Base64.decode(myClean, Base64.NO_WRAP)
+        val peerBytes = Base64.decode(peerClean, Base64.NO_WRAP)
+        if (myBytes.isEmpty() || peerBytes.isEmpty()) return null
+        computeSafetyNumberFromDer(myBytes, peerBytes)
+    } catch (_: Throwable) {
+        null
+    }
+}
+
+fun computeSafetyNumberFromDer(firstKeyDer: ByteArray, secondKeyDer: ByteArray): List<String> {
+    val cmp = compareByteArraysLexicographically(firstKeyDer, secondKeyDer)
+    val first = if (cmp <= 0) firstKeyDer else secondKeyDer
+    val second = if (cmp <= 0) secondKeyDer else firstKeyDer
+
+    val md = MessageDigest.getInstance("SHA-512")
+    md.update(first)
+    md.update(second)
+    val digest = md.digest()
+
+    val groups = ArrayList<String>(12)
+    for (i in 0 until 12) {
+        val offset = i * 5
+        var chunkVal = 0L
+        for (b in 0 until 5) {
+            chunkVal = (chunkVal shl 8) or (digest[offset + b].toLong() and 0xFFL)
+        }
+        val code = chunkVal % 100_000L
+        groups.add(String.format(java.util.Locale.US, "%05d", code))
+    }
+    return groups
+}
+
+private fun compareByteArraysLexicographically(a: ByteArray, b: ByteArray): Int {
+    val minLen = minOf(a.size, b.size)
+    for (i in 0 until minLen) {
+        val ua = a[i].toInt() and 0xFF
+        val ub = b[i].toInt() and 0xFF
+        if (ua != ub) return ua - ub
+    }
+    return a.size - b.size
+}
+

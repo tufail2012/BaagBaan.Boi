@@ -221,8 +221,50 @@ class ChatViewModel(
 
     val changedPeerUids: StateFlow<Set<String>> = repository.changedPeerUids
 
+    private val _mutedChats = MutableStateFlow<Map<String, com.google.firebase.Timestamp>>(emptyMap())
+    val mutedChats: StateFlow<Map<String, com.google.firebase.Timestamp>> = _mutedChats.asStateFlow()
+
     fun acceptNewKey(peerUid: String) {
         repository.acceptPeerKey(peerUid)
+    }
+
+    suspend fun getSafetyNumberForPeer(peerUid: String): List<String>? {
+        val myUid = _currentUser.value?.uid?.trim().orEmpty()
+        if (myUid.isEmpty() || peerUid.isBlank()) return null
+        return repository.getSafetyNumberForPeer(myUid, peerUid.trim())
+    }
+
+    fun isChatMuted(chatId: String, nowMs: Long = System.currentTimeMillis()): Boolean {
+        val clean = chatId.trim()
+        if (clean.isEmpty()) return false
+        val remoteTs = _mutedChats.value[clean]
+        if (remoteTs != null) {
+            return remoteTs.toDate().time > nowMs
+        }
+        return _chatLocalStates.value[clean]?.isMuted(nowMs) == true
+    }
+
+    fun setMutedUntil(chatId: String, endTime: com.google.firebase.Timestamp?) {
+        val cleanChatId = chatId.trim()
+        if (cleanChatId.isEmpty()) return
+        val localMs = when {
+            endTime == null -> 0L
+            endTime.seconds >= 4102444800L -> Long.MAX_VALUE
+            else -> endTime.toDate().time
+        }
+        _mutedChats.update { current ->
+            if (endTime != null) current + (cleanChatId to endTime) else current - cleanChatId
+        }
+        _chatLocalStates.value = localChatPrefs.updateChats(setOf(cleanChatId)) {
+            it.copy(mutedUntil = localMs)
+        }
+        refreshVisibleChatsList()
+        val myUid = _currentUser.value?.uid?.trim().orEmpty()
+        if (myUid.isNotEmpty()) {
+            viewModelScope.launch {
+                repository.setMutedUntil(myUid, cleanChatId, endTime)
+            }
+        }
     }
 
     private var hasLoadedChatsOnce = false
@@ -506,6 +548,32 @@ class ChatViewModel(
             }
             val statusExcept = if (statusVis == "except") priv?.statusUids.orEmpty() else emptyList()
             val statusOnly = if (statusVis == "only") priv?.statusUids.orEmpty() else emptyList()
+
+            if (priv != null) {
+                _mutedChats.value = priv.mutedChats
+                val currentLocal = _chatLocalStates.value
+                val toSync = mutableMapOf<String, Long>()
+                for ((cid, ts) in priv.mutedChats) {
+                    val targetMs = if (ts.seconds >= 4102444800L) Long.MAX_VALUE else ts.toDate().time
+                    if (currentLocal[cid]?.mutedUntil != targetMs) {
+                        toSync[cid] = targetMs
+                    }
+                }
+                for ((cid, state) in currentLocal) {
+                    if (state.mutedUntil != 0L && cid !in priv.mutedChats) {
+                        toSync[cid] = 0L
+                    }
+                }
+                if (toSync.isNotEmpty()) {
+                    var updated = currentLocal
+                    for ((cid, targetMs) in toSync) {
+                        updated = localChatPrefs.updateChats(setOf(cid)) {
+                            it.copy(mutedUntil = targetMs)
+                        }
+                    }
+                    _chatLocalStates.value = updated
+                }
+            }
 
             base.copy(
                 photoUrl = photoUrl,
@@ -1056,7 +1124,7 @@ class ChatViewModel(
                             // If new message from other user and not currently inside this conversation
                             if (currTime > prevTime && last.senderId != uid && _activeChatId.value != chat.chatId) {
                                 val chatState = _chatLocalStates.value[chat.chatId]
-                                if (chatState?.isMuted() == true) continue
+                                if (isChatMuted(chat.chatId)) continue
                                 if (chatState?.locked == true) {
                                     _inAppBanner.value = Pair("New message", "")
                                 } else if (chat.isGroup) {
@@ -1353,18 +1421,53 @@ class ChatViewModel(
 
     fun muteChats(chatIds: Set<String>, mutedUntil: Long) {
         if (chatIds.isEmpty()) return
+        val endTime = if (mutedUntil == Long.MAX_VALUE) {
+            com.google.firebase.Timestamp(4102444800L, 0)
+        } else {
+            com.google.firebase.Timestamp(java.util.Date(mutedUntil))
+        }
+        _mutedChats.update { current ->
+            val next = current.toMutableMap()
+            for (cid in chatIds) {
+                next[cid] = endTime
+            }
+            next
+        }
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
             it.copy(mutedUntil = mutedUntil)
         }
         refreshVisibleChatsList()
+        val myUid = _currentUser.value?.uid?.trim().orEmpty()
+        if (myUid.isNotEmpty()) {
+            viewModelScope.launch {
+                for (cid in chatIds) {
+                    repository.setMutedUntil(myUid, cid, endTime)
+                }
+            }
+        }
     }
 
     fun unmuteChats(chatIds: Set<String>) {
         if (chatIds.isEmpty()) return
+        _mutedChats.update { current ->
+            val next = current.toMutableMap()
+            for (cid in chatIds) {
+                next.remove(cid)
+            }
+            next
+        }
         _chatLocalStates.value = localChatPrefs.updateChats(chatIds) {
             it.copy(mutedUntil = 0L)
         }
         refreshVisibleChatsList()
+        val myUid = _currentUser.value?.uid?.trim().orEmpty()
+        if (myUid.isNotEmpty()) {
+            viewModelScope.launch {
+                for (cid in chatIds) {
+                    repository.setMutedUntil(myUid, cid, null)
+                }
+            }
+        }
     }
 
     fun lockChats(chatIds: Set<String>, locked: Boolean = true) {

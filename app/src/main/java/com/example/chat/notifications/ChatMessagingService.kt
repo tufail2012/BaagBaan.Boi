@@ -84,9 +84,9 @@ class ChatMessagingService : FCMMessageService() {
                 return
             }
 
-            // d. If ChatListLocalPrefs(context) says this chat is muted (isMuted()), stop.
+            // d. If ChatListLocalPrefs(context) or cached userPrivate/{myUid}.mutedChats says this chat is muted, stop.
             val chatState = ChatListLocalPrefs(appContext).loadAll()[chatId]
-            if (chatState?.isMuted() == true) {
+            if (chatState?.isMuted() == true || isMutedInFirestoreCache(appContext, chatId)) {
                 return
             }
 
@@ -175,6 +175,29 @@ class ChatMessagingService : FCMMessageService() {
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager?.createNotificationChannel(channel)
+        }
+    }
+
+    private fun isMutedInFirestoreCache(context: android.content.Context, chatId: String): Boolean {
+        return try {
+            val uid = SafeFirebase.getAuth(context)?.currentUser?.uid?.trim()
+            if (uid.isNullOrEmpty()) return false
+            val db = SafeFirebase.getDb(context) ?: return false
+            val doc = com.google.android.gms.tasks.Tasks.await(
+                db.collection("userPrivate").document(uid)
+                    .get(com.google.firebase.firestore.Source.CACHE),
+                1500,
+                java.util.concurrent.TimeUnit.MILLISECONDS
+            )
+            if (doc != null && doc.exists()) {
+                val mutedChats = doc.get("mutedChats") as? Map<*, *>
+                val endTs = mutedChats?.get(chatId) as? com.google.firebase.Timestamp
+                endTs != null && endTs.toDate().time > System.currentTimeMillis()
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
         }
     }
 

@@ -79,8 +79,19 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -369,7 +380,46 @@ fun ChatScreen(
             .clip(shape)
             .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
             .border(0.5.dp, Color.White.copy(alpha = 0.10f), shape)
-    var showProfileDialog by remember { mutableStateOf(false) }
+    var showContactInfo by remember { mutableStateOf(false) }
+    var showMuteCard by remember { mutableStateOf(false) }
+    var showSafetyNumberCard by remember { mutableStateOf(false) }
+    var showChatSearchOverlay by remember { mutableStateOf(false) }
+    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
+
+    BackHandler(
+        enabled = showContactInfo || showMuteCard || showSafetyNumberCard || showChatSearchOverlay
+    ) {
+        when {
+            showMuteCard -> showMuteCard = false
+            showSafetyNumberCard -> showSafetyNumberCard = false
+            showChatSearchOverlay -> showChatSearchOverlay = false
+            showContactInfo -> showContactInfo = false
+        }
+    }
+
+    LaunchedEffect(highlightedMessageId) {
+        if (highlightedMessageId != null) {
+            delay(2000L)
+            highlightedMessageId = null
+        }
+    }
+
+    val mutedChats by viewModel.mutedChats.collectAsState()
+    val chatLocalStates by viewModel.chatLocalStates.collectAsState()
+    val isCurrentChatMuted = remember(activeChatId, mutedChats, chatLocalStates, currentTimeTick) {
+        val cid = activeChatId.orEmpty()
+        if (cid.isEmpty()) {
+            false
+        } else {
+            val remoteTs = mutedChats[cid]
+            if (remoteTs != null) {
+                remoteTs.toDate().time > currentTimeTick
+            } else {
+                chatLocalStates[cid]?.isMuted(currentTimeTick) == true
+            }
+        }
+    }
+
     var selectedMessageForAction by remember { mutableStateOf<ChatMessage?>(null) }
     var selectedCallForAction by remember { mutableStateOf<ChatMessage?>(null) }
     val activeCall by ZegoCallManager.activeCallState.collectAsState()
@@ -533,7 +583,7 @@ fun ChatScreen(
         }
     }
 
-    // (intentionally removed: no persistent button is created here anymore —
+    // (intentionally removed: no persistent button is created here anymore -
     // ZegoCallManager.startCall() now builds a fresh, properly-attached
     // button at the moment of each call attempt instead)
 
@@ -550,7 +600,7 @@ fun ChatScreen(
                     return@let
                 }
                 if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
-                    Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Call service not ready yet - please try again in a moment", Toast.LENGTH_SHORT).show()
                     return@let
                 }
                 val targetName = rec.username.ifBlank { rec.displayName.ifBlank { "Member" } }
@@ -589,7 +639,7 @@ fun ChatScreen(
                 return
             }
             if (!ZegoCallManager.ensureInitialized(context, currentUid, myUsername)) {
-                Toast.makeText(context, "Call service not ready yet — please try again in a moment", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Call service not ready yet - please try again in a moment", Toast.LENGTH_SHORT).show()
                 return
             }
             val targetName = rec.username.ifBlank { rec.displayName.ifBlank { "Member" } }
@@ -623,208 +673,6 @@ fun ChatScreen(
     val currentNickname = nicknames[otherUid]?.trim().orEmpty()
     val originalDisplayName = remember(recipient) {
         recipient?.displayName?.ifBlank { recipient?.username } ?: "Member"
-    }
-
-    // Profile Dialog Stub
-    if (showProfileDialog && recipient != null) {
-        var isEditingNickname by remember { mutableStateOf(false) }
-        var nicknameDraft by remember(currentNickname, originalDisplayName) {
-            mutableStateOf(if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName)
-        }
-        val titleTextColor = if (isDark) Color.White else Color(0xFF0F172A)
-        val secondaryNoteColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-
-        AlertDialog(
-            onDismissRequest = {
-                isEditingNickname = false
-                showProfileDialog = false
-            },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (!recipientVisiblePhotoUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = recipientVisiblePhotoUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(accentColor.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = accentColor)
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        if (!isEditingNickname) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = effectiveDisplayName,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                IconButton(
-                                    onClick = {
-                                        nicknameDraft = if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName
-                                        isEditingNickname = true
-                                    },
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .testTag("edit_nickname_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit nickname",
-                                        tint = secondaryNoteColor,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            if (currentNickname.isNotEmpty()) {
-                                Text(
-                                    text = "Original name: $originalDisplayName",
-                                    fontSize = 11.sp,
-                                    color = secondaryNoteColor
-                                )
-                            }
-                            Text(
-                                text = "@${recipient?.username}",
-                                fontSize = 13.sp,
-                                color = accentColor
-                            )
-                        } else {
-                            OutlinedTextField(
-                                value = nicknameDraft,
-                                onValueChange = { if (it.length <= 30) nicknameDraft = it },
-                                singleLine = true,
-                                textStyle = androidx.compose.ui.text.TextStyle(
-                                    fontSize = 15.sp,
-                                    color = titleTextColor
-                                ),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = accentColor,
-                                    unfocusedBorderColor = secondaryNoteColor,
-                                    cursorColor = accentColor,
-                                    focusedTextColor = titleTextColor,
-                                    unfocusedTextColor = titleTextColor
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .testTag("nickname_input_field")
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Only you can see this name.",
-                                fontSize = 11.sp,
-                                color = secondaryNoteColor
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                TextButton(
-                                    onClick = {
-                                        viewModel.saveNickname(otherUid, nicknameDraft)
-                                        isEditingNickname = false
-                                    },
-                                    modifier = Modifier.testTag("save_nickname_button")
-                                ) {
-                                    Text("Save", color = accentColor)
-                                }
-                                if (currentNickname.isNotEmpty()) {
-                                    TextButton(
-                                        onClick = {
-                                            viewModel.saveNickname(otherUid, "")
-                                            isEditingNickname = false
-                                        },
-                                        modifier = Modifier.testTag("reset_nickname_button")
-                                    ) {
-                                        Text("Reset", color = secondaryNoteColor)
-                                    }
-                                }
-                            }
-                            Text(
-                                text = "@${recipient?.username}",
-                                fontSize = 13.sp,
-                                color = accentColor
-                            )
-                        }
-                    }
-                }
-            },
-            text = {
-                Column {
-                    if (!recipientVisibleAbout.isNullOrBlank()) {
-                        Text(
-                            text = "About",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = recipientVisibleAbout,
-                            fontSize = 14.sp,
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
-                            modifier = Modifier.testTag("profile_dialog_about_text")
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    Text(
-                        text = "Baagbaan Boi Verified Member.\nDirect encrypted messaging active.",
-                        fontSize = 14.sp,
-                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Ghost",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
-                            )
-                            Text(
-                                text = "Messages vanish from both sides once seen",
-                                fontSize = 11.sp,
-                                color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
-                            )
-                        }
-                        Switch(
-                            checked = ghostModeEnabled,
-                            onCheckedChange = { viewModel.toggleGhostMode(it) },
-                            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = accentColor)
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    isEditingNickname = false
-                    showProfileDialog = false
-                }) {
-                    Text("Close", color = accentColor)
-                }
-            }
-        )
     }
 
     selectedMessageForAction?.let { msg ->
@@ -1073,6 +921,7 @@ fun ChatScreen(
                                 bubbleBackdrop = bubbleBackdrop,
                                 uploadProgress = uploadProgressMap[msg.id],
                                 onRetryUpload = failedUploadsMap[msg.id],
+                                isHighlighted = (highlightedMessageId == msg.id),
                                 onLongPress = { selectedMessageForAction = msg }
                             )
                         }
@@ -1156,7 +1005,7 @@ fun ChatScreen(
                                 if (isGroup) {
                                     showGroupInfo = true
                                 } else {
-                                    showProfileDialog = true
+                                    showContactInfo = true
                                 }
                             }
                             .padding(horizontal = 6.dp, vertical = 4.dp)
@@ -1715,7 +1564,7 @@ fun ChatScreen(
                                     contentColor = menuContentColor,
                                     onClick = {
                                         showMoreMenu = false
-                                        showProfileDialog = true
+                                        showContactInfo = true
                                     }
                                 )
                                 ConversationOverflowMenuItem(
@@ -2171,6 +2020,1054 @@ fun ChatScreen(
                     }
                 }
             }
+
+            // Full-screen Contact Info Page (1:1 chats) - flat Material3 look, no AlertDialog/ModalBottomSheet/DropdownMenu
+            if (showContactInfo && !isGroup && recipient != null) {
+                var isEditingNickname by remember { mutableStateOf(false) }
+                var nicknameDraft by remember(currentNickname, originalDisplayName) {
+                    mutableStateOf(if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName)
+                }
+                val bgColor = when {
+                    isAmoled -> Color.Black
+                    isDark -> Color(0xFF0B141A)
+                    else -> Color(0xFFF1F5F9)
+                }
+                val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+                val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                val dividerColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE2E8F0)
+                val quickTileBg = if (isDark) Color.White.copy(alpha = 0.08f) else accentColor.copy(alpha = 0.10f)
+                val heroPhotoUrl = recipientVisiblePhotoUrl?.takeIf { it.isNotBlank() }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(30f)
+                        .background(bgColor)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        )
+                        .testTag("contact_info_screen")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                    ) {
+                        // 1. Top bar: back arrow only
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    isEditingNickname = false
+                                    showContactInfo = false
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("contact_info_back_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = primaryTextColor
+                                )
+                            }
+                        }
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            // 2. Hero, centered
+                            if (!heroPhotoUrl.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = heroPhotoUrl,
+                                    contentDescription = effectiveDisplayName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(104.dp)
+                                        .clip(CircleShape)
+                                        .testTag("contact_info_avatar")
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(104.dp)
+                                        .clip(CircleShape)
+                                        .background(accentColor.copy(alpha = 0.20f))
+                                        .testTag("contact_info_avatar"),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = accentColor,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = effectiveDisplayName,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("contact_info_name")
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "@${recipient?.username}",
+                                fontSize = 14.sp,
+                                color = accentColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("contact_info_username")
+                            )
+
+                            if (!recipientVisibleAbout.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "About",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = secondaryTextColor
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = recipientVisibleAbout,
+                                    fontSize = 14.sp,
+                                    color = primaryTextColor,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .padding(horizontal = 20.dp)
+                                        .testTag("profile_dialog_about_text")
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // 3. Quick actions, 4 equal tiles in one row
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                // Video
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(quickTileBg)
+                                        .clickable { initiateCall(true) }
+                                        .padding(vertical = 14.dp)
+                                        .testTag("contact_info_action_video")
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        VideoCallIcon(
+                                            tint = accentColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Video",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = primaryTextColor
+                                        )
+                                    }
+                                }
+
+                                // Audio
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(quickTileBg)
+                                        .clickable { initiateCall(false) }
+                                        .padding(vertical = 14.dp)
+                                        .testTag("contact_info_action_audio")
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.Call,
+                                            contentDescription = "Audio call",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Audio",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = primaryTextColor
+                                        )
+                                    }
+                                }
+
+                                // Mute
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(quickTileBg)
+                                        .clickable { showMuteCard = true }
+                                        .padding(vertical = 14.dp)
+                                        .testTag("contact_info_action_mute")
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = if (isCurrentChatMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
+                                            contentDescription = if (isCurrentChatMuted) "Muted" else "Mute",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = if (isCurrentChatMuted) "Muted" else "Mute",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = primaryTextColor
+                                        )
+                                    }
+                                }
+
+                                // Search
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(quickTileBg)
+                                        .clickable { showChatSearchOverlay = true }
+                                        .padding(vertical = 14.dp)
+                                        .testTag("contact_info_action_search")
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "Search",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Search",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = primaryTextColor
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            // 4. Card 1, rows: Ghost, Nickname, Wallpaper (+ Reset wallpaper), Encryption
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = cardBgColor,
+                                tonalElevation = 1.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    // Ghost row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Ghost",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = primaryTextColor
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "Messages vanish from both sides once seen",
+                                                fontSize = 12.sp,
+                                                color = secondaryTextColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Switch(
+                                            checked = ghostModeEnabled,
+                                            onCheckedChange = { viewModel.toggleGhostMode(it) },
+                                            colors = androidx.compose.material3.SwitchDefaults.colors(
+                                                checkedTrackColor = accentColor
+                                            ),
+                                            modifier = Modifier.testTag("contact_info_ghost_switch")
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(0.5.dp)
+                                            .background(dividerColor)
+                                    )
+
+                                    // Nickname row + inline editor
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (!isEditingNickname) {
+                                                    nicknameDraft = if (currentNickname.isNotEmpty()) currentNickname else originalDisplayName
+                                                    isEditingNickname = true
+                                                } else {
+                                                    isEditingNickname = false
+                                                }
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                                            .testTag("edit_nickname_button")
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "Nickname",
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = primaryTextColor
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = if (currentNickname.isNotEmpty()) currentNickname else "Not set",
+                                                    fontSize = 12.sp,
+                                                    color = secondaryTextColor
+                                                )
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Edit nickname",
+                                                tint = secondaryTextColor,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        if (isEditingNickname) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            OutlinedTextField(
+                                                value = nicknameDraft,
+                                                onValueChange = { if (it.length <= 30) nicknameDraft = it },
+                                                singleLine = true,
+                                                textStyle = androidx.compose.ui.text.TextStyle(
+                                                    fontSize = 15.sp,
+                                                    color = primaryTextColor
+                                                ),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = accentColor,
+                                                    unfocusedBorderColor = secondaryTextColor,
+                                                    cursorColor = accentColor,
+                                                    focusedTextColor = primaryTextColor,
+                                                    unfocusedTextColor = primaryTextColor
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .testTag("nickname_input_field")
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Only you can see this name.",
+                                                fontSize = 11.sp,
+                                                color = secondaryTextColor
+                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                TextButton(
+                                                    onClick = {
+                                                        viewModel.saveNickname(otherUid, nicknameDraft)
+                                                        isEditingNickname = false
+                                                    },
+                                                    modifier = Modifier.testTag("save_nickname_button")
+                                                ) {
+                                                    Text("Save", color = accentColor, fontWeight = FontWeight.SemiBold)
+                                                }
+                                                TextButton(
+                                                    onClick = {
+                                                        viewModel.saveNickname(otherUid, "")
+                                                        isEditingNickname = false
+                                                    },
+                                                    modifier = Modifier.testTag("reset_nickname_button")
+                                                ) {
+                                                    Text("Reset", color = secondaryTextColor)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(0.5.dp)
+                                            .background(dividerColor)
+                                    )
+
+                                    // Wallpaper row
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                wallpaperPicker.launch(
+                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                )
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                                            .testTag("contact_info_wallpaper_row")
+                                    ) {
+                                        Text(
+                                            text = "Wallpaper",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = primaryTextColor
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = if (wallpaperFile != null) "Custom" else "Default",
+                                            fontSize = 12.sp,
+                                            color = secondaryTextColor
+                                        )
+                                    }
+
+                                    if (wallpaperFile != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(0.5.dp)
+                                                .background(dividerColor)
+                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                                    wallpaperFile = null
+                                                    wallpaperRevision++
+                                                }
+                                                .padding(horizontal = 16.dp, vertical = 14.dp)
+                                                .testTag("contact_info_reset_wallpaper_row")
+                                        ) {
+                                            Text(
+                                                text = "Reset wallpaper",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = accentColor
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(0.5.dp)
+                                            .background(dividerColor)
+                                    )
+
+                                    // Encryption row
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showSafetyNumberCard = true }
+                                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                                            .testTag("contact_info_encryption_row")
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Encryption",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = primaryTextColor
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "End-to-end encrypted",
+                                                fontSize = 12.sp,
+                                                color = secondaryTextColor
+                                            )
+                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = "Encryption",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // 5. Card 2, red text: Block $name or Unblock $name
+                            if (otherUid.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = cardBgColor,
+                                    tonalElevation = 1.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (isBlockedByMe) {
+                                                    viewModel.unblockUser(otherUid)
+                                                } else {
+                                                    viewModel.blockUser(otherUid, recipient)
+                                                }
+                                            }
+                                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                                            .testTag("contact_info_block_row")
+                                    ) {
+                                        Text(
+                                            text = if (isBlockedByMe) "Unblock $effectiveDisplayName" else "Block $effectiveDisplayName",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFFEF4444)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
+                    }
+                }
+            }
+
+            // Mute Card sub-overlay (no AlertDialog/ModalBottomSheet/DropdownMenu)
+            if (showMuteCard) {
+                val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+                val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                val chatId = activeChatId.orEmpty()
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(40f)
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { showMuteCard = false }
+                        )
+                        .padding(horizontal = 28.dp)
+                        .testTag("mute_chat_card_overlay")
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = cardBgColor,
+                        tonalElevation = 4.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 360.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 18.dp, horizontal = 20.dp)
+                        ) {
+                            Text(
+                                text = "Mute notifications",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            val options = listOf(
+                                "8 hours" to Timestamp(java.util.Date(System.currentTimeMillis() + 8L * 60L * 60L * 1000L)),
+                                "1 week" to Timestamp(java.util.Date(System.currentTimeMillis() + 7L * 24L * 60L * 60L * 1000L)),
+                                "Always" to Timestamp(4102444800L, 0)
+                            )
+
+                            options.forEach { (label, endTs) ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            if (chatId.isNotEmpty()) {
+                                                viewModel.setMutedUntil(chatId, endTs)
+                                            }
+                                            showMuteCard = false
+                                        }
+                                        .padding(vertical = 12.dp, horizontal = 8.dp)
+                                        .testTag("mute_option_${label.lowercase().replace(' ', '_')}")
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = primaryTextColor
+                                    )
+                                }
+                            }
+
+                            if (isCurrentChatMuted) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            if (chatId.isNotEmpty()) {
+                                                viewModel.setMutedUntil(chatId, null)
+                                            }
+                                            showMuteCard = false
+                                        }
+                                        .padding(vertical = 12.dp, horizontal = 8.dp)
+                                        .testTag("mute_option_unmute")
+                                ) {
+                                    Text(
+                                        text = "Unmute",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = accentColor
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                TextButton(
+                                    onClick = { showMuteCard = false },
+                                    modifier = Modifier.testTag("mute_card_cancel_button")
+                                ) {
+                                    Text("Cancel", color = secondaryTextColor)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Safety Number Card sub-overlay (no AlertDialog/ModalBottomSheet/DropdownMenu)
+            if (showSafetyNumberCard) {
+                val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+                val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                val gridBgColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)
+                var safetyGroups by remember { mutableStateOf<List<String>?>(null) }
+                var isLoadingSafety by remember { mutableStateOf(true) }
+
+                LaunchedEffect(otherUid, currentUid) {
+                    isLoadingSafety = true
+                    safetyGroups = viewModel.getSafetyNumberForPeer(otherUid)
+                    isLoadingSafety = false
+                }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(40f)
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { showSafetyNumberCard = false }
+                        )
+                        .padding(horizontal = 24.dp)
+                        .testTag("safety_number_card_overlay")
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = cardBgColor,
+                        tonalElevation = 4.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = 380.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = {}
+                            )
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(accentColor.copy(alpha = 0.15f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Verify security code",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryTextColor
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "To verify end-to-end encryption with $effectiveDisplayName, compare these numbers on both devices.",
+                                fontSize = 13.sp,
+                                color = secondaryTextColor,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = gridBgColor,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val groups = safetyGroups
+                                if (isLoadingSafety) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 28.dp)
+                                    ) {
+                                        CircularProgressIndicator(
+                                            color = accentColor,
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                } else if (groups != null && groups.size == 12) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                                            .testTag("safety_number_grid")
+                                    ) {
+                                        for (rowIdx in 0 until 4) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                for (colIdx in 0 until 3) {
+                                                    val code = groups[rowIdx * 3 + colIdx]
+                                                    Text(
+                                                        text = code,
+                                                        fontSize = 16.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontFamily = FontFamily.Monospace,
+                                                        color = primaryTextColor
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 24.dp, horizontal = 16.dp)
+                                    ) {
+                                        Text(
+                                            text = "Security code will appear once both users have published encryption keys.",
+                                            fontSize = 13.sp,
+                                            color = secondaryTextColor,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val groups = safetyGroups
+                                if (groups != null && groups.size == 12) {
+                                    TextButton(
+                                        onClick = {
+                                            val formatted = groups.chunked(3).joinToString("\n") { it.joinToString(" ") }
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                            clipboard?.setPrimaryClip(ClipData.newPlainText("Safety Number", formatted))
+                                            Toast.makeText(context, "Safety number copied", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.testTag("safety_number_copy_button")
+                                    ) {
+                                        Text("Copy", color = accentColor, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                TextButton(
+                                    onClick = { showSafetyNumberCard = false },
+                                    modifier = Modifier.testTag("safety_number_close_button")
+                                ) {
+                                    Text("Close", color = primaryTextColor, fontWeight = FontWeight.Medium)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // In-Chat Search sub-overlay (no AlertDialog/ModalBottomSheet/DropdownMenu)
+            if (showChatSearchOverlay) {
+                var chatSearchQuery by remember { mutableStateOf("") }
+                val bgColor = when {
+                    isAmoled -> Color.Black
+                    isDark -> Color(0xFF0B141A)
+                    else -> Color(0xFFF1F5F9)
+                }
+                val cardBgColor = if (isDark) Color(0xFF1E293B) else Color.White
+                val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+
+                val matchingMessages = remember(messages, chatSearchQuery) {
+                    val q = chatSearchQuery.trim()
+                    if (q.isEmpty()) {
+                        emptyList()
+                    } else {
+                        messages
+                            .filter { msg ->
+                                !msg.isDeleted &&
+                                    msg.messageType == "text" &&
+                                    msg.text.isNotBlank() &&
+                                    msg.text != "Encrypted message" &&
+                                    msg.text.contains(q, ignoreCase = true)
+                            }
+                            .sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(40f)
+                        .background(bgColor)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        )
+                        .testTag("in_chat_search_overlay")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .statusBarsPadding()
+                            .navigationBarsPadding()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            IconButton(
+                                onClick = { showChatSearchOverlay = false },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("in_chat_search_back_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = primaryTextColor
+                                )
+                            }
+
+                            TextField(
+                                value = chatSearchQuery,
+                                onValueChange = { chatSearchQuery = it },
+                                placeholder = {
+                                    Text(
+                                        text = "Search in chat...",
+                                        color = secondaryTextColor,
+                                        fontSize = 15.sp
+                                    )
+                                },
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (chatSearchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { chatSearchQuery = "" }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Clear search",
+                                                tint = secondaryTextColor
+                                            )
+                                        }
+                                    }
+                                },
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    cursorColor = accentColor,
+                                    focusedTextColor = primaryTextColor,
+                                    unfocusedTextColor = primaryTextColor
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("in_chat_search_input")
+                            )
+                        }
+
+                        if (chatSearchQuery.trim().isEmpty()) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Type to search messages in this chat",
+                                    fontSize = 14.sp,
+                                    color = secondaryTextColor
+                                )
+                            }
+                        } else if (matchingMessages.isEmpty()) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "No matching messages",
+                                    fontSize = 14.sp,
+                                    color = secondaryTextColor
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .testTag("in_chat_search_results_list")
+                            ) {
+                                items(matchingMessages, key = { it.id }) { msg ->
+                                    val senderLabel = if (msg.senderId == currentUid) "You" else effectiveDisplayName
+                                    val timeStr = remember(msg.timestamp) {
+                                        msg.timestamp?.toDate()?.let {
+                                            SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(it)
+                                        } ?: ""
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(14.dp),
+                                        color = cardBgColor,
+                                        tonalElevation = 1.dp,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                val targetIdx = messages.indexOfFirst { it.id == msg.id }
+                                                showChatSearchOverlay = false
+                                                showContactInfo = false
+                                                if (targetIdx >= 0) {
+                                                    highlightedMessageId = msg.id
+                                                    wallpaperScope.launch {
+                                                        listState.animateScrollToItem(targetIdx)
+                                                    }
+                                                }
+                                            }
+                                            .testTag("in_chat_search_result_${msg.id}")
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = senderLabel,
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = accentColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                if (timeStr.isNotEmpty()) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = timeStr,
+                                                        fontSize = 11.sp,
+                                                        color = secondaryTextColor
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = msg.text,
+                                                fontSize = 14.sp,
+                                                color = primaryTextColor,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Attachment Bottom Sheet
@@ -2411,6 +3308,7 @@ private fun MessageBubble(
     bubbleBackdrop: Backdrop? = null,
     uploadProgress: Float? = null,
     onRetryUpload: (() -> Unit)? = null,
+    isHighlighted: Boolean = false,
     onLongPress: () -> Unit
 ) {
     val isMediaOrSpecialBubble = !message.isDeleted && (
@@ -2468,7 +3366,18 @@ private fun MessageBubble(
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (isHighlighted) {
+                    Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(accentColor.copy(alpha = 0.22f))
+                        .padding(vertical = 2.dp)
+                } else {
+                    Modifier
+                }
+            ),
         contentAlignment = if (isOwn) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         if (isTextBubble) {

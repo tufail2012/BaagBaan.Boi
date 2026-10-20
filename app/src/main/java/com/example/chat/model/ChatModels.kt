@@ -20,6 +20,7 @@ data class UserPrivate(
     val groupAddVisibility: String = "everyone",
     val statusMode: String = "contacts",
     val statusUids: List<String> = emptyList(),
+    val mutedChats: Map<String, Timestamp> = emptyMap(),
     val updatedAt: Timestamp? = null
 )
 

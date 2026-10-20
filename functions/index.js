@@ -125,6 +125,24 @@ exports.onMessageCreated = onDocumentCreated(
           }
 
           const userData = userSnap.data() || {};
+          if (userData.mutedChats && typeof userData.mutedChats === "object" && userData.mutedChats[chatId]) {
+            const rawMute = userData.mutedChats[chatId];
+            let muteUntilMs = NaN;
+            if (typeof rawMute.toMillis === "function") {
+              muteUntilMs = rawMute.toMillis();
+            } else if (rawMute instanceof Date) {
+              muteUntilMs = rawMute.getTime();
+            } else if (typeof rawMute === "number") {
+              muteUntilMs = rawMute;
+            } else if (typeof rawMute === "string") {
+              muteUntilMs = Date.parse(rawMute);
+            } else if (typeof rawMute.seconds === "number") {
+              muteUntilMs = rawMute.seconds * 1000 + Math.floor((rawMute.nanoseconds || 0) / 1e6);
+            }
+            if (Number.isFinite(muteUntilMs) && muteUntilMs > Date.now()) {
+              continue;
+            }
+          }
           const fcmTokens = Array.isArray(userData.fcmTokens)
             ? userData.fcmTokens.filter(
                 (t) => typeof t === "string" && t.trim().length > 0
