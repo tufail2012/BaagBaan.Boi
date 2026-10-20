@@ -1349,41 +1349,88 @@ class ChatRepository(private val context: Context) {
         }
     }
 
-    fun getStatusesFlow(): Flow<List<StatusItem>> = callbackFlow {
+    fun getStatusesFlow(uid: String): Flow<List<StatusItem>> = callbackFlow {
         val firestore = db
-        if (firestore == null) {
+        if (firestore == null || uid.isBlank()) {
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        val listener = firestore.collection("statuses")
+        val audienceDocs = mutableMapOf<String, com.google.firebase.firestore.DocumentSnapshot>()
+        val ownDocs = mutableMapOf<String, com.google.firebase.firestore.DocumentSnapshot>()
+
+        fun emitMerged() {
+            val nowMs = System.currentTimeMillis()
+            val merged = audienceDocs + ownDocs
+            val items = merged.values
+                .mapNotNull { parseStatusDoc(it) }
+                .filter { !it.isExpired(nowMs) }
+                .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
+            trySend(items)
+        }
+
+        val audienceListener = firestore.collection("statuses")
+            .whereArrayContains("audience", uid)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.w(TAG, "Error listening to statuses: ${error.message}")
+                    Log.w(TAG, "Error listening to audience statuses: ${error.message}")
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    val nowMs = System.currentTimeMillis()
-                    val items = snapshot.documents
-                        .mapNotNull { parseStatusDoc(it) }
-                        .filter { !it.isExpired(nowMs) }
-                        .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
-                    trySend(items)
+                    audienceDocs.clear()
+                    for (doc in snapshot.documents) {
+                        audienceDocs[doc.id] = doc
+                    }
+                    emitMerged()
+                }
+            }
+
+        val ownListener = firestore.collection("statuses")
+            .whereEqualTo("userId", uid)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w(TAG, "Error listening to own statuses: ${error.message}")
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    ownDocs.clear()
+                    for (doc in snapshot.documents) {
+                        ownDocs[doc.id] = doc
+                    }
+                    emitMerged()
                 }
             }
 
         awaitClose {
-            listener.remove()
+            audienceListener.remove()
+            ownListener.remove()
         }
     }
 
-    suspend fun fetchActiveStatuses(): List<StatusItem> {
+    suspend fun fetchActiveStatuses(uid: String): List<StatusItem> {
         val firestore = db ?: return emptyList()
+        if (uid.isBlank()) return emptyList()
         return try {
+            val audienceSnapshot = firestore.collection("statuses")
+                .whereArrayContains("audience", uid)
+                .get()
+                .await()
+            val ownSnapshot = firestore.collection("statuses")
+                .whereEqualTo("userId", uid)
+                .get()
+                .await()
+
+            val mergedDocs = LinkedHashMap<String, com.google.firebase.firestore.DocumentSnapshot>()
+            for (doc in audienceSnapshot.documents) {
+                mergedDocs[doc.id] = doc
+            }
+            for (doc in ownSnapshot.documents) {
+                mergedDocs[doc.id] = doc
+            }
+
             val nowMs = System.currentTimeMillis()
-            val snapshot = firestore.collection("statuses").get().await()
-            snapshot.documents
+            mergedDocs.values
                 .mapNotNull { parseStatusDoc(it) }
                 .filter { !it.isExpired(nowMs) }
                 .sortedBy { it.createdAt?.toDate()?.time ?: 0L }
@@ -1399,11 +1446,29 @@ class ChatRepository(private val context: Context) {
         backgroundColor: String
     ): Result<StatusItem> {
         val firestore = db ?: return Result.failure(IllegalStateException("Firestore is not available"))
-        val trimmed = text.trim().take(700)
+        val trimmed = text.trim().take(500)
         if (user.uid.isBlank() || trimmed.isEmpty()) {
             return Result.failure(IllegalArgumentException("Status text cannot be empty"))
         }
         return try {
+            val chatsSnapshot = firestore.collection("chats")
+                .whereArrayContains("participantIds", user.uid)
+                .get()
+                .await()
+
+            val audience = chatsSnapshot.documents
+                .asSequence()
+                .filter { doc -> doc.getString("type") != "group" }
+                .flatMap { doc ->
+                    val participants = (doc.get("participantIds") as? List<*>)
+                        ?.mapNotNull { it as? String }
+                        .orEmpty()
+                    participants.asSequence()
+                }
+                .filter { it.isNotBlank() && it != user.uid }
+                .distinct()
+                .toList()
+
             val docRef = firestore.collection("statuses").document()
             val nowMs = System.currentTimeMillis()
             val createdTs = Timestamp(java.util.Date(nowMs))
@@ -1422,7 +1487,8 @@ class ChatRepository(private val context: Context) {
                 "type" to "text",
                 "createdAt" to FieldValue.serverTimestamp(),
                 "expiresAt" to expiresTs,
-                "viewerIds" to emptyList<String>()
+                "viewerIds" to emptyList<String>(),
+                "audience" to audience
             )
             docRef.set(data).await()
 

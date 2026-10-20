@@ -621,7 +621,7 @@ class ChatViewModel(
         val uid = _currentUser.value?.uid ?: return
         if (uid.isBlank()) return
         viewModelScope.launch {
-            val fresh = repository.fetchActiveStatuses()
+            val fresh = repository.fetchActiveStatuses(uid)
             rawStatuses = fresh
             refreshVisibleStatuses()
         }
@@ -757,7 +757,7 @@ class ChatViewModel(
 
         statusesListenJob?.cancel()
         statusesListenJob = viewModelScope.launch {
-            repository.getStatusesFlow()
+            repository.getStatusesFlow(uid)
                 .catch { Log.w("ChatViewModel", "Error in statuses flow: ${it.message}") }
                 .collectLatest { items ->
                     rawStatuses = items

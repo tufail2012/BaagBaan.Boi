@@ -720,7 +720,7 @@ internal fun TextStatusComposerOverlay(
         ) {
             BasicTextField(
                 value = statusText,
-                onValueChange = { if (it.length <= 700) statusText = it },
+                onValueChange = { if (it.length <= 500) statusText = it },
                 cursorBrush = SolidColor(Color.White),
                 textStyle = TextStyle(
                     color = Color.White,
@@ -1008,6 +1008,26 @@ internal fun StatusViewerOverlay(
                 textAlign = TextAlign.Center,
                 lineHeight = if (currentStatus.text.length < 120) 36.sp else 28.sp
             )
+        }
+
+        if (group.userId == currentUid) {
+            val viewCount = currentStatus.viewerIds.count { it.isNotBlank() && it != currentUid }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(Color.Black.copy(alpha = 0.28f))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("status_viewer_viewed_by_pill")
+            ) {
+                Text(
+                    text = "Viewed by $viewCount",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
