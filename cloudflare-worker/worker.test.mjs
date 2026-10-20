@@ -258,7 +258,7 @@ test("Worker /notify claims pushedAt with currentDocument.updateTime before FCM,
       return new Response(JSON.stringify({}), { status: 200 });
     }
 
-    if (url.endsWith("/documents/users/bob") && method === "GET") {
+    if (url.endsWith("/documents/userPrivate/bob") && method === "GET") {
       return new Response(
         JSON.stringify(
           toFirestoreDoc({
@@ -356,7 +356,7 @@ test("Worker /notify claims pushedAt with currentDocument.updateTime before FCM,
     // Verify dead_token_2 was removed via Firestore removeAllFromArray
     assert.equal(commitRequests.length, 1);
     const transform = commitRequests[0].writes[0].transform;
-    assert.ok(transform.document.endsWith("/users/bob"));
+    assert.ok(transform.document.endsWith("/userPrivate/bob"));
     assert.deepEqual(transform.fieldTransforms, [
       {
         fieldPath: "fcmTokens",

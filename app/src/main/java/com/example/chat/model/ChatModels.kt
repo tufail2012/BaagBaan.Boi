@@ -2,14 +2,42 @@ package com.example.chat.model
 
 import com.google.firebase.Timestamp
 
+data class PresenceInfo(
+    val isOnline: Boolean = false,
+    val lastSeenAt: Timestamp? = null,
+    val typingChatId: String? = null,
+    val typingAt: Timestamp? = null
+)
+
+data class UserPrivate(
+    val fcmTokens: List<String> = emptyList(),
+    val blockedUsers: List<String> = emptyList(),
+    val readReceipts: Boolean = true,
+    val showOnlineStatus: Boolean = true,
+    val lastSeenVisibility: String = "everyone",
+    val photoVisibility: String = "everyone",
+    val aboutVisibility: String = "everyone",
+    val groupAddVisibility: String = "everyone",
+    val statusMode: String = "contacts",
+    val statusUids: List<String> = emptyList(),
+    val updatedAt: Timestamp? = null
+)
+
+/**
+ * Public fields (uid, username, displayName, createdAt, updatedAt) are read from users/{uid}.
+ * Extra fields are merged in-memory from userPrivate/{uid}, presence/{uid}, photos/{uid},
+ * and abouts/{uid} and are never read from or written to users/{uid}.
+ */
 data class ChatUser(
     val uid: String = "",
     val username: String = "",
     val displayName: String = "",
     val photoUrl: String? = null,
     val fcmToken: String? = null,
+    val fcmTokens: List<String> = emptyList(),
     val lastSeenAt: Timestamp? = null,
     val createdAt: Timestamp? = null,
+    val updatedAt: Timestamp? = null,
     val isOnline: Boolean = false,
     val showOnlineStatus: Boolean = true,
     val readReceipts: Boolean = true,
@@ -24,7 +52,10 @@ data class ChatUser(
     val statusExceptIds: List<String> = emptyList(),
     val statusOnlyIds: List<String> = emptyList(),
     val groupsVisibility: String = "everyone"    // "everyone" | "contacts"
-)
+) {
+    val aboutText: String get() = about
+    val groupAddVisibility: String get() = groupsVisibility
+}
 
 fun canViewerSeePrivacyField(visibility: String?, isSelf: Boolean, isContact: Boolean): Boolean {
     if (isSelf) return true

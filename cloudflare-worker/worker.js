@@ -410,7 +410,7 @@ async function removeInvalidFcmTokens(projectId, accessToken, recipientUid, inva
   const commitUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
     projectId
   )}/databases/(default)/documents:commit`;
-  const documentName = `projects/${projectId}/databases/(default)/documents/users/${recipientUid}`;
+  const documentName = `projects/${projectId}/databases/(default)/documents/userPrivate/${recipientUid}`;
 
   const res = await fetch(commitUrl, {
     method: "POST",
@@ -666,7 +666,7 @@ export default {
           const userDoc = await getFirestoreDocument(
             projectId,
             accessToken,
-            `users/${encodeURIComponent(recipientUid)}`
+            `userPrivate/${encodeURIComponent(recipientUid)}`
           );
           if (!userDoc) {
             continue;

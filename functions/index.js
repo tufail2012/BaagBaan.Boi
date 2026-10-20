@@ -109,7 +109,7 @@ exports.onMessageCreated = onDocumentCreated(
 
       for (const recipientUid of recipients) {
         try {
-          const userRef = db.collection("users").doc(recipientUid);
+          const userRef = db.collection("userPrivate").doc(recipientUid);
           const userSnap = await userRef.get();
           if (!userSnap.exists) {
             continue;

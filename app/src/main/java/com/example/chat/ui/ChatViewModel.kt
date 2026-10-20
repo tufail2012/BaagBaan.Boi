@@ -30,11 +30,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -356,6 +358,7 @@ class ChatViewModel(
 
         viewModelScope.launch {
             _isUserLoading.value = true
+            repository.migrateOwnUserSplit(authUser.uid)
             val existing = repository.getChatUser(authUser.uid)
             if (existing != null && existing.username.isNotBlank()) {
                 _currentUser.value = existing
@@ -363,11 +366,6 @@ class ChatViewModel(
                 _isUsernameSetupRequired.value = false
                 preferences.lastUid = authUser.uid
                 preferences.lastUsername = existing.username
-                val effectiveShowOnline = existing.showOnlineStatus && existing.lastSeenVisibility != "nobody"
-                preferences.isOnlineStatusEnabled = effectiveShowOnline
-                _showOnlineStatus.value = effectiveShowOnline
-                preferences.isReadReceiptsEnabled = existing.readReceipts
-                _readReceipts.value = existing.readReceipts
                 syncFcmToken(authUser.uid)
                 startPresenceHeartbeat(authUser.uid)
                 (context.applicationContext as? android.app.Application)?.let { app ->
@@ -400,6 +398,7 @@ class ChatViewModel(
                 photoUrl = authUser.photoUrl?.toString()
             )
             result.onSuccess { user ->
+                repository.migrateOwnUserSplit(user.uid)
                 _currentUser.value = user
                 _isUsernameSetupRequired.value = false
                 _toastMessage.value = "Welcome, @${user.username}!"
@@ -479,6 +478,76 @@ class ChatViewModel(
         userProfileListeners.clear()
     }
 
+    private fun observeMergedOwnUser(uid: String): Flow<ChatUser?> {
+        return combine(
+            repository.observePublicUser(uid),
+            repository.observeMyPrivate(uid),
+            repository.observePresence(uid),
+            repository.observePhoto(uid),
+            repository.observeAbout(uid)
+        ) { publicUser, priv, presence, photoUrl, aboutText ->
+            val base = publicUser ?: _currentUser.value?.takeIf { it.uid == uid } ?: return@combine null
+            val lastSeenVis = priv?.lastSeenVisibility ?: "everyone"
+            val showOnline = (priv?.showOnlineStatus ?: true) && lastSeenVis != "nobody"
+            val statusVis = when (priv?.statusMode) {
+                "except", "exceptUids" -> "except"
+                "only", "onlyUids" -> "only"
+                else -> "contacts"
+            }
+            val statusExcept = if (statusVis == "except") priv?.statusUids.orEmpty() else emptyList()
+            val statusOnly = if (statusVis == "only") priv?.statusUids.orEmpty() else emptyList()
+
+            base.copy(
+                photoUrl = photoUrl,
+                fcmTokens = priv?.fcmTokens.orEmpty(),
+                blockedUsers = priv?.blockedUsers.orEmpty(),
+                readReceipts = priv?.readReceipts ?: true,
+                showOnlineStatus = showOnline,
+                lastSeenVisibility = lastSeenVis,
+                photoVisibility = priv?.photoVisibility ?: "everyone",
+                aboutVisibility = priv?.aboutVisibility ?: "everyone",
+                groupsVisibility = priv?.groupAddVisibility ?: "everyone",
+                statusVisibility = statusVis,
+                statusExceptIds = statusExcept,
+                statusOnlyIds = statusOnly,
+                isOnline = presence?.isOnline ?: false,
+                lastSeenAt = presence?.lastSeenAt,
+                typingChatId = presence?.typingChatId,
+                typingAt = presence?.typingAt,
+                about = aboutText.orEmpty()
+            )
+        }
+    }
+
+    private fun observeMergedOtherUser(uid: String): Flow<ChatUser?> {
+        return combine(
+            repository.observePublicUser(uid),
+            repository.observePresence(uid),
+            repository.observePhoto(uid),
+            repository.observeAbout(uid)
+        ) { publicUser, presence, photoUrl, aboutText ->
+            val base = publicUser ?: _userProfiles.value[uid] ?: ChatUser(uid = uid)
+            if (base.username.isBlank() && publicUser == null && presence == null && photoUrl == null && aboutText == null) {
+                return@combine null
+            }
+            val hasPresence = presence != null
+            val hasPhoto = !photoUrl.isNullOrBlank()
+            val hasAbout = !aboutText.isNullOrBlank()
+            base.copy(
+                photoUrl = photoUrl,
+                isOnline = presence?.isOnline ?: false,
+                lastSeenAt = presence?.lastSeenAt,
+                typingChatId = presence?.typingChatId,
+                typingAt = presence?.typingAt,
+                showOnlineStatus = hasPresence,
+                lastSeenVisibility = if (hasPresence) "everyone" else "nobody",
+                photoVisibility = if (hasPhoto) "everyone" else "nobody",
+                about = aboutText.orEmpty(),
+                aboutVisibility = if (hasAbout) "everyone" else "nobody"
+            )
+        }
+    }
+
     private fun syncUserProfileListeners() {
         val currentUid = _currentUser.value?.uid.orEmpty()
         val targetUids = buildSet {
@@ -491,6 +560,9 @@ class ChatViewModel(
             for (status in rawStatuses) {
                 if (status.userId.isNotBlank()) add(status.userId)
             }
+            for (searchUser in _searchResults.value) {
+                if (searchUser.uid.isNotBlank()) add(searchUser.uid)
+            }
         }
 
         val toRemove = userProfileListeners.keys.filter { it !in targetUids }
@@ -501,7 +573,12 @@ class ChatViewModel(
         for (uid in targetUids) {
             if (uid in userProfileListeners) continue
             userProfileListeners[uid] = viewModelScope.launch {
-                repository.getUserFlow(uid)
+                val flow = if (uid == currentUid) {
+                    observeMergedOwnUser(uid)
+                } else {
+                    observeMergedOtherUser(uid)
+                }
+                flow
                     .catch { Log.w(TAG, "Error observing profile for $uid: ${it.message}") }
                     .collectLatest { user ->
                         if (user != null) {
@@ -522,6 +599,7 @@ class ChatViewModel(
                                     preferences.isReadReceiptsEnabled = user.readReceipts
                                     _readReceipts.value = user.readReceipts
                                 }
+                                refreshBlockedState()
                             }
                             refreshVisibleStatuses()
                         }
@@ -544,6 +622,8 @@ class ChatViewModel(
         val currentUid = _currentUser.value?.uid.orEmpty()
         if (otherUser.uid.isNotBlank() && otherUser.uid == currentUid) return true
         if (!_showOnlineStatus.value || _currentUser.value?.lastSeenVisibility == "nobody") return false
+        if (_currentUser.value?.lastSeenVisibility == "contacts" && !isDirectContact(otherUser.uid)) return false
+        if (isUserOrChatBlocked(otherUser.uid)) return false
         if (!otherUser.showOnlineStatus) return false
         return canViewerSeePrivacyField(
             visibility = otherUser.lastSeenVisibility,
@@ -554,16 +634,12 @@ class ChatViewModel(
 
     fun canSeeUserPhoto(otherUid: String, otherUser: ChatUser? = _userProfiles.value[otherUid]): Boolean {
         val clean = otherUid.trim()
-        if (clean.isEmpty()) return true
+        if (clean.isEmpty()) return false
         val currentUid = _currentUser.value?.uid.orEmpty()
         if (clean == currentUid) return true
         if (isUserOrChatBlocked(clean)) return false
-        val visibility = otherUser?.photoVisibility ?: "everyone"
-        return canViewerSeePrivacyField(
-            visibility = visibility,
-            isSelf = false,
-            isContact = isDirectContact(clean)
-        )
+        val resolved = _userProfiles.value[clean] ?: otherUser
+        return !resolved?.photoUrl.isNullOrBlank()
     }
 
     fun visiblePhotoUrl(
@@ -571,8 +647,15 @@ class ChatViewModel(
         fallbackUrl: String?,
         otherUser: ChatUser? = _userProfiles.value[otherUid]
     ): String? {
-        if (!canSeeUserPhoto(otherUid, otherUser)) return null
-        return otherUser?.photoUrl?.ifBlank { null } ?: fallbackUrl?.ifBlank { null }
+        val clean = otherUid.trim()
+        if (clean.isEmpty()) return null
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (clean == currentUid) {
+            return _currentUser.value?.photoUrl?.ifBlank { null }
+        }
+        if (isUserOrChatBlocked(clean)) return null
+        val resolved = _userProfiles.value[clean] ?: otherUser
+        return resolved?.photoUrl?.ifBlank { null }
     }
 
     fun canSeeUserAbout(otherUid: String, otherUser: ChatUser? = _userProfiles.value[otherUid]): Boolean {
@@ -581,20 +664,23 @@ class ChatViewModel(
         val currentUid = _currentUser.value?.uid.orEmpty()
         if (clean == currentUid) return true
         if (isUserOrChatBlocked(clean)) return false
-        val visibility = otherUser?.aboutVisibility ?: "everyone"
-        return canViewerSeePrivacyField(
-            visibility = visibility,
-            isSelf = false,
-            isContact = isDirectContact(clean)
-        )
+        val resolved = _userProfiles.value[clean] ?: otherUser
+        return !resolved?.about?.trim().isNullOrEmpty()
     }
 
     fun visibleAbout(
         otherUid: String,
         otherUser: ChatUser? = _userProfiles.value[otherUid]
     ): String? {
-        if (!canSeeUserAbout(otherUid, otherUser)) return null
-        return otherUser?.about?.trim()?.ifEmpty { null }
+        val clean = otherUid.trim()
+        if (clean.isEmpty()) return null
+        val currentUid = _currentUser.value?.uid.orEmpty()
+        if (clean == currentUid) {
+            return _currentUser.value?.about?.trim()?.ifEmpty { null }
+        }
+        if (isUserOrChatBlocked(clean)) return null
+        val resolved = _userProfiles.value[clean] ?: otherUser
+        return resolved?.about?.trim()?.ifEmpty { null }
     }
 
     private fun refreshBlockedState() {
@@ -872,6 +958,7 @@ class ChatViewModel(
         viewModelScope.launch {
             val fresh = repository.fetchActiveStatuses(uid)
             rawStatuses = fresh
+            syncUserProfileListeners()
             refreshVisibleStatuses()
         }
     }
@@ -1475,6 +1562,7 @@ class ChatViewModel(
             _searchResults.value = results.filterNot { user ->
                 isUserInLockedChat(user.uid, currentUid)
             }
+            syncUserProfileListeners()
             _isSearching.value = false
         }
     }
@@ -1527,7 +1615,7 @@ class ChatViewModel(
                             uid = current.uid,
                             username = current.username,
                             displayName = current.displayName,
-                            photoUrl = current.photoUrl
+                            photoUrl = null
                         )
                     )
                     for (member in actualMembers) {
@@ -1537,7 +1625,7 @@ class ChatViewModel(
                                 uid = member.uid,
                                 username = member.username,
                                 displayName = member.displayName,
-                                photoUrl = member.photoUrl
+                                photoUrl = null
                             )
                         )
                     }
@@ -1588,7 +1676,7 @@ class ChatViewModel(
                     uid = otherUser.uid,
                     username = otherUser.username,
                     displayName = otherUser.displayName,
-                    photoUrl = otherUser.photoUrl
+                    photoUrl = null
                 )
                 _activeSubScreen.value = ChatSubScreen.CONVERSATION
                 _ghostModeEnabled.value = false
@@ -1649,8 +1737,11 @@ class ChatViewModel(
         _recipientTyping.value = false
         _recipientPresence.value = null
         presenceListenJob = viewModelScope.launch {
-            repository.getUserFlow(uid).collectLatest { user ->
+            observeMergedOtherUser(uid).collectLatest { user ->
                 _recipientPresence.value = user
+                if (user != null) {
+                    _userProfiles.update { it + (uid to user) }
+                }
                 refreshActiveChatBlockFlags()
                 val activeChatId = _activeChatId.value
                 val currentUid = _currentUser.value?.uid.orEmpty()
@@ -1663,8 +1754,7 @@ class ChatViewModel(
                     _isActiveChatBlockedByOther.value ||
                     (otherUid.isNotEmpty() && otherUid in _blockedUserIds.value) ||
                     (currentUid.isNotEmpty() && activeChat?.blockedBy?.contains(currentUid) == true) ||
-                    (otherUid.isNotEmpty() && activeChat?.blockedBy?.contains(otherUid) == true) ||
-                    (currentUid.isNotEmpty() && user?.blockedUsers?.contains(currentUid) == true)
+                    (otherUid.isNotEmpty() && activeChat?.blockedBy?.contains(otherUid) == true)
 
                 val nowMs = System.currentTimeMillis()
                 val typingAtMs = user?.typingAt?.toDate()?.time
