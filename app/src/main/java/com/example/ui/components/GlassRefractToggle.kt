@@ -159,8 +159,10 @@ fun GlassRefractToggle(
         }
     }
 
+    // Only animate to the checked value when no release is running.
+    // Otherwise the release animation and this one fight over value.
     LaunchedEffect(checked, dragging) {
-        if (!dragging) {
+        if (!dragging && releaseJob?.isActive != true) {
             value.animateTo(if (checked) 1f else 0f, valueSpec)
         }
     }
@@ -202,11 +204,10 @@ fun GlassRefractToggle(
                 role = Role.Switch,
                 onValueChange = { newValue ->
                     startPress()
-                    val targetBool = newValue
-                    val targetFloat = if (targetBool) 1f else 0f
-                    if (targetBool != currentChecked) {
-                        haptics.play(Haptic.Tick)
-                        currentOnChange?.invoke(targetBool)
+                    val targetFloat = if (newValue) 1f else 0f
+                    if (newValue != currentChecked) {
+                        haptics.play(Haptic.Select)
+                        currentOnChange?.invoke(newValue)
                     }
                     finishRelease(targetFloat)
                 },
@@ -232,7 +233,7 @@ fun GlassRefractToggle(
                         val targetBool = value.value >= 0.5f
                         val targetFloat = if (targetBool) 1f else 0f
                         if (targetBool != currentChecked) {
-                            haptics.play(Haptic.Tick)
+                            haptics.play(Haptic.Select)
                             currentOnChange?.invoke(targetBool)
                         }
                         finishRelease(targetFloat)
