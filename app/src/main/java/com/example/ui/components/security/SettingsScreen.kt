@@ -116,6 +116,7 @@ import com.example.ui.components.PremiumGlassAmbientBackdrop
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.GlassToggle
 import com.example.ui.components.getSectionAccentColor
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
@@ -1262,14 +1263,12 @@ private fun SettingsToggleRow(
             }
         }
 
-        Switch(
+        GlassToggle(
             checked = checked,
             onCheckedChange = onCheckedChange,
+            description = title,
+            activeColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.testTag(testTag),
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = MaterialTheme.colorScheme.primary
-            )
         )
     }
 }

@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,12 +35,14 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.example.ui.animation.IosMotion
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -71,6 +74,8 @@ fun GlassToggle(
     inactiveColor: Color = Color(0xFF8E8E93).copy(alpha = 0.45f),
 ) {
     val density = LocalDensity.current
+    val context = LocalContext.current
+    val reduceMotion = remember(context) { IosMotion.isReducedMotion(context) }
     val travelPx = with(density) { TRAVEL.toPx() }
     val padPx = with(density) { THUMB_PADDING.toPx() }
     val scope = rememberCoroutineScope()
@@ -92,14 +97,14 @@ fun GlassToggle(
         if (!dragging) {
             progress.animateTo(
                 targetValue = if (checked) 1f else 0f,
-                animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow),
+                animationSpec = if (reduceMotion) snap<Float>() else spring<Float>(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow),
             )
         }
     }
 
     val pressAmount by animateFloatAsState(
         targetValue = if (interactive && (isPressed || dragging)) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium),
+        animationSpec = if (reduceMotion) snap<Float>() else spring<Float>(dampingRatio = 0.6f, stiffness = Spring.StiffnessMedium),
         label = "glassTogglePress",
     )
 
@@ -142,8 +147,9 @@ fun GlassToggle(
             modifier = Modifier
                 .size(width = TRACK_WIDTH, height = TRACK_HEIGHT)
                 .drawBehind {
+                    val fraction = progress.value.coerceIn(0f, 1f)
                     val radius = CornerRadius(size.height / 2f)
-                    val fill = lerp(inactiveColor, activeColor, progress.value)
+                    val fill = lerp(inactiveColor, activeColor, fraction)
 
                     // Base fill
                     drawRoundRect(color = fill, cornerRadius = radius)
