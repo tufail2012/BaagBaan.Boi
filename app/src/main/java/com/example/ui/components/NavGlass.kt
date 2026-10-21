@@ -42,10 +42,10 @@ internal val LocalNavGlassExport = compositionLocalOf<LayerBackdrop?> { null }
 internal val NavGlassSpring = spring<Float>(dampingRatio = 0.72f, stiffness = 320f)
 
 /** Apple-matched defaults, identical to the reference design. */
-private const val VIBRANCY = 1f
-private const val BLUR_RADIUS_DP = 8f
-private const val LENS_HEIGHT_FRACTION = 0.5f
-private const val LENS_AMOUNT_FRACTION = 0.5f
+private const val VIBRANCY = 2f
+private const val BLUR_RADIUS_DP = 3f
+private const val LENS_HEIGHT_FRACTION = 0.60f
+private const val LENS_AMOUNT_FRACTION = 0.69f
 private const val LENS_MAX_DP = 48f
 private const val SURFACE_OPACITY = 0.4f
 
@@ -53,7 +53,7 @@ private const val SURFACE_OPACITY = 0.4f
  * Resolution fraction the glass records and processes its backdrop at.
  * Blur radius and lens parameters are pre-multiplied by it (see below).
  */
-private const val GLASS_RESOLUTION_SCALE = 0.33f
+private const val GLASS_RESOLUTION_SCALE = 0.30f
 
 /**
  * Renders this composable as a liquid glass surface sampling [backdrop]:
@@ -87,8 +87,8 @@ fun Modifier.navLiquidGlass(shape: CornerBasedShape, backdrop: Backdrop): Modifi
                 lens(
                     refractionHeight = lensHeightPx,
                     refractionAmount = lensAmountPx,
-                    depthEffect = true,
-                    chromaticAberration = true,
+                    depthEffect = false,
+                    chromaticAberration = false,
                 )
             }
         },

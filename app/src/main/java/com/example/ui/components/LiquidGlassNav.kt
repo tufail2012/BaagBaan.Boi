@@ -29,9 +29,9 @@ fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
 fun Modifier.glassEdge(shape: CornerBasedShape): Modifier =
     border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
 
-private const val BLUR_RADIUS_DP = 8f
-private const val LENS_HEIGHT = 0.5f
-private const val LENS_AMOUNT = 0.5f
+private const val BLUR_RADIUS_DP = 3f
+private const val LENS_HEIGHT = 0.60f
+private const val LENS_AMOUNT = 0.69f
 private const val LENS_MAX_DP = 48f
 private const val SURFACE_OPACITY = 0.4f
 
@@ -87,8 +87,8 @@ fun Modifier.liquidGlassNav(shape: CornerBasedShape, backdrop: Backdrop?): Modif
                 lens(
                     refractionHeight = lensHeightPx,
                     refractionAmount = lensAmountPx,
-                    depthEffect = true,
-                    chromaticAberration = true
+                    depthEffect = false,
+                    chromaticAberration = false
                 )
             }
         },
