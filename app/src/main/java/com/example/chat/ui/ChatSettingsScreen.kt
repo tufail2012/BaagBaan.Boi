@@ -58,8 +58,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -86,6 +84,7 @@ import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
 import com.example.chat.model.formatPrivacyVisibilityLabel
 import com.example.chat.model.formatStatusPrivacyLabel
+import com.example.ui.components.GlassToggle
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
@@ -717,13 +716,11 @@ fun ChatSettingsScreen(
                         )
                     }
 
-                    Switch(
+                    GlassToggle(
                         checked = readReceipts,
                         onCheckedChange = { viewModel.setReadReceipts(it) },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = if (isDark) Color.Black else Color.White,
-                            checkedTrackColor = contentColor
-                        ),
+                        description = "Read receipts",
+                        activeColor = accentColor,
                         modifier = Modifier.testTag("read_receipts_toggle_switch")
                     )
                 }
@@ -963,13 +960,11 @@ fun ChatSettingsScreen(
                     )
                 }
 
-                Switch(
+                GlassToggle(
                     checked = notificationsEnabled,
                     onCheckedChange = { viewModel.setNotificationsEnabled(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = accentColor
-                    ),
+                    description = "Message Notifications",
+                    activeColor = accentColor,
                     modifier = Modifier.testTag("notifications_toggle_switch")
                 )
             }
