@@ -84,7 +84,7 @@ import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
 import com.example.chat.model.formatPrivacyVisibilityLabel
 import com.example.chat.model.formatStatusPrivacyLabel
-import com.example.ui.components.GlassToggle
+import com.example.ui.components.GlassRefractToggle
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
@@ -716,11 +716,12 @@ fun ChatSettingsScreen(
                         )
                     }
 
-                    GlassToggle(
+                    GlassRefractToggle(
                         checked = readReceipts,
                         onCheckedChange = { viewModel.setReadReceipts(it) },
                         description = "Read receipts",
                         activeColor = accentColor,
+                        inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
                         modifier = Modifier.testTag("read_receipts_toggle_switch")
                     )
                 }
@@ -960,11 +961,12 @@ fun ChatSettingsScreen(
                     )
                 }
 
-                GlassToggle(
+                GlassRefractToggle(
                     checked = notificationsEnabled,
                     onCheckedChange = { viewModel.setNotificationsEnabled(it) },
                     description = "Message Notifications",
                     activeColor = accentColor,
+                    inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
                     modifier = Modifier.testTag("notifications_toggle_switch")
                 )
             }
