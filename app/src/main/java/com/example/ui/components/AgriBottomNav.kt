@@ -96,7 +96,7 @@ private val navBarInsets: WindowInsets
     @Composable get() = WindowInsets.navigationBars.union(WindowInsets(bottom = GESTURE_BAR_FLOOR))
 
 /**
- * Floating pill bottom navigation bar — a 1:1 port of the reference app's expanded
+ * Floating pill bottom navigation bar - a 1:1 port of the reference app's expanded
  * liquid-glass tab bar (GlassNavBar + FloatingTabBar's ExpandedTabs).
  *
  * Glass: [glassBackdrop] must be a vendored LayerBackdrop recorded from the
@@ -195,7 +195,7 @@ fun AgriBottomNav(
     val showPill = tabWidthPx > 0f
 
     // External selection (tap on a tab, or deep-link) that isn't already where
-    // the pill's drag/travel has it — lift and travel there.
+    // the pill's drag/travel has it - lift and travel there.
     LaunchedEffect(selectedIndex) {
         if (!motion.isFlat && motion.index == selectedIndex) return@LaunchedEffect
         motion.animateTo(selectedIndex)
@@ -373,6 +373,7 @@ private fun NavTabRow(
                 animationSpec = glassSpec,
                 label = "glassTabScale"
             )
+            val bounce = rememberSelectionBounce(isSelected)
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -389,8 +390,10 @@ private fun NavTabRow(
             ) {
                 Box(
                     modifier = Modifier.graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
+                        val b = bounce.value
+                        translationY = -NAV_ICON_BOUNCE_LIFT.toPx() * b
+                        scaleX = iconScale + 0.12f * b
+                        scaleY = iconScale + 0.12f * b
                     }
                 ) {
                     Icon(

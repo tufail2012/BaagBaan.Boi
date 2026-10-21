@@ -66,8 +66,10 @@ import com.example.ui.components.FlatSelectionPill
 import com.example.ui.components.GlassPillMotion
 import com.example.ui.components.GlassSelectionPill
 import com.example.ui.components.LocalNavGlassExport
+import com.example.ui.components.NAV_ICON_BOUNCE_LIFT
 import com.example.ui.components.NavGlassSpring
 import com.example.ui.components.PILL_GROW_HEIGHT
+import com.example.ui.components.rememberSelectionBounce
 import com.example.ui.components.backdrop.Backdrop as NavBackdrop
 import com.example.ui.components.backdrop.backdrops.LayerBackdrop
 import com.example.ui.components.backdrop.backdrops.layerBackdrop
@@ -360,6 +362,7 @@ private fun NavTabRow(
                 animationSpec = glassSpec,
                 label = "glassTabScale"
             )
+            val bounce = rememberSelectionBounce(isSelected)
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -376,8 +379,10 @@ private fun NavTabRow(
             ) {
                 Box(
                     modifier = Modifier.graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
+                        val b = bounce.value
+                        translationY = -NAV_ICON_BOUNCE_LIFT.toPx() * b
+                        scaleX = iconScale + 0.12f * b
+                        scaleY = iconScale + 0.12f * b
                     }
                 ) {
                     Icon(
