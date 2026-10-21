@@ -116,8 +116,10 @@ import com.example.ui.components.PremiumGlassAmbientBackdrop
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import com.example.ui.components.GlassRefractToggle
 import com.example.ui.components.GlassToggle
 import com.example.ui.components.getSectionAccentColor
+import com.kyant.backdrop.Backdrop
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.frostedGlassChrome
 import com.example.ui.theme.getAppDimBackgroundBrush
@@ -689,7 +691,8 @@ fun SettingsScreen(
                                         }
                                     }
                                 },
-                                testTag = "online_status_switch"
+                                testTag = "online_status_switch",
+                                backdrop = settingsBackdrop
                             )
                         }
                     }
@@ -899,7 +902,8 @@ fun SettingsScreen(
                                                 appLockManager.applySecureWindowFlag(activity)
                                             }
                                         },
-                                        testTag = "hide_in_recents_switch"
+                                        testTag = "hide_in_recents_switch",
+                                        backdrop = settingsBackdrop
                                     )
 
                                     Spacer(modifier = Modifier.height(10.dp))
@@ -913,7 +917,8 @@ fun SettingsScreen(
                                         onCheckedChange = { checked ->
                                             appLockManager.updateProtectNotifications(checked)
                                         },
-                                        testTag = "protect_notifications_switch"
+                                        testTag = "protect_notifications_switch",
+                                        backdrop = settingsBackdrop
                                     )
 
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -1204,7 +1209,8 @@ private fun SettingsToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     testTag: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backdrop: Backdrop? = null
 ) {
     val isDark = MaterialTheme.colorScheme.surface.let {
         (0.299f * it.red + 0.587f * it.green + 0.114f * it.blue) < 0.5f
@@ -1263,11 +1269,12 @@ private fun SettingsToggleRow(
             }
         }
 
-        GlassToggle(
+        GlassRefractToggle(
             checked = checked,
             onCheckedChange = onCheckedChange,
             description = title,
             activeColor = MaterialTheme.colorScheme.primary,
+            backdrop = backdrop,
             modifier = Modifier.testTag(testTag),
         )
     }

@@ -85,9 +85,15 @@ import com.example.chat.data.ChatRepository
 import com.example.chat.model.formatPrivacyVisibilityLabel
 import com.example.chat.model.formatStatusPrivacyLabel
 import com.example.ui.components.GlassRefractToggle
+import com.example.ui.components.PremiumGlassAmbientBackdrop
 import com.example.ui.components.glassContentColor
+import com.example.ui.components.glassEdge
 import com.example.ui.components.isAppInDarkMode
+import com.example.ui.components.isGlassSupported
+import com.example.ui.components.liquidGlassNav
 import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 @Composable
 fun ChatSettingsScreen(
@@ -581,175 +587,218 @@ fun ChatSettingsScreen(
         )
     }
 
-    if (privacyOpen) {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(top = privacyTopPadding)
-        ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            val lastSeenValueLabel = formatPrivacyVisibilityLabel(
-                currentUser?.lastSeenVisibility ?: if (showOnlineStatus) "everyone" else "nobody"
-            )
-            val photoValueLabel = formatPrivacyVisibilityLabel(currentUser?.photoVisibility ?: "everyone")
-            val aboutValueLabel = formatPrivacyVisibilityLabel(currentUser?.aboutVisibility ?: "everyone")
-            val statusValueLabel = formatStatusPrivacyLabel(currentUser?.statusVisibility ?: "contacts")
-            val groupsValueLabel = formatPrivacyVisibilityLabel(currentUser?.groupsVisibility ?: "everyone")
-
-            PrivacySelectionRowCard(
-                icon = Icons.Default.Visibility,
-                title = "Last seen and online",
-                valueLabel = lastSeenValueLabel,
-                isDark = isDark,
-                contentColor = contentColor,
-                testTag = "privacy_row_last_seen",
-                onClick = { activePrivacyDialog = "lastSeen" }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            PrivacySelectionRowCard(
-                icon = Icons.Default.AccountCircle,
-                title = "Profile photo",
-                valueLabel = photoValueLabel,
-                isDark = isDark,
-                contentColor = contentColor,
-                testTag = "privacy_row_profile_photo",
-                onClick = { activePrivacyDialog = "photo" }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            PrivacySelectionRowCard(
-                icon = Icons.Default.Info,
-                title = "About",
-                valueLabel = aboutValueLabel,
-                isDark = isDark,
-                contentColor = contentColor,
-                testTag = "privacy_row_about",
-                onClick = { activePrivacyDialog = "about" }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            PrivacySelectionRowCard(
-                icon = Icons.Default.Update,
-                title = "Status",
-                valueLabel = statusValueLabel,
-                isDark = isDark,
-                contentColor = contentColor,
-                testTag = "privacy_row_status",
-                onClick = {
-                    val mode = (currentUser?.statusVisibility ?: "contacts").trim().lowercase()
-                        .let { if (it in setOf("contacts", "except", "only")) it else "contacts" }
-                    statusModeDraft = mode
-                    statusSelectedIdsDraft = when (mode) {
-                        "except" -> currentUser?.statusExceptIds.orEmpty().toSet()
-                        "only" -> currentUser?.statusOnlyIds.orEmpty().toSet()
-                        else -> emptySet()
-                    }
-                    activePrivacyDialog = "status"
-                }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            PrivacySelectionRowCard(
-                icon = Icons.Default.Group,
-                title = "Groups",
-                valueLabel = groupsValueLabel,
-                isDark = isDark,
-                contentColor = contentColor,
-                testTag = "privacy_row_groups",
-                onClick = { activePrivacyDialog = "groups" }
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 2. Read receipts toggle
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-                tonalElevation = 1.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(contentColor.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DoneAll,
-                            contentDescription = null,
-                            tint = contentColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(14.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Read receipts",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
-                            color = contentColor
-                        )
-                        Text(
-                            text = "If off, others will not see your blue ticks, and you will not see theirs.",
-                            fontSize = 12.sp,
-                            color = contentColor.copy(alpha = 0.65f),
-                            lineHeight = 16.sp
-                        )
-                    }
-
-                    GlassRefractToggle(
-                        checked = readReceipts,
-                        onCheckedChange = { viewModel.setReadReceipts(it) },
-                        description = "Read receipts",
-                        activeColor = accentColor,
-                        inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
-                        modifier = Modifier.testTag("read_receipts_toggle_switch")
-                    )
-                }
+    val glassSupported = isGlassSupported()
+    val settingsWindowBackground = MaterialTheme.colorScheme.surface
+    val settingsPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+        remember(settingsWindowBackground) {
+            {
+                drawRect(settingsWindowBackground)
+                drawContent()
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            BlockedContactsCard(
-                blockedContacts = blockedContacts,
-                nicknames = nicknames,
-                viewModel = viewModel,
-                isDark = isDark,
-                contentColor = contentColor,
-                accentColor = accentColor
-            )
-
-            Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
         }
-        return
+    val settingsGlassBackdrop = if (glassSupported) {
+        rememberLayerBackdrop(onDraw = settingsPaintBackdrop)
+    } else {
+        null
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Top App Bar
+    Box(modifier = modifier.fillMaxSize()) {
+        if (settingsGlassBackdrop != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(settingsGlassBackdrop)
+            ) {
+                PremiumGlassAmbientBackdrop(
+                    accentColor = accentColor,
+                    isDark = isDark
+                )
+            }
+        }
+
+        if (privacyOpen) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = privacyTopPadding)
+            ) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val lastSeenValueLabel = formatPrivacyVisibilityLabel(
+                    currentUser?.lastSeenVisibility ?: if (showOnlineStatus) "everyone" else "nobody"
+                )
+                val photoValueLabel = formatPrivacyVisibilityLabel(currentUser?.photoVisibility ?: "everyone")
+                val aboutValueLabel = formatPrivacyVisibilityLabel(currentUser?.aboutVisibility ?: "everyone")
+                val statusValueLabel = formatStatusPrivacyLabel(currentUser?.statusVisibility ?: "contacts")
+                val groupsValueLabel = formatPrivacyVisibilityLabel(currentUser?.groupsVisibility ?: "everyone")
+
+                PrivacySelectionRowCard(
+                    icon = Icons.Default.Visibility,
+                    title = "Last seen and online",
+                    valueLabel = lastSeenValueLabel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    testTag = "privacy_row_last_seen",
+                    backdrop = settingsGlassBackdrop,
+                    onClick = { activePrivacyDialog = "lastSeen" }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrivacySelectionRowCard(
+                    icon = Icons.Default.AccountCircle,
+                    title = "Profile photo",
+                    valueLabel = photoValueLabel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    testTag = "privacy_row_profile_photo",
+                    backdrop = settingsGlassBackdrop,
+                    onClick = { activePrivacyDialog = "photo" }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrivacySelectionRowCard(
+                    icon = Icons.Default.Info,
+                    title = "About",
+                    valueLabel = aboutValueLabel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    testTag = "privacy_row_about",
+                    backdrop = settingsGlassBackdrop,
+                    onClick = { activePrivacyDialog = "about" }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrivacySelectionRowCard(
+                    icon = Icons.Default.Update,
+                    title = "Status",
+                    valueLabel = statusValueLabel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    testTag = "privacy_row_status",
+                    backdrop = settingsGlassBackdrop,
+                    onClick = {
+                        val mode = (currentUser?.statusVisibility ?: "contacts").trim().lowercase()
+                            .let { if (it in setOf("contacts", "except", "only")) it else "contacts" }
+                        statusModeDraft = mode
+                        statusSelectedIdsDraft = when (mode) {
+                            "except" -> currentUser?.statusExceptIds.orEmpty().toSet()
+                            "only" -> currentUser?.statusOnlyIds.orEmpty().toSet()
+                            else -> emptySet()
+                        }
+                        activePrivacyDialog = "status"
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                PrivacySelectionRowCard(
+                    icon = Icons.Default.Group,
+                    title = "Groups",
+                    valueLabel = groupsValueLabel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    testTag = "privacy_row_groups",
+                    backdrop = settingsGlassBackdrop,
+                    onClick = { activePrivacyDialog = "groups" }
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 2. Read receipts toggle
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+                    tonalElevation = if (glassSupported) 0.dp else 1.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .then(
+                            if (glassSupported) {
+                                Modifier
+                                    .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
+                                    .glassEdge(RoundedCornerShape(18.dp))
+                            } else {
+                                Modifier
+                            }
+                        )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(contentColor.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DoneAll,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Read receipts",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = contentColor
+                            )
+                            Text(
+                                text = "If off, others will not see your blue ticks, and you will not see theirs.",
+                                fontSize = 12.sp,
+                                color = contentColor.copy(alpha = 0.65f),
+                                lineHeight = 16.sp
+                            )
+                        }
+
+                        GlassRefractToggle(
+                            checked = readReceipts,
+                            onCheckedChange = { viewModel.setReadReceipts(it) },
+                            description = "Read receipts",
+                            activeColor = accentColor,
+                            inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
+                            backdrop = settingsGlassBackdrop,
+                            modifier = Modifier.testTag("read_receipts_toggle_switch")
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                BlockedContactsCard(
+                    blockedContacts = blockedContacts,
+                    nicknames = nicknames,
+                    viewModel = viewModel,
+                    isDark = isDark,
+                    contentColor = contentColor,
+                    accentColor = accentColor
+                )
+
+                Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Top App Bar
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -918,11 +967,21 @@ fun ChatSettingsScreen(
         // Notifications Section
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = 1.dp,
+            color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+            tonalElevation = if (glassSupported) 0.dp else 1.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .then(
+                    if (glassSupported) {
+                        Modifier
+                            .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
+                            .glassEdge(RoundedCornerShape(18.dp))
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -967,6 +1026,7 @@ fun ChatSettingsScreen(
                     description = "Message Notifications",
                     activeColor = accentColor,
                     inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
+                    backdrop = settingsGlassBackdrop,
                     modifier = Modifier.testTag("notifications_toggle_switch")
                 )
             }
@@ -977,12 +1037,21 @@ fun ChatSettingsScreen(
         // Privacy Row
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = 1.dp,
+            color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+            tonalElevation = if (glassSupported) 0.dp else 1.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(18.dp))
+                .then(
+                    if (glassSupported) {
+                        Modifier
+                            .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
+                            .glassEdge(RoundedCornerShape(18.dp))
+                    } else {
+                        Modifier
+                    }
+                )
                 .clickable { onPrivacyOpenChange(true) }
                 .testTag("privacy_settings_row")
         ) {
@@ -1096,6 +1165,8 @@ fun ChatSettingsScreen(
         }
 
         Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+            }
+        }
     }
 }
 
@@ -1107,16 +1178,27 @@ private fun PrivacySelectionRowCard(
     isDark: Boolean,
     contentColor: Color,
     testTag: String,
+    backdrop: Backdrop? = null,
     onClick: () -> Unit
 ) {
+    val glassSupported = isGlassSupported() && backdrop != null
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-        tonalElevation = 1.dp,
+        color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
+        tonalElevation = if (glassSupported) 0.dp else 1.dp,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(18.dp))
+            .then(
+                if (glassSupported) {
+                    Modifier
+                        .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = backdrop)
+                        .glassEdge(RoundedCornerShape(18.dp))
+                } else {
+                    Modifier
+                }
+            )
             .clickable(onClick = onClick)
             .testTag(testTag)
     ) {

@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.MutatorMutex
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -44,8 +46,10 @@ import androidx.compose.ui.util.lerp
 import com.example.ui.animation.IosMotion
 import com.example.ui.haptics.Haptic
 import com.example.ui.haptics.rememberHaptics
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberBackdrop
+import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -55,6 +59,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import kotlin.math.abs
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -78,6 +83,7 @@ fun GlassRefractToggle(
     description: String? = null,
     activeColor: Color = Color(0xFF34C759),
     inactiveColor: Color = Color(0xFF787880).copy(alpha = 0.36f),
+    backdrop: Backdrop? = null,
 ) {
     if (!isGlassSupported()) {
         GlassToggle(
@@ -130,6 +136,7 @@ fun GlassRefractToggle(
     val velocity = remember { Animatable(0f) }
     val scaleX = remember { Animatable(1f) }
     val scaleY = remember { Animatable(1f) }
+    val mutatorMutex = remember { MutatorMutex() }
 
     var dragging by remember { mutableStateOf(false) }
     var releaseJob by remember { mutableStateOf<Job?>(null) }
@@ -145,17 +152,29 @@ fun GlassRefractToggle(
         scope.launch { scaleY.animateTo(1.5f, scaleYSpec) }
     }
 
-    fun finishRelease(targetValue: Float) {
+    fun finishRelease(targetValue: Float, holdPressForTap: Boolean = false) {
         releaseJob?.cancel()
         releaseJob = scope.launch {
-            launch { value.animateTo(targetValue, valueSpec) }
-            withTimeoutOrNull(400L) {
-                snapshotFlow { abs(value.value - targetValue) <= 0.025f }
-                    .first { it }
+            mutatorMutex.mutate {
+                launch { value.animateTo(targetValue, valueSpec) }
+                if (holdPressForTap && !reduceMotion) {
+                    launch { pressProgress.animateTo(1f, pressSpec) }
+                    launch { scaleX.animateTo(1.5f, scaleXSpec) }
+                    launch { scaleY.animateTo(1.5f, scaleYSpec) }
+                    withTimeoutOrNull(220L) {
+                        snapshotFlow { pressProgress.value >= 0.65f }
+                            .first { it }
+                    }
+                    delay(160L)
+                }
+                withTimeoutOrNull(400L) {
+                    snapshotFlow { abs(value.value - targetValue) <= 0.025f }
+                        .first { it }
+                }
+                launch { pressProgress.animateTo(0f, pressSpec) }
+                launch { scaleX.animateTo(1f, scaleXSpec) }
+                launch { scaleY.animateTo(1f, scaleYSpec) }
             }
-            launch { pressProgress.animateTo(0f, pressSpec) }
-            launch { scaleX.animateTo(1f, scaleXSpec) }
-            launch { scaleY.animateTo(1f, scaleYSpec) }
         }
     }
 
@@ -170,23 +189,28 @@ fun GlassRefractToggle(
     LaunchedEffect(isPressed, dragging) {
         if (interactive && (isPressed || dragging)) {
             startPress()
-        } else if (!isPressed && !dragging && releaseJob == null && pressProgress.value > 0f) {
+        } else if (!isPressed && !dragging && releaseJob?.isActive != true && pressProgress.value > 0f) {
             finishRelease(if (currentChecked) 1f else 0f)
         }
     }
 
     val capsuleShape = remember { RoundedCornerShape(percent = 50) }
     val trackBackdrop = rememberLayerBackdrop()
-    val thumbBackdrop = rememberBackdrop(trackBackdrop) { drawBackdrop ->
+    val scaledTrackBackdrop = rememberBackdrop(trackBackdrop) { drawBackdrop ->
         val p = pressProgress.value
         if (p != 0f) {
             scale(
-                scaleX = lerp(2f / 3f, 0.75f, p),
-                scaleY = lerp(0f, 0.75f, p),
+                scaleX = lerp(2f / 3f, 1f, p),
+                scaleY = lerp(0f, 1f, p),
             ) {
                 drawBackdrop()
             }
         }
+    }
+    val thumbBackdrop = if (backdrop != null) {
+        rememberCombinedBackdrop(backdrop, scaledTrackBackdrop)
+    } else {
+        scaledTrackBackdrop
     }
 
     Box(
@@ -206,10 +230,10 @@ fun GlassRefractToggle(
                     startPress()
                     val targetFloat = if (newValue) 1f else 0f
                     if (newValue != currentChecked) {
-                        haptics.play(Haptic.Select)
+                        haptics.play(if (newValue) Haptic.ToggleOn else Haptic.ToggleOff)
                         currentOnChange?.invoke(newValue)
                     }
-                    finishRelease(targetFloat)
+                    finishRelease(targetFloat, holdPressForTap = true)
                 },
             )
             .pointerInput(interactive, dragWidthPx, isRtl, reduceMotion) {
@@ -233,7 +257,7 @@ fun GlassRefractToggle(
                         val targetBool = value.value >= 0.5f
                         val targetFloat = if (targetBool) 1f else 0f
                         if (targetBool != currentChecked) {
-                            haptics.play(Haptic.Select)
+                            haptics.play(if (targetBool) Haptic.ToggleOn else Haptic.ToggleOff)
                             currentOnChange?.invoke(targetBool)
                         }
                         finishRelease(targetFloat)
@@ -265,7 +289,8 @@ fun GlassRefractToggle(
                 .drawBehind {
                     val fraction = value.value.coerceIn(0f, 1f)
                     drawRect(color = lerp(inactiveColor, activeColor, fraction))
-                },
+                }
+                .border(0.5.dp, Color.White.copy(alpha = 0.22f), capsuleShape),
         )
 
         Box(
@@ -331,3 +356,4 @@ fun GlassRefractToggle(
         )
     }
 }
+
