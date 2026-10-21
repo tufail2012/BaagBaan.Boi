@@ -43,9 +43,12 @@ import com.example.ui.components.backdrop.effects.colorControls
 import com.example.ui.components.backdrop.effects.lens
 import com.example.ui.components.backdrop.highlight.Highlight
 import com.example.ui.components.backdrop.shadow.Shadow
+import com.example.ui.components.GlassRefractToggle
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
 import com.example.ui.theme.GlassTuning
+import com.kyant.backdrop.backdrops.layerBackdrop as kyantLayerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop as rememberKyantLayerBackdrop
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -2065,6 +2068,18 @@ fun ChatScreen(
                 val dividerColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE2E8F0)
                 val quickTileBg = if (isDark) Color.White.copy(alpha = 0.08f) else accentColor.copy(alpha = 0.10f)
                 val heroPhotoUrl = recipientVisiblePhotoUrl?.takeIf { it.isNotBlank() }
+                val contactInfoPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
+                    remember(cardBgColor) {
+                        {
+                            drawRect(cardBgColor)
+                            drawContent()
+                        }
+                    }
+                val contactInfoGlassBackdrop = if (isGlassSupported()) {
+                    rememberKyantLayerBackdrop(onDraw = contactInfoPaintBackdrop)
+                } else {
+                    null
+                }
 
                 Box(
                     modifier = Modifier
@@ -2078,6 +2093,13 @@ fun ChatScreen(
                         )
                         .testTag("contact_info_screen")
                 ) {
+                    if (contactInfoGlassBackdrop != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .kyantLayerBackdrop(contactInfoGlassBackdrop)
+                        )
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -2338,12 +2360,13 @@ fun ChatScreen(
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        Switch(
+                                        GlassRefractToggle(
                                             checked = ghostModeEnabled,
                                             onCheckedChange = { viewModel.toggleGhostMode(it) },
-                                            colors = androidx.compose.material3.SwitchDefaults.colors(
-                                                checkedTrackColor = accentColor
-                                            ),
+                                            description = "Ghost",
+                                            activeColor = accentColor,
+                                            inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
+                                            backdrop = contactInfoGlassBackdrop,
                                             modifier = Modifier.testTag("contact_info_ghost_switch")
                                         )
                                     }
