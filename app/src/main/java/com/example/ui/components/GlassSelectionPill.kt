@@ -2,7 +2,7 @@
  * Rendering half of the reference app's GlassSelectionPill.kt, ported 1:1.
  *
  * The motion half (spring / lift / squash / hand-off) is the existing
- * GlassPillMotion.kt in this package — it is already identical to the reference app's.
+ * GlassPillMotion.kt in this package - it is already identical to the reference app's.
  * Pill motion is ported from liquid_glass_easy (Ahmed Gamil, MIT).
  */
 package com.example.ui.components
@@ -31,6 +31,7 @@ import com.example.ui.components.backdrop.drawBackdrop
 import com.example.ui.components.backdrop.effects.lens
 import com.example.ui.components.backdrop.highlight.Highlight
 import com.example.ui.components.backdrop.shadow.Shadow
+import com.example.ui.theme.GlassTuning
 import kotlin.math.roundToInt
 
 /** How much taller than the bar the pill stands while it is lifted. */
@@ -38,7 +39,7 @@ internal val PILL_GROW_HEIGHT = 9.dp
 
 /**
  * Places a pill-sized child centred on [center] at [size], inside a parent it
- * matches the size of — so the pill can move and grow past that parent's
+ * matches the size of - so the pill can move and grow past that parent's
  * edges without ever changing its measured size.
  */
 internal fun Modifier.pillPlacement(center: () -> Offset, size: () -> Size): Modifier =
@@ -82,6 +83,8 @@ internal fun GlassSelectionPill(
             fillColor.copy(alpha = fillColor.alpha * (1f - motion.material))
         }
     }
+    val lensHeight = GlassTuning.scaleLensHeight(PILL_LENS_HEIGHT)
+    val lensAmount = GlassTuning.scaleLensAmount(PILL_LENS_AMOUNT)
     Box(
         modifier.drawBackdrop(
             backdrop = backdrop,
@@ -89,8 +92,8 @@ internal fun GlassSelectionPill(
             effects = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     lens(
-                        refractionHeight = PILL_LENS_HEIGHT.toPx() * motion.glassPresence,
-                        refractionAmount = PILL_LENS_AMOUNT.toPx() * motion.material,
+                        refractionHeight = lensHeight.toPx() * motion.glassPresence,
+                        refractionAmount = lensAmount.toPx() * motion.material,
                         chromaticAberration = true,
                     )
                 }

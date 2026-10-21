@@ -30,6 +30,7 @@ import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.liquidGlassNav
+import com.example.ui.theme.GlassTuning
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -107,10 +108,10 @@ internal fun Modifier.chatHeaderStripGlass(
     }
 
     val density = LocalDensity.current
-    val blurPx = with(density) { STRIP_BLUR_RADIUS_DP.dp.toPx() }
-    val lensHeightPx = with(density) { (STRIP_LENS_HEIGHT * STRIP_LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (STRIP_LENS_AMOUNT * STRIP_LENS_MAX_DP).dp.toPx() }
-    val tintAlpha = if (isDark || isAmoled) 0.55f else 0.6f
+    val blurPx = with(density) { GlassTuning.scaleBlur(STRIP_BLUR_RADIUS_DP).dp.toPx() }
+    val lensHeightPx = with(density) { (GlassTuning.scaleLensHeight(STRIP_LENS_HEIGHT) * STRIP_LENS_MAX_DP).dp.toPx() }
+    val lensAmountPx = with(density) { (GlassTuning.scaleLensAmount(STRIP_LENS_AMOUNT) * STRIP_LENS_MAX_DP).dp.toPx() }
+    val tintAlpha = GlassTuning.scaleSurface(if (isDark || isAmoled) 0.55f else 0.6f)
     // Use 1.dp corner radius instead of 0.dp so lens() shader has a non-zero corner radius
     val stripShape = RoundedCornerShape(1.dp)
 

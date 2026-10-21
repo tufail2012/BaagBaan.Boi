@@ -114,6 +114,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 
 import androidx.compose.material.icons.filled.AccountCircle
+import com.example.ui.theme.GlassTuning
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
@@ -1425,16 +1426,18 @@ fun Modifier.profileMenuLiquidGlass(
     }
 
     val blurPx = with(density) {
-        8.dp.toPx()
+        GlassTuning.scaleBlur(PROFILE_MENU_BLUR_RADIUS_DP).dp.toPx()
     }
 
     val lensHeightPx = with(density) {
-        (0.5f * 48f).dp.toPx()
+        (GlassTuning.scaleLensHeight(PROFILE_MENU_LENS_HEIGHT) * PROFILE_MENU_LENS_MAX_DP).dp.toPx()
     }
 
     val lensAmountPx = with(density) {
-        (0.5f * 48f).dp.toPx()
+        (GlassTuning.scaleLensAmount(PROFILE_MENU_LENS_AMOUNT) * PROFILE_MENU_LENS_MAX_DP).dp.toPx()
     }
+
+    val surfaceOpacity = GlassTuning.scaleSurface(PROFILE_MENU_SURFACE_OPACITY)
 
     return drawBackdrop(
         backdrop = backdrop,
@@ -1460,7 +1463,7 @@ fun Modifier.profileMenuLiquidGlass(
         },
         onDrawSurface = {
             drawRect(
-                surfaceTintColor.copy(alpha = 0.40f)
+                surfaceTintColor.copy(alpha = surfaceOpacity)
             )
         }
     ).border(

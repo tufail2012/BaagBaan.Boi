@@ -60,6 +60,7 @@ import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.components.isGlassSupported
+import com.example.ui.theme.GlassTuning
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
@@ -96,9 +97,9 @@ internal fun ChatListSheet(
     val canSubmit = listName.trim().isNotEmpty() && selectedChatIds.isNotEmpty()
     val panelShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val scrimAlpha = if (isDark || isAmoled) 0.35f else 0.25f
-    val sheetTintAlpha = if (isDark || isAmoled) 0.6f else 0.7f
+    val sheetTintAlpha = GlassTuning.scaleSurface(if (isDark || isAmoled) 0.6f else 0.7f)
     val sheetTintColor = if (isAmoled) Color(0xFF0A0A0A) else surfaceColor
-    val blurPx = with(density) { SHEET_BLUR_RADIUS_DP.dp.toPx() }
+    val blurPx = with(density) { GlassTuning.scaleBlur(SHEET_BLUR_RADIUS_DP).dp.toPx() }
     val useGlass = backdrop != null && isGlassSupported()
 
     BackHandler(onBack = onDismiss)

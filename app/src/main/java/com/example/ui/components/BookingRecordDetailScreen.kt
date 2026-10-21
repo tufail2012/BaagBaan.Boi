@@ -105,6 +105,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.example.ui.theme.GlassTuning
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
@@ -256,9 +257,10 @@ fun Modifier.bookingDetailLiquidGlass(
     }
 
     val density = LocalDensity.current
-    val blurPx = with(density) { 8.dp.toPx() }
-    val lensHeightPx = with(density) { (0.5f * 48f).dp.toPx() }
-    val lensAmountPx = with(density) { (0.5f * 48f).dp.toPx() }
+    val blurPx = with(density) { GlassTuning.scaleBlur(BLUR_RADIUS_DP).dp.toPx() }
+    val lensHeightPx = with(density) { (GlassTuning.scaleLensHeight(LENS_HEIGHT) * LENS_MAX_DP).dp.toPx() }
+    val lensAmountPx = with(density) { (GlassTuning.scaleLensAmount(LENS_AMOUNT) * LENS_MAX_DP).dp.toPx() }
+    val surfaceOpacity = GlassTuning.scaleSurface(SURFACE_OPACITY)
 
     val surfaceTintColor =
         if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
@@ -298,7 +300,7 @@ fun Modifier.bookingDetailLiquidGlass(
             highlight = { Highlight.Default },
             shadow = { Shadow.Default },
             onDrawSurface = {
-                drawRect(surfaceTintColor.copy(alpha = 0.4f))
+                drawRect(surfaceTintColor.copy(alpha = surfaceOpacity))
             }
         )
         .border(0.8.dp, rimBrush, shape)
@@ -1090,7 +1092,7 @@ fun BookingRecordDetailDialog(
                                                     Toast.makeText(context, "Installment recorded successfully!", Toast.LENGTH_SHORT).show()
                                                     newAmountText = ""
                                                 } catch (e: TimeoutCancellationException) {
-                                                    Toast.makeText(context, "Save timed out — check connection", Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(context, "Save timed out - check connection", Toast.LENGTH_LONG).show()
                                                 } catch (e: Throwable) {
                                                     Toast.makeText(context, "Failed to save installment: ${e.javaClass.simpleName}: ${e.message ?: e.toString()}", Toast.LENGTH_LONG).show()
                                                 }

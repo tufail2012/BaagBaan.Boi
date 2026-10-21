@@ -30,6 +30,7 @@ import com.example.ui.components.backdrop.effects.colorControls
 import com.example.ui.components.backdrop.effects.lens
 import com.example.ui.components.backdrop.highlight.Highlight
 import com.example.ui.components.backdrop.shadow.Shadow
+import com.example.ui.theme.GlassTuning
 
 /**
  * Where a [navLiquidGlass] surface composed under it also records the glass it
@@ -60,17 +61,18 @@ private const val GLASS_RESOLUTION_SCALE = 0.30f
  * vibrancy, blur and lens refraction, then a theme-adaptive surface tint.
  * Exact copy of the reference app's `Modifier.liquidGlass`.
  *
- * [shape] must be a [CornerBasedShape] — the lens effect throws otherwise.
+ * [shape] must be a [CornerBasedShape] - the lens effect throws otherwise.
  */
 @Composable
 fun Modifier.navLiquidGlass(shape: CornerBasedShape, backdrop: Backdrop): Modifier {
     val exportedBackdrop = LocalNavGlassExport.current
     val density = LocalDensity.current
-    val blurPx = with(density) { BLUR_RADIUS_DP.dp.toPx() } * GLASS_RESOLUTION_SCALE
+    val blurPx = with(density) { GlassTuning.scaleBlur(BLUR_RADIUS_DP).dp.toPx() } * GLASS_RESOLUTION_SCALE
     val lensHeightPx =
-        with(density) { (LENS_HEIGHT_FRACTION * LENS_MAX_DP).dp.toPx() } * GLASS_RESOLUTION_SCALE
+        with(density) { (GlassTuning.scaleLensHeight(LENS_HEIGHT_FRACTION) * LENS_MAX_DP).dp.toPx() } * GLASS_RESOLUTION_SCALE
     val lensAmountPx =
-        with(density) { (LENS_AMOUNT_FRACTION * LENS_MAX_DP).dp.toPx() } * GLASS_RESOLUTION_SCALE
+        with(density) { (GlassTuning.scaleLensAmount(LENS_AMOUNT_FRACTION) * LENS_MAX_DP).dp.toPx() } * GLASS_RESOLUTION_SCALE
+    val surfaceOpacity = GlassTuning.scaleSurface(SURFACE_OPACITY)
     val surfaceTintColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
         Color(0xFFFAFAFA)
     } else {
@@ -95,7 +97,7 @@ fun Modifier.navLiquidGlass(shape: CornerBasedShape, backdrop: Backdrop): Modifi
         highlight = { Highlight.Default },
         shadow = { Shadow.Default },
         onDrawSurface = {
-            drawRect(color = surfaceTintColor.copy(alpha = SURFACE_OPACITY), size = size)
+            drawRect(color = surfaceTintColor.copy(alpha = surfaceOpacity), size = size)
         },
         exportedBackdrop = exportedBackdrop,
         backdropScale = GLASS_RESOLUTION_SCALE,

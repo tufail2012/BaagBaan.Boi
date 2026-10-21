@@ -605,7 +605,7 @@ fun ThemeColoursContent(
                                 text = if (com.example.ui.theme.LiquidGlassPreference.enabled)
                                     "Real blur & refraction on cards, menus and fields"
                                 else
-                                    "Off — flat cards, useful on older or low-power devices",
+                                    "Off - flat cards, useful on older or low-power devices",
                                 fontSize = 12.sp,
                                 color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -622,6 +622,9 @@ fun ThemeColoursContent(
                             checkedTrackColor = currentAccentColor
                         )
                     )
+                }
+                if (com.example.ui.theme.LiquidGlassPreference.enabled) {
+                    GlassTuningControls()
                 }
             }
         }

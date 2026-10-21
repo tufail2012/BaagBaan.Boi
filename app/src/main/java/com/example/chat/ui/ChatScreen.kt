@@ -45,6 +45,7 @@ import com.example.ui.components.backdrop.highlight.Highlight
 import com.example.ui.components.backdrop.shadow.Shadow
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
+import com.example.ui.theme.GlassTuning
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -3221,28 +3222,29 @@ private fun Modifier.textBubbleLiquidGlass(
     accentColor: Color,
     isDark: Boolean
 ): Modifier {
-    val surfaceBrush = remember(useGlass, isOwn, accentColor, isDark) {
+    val surfacePercent = GlassTuning.surfacePercent
+    val surfaceBrush = remember(useGlass, isOwn, accentColor, isDark, surfacePercent) {
         if (useGlass) {
             if (isOwn) {
                 Brush.linearGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = if (isDark) 0.50f else 0.76f),
-                        accentColor.copy(alpha = if (isDark) 0.28f else 0.58f)
+                        accentColor.copy(alpha = GlassTuning.scaleSurface(if (isDark) 0.50f else 0.76f)),
+                        accentColor.copy(alpha = GlassTuning.scaleSurface(if (isDark) 0.28f else 0.58f))
                     )
                 )
             } else {
                 if (isDark) {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF1E293B).copy(alpha = 0.60f),
-                            Color(0xFF0F172A).copy(alpha = 0.42f)
+                            Color(0xFF1E293B).copy(alpha = GlassTuning.scaleSurface(0.60f)),
+                            Color(0xFF0F172A).copy(alpha = GlassTuning.scaleSurface(0.42f))
                         )
                     )
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.74f),
-                            Color(0xFFF1F5F9).copy(alpha = 0.54f)
+                            Color.White.copy(alpha = GlassTuning.scaleSurface(0.74f)),
+                            Color(0xFFF1F5F9).copy(alpha = GlassTuning.scaleSurface(0.54f))
                         )
                     )
                 }
@@ -3310,9 +3312,9 @@ private fun Modifier.textBubbleLiquidGlass(
     }
 
     val density = LocalDensity.current
-    val blurPx = with(density) { BUBBLE_BLUR_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
-    val lensHeightPx = with(density) { BUBBLE_LENS_HEIGHT_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
-    val lensAmountPx = with(density) { BUBBLE_LENS_AMOUNT_DP.dp.toPx() } * BUBBLE_GLASS_SCALE
+    val blurPx = with(density) { GlassTuning.scaleBlur(BUBBLE_BLUR_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
+    val lensHeightPx = with(density) { GlassTuning.scaleLensHeight(BUBBLE_LENS_HEIGHT_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
+    val lensAmountPx = with(density) { GlassTuning.scaleLensAmount(BUBBLE_LENS_AMOUNT_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
     val shadowColor = if (isOwn) {
         accentColor.copy(alpha = if (isDark) 0.24f else 0.18f)
     } else {

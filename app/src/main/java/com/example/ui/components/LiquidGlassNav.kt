@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.GlassTuning
 import com.example.ui.theme.LiquidGlassPreference
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -55,22 +56,23 @@ fun glassIndicatorColor(): Color =
  * True liquid glass surface sampling [backdrop]: vibrancy, blur, and lens
  * refraction (API 33+ only), then a theme-adaptive tint fill and a specular
  * rim. Returns the receiver unchanged if [backdrop] is null or the device
- * doesn't support it — callers should fall back to the existing Haze path
+ * doesn't support it - callers should fall back to the existing Haze path
  * in that case.
  *
  * Values (blur radius, lens height/amount, surface opacity) match BitChord's
  * own liquid glass nav bar. API calls (vibrancy(), no shadow/colorControls
  * params) are written against backdrop 1.0.6, this project's current pinned
- * version — not 2.0.0, which needs compileSdk 37 this project doesn't have.
+ * version - not 2.0.0, which needs compileSdk 37 this project doesn't have.
  */
 @Composable
 fun Modifier.liquidGlassNav(shape: CornerBasedShape, backdrop: Backdrop?): Modifier {
     if (backdrop == null || !isGlassSupported()) return this
     val isDark = isAppInDarkMode()
     val density = LocalDensity.current
-    val blurPx = with(density) { BLUR_RADIUS_DP.dp.toPx() }
-    val lensHeightPx = with(density) { (LENS_HEIGHT * LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (LENS_AMOUNT * LENS_MAX_DP).dp.toPx() }
+    val blurPx = with(density) { GlassTuning.scaleBlur(BLUR_RADIUS_DP).dp.toPx() }
+    val lensHeightPx = with(density) { (GlassTuning.scaleLensHeight(LENS_HEIGHT) * LENS_MAX_DP).dp.toPx() }
+    val lensAmountPx = with(density) { (GlassTuning.scaleLensAmount(LENS_AMOUNT) * LENS_MAX_DP).dp.toPx() }
+    val surfaceOpacity = GlassTuning.scaleSurface(SURFACE_OPACITY)
     val surfaceTintColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
         Color(0xFFFAFAFA)
     } else {
@@ -95,7 +97,7 @@ fun Modifier.liquidGlassNav(shape: CornerBasedShape, backdrop: Backdrop?): Modif
         highlight = { Highlight.Default },
         shadow = { Shadow.Default },
         onDrawSurface = {
-            drawRect(surfaceTintColor.copy(alpha = SURFACE_OPACITY))
+            drawRect(surfaceTintColor.copy(alpha = surfaceOpacity))
         }
     )
 }
