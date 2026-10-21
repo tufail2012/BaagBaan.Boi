@@ -45,8 +45,15 @@ class ChatRepository(private val context: Context) {
     val changedPeerUids: StateFlow<Set<String>>
         get() = e2eeManager.changedPeerUids
 
-    suspend fun ensureE2eeIdentity(uid: String) {
-        e2eeManager.ensureIdentity(uid)
+    val keyState: StateFlow<E2eeManager.KeyState>
+        get() = e2eeManager.keyState
+
+    suspend fun ensureE2eeIdentity(uid: String): E2eeManager.KeyState {
+        return e2eeManager.ensureIdentity(uid)
+    }
+
+    suspend fun claimThisDevice(uid: String): E2eeManager.KeyState {
+        return e2eeManager.claimThisDevice(uid)
     }
 
     suspend fun fetchPeerKey(peerUid: String): E2eeManager.PeerKeyResult {
@@ -658,35 +665,55 @@ class ChatRepository(private val context: Context) {
                             } else if (!ciphertext.isNullOrBlank()) {
                                 val peerUid = participantIds.firstOrNull { it.isNotBlank() && it != currentUid }
                                     ?: extractPeerUidFromDirectChatId(chatId, currentUid)
-                                if (type != "group" && peerUid.isNotBlank()) {
+                                if (!e2eeManager.hasLocalPrivateKey(currentUid)) {
+                                    Log.w(TAG, "Decrypt failed: no local private key (chatId=$chatId, messageId=$messageId)")
+                                    E2eeManager.DecryptFailureReason.NO_LOCAL_PRIVATE_KEY.placeholder
+                                } else if (type != "group" && peerUid.isNotBlank()) {
                                     when (val keyRes = e2eeManager.resolveChatKey(chatId, currentUid, peerUid)) {
-                                        is E2eeManager.ChatKeyResult.Missing,
-                                        is E2eeManager.ChatKeyResult.Changed -> "Encrypted message"
+                                        is E2eeManager.ChatKeyResult.NoLocalKey -> {
+                                            Log.w(TAG, "Decrypt failed: no local private key (chatId=$chatId, messageId=$messageId)")
+                                            E2eeManager.DecryptFailureReason.NO_LOCAL_PRIVATE_KEY.placeholder
+                                        }
+                                        is E2eeManager.ChatKeyResult.Changed -> {
+                                            Log.w(TAG, "Decrypt failed: peer key changed (chatId=$chatId, messageId=$messageId)")
+                                            E2eeManager.DecryptFailureReason.WRONG_KEY_OR_GCM_TAG.placeholder
+                                        }
+                                        is E2eeManager.ChatKeyResult.Missing -> {
+                                            Log.w(TAG, "Decrypt failed: peer key missing (chatId=$chatId, messageId=$messageId)")
+                                            E2eeManager.DecryptFailureReason.OTHER.placeholder
+                                        }
                                         is E2eeManager.ChatKeyResult.Success -> {
-                                            val decrypted = if (!iv.isNullOrBlank() && messageId.isNotBlank()) {
-                                                e2eeManager.decryptText(
-                                                    chatKey = keyRes.chatKey,
-                                                    chatId = chatId,
-                                                    messageId = messageId,
-                                                    ciphertextB64 = ciphertext,
-                                                    ivB64 = iv
-                                                )
-                                            } else {
-                                                null
-                                            }
-                                            if (decrypted != null) {
-                                                decrypted
-                                            } else {
-                                                when (e2eeManager.fetchPeerKey(peerUid)) {
-                                                    is E2eeManager.PeerKeyResult.Missing,
-                                                    is E2eeManager.PeerKeyResult.Changed -> "Encrypted message"
-                                                    is E2eeManager.PeerKeyResult.Ok -> "Message can't be opened on this device"
+                                            if (!iv.isNullOrBlank() && messageId.isNotBlank()) {
+                                                when (
+                                                    val decRes = e2eeManager.decryptTextDetailed(
+                                                        chatKey = keyRes.chatKey,
+                                                        chatId = chatId,
+                                                        messageId = messageId,
+                                                        ciphertextB64 = ciphertext,
+                                                        ivB64 = iv
+                                                    )
+                                                ) {
+                                                    is E2eeManager.DecryptResult.Success -> decRes.plaintext
+                                                    is E2eeManager.DecryptResult.Failure -> {
+                                                        if (decRes.reason == E2eeManager.DecryptFailureReason.WRONG_KEY_OR_GCM_TAG) {
+                                                            e2eeManager.fetchPeerKey(peerUid)
+                                                        }
+                                                        Log.w(
+                                                            TAG,
+                                                            "Decrypt failed: ${decRes.reason} (${decRes.detail}) (chatId=$chatId, messageId=$messageId)"
+                                                        )
+                                                        decRes.reason.placeholder
+                                                    }
                                                 }
+                                            } else {
+                                                Log.w(TAG, "Decrypt failed: missing iv or messageId (chatId=$chatId, messageId=$messageId)")
+                                                E2eeManager.DecryptFailureReason.OTHER.placeholder
                                             }
                                         }
                                     }
                                 } else {
-                                    "Encrypted message"
+                                    Log.w(TAG, "Decrypt failed: invalid direct chat context (chatId=$chatId, messageId=$messageId)")
+                                    E2eeManager.DecryptFailureReason.OTHER.placeholder
                                 }
                             } else {
                                 lMsgRaw["text"]?.toString() ?: ""
@@ -959,12 +986,8 @@ class ChatRepository(private val context: Context) {
                     !(doc.getBoolean("isDeleted") ?: false) && !doc.getString("ciphertext").isNullOrBlank()
                 }
                 val targetPeerUid = if (hasEncryptedDocs) resolvePeerUid(snapshot.documents) else ""
-                val chatKey: ByteArray? = if (hasEncryptedDocs && targetPeerUid.isNotEmpty()) {
-                    when (val keyRes = e2eeManager.resolveChatKey(chatId, currentUid, targetPeerUid)) {
-                        is E2eeManager.ChatKeyResult.Success -> keyRes.chatKey
-                        is E2eeManager.ChatKeyResult.Missing,
-                        is E2eeManager.ChatKeyResult.Changed -> null
-                    }
+                val keyResult: E2eeManager.ChatKeyResult? = if (hasEncryptedDocs && targetPeerUid.isNotEmpty()) {
+                    e2eeManager.resolveChatKey(chatId, currentUid, targetPeerUid)
                 } else {
                     null
                 }
@@ -980,22 +1003,55 @@ class ChatRepository(private val context: Context) {
                         val resolvedText = if (isDeleted) {
                             ""
                         } else if (!ciphertext.isNullOrBlank()) {
-                            val decrypted = if (chatKey != null && !iv.isNullOrBlank()) {
-                                e2eeManager.decryptText(
-                                    chatKey = chatKey,
-                                    chatId = chatId,
-                                    messageId = doc.id,
-                                    ciphertextB64 = ciphertext,
-                                    ivB64 = iv
-                                )
+                            if (!e2eeManager.hasLocalPrivateKey(currentUid) ||
+                                keyResult is E2eeManager.ChatKeyResult.NoLocalKey
+                            ) {
+                                Log.w(TAG, "Decrypt failed: no local private key (chatId=$chatId, messageId=${doc.id})")
+                                E2eeManager.DecryptFailureReason.NO_LOCAL_PRIVATE_KEY.placeholder
                             } else {
-                                null
+                                when (keyResult) {
+                                    is E2eeManager.ChatKeyResult.Changed -> {
+                                        Log.w(TAG, "Decrypt failed: peer key changed (chatId=$chatId, messageId=${doc.id})")
+                                        E2eeManager.DecryptFailureReason.WRONG_KEY_OR_GCM_TAG.placeholder
+                                    }
+                                    is E2eeManager.ChatKeyResult.Success -> {
+                                        if (!iv.isNullOrBlank()) {
+                                            when (
+                                                val decRes = e2eeManager.decryptTextDetailed(
+                                                    chatKey = keyResult.chatKey,
+                                                    chatId = chatId,
+                                                    messageId = doc.id,
+                                                    ciphertextB64 = ciphertext,
+                                                    ivB64 = iv
+                                                )
+                                            ) {
+                                                is E2eeManager.DecryptResult.Success -> decRes.plaintext
+                                                is E2eeManager.DecryptResult.Failure -> {
+                                                    if (decRes.reason == E2eeManager.DecryptFailureReason.WRONG_KEY_OR_GCM_TAG &&
+                                                        !refreshedPeerKeyOnFailure &&
+                                                        targetPeerUid.isNotEmpty()
+                                                    ) {
+                                                        refreshedPeerKeyOnFailure = true
+                                                        e2eeManager.fetchPeerKey(targetPeerUid)
+                                                    }
+                                                    Log.w(
+                                                        TAG,
+                                                        "Decrypt failed: ${decRes.reason} (${decRes.detail}) (chatId=$chatId, messageId=${doc.id})"
+                                                    )
+                                                    decRes.reason.placeholder
+                                                }
+                                            }
+                                        } else {
+                                            Log.w(TAG, "Decrypt failed: missing iv (chatId=$chatId, messageId=${doc.id})")
+                                            E2eeManager.DecryptFailureReason.OTHER.placeholder
+                                        }
+                                    }
+                                    else -> {
+                                        Log.w(TAG, "Decrypt failed: chat key unavailable (chatId=$chatId, messageId=${doc.id})")
+                                        E2eeManager.DecryptFailureReason.OTHER.placeholder
+                                    }
+                                }
                             }
-                            if (decrypted == null && chatKey != null && !refreshedPeerKeyOnFailure && targetPeerUid.isNotEmpty()) {
-                                refreshedPeerKeyOnFailure = true
-                                e2eeManager.fetchPeerKey(targetPeerUid)
-                            }
-                            decrypted ?: "Message can't be opened on this device"
                         } else {
                             doc.getString("text") ?: ""
                         }
@@ -1132,7 +1188,26 @@ class ChatRepository(private val context: Context) {
                 val peerUid = participantIds.firstOrNull { it.isNotEmpty() && it != myUid }
                     ?: extractPeerUidFromDirectChatId(chatId, myUid)
 
+                if (e2eeManager.keyState.value is E2eeManager.KeyState.Inactive ||
+                    e2eeManager.ensureIdentity(myUid) is E2eeManager.KeyState.Inactive
+                ) {
+                    return Result.failure(
+                        IllegalStateException("Use this device for encryption first.")
+                    )
+                }
+
+                if (e2eeManager.fetchPeerKey(peerUid) is E2eeManager.PeerKeyResult.Changed) {
+                    return Result.failure(
+                        IllegalStateException("Their security key changed. Open chat info and accept it.")
+                    )
+                }
+
                 val chatKey = when (val keyRes = e2eeManager.resolveChatKey(chatId, myUid, peerUid)) {
+                    is E2eeManager.ChatKeyResult.NoLocalKey -> {
+                        return Result.failure(
+                            IllegalStateException("Use this device for encryption first.")
+                        )
+                    }
                     is E2eeManager.ChatKeyResult.Missing -> {
                         return Result.failure(
                             IllegalStateException("This contact hasn't updated the app for encryption yet.")
@@ -1409,7 +1484,26 @@ class ChatRepository(private val context: Context) {
                 val peerUid = participantIds.firstOrNull { it.isNotEmpty() && it != senderId }
                     ?: extractPeerUidFromDirectChatId(chatId, senderId)
 
+                if (e2eeManager.keyState.value is E2eeManager.KeyState.Inactive ||
+                    e2eeManager.ensureIdentity(senderId) is E2eeManager.KeyState.Inactive
+                ) {
+                    return Result.failure(
+                        IllegalStateException("Use this device for encryption first.")
+                    )
+                }
+
+                if (e2eeManager.fetchPeerKey(peerUid) is E2eeManager.PeerKeyResult.Changed) {
+                    return Result.failure(
+                        IllegalStateException("Their security key changed. Open chat info and accept it.")
+                    )
+                }
+
                 val chatKey = when (val keyRes = e2eeManager.resolveChatKey(chatId, senderId, peerUid)) {
+                    is E2eeManager.ChatKeyResult.NoLocalKey -> {
+                        return Result.failure(
+                            IllegalStateException("Use this device for encryption first.")
+                        )
+                    }
                     is E2eeManager.ChatKeyResult.Missing -> {
                         return Result.failure(
                             IllegalStateException("This contact hasn't updated the app for encryption yet.")

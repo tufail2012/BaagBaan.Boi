@@ -65,6 +65,9 @@ class E2eeManager(context: Context) {
     private val _changedPeerUids = MutableStateFlow<Set<String>>(emptySet())
     val changedPeerUids: StateFlow<Set<String>> = _changedPeerUids.asStateFlow()
 
+    private val _keyState = MutableStateFlow<KeyState>(KeyState.Active)
+    val keyState: StateFlow<KeyState> = _keyState.asStateFlow()
+
     private val _keyAcceptedEvents = MutableSharedFlow<String>(extraBufferCapacity = 16)
     val keyAcceptedEvents: SharedFlow<String> = _keyAcceptedEvents.asSharedFlow()
 
@@ -74,6 +77,13 @@ class E2eeManager(context: Context) {
         val publicKeyB64: String
     )
 
+    sealed class KeyState {
+        data object Fresh : KeyState()
+        data object Active : KeyState()
+        data object Repair : KeyState()
+        data object Inactive : KeyState()
+    }
+
     sealed class PeerKeyResult {
         data object Missing : PeerKeyResult()
         data class Ok(val publicKeyB64: String) : PeerKeyResult()
@@ -82,8 +92,20 @@ class E2eeManager(context: Context) {
 
     sealed class ChatKeyResult {
         data class Success(val chatKey: ByteArray) : ChatKeyResult()
+        data object NoLocalKey : ChatKeyResult()
         data object Missing : ChatKeyResult()
         data class Changed(val newKeyB64: String) : ChatKeyResult()
+    }
+
+    enum class DecryptFailureReason(val placeholder: String) {
+        NO_LOCAL_PRIVATE_KEY("Encryption key missing on this device."),
+        WRONG_KEY_OR_GCM_TAG("Sent with a different security key."),
+        OTHER("Message can't be opened on this device.")
+    }
+
+    sealed class DecryptResult {
+        data class Success(val plaintext: String) : DecryptResult()
+        data class Failure(val reason: DecryptFailureReason, val detail: String) : DecryptResult()
     }
 
     data class EncryptedPayload(
@@ -92,37 +114,107 @@ class E2eeManager(context: Context) {
         val v: Int = PROTOCOL_VERSION
     )
 
-    suspend fun ensureIdentity(uid: String) {
+    suspend fun ensureIdentity(uid: String): KeyState {
         val cleanUid = uid.trim()
-        if (cleanUid.isEmpty()) return
+        if (cleanUid.isEmpty()) return KeyState.Inactive
 
-        identityMutex.withLock {
+        return identityMutex.withLock {
             val existingLocal = loadIdentityFromPrefs(cleanUid)
-            val firestore = db
-            if (existingLocal == null) {
-                val generated = generateAndStoreIdentity(cleanUid) ?: return
-                identityCache[cleanUid] = generated
-                if (firestore != null) {
-                    writePublicKeyDoc(firestore, cleanUid, generated.publicKeyB64)
-                }
-            } else {
+            if (existingLocal != null) {
                 identityCache[cleanUid] = existingLocal
-                if (firestore != null) {
-                    try {
-                        val snap = firestore.collection(COLLECTION_PUBLIC_KEYS)
-                            .document(cleanUid)
-                            .get()
-                            .await()
-                        val remoteKey = snap.getString("publicKey")?.trim()
-                        if (!snap.exists() || remoteKey != existingLocal.publicKeyB64) {
-                            writePublicKeyDoc(firestore, cleanUid, existingLocal.publicKeyB64)
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "ensureIdentity: failed checking publicKeys/$cleanUid: ${e.message}", e)
+            } else {
+                identityCache.remove(cleanUid)
+            }
+
+            val firestore = db
+            if (firestore == null) {
+                val fallbackState = if (existingLocal != null) KeyState.Active else KeyState.Inactive
+                _keyState.value = fallbackState
+                return@withLock fallbackState
+            }
+
+            val snap = try {
+                firestore.collection(COLLECTION_PUBLIC_KEYS)
+                    .document(cleanUid)
+                    .get()
+                    .await()
+            } catch (e: Exception) {
+                Log.w(TAG, "ensureIdentity: failed checking publicKeys/$cleanUid: ${e.message}", e)
+                val fallbackState = if (existingLocal != null) KeyState.Active else KeyState.Inactive
+                _keyState.value = fallbackState
+                return@withLock fallbackState
+            }
+
+            val remoteKey = if (snap.exists()) snap.getString("publicKey")?.trim().orEmpty() else ""
+            val hasRemoteDoc = snap.exists() && remoteKey.isNotEmpty()
+
+            val evaluatedState: KeyState = when {
+                existingLocal == null && !hasRemoteDoc -> KeyState.Fresh
+                existingLocal != null && hasRemoteDoc && remoteKey == existingLocal.publicKeyB64 -> KeyState.Active
+                existingLocal != null && !hasRemoteDoc -> KeyState.Repair
+                else -> KeyState.Inactive
+            }
+
+            val resultState: KeyState = when (evaluatedState) {
+                KeyState.Fresh -> {
+                    val generated = generateAndStoreIdentity(cleanUid)
+                    if (generated != null) {
+                        identityCache[cleanUid] = generated
+                        writePublicKeyDoc(firestore, cleanUid, generated.publicKeyB64)
+                        KeyState.Active
+                    } else {
+                        KeyState.Inactive
                     }
                 }
+                KeyState.Active -> KeyState.Active
+                KeyState.Repair -> {
+                    val local = existingLocal!!
+                    writePublicKeyDoc(firestore, cleanUid, local.publicKeyB64)
+                    KeyState.Active
+                }
+                KeyState.Inactive -> {
+                    // Do NOT write to publicKeys/{uid} in the Inactive state
+                    KeyState.Inactive
+                }
             }
+
+            val prev = _keyState.value
+            _keyState.value = resultState
+            if (prev != resultState) {
+                _keyAcceptedEvents.tryEmit(cleanUid)
+            }
+            resultState
         }
+    }
+
+    suspend fun claimThisDevice(uid: String): KeyState {
+        val cleanUid = uid.trim()
+        if (cleanUid.isEmpty()) return KeyState.Inactive
+
+        return identityMutex.withLock {
+            val localIdentity = loadIdentityFromPrefs(cleanUid)
+                ?: generateAndStoreIdentity(cleanUid)
+                ?: run {
+                    _keyState.value = KeyState.Inactive
+                    return@withLock KeyState.Inactive
+                }
+
+            identityCache[cleanUid] = localIdentity
+            val firestore = db
+            if (firestore != null) {
+                writePublicKeyDoc(firestore, cleanUid, localIdentity.publicKeyB64)
+            }
+            chatKeyCache.clear()
+            _keyState.value = KeyState.Active
+            _keyAcceptedEvents.tryEmit(cleanUid)
+            KeyState.Active
+        }
+    }
+
+    fun hasLocalPrivateKey(uid: String): Boolean {
+        val cleanUid = uid.trim()
+        if (cleanUid.isEmpty()) return false
+        return identityCache[cleanUid] != null || loadIdentityFromPrefs(cleanUid) != null
     }
 
     private suspend fun writePublicKeyDoc(
@@ -215,6 +307,7 @@ class E2eeManager(context: Context) {
             pinPrefs.edit().remove(cleanPeer).apply()
         }
         invalidateCachedChatKeysForPeer(cleanPeer)
+        chatKeyCache.clear()
         _changedPeerUids.update { it - cleanPeer }
         _keyAcceptedEvents.tryEmit(cleanPeer)
     }
@@ -245,6 +338,9 @@ class E2eeManager(context: Context) {
 
         chatPeerMap[cleanChatId] = cleanPeerUid
 
+        val localIdentityFast = getLocalIdentity(cleanMyUid)
+            ?: return ChatKeyResult.NoLocalKey
+
         if (cleanPeerUid in _changedPeerUids.value) {
             val changedKey = latestServerKeys[cleanPeerUid].orEmpty()
             return ChatKeyResult.Changed(changedKey)
@@ -255,15 +351,15 @@ class E2eeManager(context: Context) {
         }
 
         return keyResolveMutex.withLock {
+            val myIdentity = getLocalIdentity(cleanMyUid)
+                ?: return@withLock ChatKeyResult.NoLocalKey
+
             if (cleanPeerUid in _changedPeerUids.value) {
                 return@withLock ChatKeyResult.Changed(latestServerKeys[cleanPeerUid].orEmpty())
             }
             chatKeyCache[cleanChatId]?.let { cached ->
                 return@withLock ChatKeyResult.Success(cached)
             }
-
-            val myIdentity = getOrCreateLocalIdentity(cleanMyUid)
-                ?: return@withLock ChatKeyResult.Missing
 
             when (val peerRes = fetchPeerKey(cleanPeerUid)) {
                 is PeerKeyResult.Missing -> ChatKeyResult.Missing
@@ -315,15 +411,36 @@ class E2eeManager(context: Context) {
         ciphertextB64: String,
         ivB64: String
     ): String? {
+        return when (val res = decryptTextDetailed(chatKey, chatId, messageId, ciphertextB64, ivB64)) {
+            is DecryptResult.Success -> res.plaintext
+            is DecryptResult.Failure -> null
+        }
+    }
+
+    fun decryptTextDetailed(
+        chatKey: ByteArray,
+        chatId: String,
+        messageId: String,
+        ciphertextB64: String,
+        ivB64: String
+    ): DecryptResult {
         return try {
             if (chatId.isBlank() || messageId.isBlank() || ciphertextB64.isBlank() || ivB64.isBlank()) {
-                return null
+                return DecryptResult.Failure(DecryptFailureReason.OTHER, "blank_input")
             }
-            val iv = Base64.decode(ivB64.trim(), Base64.NO_WRAP)
+            val iv = try {
+                Base64.decode(ivB64.trim(), Base64.NO_WRAP)
+            } catch (_: IllegalArgumentException) {
+                return DecryptResult.Failure(DecryptFailureReason.OTHER, "invalid_iv_base64")
+            }
             if (iv.size != GCM_IV_LENGTH_BYTES) {
-                return null
+                return DecryptResult.Failure(DecryptFailureReason.OTHER, "invalid_iv_length")
             }
-            val ciphertextBytes = Base64.decode(ciphertextB64.trim(), Base64.NO_WRAP)
+            val ciphertextBytes = try {
+                Base64.decode(ciphertextB64.trim(), Base64.NO_WRAP)
+            } catch (_: IllegalArgumentException) {
+                return DecryptResult.Failure(DecryptFailureReason.OTHER, "invalid_ciphertext_base64")
+            }
 
             val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
             val keySpec = SecretKeySpec(chatKey, "AES")
@@ -334,16 +451,22 @@ class E2eeManager(context: Context) {
             cipher.updateAAD(aad)
 
             val plainBytes = cipher.doFinal(ciphertextBytes)
-            String(plainBytes, Charsets.UTF_8)
-        } catch (_: Throwable) {
-            null
+            DecryptResult.Success(String(plainBytes, Charsets.UTF_8))
+        } catch (_: javax.crypto.AEADBadTagException) {
+            DecryptResult.Failure(DecryptFailureReason.WRONG_KEY_OR_GCM_TAG, "gcm_tag_failure")
+        } catch (_: javax.crypto.BadPaddingException) {
+            DecryptResult.Failure(DecryptFailureReason.WRONG_KEY_OR_GCM_TAG, "gcm_bad_padding")
+        } catch (_: java.security.InvalidKeyException) {
+            DecryptResult.Failure(DecryptFailureReason.WRONG_KEY_OR_GCM_TAG, "invalid_key")
+        } catch (t: Throwable) {
+            DecryptResult.Failure(DecryptFailureReason.OTHER, t.javaClass.simpleName)
         }
     }
 
     suspend fun getMyPublicKeyB64(uid: String): String? {
         val cleanUid = uid.trim()
         if (cleanUid.isEmpty()) return null
-        return getOrCreateLocalIdentity(cleanUid)?.publicKeyB64
+        return getLocalIdentity(cleanUid)?.publicKeyB64
     }
 
     suspend fun computeSafetyNumberForPeer(myUid: String, peerUid: String): List<String>? {
@@ -356,10 +479,13 @@ class E2eeManager(context: Context) {
         return computeSafetyNumber(myKeyB64, peerKeyB64)
     }
 
-    private suspend fun getOrCreateLocalIdentity(uid: String): IdentityKeyMaterial? {
+    private fun getLocalIdentity(uid: String): IdentityKeyMaterial? {
         identityCache[uid]?.let { return it }
-        ensureIdentity(uid)
-        return identityCache[uid]
+        val loaded = loadIdentityFromPrefs(uid)
+        if (loaded != null) {
+            identityCache[uid] = loaded
+        }
+        return loaded
     }
 
     private fun deriveChatKey(

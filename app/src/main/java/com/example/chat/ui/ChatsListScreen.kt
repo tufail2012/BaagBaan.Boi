@@ -152,7 +152,10 @@ fun ChatsListScreen(
     val contactUserIds by viewModel.contactUserIds.collectAsState()
     val isLoading by viewModel.isChatsLoading.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val keyState by viewModel.keyState.collectAsState()
     val currentUid = currentUser?.uid ?: ""
+    val isEncryptionInactive = keyState is com.example.chat.crypto.E2eeManager.KeyState.Inactive
+    var showClaimDeviceConfirmDialog by remember { mutableStateOf(false) }
 
     val contentColor = glassContentColor()
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -242,6 +245,17 @@ fun ChatsListScreen(
                 viewModel.showToast("Authentication not available")
             }
         }
+    }
+
+    if (showClaimDeviceConfirmDialog) {
+        ClaimDeviceConfirmDialog(
+            accentColor = accentColor,
+            onConfirm = {
+                showClaimDeviceConfirmDialog = false
+                viewModel.claimThisDevice()
+            },
+            onDismiss = { showClaimDeviceConfirmDialog = false }
+        )
     }
 
     Box(
@@ -368,12 +382,24 @@ fun ChatsListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = stripHeightDp, bottom = 100.dp + navBarBottom)
-                    .padding(horizontal = 32.dp),
+                    .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
+                if (isEncryptionInactive) {
+                    EncryptionInactiveBanner(
+                        isDark = isDark,
+                        accentColor = accentColor,
+                        onUseThisDevice = { showClaimDeviceConfirmDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 4.dp)
+                            .testTag("chats_list_encryption_inactive_banner")
+                    )
+                }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 ) {
                     Box(
                         modifier = Modifier
@@ -443,6 +469,18 @@ fun ChatsListScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
+                if (isEncryptionInactive) {
+                    item(key = "e2ee_inactive_banner_row") {
+                        EncryptionInactiveBanner(
+                            isDark = isDark,
+                            accentColor = accentColor,
+                            onUseThisDevice = { showClaimDeviceConfirmDialog = true },
+                            modifier = Modifier
+                                .padding(bottom = 10.dp)
+                                .testTag("chats_list_encryption_inactive_banner")
+                        )
+                    }
+                }
                 if (lockedChats.isNotEmpty()) {
                     item(key = "locked_header_row") {
                         Row(

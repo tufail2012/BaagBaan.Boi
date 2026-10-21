@@ -220,9 +220,19 @@ class ChatViewModel(
     val pendingOpenChatId: StateFlow<String?> = _pendingOpenChatId.asStateFlow()
 
     val changedPeerUids: StateFlow<Set<String>> = repository.changedPeerUids
+    val keyState: StateFlow<com.example.chat.crypto.E2eeManager.KeyState> = repository.keyState
 
     private val _mutedChats = MutableStateFlow<Map<String, com.google.firebase.Timestamp>>(emptyMap())
     val mutedChats: StateFlow<Map<String, com.google.firebase.Timestamp>> = _mutedChats.asStateFlow()
+
+    fun claimThisDevice() {
+        val uid = _currentUser.value?.uid?.trim().orEmpty()
+            .ifEmpty { SafeFirebase.getAuth(context)?.currentUser?.uid?.trim().orEmpty() }
+        if (uid.isEmpty()) return
+        viewModelScope.launch {
+            repository.claimThisDevice(uid)
+        }
+    }
 
     fun acceptNewKey(peerUid: String) {
         repository.acceptPeerKey(peerUid)
@@ -2153,23 +2163,16 @@ class ChatViewModel(
             _toastMessage.value = "You can't send messages to this contact. Unblock to continue."
             return
         }
-        val isGroupChat = rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
-        val peerUid = if (isGroupChat) null else _activeRecipient.value?.uid
-        if (!isGroupChat && !peerUid.isNullOrBlank() && peerUid in changedPeerUids.value) {
-            val peerName = displayNameFor(peerUid, _activeRecipient.value)
-            _toastMessage.value = "$peerName's security key changed. Accept the new key to continue."
-            return
-        }
 
         _messageInput.value = ""
         viewModelScope.launch {
             _isSendingMessage.value = true
             val result = repository.sendMessage(chatId, currentUid, text)
             result.onFailure { err ->
-                if (!peerUid.isNullOrBlank() && peerUid in changedPeerUids.value && _messageInput.value.isEmpty()) {
+                if (_messageInput.value.isEmpty()) {
                     _messageInput.value = text
                 }
-                _toastMessage.value = "Failed to send: ${err.message}"
+                _toastMessage.value = err.message ?: "Failed to send"
             }
             _isSendingMessage.value = false
         }
@@ -2190,18 +2193,11 @@ class ChatViewModel(
         val messageId = _editingMessageId.value ?: return
         val text = _messageInput.value.trim()
         if (text.isEmpty()) return
-        val isGroupChat = rawChatsList.firstOrNull { it.chatId == chatId }?.isGroup == true
-        val peerUid = if (isGroupChat) null else _activeRecipient.value?.uid
-        if (!isGroupChat && !peerUid.isNullOrBlank() && peerUid in changedPeerUids.value) {
-            val peerName = displayNameFor(peerUid, _activeRecipient.value)
-            _toastMessage.value = "$peerName's security key changed. Accept the new key to continue."
-            return
-        }
         _messageInput.value = ""
         _editingMessageId.value = null
         viewModelScope.launch {
             repository.editMessage(chatId, messageId, text).onFailure { err ->
-                _toastMessage.value = "Failed to edit: ${err.message}"
+                _toastMessage.value = err.message ?: "Failed to edit"
             }
         }
     }

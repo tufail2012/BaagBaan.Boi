@@ -248,6 +248,7 @@ fun ChatScreen(
     val userProfiles by viewModel.userProfiles.collectAsState()
     val contactUserIds by viewModel.contactUserIds.collectAsState()
     val changedPeerUids by viewModel.changedPeerUids.collectAsState()
+    val keyState by viewModel.keyState.collectAsState()
     val editingMessageId by viewModel.editingMessageId.collectAsState()
     val activeChatId by viewModel.activeChatId.collectAsState()
     val allChatsList by viewModel.allChatsList.collectAsState()
@@ -285,6 +286,8 @@ fun ChatScreen(
     )
     val isChatBlocked = !isGroup && (isBlockedByMe || isBlockedByOther)
     val isPeerKeyChanged = !isGroup && otherUid.isNotEmpty() && otherUid in changedPeerUids
+    val isEncryptionInactive = !isGroup && keyState is com.example.chat.crypto.E2eeManager.KeyState.Inactive
+    var showClaimDeviceConfirmDialog by remember { mutableStateOf(false) }
 
     val canSeeRecipientLastSeen = remember(
         recipientPresence,
@@ -1189,6 +1192,29 @@ fun ChatScreen(
                         }
                     }
                 }
+
+                if (isEncryptionInactive) {
+                    EncryptionInactiveBanner(
+                        isDark = isDark,
+                        accentColor = accentColor,
+                        onUseThisDevice = { showClaimDeviceConfirmDialog = true },
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 6.dp)
+                            .testTag("chat_encryption_inactive_banner")
+                    )
+                }
+            }
+
+            if (showClaimDeviceConfirmDialog) {
+                ClaimDeviceConfirmDialog(
+                    accentColor = accentColor,
+                    onConfirm = {
+                        showClaimDeviceConfirmDialog = false
+                        viewModel.claimThisDevice()
+                    },
+                    onDismiss = { showClaimDeviceConfirmDialog = false }
+                )
             }
 
             // Layer 3: floating bottom message composer overlay (or blocked banner)
@@ -2508,10 +2534,28 @@ fun ChatScreen(
                                             )
                                             Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = "End-to-end encrypted",
+                                                text = if (isPeerKeyChanged) {
+                                                    "Their security key changed"
+                                                } else {
+                                                    "End-to-end encrypted"
+                                                },
                                                 fontSize = 12.sp,
-                                                color = secondaryTextColor
+                                                color = if (isPeerKeyChanged) accentColor else secondaryTextColor
                                             )
+                                        }
+                                        if (isPeerKeyChanged && otherUid.isNotEmpty()) {
+                                            TextButton(
+                                                onClick = { viewModel.acceptNewKey(otherUid) },
+                                                modifier = Modifier.testTag("contact_info_accept_key_button")
+                                            ) {
+                                                Text(
+                                                    text = "Accept",
+                                                    color = accentColor,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 14.sp
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(4.dp))
                                         }
                                         Icon(
                                             imageVector = Icons.Default.Lock,
@@ -2872,6 +2916,15 @@ fun ChatScreen(
                 val primaryTextColor = if (isDark) Color.White else Color(0xFF0F172A)
                 val secondaryTextColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
+                val decryptPlaceholders = remember {
+                    setOf(
+                        "Encrypted message",
+                        "Encryption key missing on this device.",
+                        "Sent with a different security key.",
+                        "Message can't be opened on this device.",
+                        "Message can't be opened on this device"
+                    )
+                }
                 val matchingMessages = remember(messages, chatSearchQuery) {
                     val q = chatSearchQuery.trim()
                     if (q.isEmpty()) {
@@ -2882,7 +2935,7 @@ fun ChatScreen(
                                 !msg.isDeleted &&
                                     msg.messageType == "text" &&
                                     msg.text.isNotBlank() &&
-                                    msg.text != "Encrypted message" &&
+                                    msg.text !in decryptPlaceholders &&
                                     msg.text.contains(q, ignoreCase = true)
                             }
                             .sortedByDescending { it.timestamp?.toDate()?.time ?: 0L }
@@ -3848,5 +3901,101 @@ private fun CallLogBubble(
         }
     }
 }
+
+@Composable
+fun EncryptionInactiveBanner(
+    isDark: Boolean,
+    accentColor: Color,
+    onUseThisDevice: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bgColor = if (isDark) Color(0xFF1E293B) else Color.White
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val borderColor = accentColor.copy(alpha = 0.35f)
+    val shape = RoundedCornerShape(18.dp)
+
+    Surface(
+        shape = shape,
+        color = bgColor,
+        tonalElevation = 2.dp,
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, borderColor, shape)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = "Encryption is active on another device. Use this device to send encrypted messages.",
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                color = textColor,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(
+                onClick = onUseThisDevice,
+                modifier = Modifier.testTag("use_this_device_button")
+            ) {
+                Text(
+                    text = "Use this device",
+                    color = accentColor,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ClaimDeviceConfirmDialog(
+    accentColor: Color,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Use this device",
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Text("Chats from your other device will stop opening on it. Continue?")
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                modifier = Modifier.testTag("claim_device_confirm_button")
+            ) {
+                Text(
+                    text = "Continue",
+                    color = accentColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("claim_device_cancel_button")
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 
 
