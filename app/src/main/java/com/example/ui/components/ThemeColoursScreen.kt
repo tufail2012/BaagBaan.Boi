@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -40,7 +41,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,6 +111,32 @@ fun ThemeColoursDialog(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showLiquidGlassSettings by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
+
+    if (showLiquidGlassSettings) {
+        val isDarkForGlass = when (themeMode) {
+            AppThemeMode.LIGHT -> false
+            AppThemeMode.DARK, AppThemeMode.AMOLED -> true
+            AppThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+        }
+        val accentForGlass = remember(selectedColorHex) {
+            try {
+                Color(android.graphics.Color.parseColor(selectedColorHex))
+            } catch (e: Exception) {
+                Color(0xFFD32F2F)
+            }
+        }
+        LiquidGlassSettingsScreen(
+            isDark = isDarkForGlass,
+            accentColor = accentForGlass,
+            onBack = { showLiquidGlassSettings = false },
+            modifier = modifier,
+        )
+        return
+    }
+
     BackHandler(onBack = onDismissRequest)
 
     val isDark = when (themeMode) {
@@ -166,6 +195,7 @@ fun ThemeColoursDialog(
             backdrop = themeBackdrop,
             hazeState = themeHazeState,
             scrollState = themeScrollState,
+            onOpenLiquidGlassSettings = { showLiquidGlassSettings = true },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -285,6 +315,7 @@ fun ThemeColoursContent(
     backdrop: com.kyant.backdrop.Backdrop? = null,
     hazeState: HazeState? = null,
     scrollState: androidx.compose.foundation.ScrollState = rememberScrollState(),
+    onOpenLiquidGlassSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -623,8 +654,33 @@ fun ThemeColoursContent(
                         )
                     )
                 }
-                if (com.example.ui.theme.LiquidGlassPreference.enabled) {
-                    GlassTuningControls()
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(
+                    color = (if (isDark) Color.White else Color.Black).copy(alpha = 0.1f)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onOpenLiquidGlassSettings)
+                        .padding(vertical = 10.dp, horizontal = 4.dp)
+                        .testTag("liquid_glass_settings_row"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Liquid Glass settings",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
