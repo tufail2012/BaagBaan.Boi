@@ -1,27 +1,24 @@
 package com.example.ui.components
 
 import android.os.Build
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.example.ui.theme.GlassTuning
+import com.example.ui.components.backdrop.Backdrop as NavBackdrop
 import com.example.ui.theme.LiquidGlassPreference
+import com.example.ui.theme.LocalLiquidGlassConfig
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
-import com.kyant.backdrop.shadow.Shadow
 
 /** RenderEffect/RenderNode backdrop blur requires Android 12 (API 31). */
 fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
@@ -29,12 +26,6 @@ fun isGlassSupported(sdkInt: Int = Build.VERSION.SDK_INT): Boolean =
 
 fun Modifier.glassEdge(shape: CornerBasedShape): Modifier =
     border(GLASS_EDGE_WIDTH, GLASS_EDGE_COLOR, shape)
-
-private const val BLUR_RADIUS_DP = 3f
-private const val LENS_HEIGHT = 0.60f
-private const val LENS_AMOUNT = 0.69f
-private const val LENS_MAX_DP = 48f
-private const val SURFACE_OPACITY = 0.4f
 
 internal val GLASS_EDGE_WIDTH = 0.5.dp
 internal val GLASS_EDGE_COLOR: Brush = Brush.verticalGradient(
@@ -45,59 +36,53 @@ internal val GLASS_EDGE_COLOR: Brush = Brush.verticalGradient(
 )
 
 @Composable
-fun glassContentColor(): Color =
-    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.Black else Color.White
+fun glassContentColor(): Color {
+    val config = LocalLiquidGlassConfig.current
+    return if (config.adaptiveContrast) {
+        if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color(0xFF1A1A1A) else Color.White
+    } else {
+        config.glassTextColor
+    }
+}
 
 @Composable
 fun glassIndicatorColor(): Color =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.White else Color.Black
 
+internal fun Backdrop.asVendoredBackdrop(): NavBackdrop {
+    val delegate = this
+    return object : NavBackdrop {
+        override val isCoordinatesDependent: Boolean
+            get() = delegate.isCoordinatesDependent
+
+        override fun DrawScope.drawBackdrop(
+            density: Density,
+            coordinates: LayoutCoordinates?,
+            layerBlock: (GraphicsLayerScope.() -> Unit)?
+        ) {
+            with(delegate) {
+                drawBackdrop(density, coordinates, layerBlock)
+            }
+        }
+    }
+}
+
 /**
- * True liquid glass surface sampling [backdrop]: vibrancy, blur, and lens
- * refraction (API 33+ only), then a theme-adaptive tint fill and a specular
- * rim. Returns the receiver unchanged if [backdrop] is null or the device
- * doesn't support it - callers should fall back to the existing Haze path
- * in that case.
- *
- * Values (blur radius, lens height/amount, surface opacity) match BitChord's
- * own liquid glass nav bar. API calls (vibrancy(), no shadow/colorControls
- * params) are written against backdrop 1.0.6, this project's current pinned
- * version - not 2.0.0, which needs compileSdk 37 this project doesn't have.
+ * True liquid glass surface sampling [backdrop], reading all parameters from
+ * [LocalLiquidGlassConfig]. Returns the receiver unchanged if [backdrop] is null
+ * or the device doesn't support glass.
  */
 @Composable
-fun Modifier.liquidGlassNav(shape: CornerBasedShape, backdrop: Backdrop?): Modifier {
+fun Modifier.liquidGlassNav(
+    shape: CornerBasedShape,
+    backdrop: Backdrop?,
+    isMenu: Boolean = false
+): Modifier {
     if (backdrop == null || !isGlassSupported()) return this
-    val isDark = isAppInDarkMode()
-    val density = LocalDensity.current
-    val blurPx = with(density) { GlassTuning.scaleBlur(BLUR_RADIUS_DP).dp.toPx() }
-    val lensHeightPx = with(density) { (GlassTuning.scaleLensHeight(LENS_HEIGHT) * LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (GlassTuning.scaleLensAmount(LENS_AMOUNT) * LENS_MAX_DP).dp.toPx() }
-    val surfaceOpacity = GlassTuning.scaleSurface(SURFACE_OPACITY)
-    val surfaceTintColor = if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-        Color(0xFFFAFAFA)
-    } else {
-        Color(0xFF121212)
-    }
-
-    return drawBackdrop(
-        backdrop = backdrop,
-        shape = { shape },
-        effects = {
-            vibrancy()
-            blur(blurPx)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                lens(
-                    refractionHeight = lensHeightPx,
-                    refractionAmount = lensAmountPx,
-                    depthEffect = false,
-                    chromaticAberration = false
-                )
-            }
-        },
-        highlight = { Highlight.Default },
-        shadow = { Shadow.Default },
-        onDrawSurface = {
-            drawRect(surfaceTintColor.copy(alpha = surfaceOpacity))
-        }
+    val vendoredBackdrop = remember(backdrop) { backdrop.asVendoredBackdrop() }
+    return this.navLiquidGlass(
+        shape = shape,
+        backdrop = vendoredBackdrop,
+        isMenu = isMenu
     )
 }

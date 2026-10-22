@@ -146,7 +146,12 @@ fun MyApplicationTheme(
         }
     }
 
-    CompositionLocalProvider(LocalAppPalette provides effectivePalette) {
+    val liquidGlassConfig = LiquidGlassSettings.resolveConfig(isDark = isDark)
+
+    CompositionLocalProvider(
+        LocalAppPalette provides effectivePalette,
+        LocalLiquidGlassConfig provides liquidGlassConfig
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -65,6 +66,7 @@ import com.example.ui.components.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.haptics.Haptic
 import com.example.ui.haptics.rememberHaptics
+import com.example.ui.theme.LocalLiquidGlassConfig
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -153,7 +155,7 @@ fun AgriBottomNav(
     val container = MaterialTheme.colorScheme.surface
     val n = navItems.size
 
-    // Glass-adaptive colours, exactly as the reference app's GlassNavBar.
+    val config = LocalLiquidGlassConfig.current
     val contentColor = glassContentColor()
     val selectedColor = if (USE_SECTION_ACCENT) {
         accentColor ?: MaterialTheme.colorScheme.primary
@@ -161,9 +163,10 @@ fun AgriBottomNav(
         contentColor
     }
     val unselectedColor = contentColor.copy(alpha = 0.65f)
-    val indicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
+    val indicatorColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
 
-    val useGlass = glassBackdrop != null && isGlassSupported()
+    val navGlassEnabled = config.navBarGlassEnabled
+    val useGlass = navGlassEnabled && glassBackdrop != null && isGlassSupported()
 
     // --- Pill geometry (reference ExpandedTabs) -------------------------------------
     val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
@@ -238,7 +241,11 @@ fun AgriBottomNav(
                 modifier = Modifier
                     .clip(pillShape)
                     .then(
-                        if (useGlass && glassBackdrop != null) {
+                        if (!navGlassEnabled) {
+                            Modifier
+                                .background(container.copy(alpha = 0.92f), pillShape)
+                                .border(0.5.dp, contentColor.copy(alpha = 0.12f), pillShape)
+                        } else if (useGlass && glassBackdrop != null) {
                             Modifier.navLiquidGlass(shape = pillShape, backdrop = glassBackdrop)
                         } else {
                             Modifier

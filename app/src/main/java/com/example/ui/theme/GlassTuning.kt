@@ -41,21 +41,25 @@ object GlassTuning {
     fun setBlurPercent(context: Context, value: Int) {
         blurPercent = clamp(value)
         save(context, KEY_BLUR, blurPercent)
+        LiquidGlassSettings.setBlurRadius(context, 3f * blurPercent / 100f)
     }
 
     fun setLensHeightPercent(context: Context, value: Int) {
         lensHeightPercent = clamp(value)
         save(context, KEY_LENS_HEIGHT, lensHeightPercent)
+        LiquidGlassSettings.setLensHeight(context, 0.60f * lensHeightPercent / 100f)
     }
 
     fun setLensAmountPercent(context: Context, value: Int) {
         lensAmountPercent = clamp(value)
         save(context, KEY_LENS_AMOUNT, lensAmountPercent)
+        LiquidGlassSettings.setLensAmount(context, 0.69f * lensAmountPercent / 100f)
     }
 
     fun setSurfacePercent(context: Context, value: Int) {
         surfacePercent = clamp(value)
         save(context, KEY_SURFACE, surfacePercent)
+        LiquidGlassSettings.setSurfaceOpacity(context, (0.5f * surfacePercent / 100f).coerceIn(0f, 1f))
     }
 
     fun resetAll(context: Context) {

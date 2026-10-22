@@ -56,6 +56,7 @@ class MainActivity : FragmentActivity() {
         appLockManager = AppLockManager.getInstance(applicationContext)
         com.example.ui.theme.LiquidGlassPreference.init(applicationContext)
         com.example.ui.theme.GlassTuning.init(applicationContext)
+        com.example.ui.theme.LiquidGlassSettings.init(applicationContext)
         com.example.ui.theme.CustomBackgroundPreference.init(applicationContext)
         appLockManager.applySecureWindowFlag(this)
 

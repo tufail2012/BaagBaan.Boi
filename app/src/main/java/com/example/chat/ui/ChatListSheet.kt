@@ -60,13 +60,9 @@ import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
 import com.example.ui.components.isGlassSupported
-import com.example.ui.theme.GlassTuning
+import com.example.ui.components.liquidGlassNav
+import com.example.ui.theme.LocalLiquidGlassConfig
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.vibrancy
-
-private const val SHEET_BLUR_RADIUS_DP = 16f
 
 @Composable
 internal fun ChatListSheet(
@@ -93,14 +89,12 @@ internal fun ChatListSheet(
     }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
+    val config = LocalLiquidGlassConfig.current
     val isEditMode = editingList != null
     val canSubmit = listName.trim().isNotEmpty() && selectedChatIds.isNotEmpty()
     val panelShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val scrimAlpha = if (isDark || isAmoled) 0.35f else 0.25f
-    val sheetTintAlpha = GlassTuning.scaleSurface(if (isDark || isAmoled) 0.6f else 0.7f)
-    val sheetTintColor = if (isAmoled) Color(0xFF0A0A0A) else surfaceColor
-    val blurPx = with(density) { GlassTuning.scaleBlur(SHEET_BLUR_RADIUS_DP).dp.toPx() }
-    val useGlass = backdrop != null && isGlassSupported()
+    val useGlass = backdrop != null && isGlassSupported() && config.chatGlassEnabled
 
     BackHandler(onBack = onDismiss)
 
@@ -128,19 +122,7 @@ internal fun ChatListSheet(
                 .then(
                     if (useGlass && backdrop != null) {
                         Modifier
-                            .drawBackdrop(
-                                backdrop = backdrop,
-                                shape = { panelShape },
-                                effects = {
-                                    vibrancy()
-                                    blur(blurPx)
-                                },
-                                highlight = null,
-                                shadow = null,
-                                onDrawSurface = {
-                                    drawRect(sheetTintColor.copy(alpha = sheetTintAlpha))
-                                }
-                            )
+                            .liquidGlassNav(shape = panelShape, backdrop = backdrop)
                             .clip(panelShape)
                     } else {
                         Modifier

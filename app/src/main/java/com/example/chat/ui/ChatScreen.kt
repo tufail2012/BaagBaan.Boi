@@ -42,11 +42,13 @@ import com.example.ui.components.backdrop.effects.blur
 import com.example.ui.components.backdrop.effects.colorControls
 import com.example.ui.components.backdrop.effects.lens
 import com.example.ui.components.backdrop.highlight.Highlight
+import com.example.ui.components.backdrop.highlight.HighlightStyle
 import com.example.ui.components.backdrop.shadow.Shadow
 import com.example.ui.components.GlassRefractToggle
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
-import com.example.ui.theme.GlassTuning
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LocalLiquidGlassConfig
 import com.kyant.backdrop.backdrops.layerBackdrop as kyantLayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop as rememberKyantLayerBackdrop
 import android.os.Build
@@ -193,8 +195,6 @@ import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-
-private const val BUBBLE_GLASS_ENABLED = true
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -369,7 +369,8 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val chatGlass = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
     val bubbleBackdrop = com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop()
-    val glassOn = com.example.ui.components.isGlassSupported()
+    val glassConfig = LocalLiquidGlassConfig.current
+    val glassOn = com.example.ui.components.isGlassSupported() && glassConfig.chatGlassEnabled
     val chatHaze = remember { dev.chrisbanes.haze.HazeState() }
     val headerScrolled by remember { derivedStateOf { listState.canScrollBackward } }
     val scrimAlpha by animateFloatAsState(
@@ -3231,11 +3232,6 @@ private fun DateSeparator(date: Timestamp?, isDark: Boolean) {
     }
 }
 
-private const val BUBBLE_GLASS_SCALE = 0.33f
-private const val BUBBLE_BLUR_DP = 14f
-private const val BUBBLE_LENS_HEIGHT_DP = 18f
-private const val BUBBLE_LENS_AMOUNT_DP = 22f
-
 @Composable
 private fun Modifier.textBubbleLiquidGlass(
     shape: CornerBasedShape,
@@ -3245,35 +3241,37 @@ private fun Modifier.textBubbleLiquidGlass(
     accentColor: Color,
     isDark: Boolean
 ): Modifier {
-    val surfacePercent = GlassTuning.surfacePercent
-    val surfaceBrush = remember(useGlass, isOwn, accentColor, isDark, surfacePercent) {
+    val config = LocalLiquidGlassConfig.current
+    val surfaceOpacity = config.surfaceOpacity
+    val opacityScale = (surfaceOpacity / 0.5f).coerceIn(0f, 2f)
+    val surfaceBrush = remember(useGlass, isOwn, accentColor, isDark, opacityScale) {
         if (useGlass) {
             if (isOwn) {
                 Brush.linearGradient(
                     colors = listOf(
-                        accentColor.copy(alpha = GlassTuning.scaleSurface(if (isDark) 0.50f else 0.76f)),
-                        accentColor.copy(alpha = GlassTuning.scaleSurface(if (isDark) 0.28f else 0.58f))
+                        accentColor.copy(alpha = ((if (isDark) 0.50f else 0.76f) * opacityScale).coerceIn(0f, 1f)),
+                        accentColor.copy(alpha = ((if (isDark) 0.28f else 0.58f) * opacityScale).coerceIn(0f, 1f))
                     )
                 )
             } else {
                 if (isDark) {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF1E293B).copy(alpha = GlassTuning.scaleSurface(0.60f)),
-                            Color(0xFF0F172A).copy(alpha = GlassTuning.scaleSurface(0.42f))
+                            Color(0xFF1E293B).copy(alpha = (0.60f * opacityScale).coerceIn(0f, 1f)),
+                            Color(0xFF0F172A).copy(alpha = (0.42f * opacityScale).coerceIn(0f, 1f))
                         )
                     )
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = GlassTuning.scaleSurface(0.74f)),
-                            Color(0xFFF1F5F9).copy(alpha = GlassTuning.scaleSurface(0.54f))
+                            Color.White.copy(alpha = (0.74f * opacityScale).coerceIn(0f, 1f)),
+                            Color(0xFFF1F5F9).copy(alpha = (0.54f * opacityScale).coerceIn(0f, 1f))
                         )
                     )
                 }
             }
         } else {
-            // Solid version of the same design when glassOn is false or BUBBLE_GLASS_ENABLED is false
+            // Solid version of the same design when glassOn is false
             if (isOwn) {
                 val deepAccent = Color(
                     red = (accentColor.red * 0.80f).coerceIn(0f, 1f),
@@ -3324,7 +3322,7 @@ private fun Modifier.textBubbleLiquidGlass(
         }
     }
 
-    if (!useGlass || backdrop == null) {
+    if (!useGlass || backdrop == null || !config.chatGlassEnabled) {
         return this
             .clip(shape)
             .background(brush = surfaceBrush, shape = shape)
@@ -3334,41 +3332,69 @@ private fun Modifier.textBubbleLiquidGlass(
             .border(width = 1.dp, brush = rimBorderBrush, shape = shape)
     }
 
+    if (config.glassStyle == GlassStyle.TRANSPARENT) {
+        return this
+            .clip(shape)
+            .background(brush = surfaceBrush, shape = shape)
+    }
+
     val density = LocalDensity.current
-    val blurPx = with(density) { GlassTuning.scaleBlur(BUBBLE_BLUR_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
-    val lensHeightPx = with(density) { GlassTuning.scaleLensHeight(BUBBLE_LENS_HEIGHT_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
-    val lensAmountPx = with(density) { GlassTuning.scaleLensAmount(BUBBLE_LENS_AMOUNT_DP).dp.toPx() } * BUBBLE_GLASS_SCALE
+    val captureScale = config.normalCaptureScale
+    val saturation = config.backdropSaturation
+    val blurPx = with(density) { config.blurRadius.dp.toPx() } * captureScale
+    val lensHeightPx = with(density) { config.lensRefractionHeightDp.dp.toPx() } * captureScale
+    val lensAmountPx = with(density) { config.lensRefractionAmountDp.dp.toPx() } * captureScale
+    val isLiquid = config.glassStyle == GlassStyle.LIQUID
     val shadowColor = if (isOwn) {
         accentColor.copy(alpha = if (isDark) 0.24f else 0.18f)
     } else {
         Color.Black.copy(alpha = if (isDark) 0.28f else 0.08f)
     }
 
-    return this
-        .drawBackdrop(
-            backdrop = backdrop,
-            shape = { shape },
-            effects = {
-                colorControls(saturation = 1.45f)
-                blur(blurPx)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensHeightPx,
-                        refractionAmount = lensAmountPx,
-                        depthEffect = true,
-                        chromaticAberration = true
-                    )
-                }
-            },
-            highlight = { Highlight.Default },
-            shadow = { Shadow(radius = 12.dp, color = shadowColor) },
-            onDrawSurface = {
-                drawRect(brush = surfaceBrush, size = size)
+    val base = this.drawBackdrop(
+        backdrop = backdrop,
+        shape = { shape },
+        effects = {
+            colorControls(saturation = saturation)
+            blur(blurPx)
+            if (isLiquid && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                lens(
+                    refractionHeight = lensHeightPx,
+                    refractionAmount = lensAmountPx,
+                    depthEffect = config.depthEffect,
+                    chromaticAberration = config.chromaticAberration
+                )
+            }
+        },
+        highlight = if (isLiquid && config.highlightOpacity > 0f) {
+            {
+                Highlight(
+                    alpha = config.highlightOpacity,
+                    style = HighlightStyle.Default(color = config.highlightColor)
+                )
+            }
+        } else {
+            null
+        },
+        shadow = if (isLiquid) {
+            { Shadow(radius = 12.dp, color = shadowColor) }
+        } else {
+            null
+        },
+        onDrawSurface = {
+            drawRect(brush = surfaceBrush, size = size)
+            if (isLiquid) {
                 drawRect(brush = topSheenBrush, size = size)
-            },
-            backdropScale = BUBBLE_GLASS_SCALE
-        )
-        .border(width = 0.8.dp, brush = rimBorderBrush, shape = shape)
+            }
+        },
+        backdropScale = captureScale
+    )
+
+    return if (isLiquid) {
+        base.border(width = 0.8.dp, brush = rimBorderBrush, shape = shape)
+    } else {
+        base
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -3398,7 +3424,7 @@ private fun MessageBubble(
             message.messageType == "contact"
         )
     val isTextBubble = !isMediaOrSpecialBubble
-    val useBubbleGlass = glassOn && BUBBLE_GLASS_ENABLED && bubbleBackdrop != null
+    val useBubbleGlass = glassOn && bubbleBackdrop != null
 
     val bubbleColor = if (isOwn) {
         accentColor

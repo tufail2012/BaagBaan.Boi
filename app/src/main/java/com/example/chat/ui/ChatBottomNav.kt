@@ -75,12 +75,12 @@ import com.example.ui.components.backdrop.backdrops.LayerBackdrop
 import com.example.ui.components.backdrop.backdrops.layerBackdrop
 import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.components.glassContentColor
-import com.example.ui.components.glassIndicatorColor
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.navLiquidGlass
 import com.example.ui.components.pillPlacement
 import com.example.ui.haptics.Haptic
 import com.example.ui.haptics.rememberHaptics
+import com.example.ui.theme.LocalLiquidGlassConfig
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -146,7 +146,7 @@ fun ChatBottomNav(
     val container = MaterialTheme.colorScheme.surface
     val n = navItems.size
 
-    // Glass-adaptive colours, matching AgriBottomNav.kt with USE_SECTION_ACCENT = false
+    val config = LocalLiquidGlassConfig.current
     val contentColor = glassContentColor()
     val selectedColor = if (USE_SECTION_ACCENT) {
         MaterialTheme.colorScheme.primary
@@ -154,9 +154,10 @@ fun ChatBottomNav(
         contentColor
     }
     val unselectedColor = contentColor.copy(alpha = 0.65f)
-    val indicatorColor = glassIndicatorColor().copy(alpha = 0.5f)
+    val indicatorColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
 
-    val useGlass = glassBackdrop != null && isGlassSupported()
+    val navGlassEnabled = config.navBarGlassEnabled
+    val useGlass = navGlassEnabled && glassBackdrop != null && isGlassSupported()
 
     // --- Pill geometry (same as AgriBottomNav) ---
     val motion = remember { GlassPillMotion(coroutineScope, selectedIndex) }
@@ -225,7 +226,11 @@ fun ChatBottomNav(
                 modifier = Modifier
                     .clip(pillShape)
                     .then(
-                        if (useGlass && glassBackdrop != null) {
+                        if (!navGlassEnabled) {
+                            Modifier
+                                .background(container.copy(alpha = 0.92f), pillShape)
+                                .border(0.5.dp, contentColor.copy(alpha = 0.12f), pillShape)
+                        } else if (useGlass && glassBackdrop != null) {
                             Modifier.navLiquidGlass(shape = pillShape, backdrop = glassBackdrop)
                         } else if (hazeState != null) {
                             Modifier

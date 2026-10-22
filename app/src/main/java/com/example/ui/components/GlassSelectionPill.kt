@@ -1,9 +1,7 @@
 /*
- * Rendering half of the reference app's GlassSelectionPill.kt, ported 1:1.
+ * Rendering half of the selection pill.
  *
- * The motion half (spring / lift / squash / hand-off) is the existing
- * GlassPillMotion.kt in this package - it is already identical to the reference app's.
- * Pill motion is ported from liquid_glass_easy (Ahmed Gamil, MIT).
+ * The motion half (spring / lift / squash / hand-off) is in GlassPillMotion.kt.
  */
 package com.example.ui.components
 
@@ -30,8 +28,11 @@ import com.example.ui.components.backdrop.backdrops.LayerBackdrop
 import com.example.ui.components.backdrop.drawBackdrop
 import com.example.ui.components.backdrop.effects.lens
 import com.example.ui.components.backdrop.highlight.Highlight
+import com.example.ui.components.backdrop.highlight.HighlightStyle
 import com.example.ui.components.backdrop.shadow.Shadow
-import com.example.ui.theme.GlassTuning
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LiquidGlassSettings
+import com.example.ui.theme.LocalLiquidGlassConfig
 import kotlin.math.roundToInt
 
 /** How much taller than the bar the pill stands while it is lifted. */
@@ -54,14 +55,16 @@ internal fun Modifier.pillPlacement(center: () -> Offset, size: () -> Size): Mod
         }
     }
 
-/** The flat pill: a fill and nothing else. */
+/** The flat pill: a fill using selectionPillColor and selectionPillOpacity. */
 @Composable
 internal fun FlatSelectionPill(
     color: Color,
     modifier: Modifier,
 ) {
+    val config = LocalLiquidGlassConfig.current
+    val resolvedColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
     val shape = remember { RoundedCornerShape(percent = 50) }
-    Box(modifier.background(color, shape))
+    Box(modifier.background(resolvedColor, shape))
 }
 
 /**
@@ -77,33 +80,56 @@ internal fun GlassSelectionPill(
     tabRow: LayerBackdrop,
     modifier: Modifier,
 ) {
+    val config = LocalLiquidGlassConfig.current
+    val restWashColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
+    val highlightColor = config.highlightColor
+    val highlightOpacity = config.highlightOpacity
+    val isLiquid = config.glassStyle == GlassStyle.LIQUID
+
     val shape = remember { RoundedCornerShape(percent = 50) }
-    val backdrop = remember(page, barGlass, tabRow, fillColor) {
+    val backdrop = remember(page, barGlass, tabRow, restWashColor) {
         SelectionPillBackdrop(page, barGlass, tabRow) {
-            fillColor.copy(alpha = fillColor.alpha * (1f - motion.material))
+            restWashColor.copy(alpha = restWashColor.alpha * (1f - motion.material))
         }
     }
-    val lensHeight = GlassTuning.scaleLensHeight(PILL_LENS_HEIGHT)
-    val lensAmount = GlassTuning.scaleLensAmount(PILL_LENS_AMOUNT)
+    val lensHeight = PILL_LENS_HEIGHT * (config.lensHeight / LiquidGlassSettings.DEFAULT_LENS_HEIGHT)
+    val lensAmount = PILL_LENS_AMOUNT * (config.lensAmount / LiquidGlassSettings.DEFAULT_LENS_AMOUNT)
+
     Box(
         modifier.drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
             effects = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (isLiquid && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     lens(
                         refractionHeight = lensHeight.toPx() * motion.glassPresence,
                         refractionAmount = lensAmount.toPx() * motion.material,
+                        depthEffect = config.depthEffect,
                         chromaticAberration = true,
                     )
                 }
             },
             highlight = {
-                val alpha = motion.material * rimOf(motion.glassPresence)
-                if (alpha > 0f) Highlight.Default.copy(alpha = alpha) else null
+                val alpha = if (isLiquid) {
+                    motion.material * rimOf(motion.glassPresence) * highlightOpacity
+                } else {
+                    0f
+                }
+                if (alpha > 0f) {
+                    Highlight(
+                        alpha = alpha,
+                        style = HighlightStyle.Default(color = highlightColor)
+                    )
+                } else {
+                    null
+                }
             },
             shadow = {
-                val alpha = motion.material * rimOf(motion.glassPresence)
+                val alpha = if (isLiquid) {
+                    motion.material * rimOf(motion.glassPresence)
+                } else {
+                    0f
+                }
                 if (alpha > 0f) PILL_SHADOW.copy(alpha = alpha) else null
             },
         ),

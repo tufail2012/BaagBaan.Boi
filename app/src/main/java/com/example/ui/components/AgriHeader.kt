@@ -114,23 +114,14 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 
 import androidx.compose.material.icons.filled.AccountCircle
-import com.example.ui.theme.GlassTuning
+import com.example.ui.theme.LocalLiquidGlassConfig
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
-import android.os.Build
 import androidx.compose.foundation.shape.CornerBasedShape
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalDensity
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
 
 @Composable
 fun AgriHeader(
@@ -1356,23 +1347,9 @@ fun Modifier.frostedLiquidGlassMenuItem(
         )
 }
 
-private const val PROFILE_MENU_BLUR_RADIUS_DP = 8f
-private const val PROFILE_MENU_LENS_HEIGHT = 0.5f
-private const val PROFILE_MENU_LENS_AMOUNT = 0.5f
-private const val PROFILE_MENU_LENS_MAX_DP = 48f
-private const val PROFILE_MENU_SURFACE_OPACITY = 0.4f
-
 /**
- * Liquid Glass Modifier strictly for the Profile Menu.
- * Resolves the Popup window boundary issue by leveraging Haze's absolute screen-coordinate
- * sampling (positionOnScreen) to accurately capture and blur the live background directly
- * behind the menu popup, avoiding BLASTBufferQueue cross-window surface leaks.
- *
- * Preserves the exact Liquid Glass styling:
- * - Silky optical backdrop blur and ambient vibrancy
- * - 0.4f translucent surface tint (without opaque double-stacking)
- * - Soft floating elevation shadow
- * - Refined multi-stop vertical rim highlight that softly defines the top edge and rounded corners
+ * Liquid Glass Modifier strictly for the Profile Menu and popup dropdowns.
+ * Uses [LocalLiquidGlassConfig.current.menuBackdropResolution] as its capture scale.
  */
 @Composable
 fun Modifier.profileMenuLiquidGlass(
@@ -1380,15 +1357,9 @@ fun Modifier.profileMenuLiquidGlass(
     hazeState: HazeState? = null,
     shape: CornerBasedShape = RoundedCornerShape(22.dp)
 ): Modifier {
-
-    val density = LocalDensity.current
-
-    val surfaceTintColor =
-        if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-            Color(0xFFFAFAFA)
-        } else {
-            Color(0xFF121212)
-        }
+    val config = LocalLiquidGlassConfig.current
+    val surfaceTintColor = config.surfaceTintColor
+    val surfaceOpacity = config.surfaceOpacity
 
     if (backdrop == null || !isGlassSupported()) {
         val fallbackStyle = HazeStyle(
@@ -1396,7 +1367,7 @@ fun Modifier.profileMenuLiquidGlass(
             blurRadius = 8.dp,
             tints = listOf(
                 HazeTint(
-                    color = surfaceTintColor.copy(alpha = 0.40f)
+                    color = surfaceTintColor.copy(alpha = surfaceOpacity)
                 )
             ),
             noiseFactor = 0.04f
@@ -1415,7 +1386,7 @@ fun Modifier.profileMenuLiquidGlass(
                 }
             )
             .background(
-                surfaceTintColor.copy(alpha = 0.40f),
+                surfaceTintColor.copy(alpha = surfaceOpacity),
                 shape
             )
             .border(
@@ -1425,52 +1396,13 @@ fun Modifier.profileMenuLiquidGlass(
             )
     }
 
-    val blurPx = with(density) {
-        GlassTuning.scaleBlur(PROFILE_MENU_BLUR_RADIUS_DP).dp.toPx()
-    }
-
-    val lensHeightPx = with(density) {
-        (GlassTuning.scaleLensHeight(PROFILE_MENU_LENS_HEIGHT) * PROFILE_MENU_LENS_MAX_DP).dp.toPx()
-    }
-
-    val lensAmountPx = with(density) {
-        (GlassTuning.scaleLensAmount(PROFILE_MENU_LENS_AMOUNT) * PROFILE_MENU_LENS_MAX_DP).dp.toPx()
-    }
-
-    val surfaceOpacity = GlassTuning.scaleSurface(PROFILE_MENU_SURFACE_OPACITY)
-
-    return drawBackdrop(
-        backdrop = backdrop,
-        shape = { shape },
-        effects = {
-            vibrancy()
-            blur(blurPx)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                lens(
-                    refractionHeight = lensHeightPx,
-                    refractionAmount = lensAmountPx,
-                    depthEffect = true,
-                    chromaticAberration = true
-                )
-            }
-        },
-        highlight = {
-            Highlight.Default
-        },
-        shadow = {
-            Shadow.Default
-        },
-        onDrawSurface = {
-            drawRect(
-                surfaceTintColor.copy(alpha = surfaceOpacity)
-            )
-        }
-    ).border(
-        width = 0.5.dp,
-        color = Color.White.copy(alpha = 0.10f),
-        shape = shape
-    )
+    return this
+        .liquidGlassNav(shape = shape, backdrop = backdrop, isMenu = true)
+        .border(
+            width = 0.5.dp,
+            color = Color.White.copy(alpha = 0.10f),
+            shape = shape
+        )
 }
 
 /**

@@ -968,7 +968,7 @@ private fun ChatsSelectionOverflowMenuOverlay(
         ) {
             val panelGlassModifier = if (SELECTION_MENU_REAL_GLASS_ENABLED) {
                 Modifier
-                    .chatHeaderGlass(backdrop = backdrop, shape = menuShape)
+                    .chatHeaderGlass(backdrop = backdrop, shape = menuShape, isMenu = true)
                     .border(0.5.dp, borderColor, menuShape)
                     .clip(menuShape)
             } else {

@@ -105,17 +105,11 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import com.example.ui.theme.GlassTuning
+import androidx.compose.foundation.shape.CornerBasedShape
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -230,16 +224,8 @@ fun serializePaymentHistory(list: List<PaymentInstallment>): String {
     return array.toString()
 }
 
-private const val BLUR_RADIUS_DP = 8f
-private const val LENS_HEIGHT = 0.5f
-private const val LENS_AMOUNT = 0.5f
-private const val LENS_MAX_DP = 48f
-private const val SURFACE_OPACITY = 0.4f
-
 /**
- * Liquid Glass modifier for Booking Record Detail cards utilizing genuine Backdrop sampling,
- * vibrancy, 8dp blur, lens refraction, depth effect, chromatic aberration, highlight, shadow,
- * and adaptive surface tint.
+ * Liquid Glass modifier for Booking Record Detail cards reading from [LocalLiquidGlassConfig].
  */
 @Composable
 fun Modifier.bookingDetailLiquidGlass(
@@ -256,19 +242,6 @@ fun Modifier.bookingDetailLiquidGlass(
             .border(0.8.dp, fallbackBorder, shape)
     }
 
-    val density = LocalDensity.current
-    val blurPx = with(density) { GlassTuning.scaleBlur(BLUR_RADIUS_DP).dp.toPx() }
-    val lensHeightPx = with(density) { (GlassTuning.scaleLensHeight(LENS_HEIGHT) * LENS_MAX_DP).dp.toPx() }
-    val lensAmountPx = with(density) { (GlassTuning.scaleLensAmount(LENS_AMOUNT) * LENS_MAX_DP).dp.toPx() }
-    val surfaceOpacity = GlassTuning.scaleSurface(SURFACE_OPACITY)
-
-    val surfaceTintColor =
-        if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) {
-            Color(0xFFFAFAFA)
-        } else {
-            Color(0xFF121212)
-        }
-
     val isDark = isAppInDarkMode()
     val isAmoled = isAppInAmoledMode()
     val rimBrush = Brush.verticalGradient(
@@ -278,31 +251,11 @@ fun Modifier.bookingDetailLiquidGlass(
             Color.White.copy(alpha = if (isDark || isAmoled) 0.03f else 0.08f)
         )
     )
+    val cornerShape = shape as? CornerBasedShape ?: RoundedCornerShape(24.dp)
 
     return this
         .clip(shape)
-        .drawBackdrop(
-            backdrop = backdrop,
-            shape = { shape },
-            effects = {
-                vibrancy()
-                blur(blurPx)
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    lens(
-                        refractionHeight = lensHeightPx,
-                        refractionAmount = lensAmountPx,
-                        depthEffect = true,
-                        chromaticAberration = true
-                    )
-                }
-            },
-            highlight = { Highlight.Default },
-            shadow = { Shadow.Default },
-            onDrawSurface = {
-                drawRect(surfaceTintColor.copy(alpha = surfaceOpacity))
-            }
-        )
+        .liquidGlassNav(shape = cornerShape, backdrop = backdrop)
         .border(0.8.dp, rimBrush, shape)
 }
 
