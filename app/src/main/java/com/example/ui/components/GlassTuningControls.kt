@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.ui.theme.GlassTuning
+import kotlin.math.roundToInt
 
 @Composable
 fun GlassTuningControls() {
@@ -108,10 +108,13 @@ private fun GlassPercentRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Slider(
+        GlassSlider(
             value = percent.toFloat(),
-            onValueChange = { onChange(it.toInt()) },
-            valueRange = 0f..GlassTuning.MAX_PERCENT.toFloat(),
+            valueRange = 0f..200f,
+            activeColor = MaterialTheme.colorScheme.primary,
+            inactiveColor = MaterialTheme.colorScheme.surfaceVariant,
+            backdrop = null,
+            onValueChange = { onChange(it.roundToInt()) },
             modifier = Modifier.fillMaxWidth(),
         )
     }

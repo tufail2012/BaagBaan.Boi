@@ -1,13 +1,6 @@
 package com.example.ui.components
 
-import android.os.Build
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -17,30 +10,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.example.ui.animation.IosMotion
@@ -48,30 +31,20 @@ import com.example.ui.haptics.Haptic
 import com.example.ui.haptics.rememberHaptics
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberBackdrop
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.InnerShadow
-import com.kyant.backdrop.shadow.Shadow
-import kotlin.math.abs
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 
 private val TOUCH_WIDTH = 64.dp
 private val TOUCH_HEIGHT = 48.dp
 private val TRACK_WIDTH = 64.dp
 private val TRACK_HEIGHT = 28.dp
-private val THUMB_WIDTH = 40.dp
-private val THUMB_HEIGHT = 24.dp
 private val THUMB_START_X = 2.dp
 private val THUMB_END_X = 22.dp
 private val DRAG_WIDTH = 20.dp
+private val TOGGLE_LENS_HEIGHT = 5.dp
+private val TOGGLE_LENS_AMOUNT = 10.dp
+private const val TOGGLE_VELOCITY_DIVISOR = 50f
+private const val TOGGLE_TRACK_SCALE_MAX = 0.75f
+private const val TOGGLE_SHADOW_ALPHA = 0.05f
 
 @Composable
 fun GlassRefractToggle(
@@ -100,115 +73,41 @@ fun GlassRefractToggle(
     val context = LocalContext.current
     val reduceMotion = remember(context) { IosMotion.isReducedMotion(context) }
     val density = LocalDensity.current
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val dragWidthPx = with(density) { DRAG_WIDTH.toPx() }
-    val scope = rememberCoroutineScope()
     val haptics = rememberHaptics()
     val interactive = enabled && onCheckedChange != null
 
     val currentChecked by rememberUpdatedState(checked)
     val currentOnChange by rememberUpdatedState(onCheckedChange)
 
-    val valueSpec: AnimationSpec<Float> = remember(reduceMotion) {
-        if (reduceMotion) snap()
-        else spring(dampingRatio = 1.0f, stiffness = 1000f, visibilityThreshold = 0.001f)
-    }
-    val pressSpec: AnimationSpec<Float> = remember(reduceMotion) {
-        if (reduceMotion) snap()
-        else spring(dampingRatio = 1.0f, stiffness = 1000f, visibilityThreshold = 0.001f)
-    }
-    val velocitySpec: AnimationSpec<Float> = remember(reduceMotion) {
-        if (reduceMotion) snap()
-        else spring(dampingRatio = 0.5f, stiffness = 300f, visibilityThreshold = 0.01f)
-    }
-    val scaleXSpec: AnimationSpec<Float> = remember(reduceMotion) {
-        if (reduceMotion) snap()
-        else spring(dampingRatio = 0.6f, stiffness = 250f, visibilityThreshold = 0.001f)
-    }
-    val scaleYSpec: AnimationSpec<Float> = remember(reduceMotion) {
-        if (reduceMotion) snap()
-        else spring(dampingRatio = 0.7f, stiffness = 250f, visibilityThreshold = 0.001f)
-    }
-
-    val value = remember { Animatable(if (checked) 1f else 0f) }
-    val pressProgress = remember { Animatable(0f) }
-    val velocity = remember { Animatable(0f) }
-    val scaleX = remember { Animatable(1f) }
-    val scaleY = remember { Animatable(1f) }
-    val mutatorMutex = remember { MutatorMutex() }
-
-    var dragging by remember { mutableStateOf(false) }
-    var releaseJob by remember { mutableStateOf<Job?>(null) }
+    val targetValue = if (checked) 1f else 0f
+    val thumbState = rememberGlassDragThumbState(
+        value = targetValue,
+        reduceMotion = reduceMotion,
+    )
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    fun startPress() {
-        releaseJob?.cancel()
-        releaseJob = null
-        scope.launch { pressProgress.animateTo(1f, pressSpec) }
-        scope.launch { scaleX.animateTo(1.5f, scaleXSpec) }
-        scope.launch { scaleY.animateTo(1.5f, scaleYSpec) }
-    }
-
-    fun finishRelease(targetValue: Float, holdPressForTap: Boolean = false) {
-        releaseJob?.cancel()
-        releaseJob = scope.launch {
-            mutatorMutex.mutate {
-                launch { value.animateTo(targetValue, valueSpec) }
-                if (holdPressForTap && !reduceMotion) {
-                    launch { pressProgress.animateTo(1f, pressSpec) }
-                    launch { scaleX.animateTo(1.5f, scaleXSpec) }
-                    launch { scaleY.animateTo(1.5f, scaleYSpec) }
-                    withTimeoutOrNull(220L) {
-                        snapshotFlow { pressProgress.value >= 0.65f }
-                            .first { it }
-                    }
-                }
-                withTimeoutOrNull(400L) {
-                    snapshotFlow { abs(value.value - targetValue) <= 0.025f }
-                        .first { it }
-                }
-                launch { pressProgress.animateTo(0f, pressSpec) }
-                launch { scaleX.animateTo(1f, scaleXSpec) }
-                launch { scaleY.animateTo(1f, scaleYSpec) }
-            }
-        }
-    }
-
-    // Only animate to the checked value when no release is running.
-    // Otherwise the release animation and this one fight over value.
-    LaunchedEffect(checked, dragging) {
-        if (!dragging && releaseJob?.isActive != true) {
-            value.animateTo(if (checked) 1f else 0f, valueSpec)
-        }
-    }
-
-    LaunchedEffect(isPressed, dragging) {
-        if (interactive && (isPressed || dragging)) {
-            startPress()
-        } else if (!isPressed && !dragging && releaseJob?.isActive != true && pressProgress.value > 0f) {
-            finishRelease(if (currentChecked) 1f else 0f)
+    LaunchedEffect(isPressed, thumbState.dragging) {
+        if (interactive && (isPressed || thumbState.dragging)) {
+            thumbState.startPress()
+        } else if (!isPressed && !thumbState.dragging && thumbState.releaseJob?.isActive != true && thumbState.pressProgress.value > 0f) {
+            thumbState.finishRelease(if (currentChecked) 1f else 0f)
         }
     }
 
     val capsuleShape = remember { RoundedCornerShape(percent = 50) }
     val trackBackdrop = rememberLayerBackdrop()
-    val scaledTrackBackdrop = rememberBackdrop(trackBackdrop) { drawBackdrop ->
-        val p = pressProgress.value
-        if (p != 0f) {
-            scale(
-                scaleX = lerp(2f / 3f, 0.75f, p),
-                scaleY = lerp(0f, 0.75f, p),
-            ) {
-                drawBackdrop()
-            }
+
+    val onThumbRelease: (Float) -> Float = { releasedFraction ->
+        val targetBool = releasedFraction >= 0.5f
+        val finalTarget = if (targetBool) 1f else 0f
+        if (targetBool != currentChecked) {
+            haptics.play(if (targetBool) Haptic.ToggleOn else Haptic.ToggleOff)
+            currentOnChange?.invoke(targetBool)
         }
-    }
-    val thumbBackdrop = if (backdrop != null) {
-        rememberCombinedBackdrop(backdrop, scaledTrackBackdrop)
-    } else {
-        scaledTrackBackdrop
+        finalTarget
     }
 
     Box(
@@ -225,64 +124,24 @@ fun GlassRefractToggle(
                 enabled = interactive,
                 role = Role.Switch,
                 onValueChange = { newValue ->
-                    startPress()
+                    thumbState.startPress()
                     val targetFloat = if (newValue) 1f else 0f
                     if (newValue != currentChecked) {
                         haptics.play(if (newValue) Haptic.ToggleOn else Haptic.ToggleOff)
                         currentOnChange?.invoke(newValue)
                     }
-                    finishRelease(targetFloat, holdPressForTap = true)
+                    thumbState.finishRelease(targetFloat, holdPressForTap = true)
                 },
             )
-            .pointerInput(interactive, dragWidthPx, isRtl, reduceMotion) {
-                if (!interactive || dragWidthPx <= 0f) return@pointerInput
-                val velocityTracker = VelocityTracker()
-                val direction = if (isRtl) -1f else 1f
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        if (!reduceMotion) {
-                            velocityTracker.resetTracking()
-                        }
-                        dragging = true
-                        startPress()
-                    },
-                    onDragCancel = {
-                        dragging = false
-                        if (!reduceMotion) {
-                            scope.launch { velocity.animateTo(0f, velocitySpec) }
-                        }
-                        finishRelease(if (currentChecked) 1f else 0f)
-                    },
-                    onDragEnd = {
-                        dragging = false
-                        if (!reduceMotion) {
-                            scope.launch { velocity.animateTo(0f, velocitySpec) }
-                        }
-                        val targetBool = value.value >= 0.5f
-                        val targetFloat = if (targetBool) 1f else 0f
-                        if (targetBool != currentChecked) {
-                            haptics.play(if (targetBool) Haptic.ToggleOn else Haptic.ToggleOff)
-                            currentOnChange?.invoke(targetBool)
-                        }
-                        finishRelease(targetFloat)
-                    },
-                    onHorizontalDrag = { change, dragAmount ->
-                        change.consume()
-                        val nextValue = (value.value + (dragAmount * direction) / dragWidthPx).coerceIn(0f, 1f)
-                        scope.launch {
-                            value.snapTo(nextValue)
-                        }
-                        if (!reduceMotion) {
-                            velocityTracker.addPosition(change.uptimeMillis, change.position)
-                            val pixelVelocity = velocityTracker.calculateVelocity().x
-                            val fractionVelocity = pixelVelocity / dragWidthPx * direction
-                            scope.launch {
-                                velocity.snapTo(fractionVelocity)
-                            }
-                        }
-                    },
-                )
-            },
+            .glassThumbDragGestures(
+                state = thumbState,
+                enabled = interactive,
+                travelPx = dragWidthPx,
+                reduceMotion = reduceMotion,
+                currentValue = targetValue,
+                onValueChange = {},
+                onRelease = onThumbRelease,
+            ),
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
@@ -292,71 +151,31 @@ fun GlassRefractToggle(
                 .layerBackdrop(trackBackdrop)
                 .clip(capsuleShape)
                 .drawBehind {
-                    val fraction = value.value.coerceIn(0f, 1f)
+                    val fraction = thumbState.animatedValue
                     drawRect(color = lerp(inactiveColor, activeColor, fraction))
                 }
                 .border(0.5.dp, Color.White.copy(alpha = 0.22f), capsuleShape),
         )
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(width = THUMB_WIDTH, height = THUMB_HEIGHT)
-                .drawBackdrop(
-                    backdrop = thumbBackdrop,
-                    shape = { capsuleShape },
-                    effects = {
-                        val p = pressProgress.value
-                        blur(8f.dp.toPx() * (1f - p))
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            lens(
-                                refractionHeight = 5f.dp.toPx() * p,
-                                refractionAmount = 10f.dp.toPx() * p,
-                                depthEffect = false,
-                                chromaticAberration = true,
-                            )
-                        }
-                    },
-                    highlight = {
-                        val p = pressProgress.value
-                        Highlight.Ambient.copy(
-                            width = Highlight.Ambient.width / 1.5f,
-                            blurRadius = Highlight.Ambient.blurRadius / 1.5f,
-                            alpha = p,
-                        )
-                    },
-                    shadow = {
-                        Shadow(
-                            radius = 4.dp,
-                            offset = DpOffset(0.dp, 4.dp / 6f),
-                            color = Color.Black.copy(alpha = 0.05f),
-                        )
-                    },
-                    innerShadow = {
-                        val p = pressProgress.value
-                        InnerShadow(
-                            radius = 4.dp * p,
-                            alpha = p,
-                        )
-                    },
-                    layerBlock = {
-                        val v = if (reduceMotion) 0f else velocity.value / 50f
-                        val sx = scaleX.value / (1f - (v * 0.75f).coerceIn(-0.2f, 0.2f))
-                        val sy = scaleY.value * (1f - (v * 0.25f).coerceIn(-0.2f, 0.2f))
-                        this.scaleX = sx
-                        this.scaleY = sy
-                        this.translationX = if (isRtl) {
-                            lerp(-THUMB_START_X.toPx(), -THUMB_END_X.toPx(), value.value)
-                        } else {
-                            lerp(THUMB_START_X.toPx(), THUMB_END_X.toPx(), value.value)
-                        }
-                    },
-                    onDrawSurface = {
-                        val p = pressProgress.value
-                        drawRect(Color.White.copy(alpha = 1f - p))
-                    },
-                ),
+        GlassDragThumb(
+            state = thumbState,
+            thumbSize = GLASS_THUMB_SIZE,
+            travelPx = dragWidthPx,
+            value = targetValue,
+            enabled = enabled,
+            reduceMotion = reduceMotion,
+            velocityDivisor = TOGGLE_VELOCITY_DIVISOR,
+            backdrop = backdrop,
+            trackBackdrop = trackBackdrop,
+            trackScaleMax = TOGGLE_TRACK_SCALE_MAX,
+            lensHeight = TOGGLE_LENS_HEIGHT,
+            lensAmount = TOGGLE_LENS_AMOUNT,
+            shadowAlpha = TOGGLE_SHADOW_ALPHA,
+            translationX = { fraction ->
+                lerp(THUMB_START_X.toPx(), THUMB_END_X.toPx(), fraction)
+            },
+            onValueChange = {},
+            onRelease = onThumbRelease,
         )
     }
 }
-
