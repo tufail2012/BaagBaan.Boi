@@ -111,22 +111,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.graphicsLayer
+import com.example.ui.components.LocalMorphMenuBackdrop
+import com.example.ui.components.MorphMenu
 import com.example.ui.components.TopHeaderScrollScrim
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -147,7 +147,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntOffset
@@ -1440,203 +1439,108 @@ fun ChatScreen(
             }
 
             // Layer 4: Sibling three-dot overflow glass panel (drawn inside the same screen, outside layerBackdrop)
-            val menuTransitionState = remember { MutableTransitionState(false) }
-            LaunchedEffect(showMoreMenu) {
-                menuTransitionState.targetState = showMoreMenu
-            }
-            if (menuTransitionState.currentState || menuTransitionState.targetState) {
-                val density = LocalDensity.current
-                var containerWindowOffset by remember { mutableStateOf(Offset.Zero) }
-                var containerSize by remember { mutableStateOf(IntSize.Zero) }
-                var panelHeightPx by remember { mutableIntStateOf(0) }
-
-                val menuWidthDp = 220.dp
-                val menuWidthPx = with(density) { menuWidthDp.roundToPx() }
-                val gapPx = with(density) { 8.dp.roundToPx() }
-                val edgeMarginPx = with(density) { 10.dp.roundToPx() }
-
-                val anchorRight = (moreButtonBounds.right - containerWindowOffset.x).roundToInt()
-                val anchorBottom = (moreButtonBounds.bottom - containerWindowOffset.y).roundToInt()
-
-                val minX = edgeMarginPx
-                val maxX = if (containerSize.width > 0) {
-                    (containerSize.width - menuWidthPx - edgeMarginPx).coerceAtLeast(minX)
-                } else {
-                    Int.MAX_VALUE
-                }
-                val xPx = if (moreButtonBounds.width > 0f && containerSize.width > 0) {
-                    (anchorRight - menuWidthPx).coerceIn(minX, maxX)
-                } else if (containerSize.width > 0) {
-                    maxX
-                } else {
-                    minX
-                }
-
-                val minY = edgeMarginPx
-                val maxY = if (panelHeightPx > 0 && containerSize.height > 0) {
-                    (containerSize.height - panelHeightPx - edgeMarginPx).coerceAtLeast(minY)
-                } else {
-                    Int.MAX_VALUE
-                }
-                val fallbackTopPx = with(density) { (statusTop + 60.dp).roundToPx() }
-                val yPx = if (moreButtonBounds.height > 0f) {
-                    (anchorBottom + gapPx).coerceIn(minY, maxY)
-                } else {
-                    fallbackTopPx
-                }
-
-                val menuShape = RoundedCornerShape(20.dp)
-                val menuContentColor = if (isDark) Color.White else Color(0xFF0F172A)
-                val menuBorderColor = menuContentColor.copy(alpha = 0.15f)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .zIndex(20f)
-                        .onGloballyPositioned { coords ->
-                            containerWindowOffset = coords.positionInWindow()
-                            containerSize = coords.size
-                        }
+            val menuContentColor = if (isDark) Color.White else Color(0xFF0F172A)
+            CompositionLocalProvider(LocalMorphMenuBackdrop provides chatGlass) {
+                MorphMenu(
+                    expanded = showMoreMenu,
+                    anchorBounds = moreButtonBounds,
+                    onDismissRequest = { showMoreMenu = false },
+                    width = 220.dp
                 ) {
-                    // Full-screen transparent clickable scrim under the panel (no dim, no ripple)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { showMoreMenu = false }
-                            )
-                            .testTag("conversation_more_menu_outside_dismiss")
-                    )
-
-                    androidx.compose.animation.AnimatedVisibility(
-                        visibleState = menuTransitionState,
-                        enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
-                            scaleIn(
-                                initialScale = 0.92f,
-                                transformOrigin = TransformOrigin(1f, 0f),
-                                animationSpec = tween(durationMillis = 150)
-                            ),
-                        exit = fadeOut(animationSpec = tween(durationMillis = 150)) +
-                            scaleOut(
-                                targetScale = 0.92f,
-                                transformOrigin = TransformOrigin(1f, 0f),
-                                animationSpec = tween(durationMillis = 150)
-                            ),
-                        modifier = Modifier.offset { IntOffset(xPx, yPx) }
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .width(menuWidthDp)
-                                .onSizeChanged { panelHeightPx = it.height }
-                                .then(glassModifier(menuShape))
-                                .border(0.5.dp, menuBorderColor, menuShape)
-                                .clip(menuShape)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    onClick = {}
-                                )
-                                .padding(vertical = 8.dp)
-                                .testTag("conversation_overflow_glass_menu")
-                        ) {
-                            if (isGroup) {
-                                ConversationOverflowMenuItem(
-                                    text = "Group info",
-                                    contentColor = menuContentColor,
-                                    testTag = "conversation_menu_group_info",
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showGroupInfo = true
-                                    }
-                                )
-                                ConversationOverflowMenuItem(
-                                    text = "Wallpaper",
-                                    contentColor = menuContentColor,
-                                    testTag = "menu_wallpaper",
-                                    onClick = {
-                                        showMoreMenu = false
-                                        wallpaperPicker.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }
-                                )
-                                if (wallpaperFile != null) {
-                                    ConversationOverflowMenuItem(
-                                        text = "Reset wallpaper",
-                                        contentColor = menuContentColor,
-                                        onClick = {
-                                            showMoreMenu = false
-                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                            wallpaperFile = null
-                                            wallpaperRevision++
-                                        }
-                                    )
-                                }
-                            } else {
-                                ConversationOverflowMenuItem(
-                                    text = "Video call",
-                                    contentColor = menuContentColor,
-                                    leadingIcon = {
-                                        VideoCallIcon(
-                                            tint = menuContentColor,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    },
-                                    testTag = "conversation_video_call_button",
-                                    onClick = {
-                                        showMoreMenu = false
-                                        initiateCall(true)
-                                    }
-                                )
-                                ConversationOverflowMenuItem(
-                                    text = "View profile",
-                                    contentColor = menuContentColor,
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showContactInfo = true
-                                    }
-                                )
-                                ConversationOverflowMenuItem(
-                                    text = "Wallpaper",
-                                    contentColor = menuContentColor,
-                                    testTag = "menu_wallpaper",
-                                    onClick = {
-                                        showMoreMenu = false
-                                        wallpaperPicker.launch(
-                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                        )
-                                    }
-                                )
-                                if (wallpaperFile != null) {
-                                    ConversationOverflowMenuItem(
-                                        text = "Reset wallpaper",
-                                        contentColor = menuContentColor,
-                                        onClick = {
-                                            showMoreMenu = false
-                                            activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
-                                            wallpaperFile = null
-                                            wallpaperRevision++
-                                        }
-                                    )
-                                }
-                                if (otherUid.isNotEmpty()) {
-                                    ConversationOverflowMenuItem(
-                                        text = if (isBlockedByMe) "Unblock" else "Block",
-                                        contentColor = menuContentColor,
-                                        testTag = "conversation_menu_block_toggle",
-                                        onClick = {
-                                            showMoreMenu = false
-                                            if (isBlockedByMe) {
-                                                viewModel.unblockUser(otherUid)
-                                            } else {
-                                                viewModel.blockUser(otherUid, recipient)
-                                            }
-                                        }
-                                    )
-                                }
+                    if (isGroup) {
+                        ConversationOverflowMenuItem(
+                            text = "Group info",
+                            contentColor = menuContentColor,
+                            testTag = "conversation_menu_group_info",
+                            onClick = {
+                                showMoreMenu = false
+                                showGroupInfo = true
                             }
+                        )
+                        ConversationOverflowMenuItem(
+                            text = "Wallpaper",
+                            contentColor = menuContentColor,
+                            testTag = "menu_wallpaper",
+                            onClick = {
+                                showMoreMenu = false
+                                wallpaperPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+                        if (wallpaperFile != null) {
+                            ConversationOverflowMenuItem(
+                                text = "Reset wallpaper",
+                                contentColor = menuContentColor,
+                                onClick = {
+                                    showMoreMenu = false
+                                    activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                    wallpaperFile = null
+                                    wallpaperRevision++
+                                }
+                            )
+                        }
+                    } else {
+                        ConversationOverflowMenuItem(
+                            text = "Video call",
+                            contentColor = menuContentColor,
+                            leadingIcon = {
+                                VideoCallIcon(
+                                    tint = menuContentColor,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
+                            testTag = "conversation_video_call_button",
+                            onClick = {
+                                showMoreMenu = false
+                                initiateCall(true)
+                            }
+                        )
+                        ConversationOverflowMenuItem(
+                            text = "View profile",
+                            contentColor = menuContentColor,
+                            onClick = {
+                                showMoreMenu = false
+                                showContactInfo = true
+                            }
+                        )
+                        ConversationOverflowMenuItem(
+                            text = "Wallpaper",
+                            contentColor = menuContentColor,
+                            testTag = "menu_wallpaper",
+                            onClick = {
+                                showMoreMenu = false
+                                wallpaperPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+                        if (wallpaperFile != null) {
+                            ConversationOverflowMenuItem(
+                                text = "Reset wallpaper",
+                                contentColor = menuContentColor,
+                                onClick = {
+                                    showMoreMenu = false
+                                    activeChatId?.let { ChatWallpaperStore.clear(context, currentUid, it) }
+                                    wallpaperFile = null
+                                    wallpaperRevision++
+                                }
+                            )
+                        }
+                        if (otherUid.isNotEmpty()) {
+                            ConversationOverflowMenuItem(
+                                text = if (isBlockedByMe) "Unblock" else "Block",
+                                contentColor = menuContentColor,
+                                testTag = "conversation_menu_block_toggle",
+                                onClick = {
+                                    showMoreMenu = false
+                                    if (isBlockedByMe) {
+                                        viewModel.unblockUser(otherUid)
+                                    } else {
+                                        viewModel.blockUser(otherUid, recipient)
+                                    }
+                                }
+                            )
                         }
                     }
                 }
