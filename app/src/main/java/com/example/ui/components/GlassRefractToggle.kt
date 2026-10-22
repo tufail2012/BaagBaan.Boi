@@ -59,7 +59,6 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import kotlin.math.abs
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -165,7 +164,6 @@ fun GlassRefractToggle(
                         snapshotFlow { pressProgress.value >= 0.65f }
                             .first { it }
                     }
-                    delay(160L)
                 }
                 withTimeoutOrNull(400L) {
                     snapshotFlow { abs(value.value - targetValue) <= 0.025f }
@@ -200,8 +198,8 @@ fun GlassRefractToggle(
         val p = pressProgress.value
         if (p != 0f) {
             scale(
-                scaleX = lerp(2f / 3f, 1f, p),
-                scaleY = lerp(0f, 1f, p),
+                scaleX = lerp(2f / 3f, 0.75f, p),
+                scaleY = lerp(0f, 0.75f, p),
             ) {
                 drawBackdrop()
             }
@@ -242,18 +240,24 @@ fun GlassRefractToggle(
                 val direction = if (isRtl) -1f else 1f
                 detectHorizontalDragGestures(
                     onDragStart = {
-                        velocityTracker.resetTracking()
+                        if (!reduceMotion) {
+                            velocityTracker.resetTracking()
+                        }
                         dragging = true
                         startPress()
                     },
                     onDragCancel = {
                         dragging = false
-                        scope.launch { velocity.animateTo(0f, velocitySpec) }
+                        if (!reduceMotion) {
+                            scope.launch { velocity.animateTo(0f, velocitySpec) }
+                        }
                         finishRelease(if (currentChecked) 1f else 0f)
                     },
                     onDragEnd = {
                         dragging = false
-                        scope.launch { velocity.animateTo(0f, velocitySpec) }
+                        if (!reduceMotion) {
+                            scope.launch { velocity.animateTo(0f, velocitySpec) }
+                        }
                         val targetBool = value.value >= 0.5f
                         val targetFloat = if (targetBool) 1f else 0f
                         if (targetBool != currentChecked) {
@@ -264,15 +268,16 @@ fun GlassRefractToggle(
                     },
                     onHorizontalDrag = { change, dragAmount ->
                         change.consume()
-                        velocityTracker.addPosition(change.uptimeMillis, change.position)
-                        val vx = velocityTracker.calculateVelocity().x * direction
                         val nextValue = (value.value + (dragAmount * direction) / dragWidthPx).coerceIn(0f, 1f)
                         scope.launch {
                             value.snapTo(nextValue)
                         }
                         if (!reduceMotion) {
+                            velocityTracker.addPosition(change.uptimeMillis, change.position)
+                            val pixelVelocity = velocityTracker.calculateVelocity().x
+                            val fractionVelocity = pixelVelocity / dragWidthPx * direction
                             scope.launch {
-                                velocity.animateTo(vx, velocitySpec)
+                                velocity.snapTo(fractionVelocity)
                             }
                         }
                     },
@@ -302,16 +307,14 @@ fun GlassRefractToggle(
                     shape = { capsuleShape },
                     effects = {
                         val p = pressProgress.value
-                        if (p != 0f) {
-                            blur(8f.dp.toPx() * (1f - p))
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                lens(
-                                    refractionHeight = 5f.dp.toPx() * p,
-                                    refractionAmount = 10f.dp.toPx() * p,
-                                    depthEffect = false,
-                                    chromaticAberration = true,
-                                )
-                            }
+                        blur(8f.dp.toPx() * (1f - p))
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            lens(
+                                refractionHeight = 5f.dp.toPx() * p,
+                                refractionAmount = 10f.dp.toPx() * p,
+                                depthEffect = false,
+                                chromaticAberration = true,
+                            )
                         }
                     },
                     highlight = {

@@ -97,7 +97,7 @@ fun GlassToggle(
         if (!dragging) {
             progress.animateTo(
                 targetValue = if (checked) 1f else 0f,
-                animationSpec = if (reduceMotion) snap<Float>() else spring<Float>(dampingRatio = 0.75f, stiffness = Spring.StiffnessMediumLow),
+                animationSpec = if (reduceMotion) snap<Float>() else spring<Float>(dampingRatio = 1.0f, stiffness = 1000f, visibilityThreshold = 0.001f),
             )
         }
     }
@@ -175,7 +175,7 @@ fun GlassToggle(
         ) {
             Box(
                 modifier = Modifier
-                    .offset { IntOffset((padPx + travelPx * progress.value).roundToInt(), 0) }
+                    .offset { IntOffset((padPx + travelPx * progress.value.coerceIn(0f, 1f)).roundToInt(), 0) }
                     .size(THUMB_SIZE)
                     .graphicsLayer {
                         scaleX = 1f + 0.16f * pressAmount
