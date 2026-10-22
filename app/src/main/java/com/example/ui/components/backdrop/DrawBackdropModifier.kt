@@ -370,8 +370,12 @@ private class DrawBackdropNode(
     }
 
     override fun ContentDrawScope.draw() {
+        if (size.width <= 0f || size.height <= 0f || !size.width.isFinite() || !size.height.isFinite()) {
+            drawContent()
+            return
+        }
         if (effectScope.update(this, backdropScale)) {
-            updateEffects()
+            observeEffects()
         }
 
         onDrawBehind?.invoke(this)

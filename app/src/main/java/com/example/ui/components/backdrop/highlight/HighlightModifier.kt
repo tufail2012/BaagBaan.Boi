@@ -95,7 +95,14 @@ internal class HighlightNode(
 
     override fun ContentDrawScope.draw() {
         val highlight = highlight()
-        if (highlight == null || highlight.width.value <= 0f) {
+        if (highlight == null ||
+            highlight.width.value <= 0f ||
+            highlight.alpha <= 0f ||
+            size.width <= 0f ||
+            size.height <= 0f ||
+            !size.width.isFinite() ||
+            !size.height.isFinite()
+        ) {
             return drawContent()
         }
 
@@ -123,7 +130,7 @@ internal class HighlightNode(
 
             configurePaint(highlight)
 
-            highlightLayer.alpha = highlight.alpha
+            highlightLayer.alpha = highlight.alpha.coerceIn(0f, 1f)
             highlightLayer.blendMode = highlight.style.blendMode
             highlightLayer.record(safeSize) {
                 translate(1f, 1f) {

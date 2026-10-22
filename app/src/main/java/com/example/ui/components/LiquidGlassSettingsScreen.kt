@@ -1162,9 +1162,10 @@ private fun IosSwitch(
         ),
         label = "iosSwitchProgress",
     )
+    val clampedProgress = progress.coerceIn(0f, 1f)
     val offColor = if (isDark) Color(0xFF39393D) else Color(0xFFE9E9EA)
     val onColor = Color(0xFF34C759)
-    val trackColor = lerp(offColor, onColor, progress)
+    val trackColor = lerp(offColor, onColor, clampedProgress)
     val density = LocalDensity.current
     val travelPx = with(density) { 20.dp.toPx() }
 
@@ -1178,7 +1179,7 @@ private fun IosSwitch(
     ) {
         Box(
             modifier = Modifier
-                .offset { IntOffset((progress * travelPx).roundToInt(), 0) }
+                .offset { IntOffset((clampedProgress * travelPx).roundToInt(), 0) }
                 .size(27.dp)
                 .shadow(elevation = 2.dp, shape = CircleShape)
                 .clip(CircleShape)

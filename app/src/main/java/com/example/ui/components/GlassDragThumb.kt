@@ -34,15 +34,15 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.rememberBackdrop
-import com.kyant.backdrop.backdrops.rememberCombinedBackdrop
-import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.effects.blur
-import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.shadow.InnerShadow
-import com.kyant.backdrop.shadow.Shadow
+import com.example.ui.components.backdrop.Backdrop
+import com.example.ui.components.backdrop.backdrops.rememberBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberCombinedBackdrop
+import com.example.ui.components.backdrop.drawBackdrop
+import com.example.ui.components.backdrop.effects.blur
+import com.example.ui.components.backdrop.effects.lens
+import com.example.ui.components.backdrop.highlight.Highlight
+import com.example.ui.components.backdrop.shadow.InnerShadow
+import com.example.ui.components.backdrop.shadow.Shadow
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -98,11 +98,11 @@ internal class GlassDragThumbState(
             visibilityThreshold = 0.001f,
         )
 
-    val value = Animatable(initialValue.coerceIn(0f, 1f))
-    val pressProgress = Animatable(0f)
+    val value = Animatable(initialValue.coerceIn(0f, 1f)).apply { updateBounds(0f, 1f) }
+    val pressProgress = Animatable(0f).apply { updateBounds(0f, 1f) }
     val velocity = Animatable(0f)
-    val scaleX = Animatable(1f)
-    val scaleY = Animatable(1f)
+    val scaleX = Animatable(1f).apply { updateBounds(0.5f, 3f) }
+    val scaleY = Animatable(1f).apply { updateBounds(0.5f, 3f) }
     private val mutatorMutex = MutatorMutex()
 
     var dragging by mutableStateOf(false)
@@ -121,13 +121,14 @@ internal class GlassDragThumbState(
     }
 
     fun snapValue(nextValue: Float) {
+        if (!nextValue.isFinite()) return
         scope.launch {
             value.snapTo(nextValue.coerceIn(0f, 1f))
         }
     }
 
     fun snapVelocity(fractionVelocity: Float) {
-        if (reduceMotion) return
+        if (reduceMotion || !fractionVelocity.isFinite()) return
         scope.launch {
             velocity.snapTo(fractionVelocity)
         }
@@ -141,7 +142,7 @@ internal class GlassDragThumbState(
     }
 
     fun finishRelease(targetValue: Float, holdPressForTap: Boolean = false) {
-        val clampedTarget = targetValue.coerceIn(0f, 1f)
+        val clampedTarget = if (targetValue.isFinite()) targetValue.coerceIn(0f, 1f) else 0f
         releaseJob?.cancel()
         resetVelocity()
         releaseJob = scope.launch {
@@ -174,9 +175,10 @@ internal fun rememberGlassDragThumbState(
     reduceMotion: Boolean,
 ): GlassDragThumbState {
     val scope = rememberCoroutineScope()
+    val safeInitial = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f
     val state = remember {
         GlassDragThumbState(
-            initialValue = value,
+            initialValue = safeInitial,
             scope = scope,
             reduceMotion = reduceMotion,
         )
@@ -185,7 +187,8 @@ internal fun rememberGlassDragThumbState(
 
     LaunchedEffect(value, state.dragging) {
         if (!state.dragging && state.releaseJob?.isActive != true) {
-            state.value.animateTo(value.coerceIn(0f, 1f), state.valueSpec)
+            val target = if (value.isFinite()) value.coerceIn(0f, 1f) else 0f
+            state.value.animateTo(target, state.valueSpec)
         }
     }
 
@@ -208,7 +211,7 @@ internal fun Modifier.glassThumbDragGestures(
     val latestOnRelease by rememberUpdatedState(onRelease)
 
     return this.pointerInput(enabled, travelPx, isRtl, reduceMotion) {
-        if (!enabled || travelPx <= 0f) return@pointerInput
+        if (!enabled || travelPx <= 0f || !travelPx.isFinite()) return@pointerInput
         val velocityTracker = VelocityTracker()
         val direction = if (isRtl) -1f else 1f
         detectHorizontalDragGestures(
@@ -239,7 +242,9 @@ internal fun Modifier.glassThumbDragGestures(
                     velocityTracker.addPosition(change.uptimeMillis, change.position)
                     val pixelVelocity = velocityTracker.calculateVelocity().x
                     val fractionVelocity = (pixelVelocity / travelPx) * direction
-                    state.snapVelocity(fractionVelocity)
+                    if (fractionVelocity.isFinite()) {
+                        state.snapVelocity(fractionVelocity)
+                    }
                 }
             },
         )
@@ -270,8 +275,8 @@ internal fun BoxScope.GlassDragThumb(
     val capsuleShape = remember { RoundedCornerShape(percent = 50) }
 
     val scaledTrackBackdrop = rememberBackdrop(trackBackdrop) { drawBackdrop ->
-        val p = state.pressProgress.value
-        if (p != 0f) {
+        val p = state.pressProgress.value.coerceIn(0f, 1f)
+        if (p > 0f) {
             scale(
                 scaleX = lerp(2f / 3f, trackScaleMax, p),
                 scaleY = lerp(0f, trackScaleMax, p),
@@ -294,7 +299,7 @@ internal fun BoxScope.GlassDragThumb(
                 backdrop = thumbBackdrop,
                 shape = { capsuleShape },
                 effects = {
-                    val p = state.pressProgress.value
+                    val p = state.pressProgress.value.coerceIn(0f, 1f)
                     blur(8f.dp.toPx() * (1f - p))
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         lens(
@@ -306,7 +311,7 @@ internal fun BoxScope.GlassDragThumb(
                     }
                 },
                 highlight = {
-                    val p = state.pressProgress.value
+                    val p = state.pressProgress.value.coerceIn(0f, 1f)
                     Highlight.Ambient.copy(
                         width = Highlight.Ambient.width / 1.5f,
                         blurRadius = Highlight.Ambient.blurRadius / 1.5f,
@@ -316,28 +321,30 @@ internal fun BoxScope.GlassDragThumb(
                 shadow = {
                     Shadow(
                         radius = 4.dp,
-                        color = Color.Black.copy(alpha = shadowAlpha),
+                        color = Color.Black.copy(alpha = shadowAlpha.coerceIn(0f, 1f)),
                     )
                 },
                 innerShadow = {
-                    val p = state.pressProgress.value
+                    val p = state.pressProgress.value.coerceIn(0f, 1f)
                     InnerShadow(
                         radius = 4.dp * p,
                         alpha = p,
                     )
                 },
                 layerBlock = {
-                    val v = if (reduceMotion) 0f else state.velocity.value / velocityDivisor
+                    val rawV = if (reduceMotion || velocityDivisor <= 0f) 0f else state.velocity.value / velocityDivisor
+                    val v = if (rawV.isFinite()) rawV else 0f
                     val sx = state.scaleX.value / (1f - (v * 0.75f).coerceIn(-0.2f, 0.2f))
                     val sy = state.scaleY.value * (1f - (v * 0.25f).coerceIn(-0.2f, 0.2f))
-                    this.scaleX = sx
-                    this.scaleY = sy
-                    val ltrOffset = translationX(state.value.value)
-                    this.translationX = if (isRtl) -ltrOffset else ltrOffset
+                    this.scaleX = if (sx.isFinite()) sx else 1f
+                    this.scaleY = if (sy.isFinite()) sy else 1f
+                    val ltrOffset = translationX(state.value.value.coerceIn(0f, 1f))
+                    val safeOffset = if (ltrOffset.isFinite()) ltrOffset else 0f
+                    this.translationX = if (isRtl) -safeOffset else safeOffset
                 },
                 onDrawSurface = {
-                    val p = state.pressProgress.value
-                    drawRect(Color.White.copy(alpha = 1f - p))
+                    val p = state.pressProgress.value.coerceIn(0f, 1f)
+                    drawRect(Color.White.copy(alpha = (1f - p).coerceIn(0f, 1f)))
                 },
             ),
     )

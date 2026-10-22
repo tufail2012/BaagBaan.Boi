@@ -27,11 +27,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import com.example.ui.animation.IosMotion
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.haptics.Haptic
 import com.example.ui.haptics.rememberHaptics
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 private val TOUCH_WIDTH = 64.dp
 private val TOUCH_HEIGHT = 48.dp
@@ -99,6 +99,7 @@ fun GlassRefractToggle(
 
     val capsuleShape = remember { RoundedCornerShape(percent = 50) }
     val trackBackdrop = rememberLayerBackdrop()
+    val vendoredBackdrop = remember(backdrop) { backdrop?.asVendoredBackdrop() }
 
     val onThumbRelease: (Float) -> Float = { releasedFraction ->
         val targetBool = releasedFraction >= 0.5f
@@ -165,14 +166,14 @@ fun GlassRefractToggle(
             enabled = enabled,
             reduceMotion = reduceMotion,
             velocityDivisor = TOGGLE_VELOCITY_DIVISOR,
-            backdrop = backdrop,
+            backdrop = vendoredBackdrop,
             trackBackdrop = trackBackdrop,
             trackScaleMax = TOGGLE_TRACK_SCALE_MAX,
             lensHeight = TOGGLE_LENS_HEIGHT,
             lensAmount = TOGGLE_LENS_AMOUNT,
             shadowAlpha = TOGGLE_SHADOW_ALPHA,
             translationX = { fraction ->
-                lerp(THUMB_START_X.toPx(), THUMB_END_X.toPx(), fraction)
+                lerp(THUMB_START_X.toPx(), THUMB_END_X.toPx(), fraction.coerceIn(0f, 1f))
             },
             onValueChange = {},
             onRelease = onThumbRelease,

@@ -302,6 +302,7 @@ fun GlassColorPickerDialog(
                             .border(1.dp, separatorColor, RoundedCornerShape(14.dp))
                             .pointerInput(Unit) {
                                 detectTapGestures { offset ->
+                                    if (size.width <= 0 || size.height <= 0) return@detectTapGestures
                                     val newS = (offset.x / size.width.toFloat()).coerceIn(0f, 1f)
                                     val newV = (1f - (offset.y / size.height.toFloat())).coerceIn(0f, 1f)
                                     updateFromHsv(hue, newS, newV)
@@ -310,6 +311,7 @@ fun GlassColorPickerDialog(
                             .pointerInput(Unit) {
                                 detectDragGestures { change, _ ->
                                     change.consume()
+                                    if (size.width <= 0 || size.height <= 0) return@detectDragGestures
                                     val newS = (change.position.x / size.width.toFloat()).coerceIn(0f, 1f)
                                     val newV = (1f - (change.position.y / size.height.toFloat())).coerceIn(0f, 1f)
                                     updateFromHsv(hue, newS, newV)
@@ -355,6 +357,7 @@ fun GlassColorPickerDialog(
                             .border(1.dp, separatorColor, RoundedCornerShape(14.dp))
                             .pointerInput(Unit) {
                                 detectTapGestures { offset ->
+                                    if (size.width <= 0) return@detectTapGestures
                                     val newH = ((offset.x / size.width.toFloat()) * 360f).coerceIn(0f, 360f)
                                     updateFromHsv(newH, saturation, brightness)
                                 }
@@ -362,6 +365,7 @@ fun GlassColorPickerDialog(
                             .pointerInput(Unit) {
                                 detectDragGestures { change, _ ->
                                     change.consume()
+                                    if (size.width <= 0) return@detectDragGestures
                                     val newH = ((change.position.x / size.width.toFloat()) * 360f).coerceIn(0f, 360f)
                                     updateFromHsv(newH, saturation, brightness)
                                 }

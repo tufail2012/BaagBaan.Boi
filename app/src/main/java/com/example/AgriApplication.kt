@@ -45,6 +45,8 @@ class AgriApplication : Application() {
             }
         } catch (e: Throwable) {
             Log.e("AgriApplication", "Failed to restore Zego Call Service at startup: ${e.message}", e)
+        } finally {
+            com.example.util.CrashReporter.install(this)
         }
 
         // Track whole-app foreground/background for chat "online" presence

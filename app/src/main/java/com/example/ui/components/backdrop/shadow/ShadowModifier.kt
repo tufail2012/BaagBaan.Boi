@@ -80,7 +80,16 @@ internal class ShadowNode(
     private val paint = Paint()
 
     override fun ContentDrawScope.draw() {
-        val shadow = shadow() ?: return drawContent()
+        val shadow = shadow()
+        if (shadow == null ||
+            shadow.alpha <= 0f ||
+            size.width <= 0f ||
+            size.height <= 0f ||
+            !size.width.isFinite() ||
+            !size.height.isFinite()
+        ) {
+            return drawContent()
+        }
 
         val shadowLayer = shadowLayer
         if (shadowLayer != null) {
@@ -92,14 +101,14 @@ internal class ShadowNode(
             val offsetX = shadow.offset.x.toPx()
             val offsetY = shadow.offset.y.toPx()
             val shadowSize = IntSize(
-                ceil(size.width + radius * 4f + offsetX).toInt(),
-                ceil(size.height + radius * 4f + offsetY).toInt()
+                ceil(size.width + radius * 4f + offsetX).toInt().coerceAtLeast(1),
+                ceil(size.height + radius * 4f + offsetY).toInt().coerceAtLeast(1)
             )
             val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
 
             configurePaint(shadow)
 
-            shadowLayer.alpha = shadow.alpha
+            shadowLayer.alpha = shadow.alpha.coerceIn(0f, 1f)
             shadowLayer.blendMode = shadow.blendMode
             shadowLayer.record(shadowSize) {
                 translate(radius * 2f + offsetX, radius * 2f + offsetY) {

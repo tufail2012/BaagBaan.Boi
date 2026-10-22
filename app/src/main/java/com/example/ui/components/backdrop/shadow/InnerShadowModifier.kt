@@ -90,6 +90,14 @@ internal class InnerShadowNode(
         if (!isRenderEffectSupported()) return
 
         val shadow = shadow() ?: return
+        if (shadow.alpha <= 0f ||
+            size.width <= 0f ||
+            size.height <= 0f ||
+            !size.width.isFinite() ||
+            !size.height.isFinite()
+        ) {
+            return
+        }
 
         val shadowLayer = shadowLayer
         if (shadowLayer != null) {
@@ -111,7 +119,7 @@ internal class InnerShadowNode(
 
             configurePaint(shadow)
 
-            shadowLayer.alpha = shadow.alpha
+            shadowLayer.alpha = shadow.alpha.coerceIn(0f, 1f)
             shadowLayer.blendMode = shadow.blendMode
             if (prevRadius != radius) {
                 shadowLayer.renderEffect =

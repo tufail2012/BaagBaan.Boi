@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.ui.animation.IosMotion
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 private val SLIDER_TOUCH_HEIGHT = 44.dp
 private val SLIDER_TRACK_HEIGHT = 6.dp
@@ -67,7 +67,7 @@ fun GlassSlider(
     val reduceMotion = remember(context) { IosMotion.isReducedMotion(context) }
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(0f)
-    val targetFraction = if (span > 0f) {
+    val targetFraction = if (span > 0f && value.isFinite()) {
         ((value - valueRange.start) / span).coerceIn(0f, 1f)
     } else {
         0f
@@ -85,11 +85,13 @@ fun GlassSlider(
     val capsuleShape = remember { RoundedCornerShape(percent = 50) }
     val glassSupported = isGlassSupported()
     val trackBackdrop = rememberLayerBackdrop()
+    val vendoredBackdrop = remember(backdrop) { backdrop?.asVendoredBackdrop() }
 
     fun fractionToValue(fraction: Float): Float {
         val range = currentRange
         val rangeSpan = (range.endInclusive - range.start).coerceAtLeast(0f)
-        return (range.start + fraction.coerceIn(0f, 1f) * rangeSpan)
+        val safeFraction = if (fraction.isFinite()) fraction.coerceIn(0f, 1f) else 0f
+        return (range.start + safeFraction * rangeSpan)
             .coerceIn(range.start, range.endInclusive)
     }
 
@@ -163,7 +165,7 @@ fun GlassSlider(
                 enabled = enabled,
                 reduceMotion = reduceMotion,
                 velocityDivisor = SLIDER_VELOCITY_DIVISOR,
-                backdrop = backdrop,
+                backdrop = vendoredBackdrop,
                 trackBackdrop = trackBackdrop,
                 trackScaleMax = SLIDER_TRACK_SCALE_MAX,
                 lensHeight = SLIDER_LENS_HEIGHT,

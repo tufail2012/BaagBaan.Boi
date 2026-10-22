@@ -29,6 +29,15 @@ fun BackdropEffectScope.lens(
 ) {
     if (!isRuntimeShaderSupported()) return
     if (refractionHeight <= 0f || refractionAmount <= 0f) return
+    if (!refractionHeight.isFinite() || !refractionAmount.isFinite()) return
+    if (size == androidx.compose.ui.geometry.Size.Unspecified ||
+        !size.width.isFinite() ||
+        !size.height.isFinite() ||
+        size.width <= 0f ||
+        size.height <= 0f
+    ) {
+        return
+    }
 
     if (padding > 0f) {
         padding = (padding - refractionHeight).fastCoerceAtLeast(0f)

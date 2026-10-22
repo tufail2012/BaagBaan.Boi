@@ -50,7 +50,7 @@ fun Modifier.navLiquidGlass(
     isMenu: Boolean = false
 ): Modifier {
     val config = LocalLiquidGlassConfig.current
-    val surfaceColor = config.surfaceTintColor.copy(alpha = config.surfaceOpacity)
+    val surfaceColor = config.surfaceTintColor.copy(alpha = config.surfaceOpacity.coerceIn(0f, 1f))
 
     if (config.glassStyle == GlassStyle.TRANSPARENT) {
         return this
@@ -70,6 +70,7 @@ fun Modifier.navLiquidGlass(
     val lensHeightPx = with(density) { config.lensRefractionHeightDp.dp.toPx() } * captureScale
     val lensAmountPx = with(density) { config.lensRefractionAmountDp.dp.toPx() } * captureScale
     val isLiquid = config.glassStyle == GlassStyle.LIQUID
+    val clampedHighlightAlpha = config.highlightOpacity.coerceIn(0f, 1f)
 
     return drawBackdrop(
         backdrop = backdrop,
@@ -86,10 +87,10 @@ fun Modifier.navLiquidGlass(
                 )
             }
         },
-        highlight = if (isLiquid && config.highlightOpacity > 0f) {
+        highlight = if (isLiquid && clampedHighlightAlpha > 0f) {
             {
                 Highlight(
-                    alpha = config.highlightOpacity,
+                    alpha = clampedHighlightAlpha,
                     style = HighlightStyle.Default(color = config.highlightColor)
                 )
             }

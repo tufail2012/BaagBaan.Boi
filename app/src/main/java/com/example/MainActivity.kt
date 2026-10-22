@@ -51,6 +51,7 @@ class MainActivity : FragmentActivity() {
         com.example.chat.call.ZegoCallManager.trace("T11 MainActivity onCreate #$createCount taskId=$taskId isTaskRoot=$isTaskRoot intentFlags=0x${Integer.toHexString(intent?.flags ?: 0)} action=${intent?.action} extras=${intent?.extras?.keySet()}")
         super.onCreate(savedInstanceState)
 
+        com.example.util.CrashReporter.install(applicationContext)
         com.example.util.SafeFirebase.init(this)
 
         appLockManager = AppLockManager.getInstance(applicationContext)

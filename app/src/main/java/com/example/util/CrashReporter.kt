@@ -56,31 +56,43 @@ import java.util.Locale
 
 object CrashReporter {
     const val CRASH_LOG_FILE_NAME = "crash_log.txt"
+    private const val PREFS_NAME = "crash_reporter_prefs"
+    private const val KEY_LAST_EXIT_TIMESTAMP = "last_processed_exit_timestamp"
 
     @Volatile
     var currentScreenName: String? = null
 
-    /**
-     * Installs the uncaught exception handler as early as possible.
-     * Preserves and invokes the previous/default handler after logging.
-     */
-    fun install(context: Context) {
-        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
-
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+    private class CrashReporterHandler(
+        private val appContext: Context,
+        private val delegate: Thread.UncaughtExceptionHandler?
+    ) : Thread.UncaughtExceptionHandler {
+        override fun uncaughtException(thread: Thread, throwable: Throwable) {
             try {
                 Log.e("RECORDS_DEBUG", "Uncaught exception intercepted in thread: ${thread.name}", throwable)
-                val crashReport = buildCrashReport(context, thread, throwable)
-                writeCrashLog(context, crashReport)
+                val crashReport = buildCrashReport(appContext, thread, throwable)
+                writeCrashLog(appContext, crashReport)
                 Log.e("CRASH_DIAGNOSTIC", "Crash log written to storage:\n$crashReport")
             } catch (e: Throwable) {
                 // Defensive: never throw from the uncaught exception handler
                 Log.e("CRASH_DIAGNOSTIC", "Failed to write crash log", e)
             } finally {
                 // Always call the previous default handler to keep Android crash lifecycle intact
-                previousHandler?.uncaughtException(thread, throwable)
+                delegate?.uncaughtException(thread, throwable)
             }
         }
+    }
+
+    /**
+     * Installs the uncaught exception handler as early as possible.
+     * Idempotent: safe to call again after third-party SDK initialization.
+     */
+    fun install(context: Context) {
+        val appCtx = context.applicationContext ?: context
+        val currentHandler = Thread.getDefaultUncaughtExceptionHandler()
+        if (currentHandler is CrashReporterHandler) {
+            return
+        }
+        Thread.setDefaultUncaughtExceptionHandler(CrashReporterHandler(appCtx, currentHandler))
         Log.d("CRASH_DIAGNOSTIC", "Uncaught exception handler installed successfully")
     }
 
@@ -151,10 +163,32 @@ object CrashReporter {
         return null
     }
 
+    private fun markHistoricalExitProcessed(context: Context, timestamp: Long) {
+        try {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putLong(KEY_LAST_EXIT_TIMESTAMP, timestamp)
+                .apply()
+        } catch (_: Throwable) {
+        }
+    }
+
     /**
-     * Deletes crash_log.txt from both internal and external storage.
+     * Deletes crash_log.txt from both internal and external storage, and marks the latest
+     * historical exit as processed so it is not re-reported on next app launch.
      */
     fun clearCrashLog(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+                val lastExit = activityManager?.getHistoricalProcessExitReasons(context.packageName, 0, 1)?.firstOrNull()
+                if (lastExit != null) {
+                    markHistoricalExitProcessed(context, lastExit.timestamp)
+                }
+            } catch (_: Throwable) {
+            }
+        }
+
         try {
             val internalFile = File(context.filesDir, CRASH_LOG_FILE_NAME)
             if (internalFile.exists()) {
@@ -231,6 +265,13 @@ object CrashReporter {
                     val lastExit = exitReasons?.firstOrNull()
 
                     if (lastExit != null) {
+                        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        val lastProcessedTimestamp = prefs.getLong(KEY_LAST_EXIT_TIMESTAMP, 0L)
+                        if (lastExit.timestamp <= lastProcessedTimestamp) {
+                            return@Thread
+                        }
+                        markHistoricalExitProcessed(context, lastExit.timestamp)
+
                         val reasonDesc = when (lastExit.reason) {
                             ApplicationExitInfo.REASON_CRASH -> "CRASH (Java/Kotlin uncaught exception)"
                             ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE (Native signal/SIGSEGV/SIGBUS/RenderNode)"
@@ -248,12 +289,15 @@ object CrashReporter {
                         if ((lastExit.reason == ApplicationExitInfo.REASON_CRASH_NATIVE ||
                              lastExit.reason == ApplicationExitInfo.REASON_SIGNALED ||
                              (lastExit.reason == ApplicationExitInfo.REASON_CRASH && !hasCrashLog(context)))) {
+                            var readableTrace: String? = null
                             val traceFilePath: String? = try {
                                 lastExit.traceInputStream?.use { input ->
-                                    val traceFile = File(context.filesDir, "crash_trace.bin")
-                                    traceFile.outputStream().use { output ->
-                                        input.copyTo(output)
+                                    val bytes = input.readBytes()
+                                    if (lastExit.reason == ApplicationExitInfo.REASON_CRASH && bytes.isNotEmpty()) {
+                                        readableTrace = String(bytes, Charsets.UTF_8).take(16000)
                                     }
+                                    val traceFile = File(context.filesDir, "crash_trace.bin")
+                                    traceFile.writeBytes(bytes)
                                     traceFile.absolutePath
                                 }
                             } catch (_: Throwable) {
@@ -270,7 +314,11 @@ object CrashReporter {
                                 appendLine("Exit Description: ${lastExit.description ?: "None"}")
                                 appendLine("Process Importance: ${lastExit.importance}")
                                 appendLine("PSS Memory: ${lastExit.pss} kB, RSS: ${lastExit.rss} kB")
-                                if (!traceFilePath.isNullOrBlank()) {
+                                if (!readableTrace.isNullOrBlank()) {
+                                    appendLine()
+                                    appendLine("Captured Stack Trace:")
+                                    appendLine(readableTrace)
+                                } else if (!traceFilePath.isNullOrBlank()) {
                                     appendLine()
                                     appendLine("Native Trace / Tombstone:")
                                     appendLine(traceFilePath)

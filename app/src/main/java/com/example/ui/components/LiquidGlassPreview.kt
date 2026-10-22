@@ -131,7 +131,7 @@ fun LiquidGlassPreview(
             .testTag("liquid_glass_preview"),
         contentAlignment = Alignment.BottomCenter,
     ) {
-        val panelWidth = maxWidth
+        val panelWidth = maxWidth.coerceAtLeast(1.dp)
 
         // Recorded background layer (sibling of pill and search circle)
         Box(
@@ -208,7 +208,9 @@ fun LiquidGlassPreview(
                                         Modifier
                                             .clip(pillShape)
                                             .background(
-                                                color = config.selectionPillColor.copy(alpha = config.selectionPillOpacity),
+                                                color = config.selectionPillColor.copy(
+                                                    alpha = config.selectionPillOpacity.coerceIn(0f, 1f)
+                                                ),
                                                 shape = pillShape,
                                             )
                                     } else {
