@@ -44,6 +44,33 @@ class PopupBackdrop(
     ) {
         if (coordinates == null || !coordinates.isAttached) return
 
+        val vendoredLayerBackdrop = (source as? VendoredAsKyantBackdrop)?.delegate
+            as? com.example.ui.components.backdrop.backdrops.LayerBackdrop
+        if (vendoredLayerBackdrop != null) {
+            if (vendoredLayerBackdrop.isRecording) return
+            val layerCoordinates = sourceCoordinatesProvider?.invoke() ?: vendoredLayerBackdrop.layerCoordinates
+            if (layerCoordinates == null || !layerCoordinates.isAttached) {
+                return
+            }
+            val graphicsLayer = vendoredLayerBackdrop.graphicsLayer
+            drawContext.canvas.save()
+            val offset: Offset = try {
+                val popupOnScreen = coordinates.positionOnScreen()
+                val sourceOnScreen = layerCoordinates.positionOnScreen()
+                popupOnScreen - sourceOnScreen
+            } catch (_: Exception) {
+                try {
+                    layerCoordinates.localPositionOf(coordinates, Offset.Zero)
+                } catch (_: Exception) {
+                    Offset.Zero
+                }
+            }
+            drawContext.transform.translate(-offset.x, -offset.y)
+            drawLayer(graphicsLayer)
+            drawContext.canvas.restore()
+            return
+        }
+
         val layerBackdrop = source as? LayerBackdrop
         if (layerBackdrop == null) {
             with(source) {

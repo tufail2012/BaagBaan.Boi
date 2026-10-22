@@ -50,6 +50,8 @@ class LayerBackdrop internal constructor(
 
     internal var layerCoordinates: LayoutCoordinates? by mutableStateOf(null)
 
+    internal var isRecording: Boolean = false
+
     private var inverseLayerScope: InverseLayerScope? = null
 
     override fun DrawScope.drawBackdrop(
@@ -57,8 +59,9 @@ class LayerBackdrop internal constructor(
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?
     ) {
-        val coordinates = coordinates ?: return
-        val layerCoordinates = layerCoordinates ?: return
+        if (isRecording) return
+        val coordinates = coordinates?.takeIf { it.isAttached } ?: return
+        val layerCoordinates = layerCoordinates?.takeIf { it.isAttached } ?: return
         withTransform({
             if (layerBlock != null) {
                 with(obtainInverseLayerScope()) { inverseTransform(density, layerBlock) }

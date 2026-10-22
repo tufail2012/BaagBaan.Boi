@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.LocalDropdownGlassBackdrop
+import com.example.ui.components.asKyantBackdrop
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
 import com.example.ui.components.PremiumGlassAmbientBackdrop
@@ -208,10 +209,8 @@ fun AgriCropMainScreen(
             }
         }
 
-    val navBackdrop = rememberLayerBackdrop(
-        onDraw = paintBackdrop
-    )
     val navGlassBackdrop = rememberNavGlassBackdrop(onDraw = paintBackdrop)
+    val navBackdrop = remember(navGlassBackdrop) { navGlassBackdrop.asKyantBackdrop() }
 
     val recordsBackdrop = rememberLayerBackdrop(
         onDraw = paintBackdrop
@@ -892,7 +891,6 @@ fun AgriCropMainScreen(
                                         .fillMaxSize()
                                         .onGloballyPositioned { coords -> navBackdropCoordinates.value = coords }
                                         .hazeSource(state = hazeState)
-                                        .layerBackdrop(navBackdrop)
                                         .navGlassLayerBackdrop(navGlassBackdrop)
                                 ) {
                                 if (selectedService.equals("Bookings", ignoreCase = true)) {

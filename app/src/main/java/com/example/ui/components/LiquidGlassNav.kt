@@ -49,7 +49,27 @@ fun glassContentColor(): Color {
 fun glassIndicatorColor(): Color =
     if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) Color.White else Color.Black
 
+internal class VendoredAsKyantBackdrop(
+    val delegate: NavBackdrop
+) : Backdrop {
+    override val isCoordinatesDependent: Boolean
+        get() = delegate.isCoordinatesDependent
+
+    override fun DrawScope.drawBackdrop(
+        density: Density,
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?
+    ) {
+        with(delegate) {
+            drawBackdrop(density, coordinates, layerBlock)
+        }
+    }
+}
+
+internal fun NavBackdrop.asKyantBackdrop(): Backdrop = VendoredAsKyantBackdrop(this)
+
 internal fun Backdrop.asVendoredBackdrop(): NavBackdrop {
+    if (this is VendoredAsKyantBackdrop) return this.delegate
     val delegate = this
     return object : NavBackdrop {
         override val isCoordinatesDependent: Boolean

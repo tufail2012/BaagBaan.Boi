@@ -79,11 +79,16 @@ private class LayerBackdropNode(
         // the edge would lose it, which upstream would not.
         // A degenerate size would record an empty layer, and unlike upstream there
         // is no direct draw left to fall back on — the page would simply vanish.
-        if (size.width < 1f || size.height < 1f) {
+        if (size.width < 1f || size.height < 1f || backdrop.isRecording) {
             drawContent()
             return
         }
-        recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
+        backdrop.isRecording = true
+        try {
+            recordLayer(this@LayerBackdropNode, backdrop.graphicsLayer) { backdrop.onDraw(this@draw) }
+        } finally {
+            backdrop.isRecording = false
+        }
         drawLayer(backdrop.graphicsLayer)
     }
 

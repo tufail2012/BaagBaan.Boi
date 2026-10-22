@@ -84,10 +84,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.example.ui.components.backdrop.backdrops.layerBackdrop
+import com.example.ui.components.backdrop.backdrops.rememberLayerBackdrop
 import com.example.ui.theme.GlassStyle
 import com.example.ui.theme.LiquidGlassSettings
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.roundToInt
 
 private enum class ValueDialogType {
@@ -160,15 +160,25 @@ fun LiquidGlassSettingsScreen(
             }
         }
     val pageBackdrop = rememberLayerBackdrop(onDraw = pagePaintBackdrop)
+    val pageKyantBackdrop = remember(pageBackdrop) { pageBackdrop.asKyantBackdrop() }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(screenBg)
-            .layerBackdrop(pageBackdrop)
             .testTag(if (showAdvancedPage) "liquid_glass_advanced_screen" else "liquid_glass_main_screen"),
         contentAlignment = Alignment.TopCenter,
     ) {
+        // Sibling background layer for the inline Blur strength GlassSlider.
+        // Must remain a childless sibling of Column so pageBackdrop never records
+        // GlassSlider into itself (which would create a RenderNode cycle on RenderThread).
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(screenBg)
+                .layerBackdrop(pageBackdrop),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -262,7 +272,7 @@ fun LiquidGlassSettingsScreen(
                     valueRange = 0f..100f,
                     activeColor = accentColor,
                     inactiveColor = separatorColor,
-                    backdrop = pageBackdrop,
+                    backdrop = pageKyantBackdrop,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("liquid_glass_blur_strength_slider"),
