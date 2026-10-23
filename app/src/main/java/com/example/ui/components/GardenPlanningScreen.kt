@@ -958,13 +958,13 @@ fun GardenPlanningFormTab(
                     .testTag("garden_serial_number_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent),
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
-                        contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.ConfirmationNumber) {
+                        Icon(
+                            imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                            contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
                 trailingIcon = {
@@ -1024,12 +1024,12 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Person) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 modifier = Modifier
@@ -1053,12 +1053,12 @@ fun GardenPlanningFormTab(
                 maxLines = 2,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.LocationOn) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 modifier = Modifier
@@ -1106,12 +1106,12 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = Icons.Default.Phone,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Phone) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 trailingIcon = {
@@ -1272,14 +1272,14 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                                imageVector = Icons.Outlined.LocalFlorist,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                    }
-                },
+                            ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Outlined.LocalFlorist) {
+                                Icon(
+                                    imageVector = Icons.Outlined.LocalFlorist,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .fieldGlass(shape = CLAY_FIELD_SHAPE)
@@ -1298,14 +1298,14 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                                imageVector = Icons.Default.Spa,
-                                contentDescription = null,
-                                tint = Color.White
-                            )
-                    }
-                },
+                            ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Spa) {
+                                Icon(
+                                    imageVector = Icons.Default.Spa,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .fieldGlass(shape = CLAY_FIELD_SHAPE)
@@ -1335,14 +1335,14 @@ fun GardenPlanningFormTab(
                             label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Age") },
                             leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                                    imageVector = Icons.Default.HourglassTop,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                    }
-                },
+                                ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.HourglassTop) {
+                                    Icon(
+                                        imageVector = Icons.Default.HourglassTop,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            },
                             trailingIcon = {
                                 IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
                                     ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
@@ -1390,14 +1390,14 @@ fun GardenPlanningFormTab(
                             label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Origin") },
                             leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                                    imageVector = Icons.Default.Yard,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                    }
-                },
+                                ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Yard) {
+                                    Icon(
+                                        imageVector = Icons.Default.Yard,
+                                        contentDescription = null,
+                                        tint = Color.White
+                                    )
+                                }
+                            },
                             trailingIcon = {
                                 IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
                                     ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
@@ -1450,14 +1450,14 @@ fun GardenPlanningFormTab(
                         capitalization = KeyboardCapitalization.Characters
                     ),
                     leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                            imageVector = Icons.Default.Nature,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                },
+                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Nature) {
+                            Icon(
+                                imageVector = Icons.Default.Nature,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .fieldGlass(shape = CLAY_FIELD_SHAPE)
@@ -1709,14 +1709,14 @@ fun GardenPlanningFormTab(
                     shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                            imageVector = Icons.Default.CurrencyRupee,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                },
+                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.CurrencyRupee) {
+                            Icon(
+                                imageVector = Icons.Default.CurrencyRupee,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .fieldGlass(shape = CLAY_FIELD_SHAPE)
@@ -1838,12 +1838,12 @@ fun GardenPlanningFormTab(
                 shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = Icons.Default.Payments,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Payments) {
+                        Icon(
+                            imageVector = Icons.Default.Payments,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 modifier = Modifier
@@ -1936,20 +1936,20 @@ fun GardenPlanningFormTab(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        IconButton(
-                            onClick = { openDatePicker(true) },
-                            modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
-                        ) {
-                            ThemedIcon(
-                                imageVector = Icons.Default.CalendarMonth,
-                                contentDescription = "Select Booking Date",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.CalendarMonth) {
+                            IconButton(
+                                onClick = { openDatePicker(true) },
+                                modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CalendarMonth,
+                                    contentDescription = "Select Booking Date",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
-                    }
-                },
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -1980,20 +1980,20 @@ fun GardenPlanningFormTab(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        IconButton(
-                            onClick = { openDatePicker(false) },
-                            modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
-                        ) {
-                            ThemedIcon(
-                                imageVector = Icons.Default.LocalShipping,
-                                contentDescription = "Select Expected Delivery Date",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.LocalShipping) {
+                            IconButton(
+                                onClick = { openDatePicker(false) },
+                                modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalShipping,
+                                    contentDescription = "Select Expected Delivery Date",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
-                    }
-                },
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -2032,12 +2032,12 @@ fun GardenPlanningFormTab(
                 shape = CLAY_FIELD_SHAPE,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent) {
-                        ThemedIcon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = Color.White
-                    )
+                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Description) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
                     }
                 },
                 trailingIcon = {

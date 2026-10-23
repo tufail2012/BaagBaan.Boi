@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.ui.theme.getAppDimBackgroundColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -139,27 +140,18 @@ fun clayFieldColors(isDark: Boolean, accentColor: Color): TextFieldColors {
 
 /** Small glossy gradient circle chip for a field's leading icon. */
 @Composable
-fun ClayFieldIcon(accentColor: Color, content: @Composable () -> Unit) {
+fun ClayFieldIcon(accentColor: Color, icon: ImageVector? = null, content: @Composable () -> Unit) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val tileIconState = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<androidx.compose.ui.graphics.vector.ImageVector?>(null) }
-    val resolvedAccent = tileIconState.value?.let { iconTileColor(it, accentColor, isDark) } ?: accentColor
+    val base = if (icon != null) iconTileColor(icon, accentColor, isDark) else accentColor
     Box(
         modifier = Modifier
             .size(CLAY_ICON_CHIP_SIZE)
             .shadow(elevation = 4.dp, shape = CircleShape, clip = false)
             .clip(CircleShape)
-            .background(
-                if (com.example.ui.theme.IconPresetSettings.enabled && tileIconState.value != null) {
-                    androidx.compose.ui.graphics.SolidColor(resolvedAccent)
-                } else {
-                    clayAccentGradient(accentColor)
-                }
-            ),
+            .background(clayAccentGradient(base)),
         contentAlignment = Alignment.Center
     ) {
-        CompositionLocalProvider(LocalSolidIconTileState provides tileIconState) {
-            content()
-        }
+        content()
     }
 }
 
