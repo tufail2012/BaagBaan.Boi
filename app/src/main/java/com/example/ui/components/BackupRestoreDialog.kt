@@ -59,8 +59,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -712,7 +710,7 @@ fun BackupRestoreDialog(
                                         }
                                     }
 
-                                    Switch(
+                                    GlassRefractToggle(
                                         checked = isGoogleDriveSyncEnabled,
                                         onCheckedChange = { checked ->
                                             isGoogleDriveSyncEnabled = checked
@@ -726,13 +724,11 @@ fun BackupRestoreDialog(
                                                 Toast.makeText(context, "Google Drive Auto Sync Disabled", Toast.LENGTH_SHORT).show()
                                             }
                                         },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                        ),
-                                        modifier = Modifier.testTag("google_drive_auto_sync_switch")
+                                        modifier = Modifier.testTag("google_drive_auto_sync_switch"),
+                                        description = "24-Hour Automatic Cloud Sync",
+                                        activeColor = MaterialTheme.colorScheme.primary,
+                                        inactiveColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        backdrop = null
                                     )
                                 }
                             }

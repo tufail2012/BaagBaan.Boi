@@ -642,16 +642,15 @@ fun ThemeColoursContent(
                             )
                         }
                     }
-                    androidx.compose.material3.Switch(
+                    GlassRefractToggle(
                         checked = com.example.ui.theme.LiquidGlassPreference.enabled,
                         onCheckedChange = { checked ->
                             com.example.ui.theme.LiquidGlassPreference.setEnabled(bgContext, checked)
                         },
                         modifier = Modifier.testTag("liquid_glass_switch"),
-                        colors = androidx.compose.material3.SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = currentAccentColor
-                        )
+                        description = "Liquid Glass",
+                        activeColor = currentAccentColor,
+                        backdrop = null
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))

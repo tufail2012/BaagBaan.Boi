@@ -74,8 +74,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -799,7 +797,7 @@ fun SettingsScreen(
                                     }
                                 }
 
-                                Switch(
+                                GlassRefractToggle(
                                     checked = isAppLockEnabled,
                                     onCheckedChange = { checked ->
                                         if (checked) {
@@ -810,10 +808,9 @@ fun SettingsScreen(
                                         }
                                     },
                                     modifier = Modifier.testTag("app_lock_switch"),
-                                    colors = SwitchDefaults.colors(
-                                        checkedThumbColor = Color.White,
-                                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                                    )
+                                    description = "App Lock",
+                                    activeColor = MaterialTheme.colorScheme.primary,
+                                    backdrop = null
                                 )
                             }
 

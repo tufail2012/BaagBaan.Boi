@@ -40,8 +40,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -544,16 +542,14 @@ private fun SeasonalTaskCard(
 
                 // Switch + Action Buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
+                    GlassRefractToggle(
                         checked = task.isEnabled,
                         onCheckedChange = onToggleEnabled,
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = seasonalAccent,
-                            uncheckedThumbColor = if (isDark) Color(0xFF94A3B8) else Color(0xFFCBD5E1),
-                            uncheckedTrackColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
-                        ),
-                        modifier = Modifier.testTag("seasonal_task_switch_${task.id}")
+                        modifier = Modifier.testTag("seasonal_task_switch_${task.id}"),
+                        description = task.title.ifBlank { task.category.ifBlank { "Untitled Task" } },
+                        activeColor = seasonalAccent,
+                        inactiveColor = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                        backdrop = null
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     IconButton(
@@ -994,10 +990,13 @@ private fun SeasonalTaskEditDialog(
                                     Text("Recurring Annual Alarm", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                     Text("Recompute and alert every year on this date", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Switch(
+                                GlassRefractToggle(
                                     checked = isRecurring,
                                     onCheckedChange = { isRecurring = it },
-                                    modifier = Modifier.testTag("seasonal_recurring_switch")
+                                    modifier = Modifier.testTag("seasonal_recurring_switch"),
+                                    description = "Recurring Annual Alarm",
+                                    activeColor = seasonalAccent,
+                                    backdrop = null
                                 )
                             }
 
@@ -1010,10 +1009,13 @@ private fun SeasonalTaskEditDialog(
                                     Text("Enable Reminder", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                                     Text("Turn alarm active/inactive without deleting", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Switch(
+                                GlassRefractToggle(
                                     checked = isEnabled,
                                     onCheckedChange = { isEnabled = it },
-                                    modifier = Modifier.testTag("seasonal_enabled_switch")
+                                    modifier = Modifier.testTag("seasonal_enabled_switch"),
+                                    description = "Enable Reminder",
+                                    activeColor = seasonalAccent,
+                                    backdrop = null
                                 )
                             }
                         }

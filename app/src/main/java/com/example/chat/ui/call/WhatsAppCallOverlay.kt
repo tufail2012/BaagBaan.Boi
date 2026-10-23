@@ -56,9 +56,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import com.example.ui.components.GlassRefractToggle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -627,7 +626,7 @@ private fun CallMoreSheetContent(
                     }
                 }
 
-                Switch(
+                GlassRefractToggle(
                     checked = state.isNoiseCancellationOn,
                     onCheckedChange = { isChecked ->
                         ZegoCallManager.setNoiseCancellation(isChecked)
@@ -637,12 +636,10 @@ private fun CallMoreSheetContent(
                             Toast.LENGTH_SHORT
                         ).show()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = Color(0xFF00A884),
-                        uncheckedThumbColor = Color(0xFF8696A0),
-                        uncheckedTrackColor = Color(0xFF111B21)
-                    )
+                    description = "Noise Cancellation",
+                    activeColor = Color(0xFF00A884),
+                    inactiveColor = Color(0xFF111B21),
+                    backdrop = null
                 )
             }
 

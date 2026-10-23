@@ -58,10 +58,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.example.ui.components.GlassRefractToggle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -724,16 +723,14 @@ fun ChatSettingsScreen(
                             )
                         }
 
-                        Switch(
+                        GlassRefractToggle(
                             checked = readReceipts,
                             onCheckedChange = { viewModel.setReadReceipts(it) },
                             modifier = Modifier.testTag("read_receipts_toggle_switch"),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = accentColor,
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
-                            )
+                            description = "Read receipts",
+                            activeColor = accentColor,
+                            inactiveColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
+                            backdrop = null
                         )
                     }
                 }
@@ -971,16 +968,14 @@ fun ChatSettingsScreen(
                     )
                 }
 
-                Switch(
+                GlassRefractToggle(
                     checked = notificationsEnabled,
                     onCheckedChange = { viewModel.setNotificationsEnabled(it) },
                     modifier = Modifier.testTag("notifications_toggle_switch"),
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = accentColor,
-                        uncheckedThumbColor = Color.White,
-                        uncheckedTrackColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
-                    )
+                    description = "Message Notifications",
+                    activeColor = accentColor,
+                    inactiveColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
+                    backdrop = null
                 )
             }
         }

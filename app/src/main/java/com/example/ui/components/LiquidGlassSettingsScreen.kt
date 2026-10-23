@@ -1,9 +1,6 @@
 package com.example.ui.components
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -1164,38 +1161,13 @@ private fun IosSwitch(
     checked: Boolean,
     isDark: Boolean,
 ) {
-    val progress by animateFloatAsState(
-        targetValue = if (checked) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
-        label = "iosSwitchProgress",
+    GlassRefractToggle(
+        checked = checked,
+        onCheckedChange = null,
+        activeColor = Color(0xFF34C759),
+        inactiveColor = if (isDark) Color(0xFF39393D) else Color(0xFFE9E9EA),
+        backdrop = null,
     )
-    val clampedProgress = progress.coerceIn(0f, 1f)
-    val offColor = if (isDark) Color(0xFF39393D) else Color(0xFFE9E9EA)
-    val onColor = Color(0xFF34C759)
-    val trackColor = lerp(offColor, onColor, clampedProgress)
-    val density = LocalDensity.current
-    val travelPx = with(density) { 20.dp.toPx() }
-
-    Box(
-        modifier = Modifier
-            .size(width = 51.dp, height = 31.dp)
-            .clip(RoundedCornerShape(percent = 50))
-            .background(trackColor)
-            .padding(2.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Box(
-            modifier = Modifier
-                .offset { IntOffset((clampedProgress * travelPx).roundToInt(), 0) }
-                .size(27.dp)
-                .shadow(elevation = 2.dp, shape = CircleShape)
-                .clip(CircleShape)
-                .background(Color.White),
-        )
-    }
 }
 
 /**
