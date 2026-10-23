@@ -814,7 +814,12 @@ private fun OverflowMenuContent(
         AppThemeMode.DARK, AppThemeMode.AMOLED -> true
     }
     val isAmoled = themeMode == AppThemeMode.AMOLED || (themeMode == AppThemeMode.SYSTEM && isAppInAmoledMode())
-    val itemTextColor = if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    val glassConfig = LocalLiquidGlassConfig.current
+    val itemTextColor = if (glassConfig.adaptiveContrast) {
+        if (isDark) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+    } else {
+        glassConfig.glassTextColor
+    }
 
     val menuAccent = parsedPaletteColor ?: MaterialTheme.colorScheme.primary
 

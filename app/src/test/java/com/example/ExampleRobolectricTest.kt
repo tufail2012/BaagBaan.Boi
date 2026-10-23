@@ -115,9 +115,15 @@ class ExampleRobolectricTest {
     composeTestRule.onNodeWithTag("glass_style_option_liquid").performClick()
     composeTestRule.waitForIdle()
 
-    // Toggle switches on Advanced page
+    // Toggle switches on Advanced page (row tap and switch tap/drag in both directions)
+    val initialChromatic = LiquidGlassSettings.chromaticAberration
     composeTestRule.onNodeWithTag("row_chromatic_aberration").performScrollTo().performClick()
     composeTestRule.waitForIdle()
+    assertEquals(!initialChromatic, LiquidGlassSettings.chromaticAberration)
+    composeTestRule.onNodeWithTag("row_chromatic_aberration").performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(initialChromatic, LiquidGlassSettings.chromaticAberration)
+
     composeTestRule.onNodeWithTag("row_adaptive_contrast").performScrollTo().performClick()
     composeTestRule.waitForIdle()
     composeTestRule.onNodeWithTag("row_text_and_icon_color").performScrollTo().assertIsDisplayed()

@@ -383,6 +383,12 @@ fun ChatScreen(
     val headerShape = RoundedCornerShape(percent = 50)
     val composerShape = RoundedCornerShape(28.dp)
 
+    val chatGlassTextColor = if (glassConfig.adaptiveContrast) {
+        if (isDark) Color.White else Color(0xFF0F172A)
+    } else {
+        glassConfig.glassTextColor
+    }
+
     @Composable
     fun glassModifier(shape: CornerBasedShape): Modifier =
         if (glassOn) Modifier.navLiquidGlass(shape = shape, backdrop = chatGlass)
@@ -996,7 +1002,7 @@ fun ChatScreen(
                         ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = if (isDark) Color.White else Color(0xFF0F172A)
+                            tint = chatGlassTextColor
                         )
                     }
 
@@ -1084,7 +1090,7 @@ fun ChatScreen(
                                 text = if (isGroup) groupDisplayTitle else effectiveDisplayName,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                color = chatGlassTextColor,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1176,7 +1182,7 @@ fun ChatScreen(
                                 ThemedIcon(
                                     imageVector = Icons.Default.Call,
                                     contentDescription = "Voice call",
-                                    tint = if (isDark) Color.White else Color(0xFF0F172A),
+                                    tint = chatGlassTextColor,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -1194,7 +1200,7 @@ fun ChatScreen(
                             ThemedIcon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "More options",
-                                tint = if (isDark) Color.White else Color(0xFF0F172A)
+                                tint = chatGlassTextColor
                             )
                         }
                     }
@@ -1250,7 +1256,7 @@ fun ChatScreen(
                             text = "${effectiveDisplayName}'s security key changed",
                             fontSize = 13.5.sp,
                             lineHeight = 18.sp,
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            color = chatGlassTextColor,
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(
@@ -1283,7 +1289,7 @@ fun ChatScreen(
                             text = "You can't send messages to this contact. Unblock to continue.",
                             fontSize = 13.5.sp,
                             lineHeight = 18.sp,
-                            color = if (isDark) Color.White else Color(0xFF0F172A),
+                            color = chatGlassTextColor,
                             modifier = Modifier.weight(1f)
                         )
                         if (isBlockedByMe && otherUid.isNotEmpty()) {
@@ -1379,8 +1385,8 @@ fun ChatScreen(
                                         unfocusedIndicatorColor = Color.Transparent,
                                         disabledIndicatorColor = Color.Transparent,
                                         cursorColor = accentColor,
-                                        focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
-                                        unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A)
+                                        focusedTextColor = chatGlassTextColor,
+                                        unfocusedTextColor = chatGlassTextColor
                                     ),
                                     maxLines = 4,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -1442,7 +1448,7 @@ fun ChatScreen(
             }
 
             // Layer 4: Sibling three-dot overflow glass panel (drawn inside the same screen, outside layerBackdrop)
-            val menuContentColor = if (isDark) Color.White else Color(0xFF0F172A)
+            val menuContentColor = chatGlassTextColor
             CompositionLocalProvider(LocalMorphMenuBackdrop provides chatGlass) {
                 MorphMenu(
                     expanded = showMoreMenu,

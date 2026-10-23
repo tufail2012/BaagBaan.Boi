@@ -196,9 +196,14 @@ fun LiquidGlassPreview(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    val previewContentColor = if (config.adaptiveContrast) {
+                        LiquidGlassSettings.defaultGlassTextColor(isDark)
+                    } else {
+                        config.glassTextColor
+                    }
                     PreviewNavItems.take(4).forEachIndexed { index, item ->
                         val isSelected = index == 0
-                        val itemTint = if (isSelected) config.glassTextColor else Color.White
+                        val itemTint = if (isSelected) previewContentColor else Color.White
 
                         Column(
                             modifier = Modifier
@@ -251,7 +256,7 @@ fun LiquidGlassPreview(
                     ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
-                        tint = config.glassTextColor,
+                        tint = if (config.adaptiveContrast) LiquidGlassSettings.defaultGlassTextColor(isDark) else config.glassTextColor,
                         modifier = Modifier.size(26.dp),
                     )
                 }

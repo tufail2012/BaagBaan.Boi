@@ -10,8 +10,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -88,10 +90,22 @@ fun GlassRefractToggle(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    var lastChecked by remember { mutableStateOf(checked) }
+    var holdPressOnRelease by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isPressed, thumbState.dragging) {
+    LaunchedEffect(checked, isPressed, thumbState.dragging) {
+        val checkedChanged = checked != lastChecked
+        lastChecked = checked
         if (interactive && (isPressed || thumbState.dragging)) {
             thumbState.startPress()
+        } else if (checkedChanged && !thumbState.dragging) {
+            val holdTap = holdPressOnRelease
+            holdPressOnRelease = false
+            if (thumbState.releaseJob?.isActive == true || thumbState.pressProgress.value > 0f) {
+                thumbState.finishRelease(if (currentChecked) 1f else 0f, holdPressForTap = holdTap)
+            } else {
+                thumbState.value.animateTo(if (currentChecked) 1f else 0f, thumbState.valueSpec)
+            }
         } else if (!isPressed && !thumbState.dragging && thumbState.releaseJob?.isActive != true && thumbState.pressProgress.value > 0f) {
             thumbState.finishRelease(if (currentChecked) 1f else 0f)
         }
@@ -102,13 +116,13 @@ fun GlassRefractToggle(
     val vendoredBackdrop = remember(backdrop) { backdrop?.asVendoredBackdrop() }
 
     val onThumbRelease: (Float) -> Float = { releasedFraction ->
+        holdPressOnRelease = false
         val targetBool = releasedFraction >= 0.5f
-        val finalTarget = if (targetBool) 1f else 0f
         if (targetBool != currentChecked) {
             haptics.play(if (targetBool) Haptic.ToggleOn else Haptic.ToggleOff)
             currentOnChange?.invoke(targetBool)
         }
-        finalTarget
+        if (currentChecked) 1f else 0f
     }
 
     Box(
@@ -125,13 +139,13 @@ fun GlassRefractToggle(
                 enabled = interactive,
                 role = Role.Switch,
                 onValueChange = { newValue ->
+                    holdPressOnRelease = true
                     thumbState.startPress()
-                    val targetFloat = if (newValue) 1f else 0f
                     if (newValue != currentChecked) {
                         haptics.play(if (newValue) Haptic.ToggleOn else Haptic.ToggleOff)
                         currentOnChange?.invoke(newValue)
                     }
-                    thumbState.finishRelease(targetFloat, holdPressForTap = true)
+                    thumbState.finishRelease(if (currentChecked) 1f else 0f, holdPressForTap = true)
                 },
             )
             .glassThumbDragGestures(

@@ -444,6 +444,9 @@ fun LiquidGlassSettingsScreen(
                                 IosSwitch(
                                     checked = LiquidGlassSettings.chromaticAberration,
                                     isDark = isDark,
+                                    onCheckedChange = { newValue ->
+                                        LiquidGlassSettings.setChromaticAberration(context, newValue)
+                                    },
                                 )
                             },
                         )
@@ -469,6 +472,9 @@ fun LiquidGlassSettingsScreen(
                                 IosSwitch(
                                     checked = LiquidGlassSettings.depthEffect,
                                     isDark = isDark,
+                                    onCheckedChange = { newValue ->
+                                        LiquidGlassSettings.setDepthEffect(context, newValue)
+                                    },
                                 )
                             },
                         )
@@ -649,6 +655,9 @@ fun LiquidGlassSettingsScreen(
                                 IosSwitch(
                                     checked = LiquidGlassSettings.adaptiveContrast,
                                     isDark = isDark,
+                                    onCheckedChange = { newValue ->
+                                        LiquidGlassSettings.setAdaptiveContrast(context, newValue)
+                                    },
                                 )
                             },
                         )
@@ -702,6 +711,9 @@ fun LiquidGlassSettingsScreen(
                                 IosSwitch(
                                     checked = LiquidGlassSettings.navBarGlassEnabled,
                                     isDark = isDark,
+                                    onCheckedChange = { newValue ->
+                                        LiquidGlassSettings.setNavBarGlassEnabled(context, newValue)
+                                    },
                                 )
                             },
                         )
@@ -727,6 +739,9 @@ fun LiquidGlassSettingsScreen(
                                 IosSwitch(
                                     checked = LiquidGlassSettings.chatGlassEnabled,
                                     isDark = isDark,
+                                    onCheckedChange = { newValue ->
+                                        LiquidGlassSettings.setChatGlassEnabled(context, newValue)
+                                    },
                                 )
                             },
                         )
@@ -1164,10 +1179,11 @@ private fun ColorSwatchCircle(
 private fun IosSwitch(
     checked: Boolean,
     isDark: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
     GlassRefractToggle(
         checked = checked,
-        onCheckedChange = null,
+        onCheckedChange = onCheckedChange,
         activeColor = Color(0xFF34C759),
         inactiveColor = if (isDark) Color(0xFF39393D) else Color(0xFFE9E9EA),
         backdrop = null,
