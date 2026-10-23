@@ -255,7 +255,7 @@ fun AgriHeader(
                     },
                     modifier = Modifier.size(38.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Close Search",
                         tint = animatedAccentColor,
@@ -276,7 +276,7 @@ fun AgriHeader(
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     singleLine = true,
                     leadingIcon = {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
                             tint = animatedAccentColor,
@@ -293,7 +293,7 @@ fun AgriHeader(
                                     onClick = { onSearchQueryChange("") },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Clear,
                                         contentDescription = "Clear search",
                                         tint = if (isDark) Color.White else Color.DarkGray,
@@ -425,7 +425,7 @@ fun AgriHeader(
                                     .size(36.dp)
                                     .testTag("header_back_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ArrowBack,
                                     contentDescription = "Back",
                                     tint = glassContentColor()
@@ -463,7 +463,7 @@ fun AgriHeader(
                                 modifier = Modifier.size(44.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = headerBadgeIcon,
                                     contentDescription = "$title Icon",
                                     tint = glassContentColor(),
@@ -513,7 +513,7 @@ fun AgriHeader(
                                         }
                                     }
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Notifications,
                                         contentDescription = "Notification Center",
                                         tint = glassContentColor()
@@ -530,7 +530,7 @@ fun AgriHeader(
                                     .size(38.dp)
                                     .testTag("header_search_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = "Search Records",
                                     tint = glassContentColor()
@@ -657,7 +657,7 @@ private fun SyncStatusDialog(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = when (syncState) {
                             SyncState.SYNCED -> Icons.Default.CloudDone
                             SyncState.SYNCING -> Icons.Default.CloudSync
@@ -721,7 +721,7 @@ private fun SyncStatusDialog(
                         }
 
                         if (syncState == SyncState.SYNCED) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
                                 tint = Color(0xFF2E7D32),
@@ -769,7 +769,7 @@ private fun SyncStatusDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
@@ -1102,7 +1102,7 @@ private fun HeaderProfileAvatar(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.AccountCircle,
                     contentDescription = "Profile Options",
                     tint = if (onGlass) glassContentColor() else MaterialTheme.colorScheme.primary,
@@ -1461,12 +1461,12 @@ private fun FrostedMenuItemContent(
                 .size(32.dp)
                 .clip(CircleShape)
                 .background(
-                    color = accentColor.copy(alpha = if (isDark) 0.22f else 0.14f),
+                    color = iconTileColor(icon, accentColor.copy(alpha = if (isDark) 0.22f else 0.14f), isDark),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (isDark) Color.White else accentColor,

@@ -1,5 +1,7 @@
 package com.example.ui.components.attendance
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -121,7 +123,7 @@ fun DailyMarkingScreen(
                                 .size(36.dp)
                                 .testTag("daily_marking_back_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
                                 tint = MaterialTheme.colorScheme.primary
@@ -155,7 +157,7 @@ fun DailyMarkingScreen(
                             ),
                             modifier = Modifier.testTag("mark_all_present_button")
                         ) {
-                            Icon(imageVector = Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(16.dp))
+                            ThemedIcon(imageVector = Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Mark All Present", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -191,7 +193,7 @@ fun DailyMarkingScreen(
                             },
                             modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronLeft,
                                 contentDescription = "Previous Day",
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -203,7 +205,7 @@ fun DailyMarkingScreen(
                             horizontalArrangement = Arrangement.Center,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Event,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -247,7 +249,7 @@ fun DailyMarkingScreen(
                             enabled = !isNextDisabled,
                             modifier = Modifier.size(36.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Next Day",
                                 tint = if (isNextDisabled) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.onSurface
@@ -445,7 +447,7 @@ fun WorkerDailyMarkingRow(
                     modifier = Modifier.height(38.dp)
                 ) {
                     if (isPresent) {
-                        Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        ThemedIcon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                     Text("Present", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -472,7 +474,7 @@ fun WorkerDailyMarkingRow(
                     modifier = Modifier.height(38.dp)
                 ) {
                     if (isAbsent) {
-                        Icon(imageVector = Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
+                        ThemedIcon(imageVector = Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                     Text("Absent", fontSize = 12.sp, fontWeight = FontWeight.Bold)

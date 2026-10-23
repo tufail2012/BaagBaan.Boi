@@ -950,7 +950,7 @@ fun FarmerFormScreen(
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
                                 contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
                                 tint = Color.White,
@@ -976,7 +976,7 @@ fun FarmerFormScreen(
                                         },
                                         modifier = Modifier.testTag("save_serial_button")
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Save,
                                             contentDescription = "Save Serial Number",
                                             tint = MaterialTheme.colorScheme.primary,
@@ -988,7 +988,7 @@ fun FarmerFormScreen(
                                     onClick = { viewModel.generateNewSerialNumber() },
                                     modifier = Modifier.testTag("new_serial_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Refresh,
                                         contentDescription = "New Serial",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -1028,7 +1028,7 @@ fun FarmerFormScreen(
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1057,7 +1057,7 @@ fun FarmerFormScreen(
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                     imageVector = Icons.Default.LocationOn,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1113,7 +1113,7 @@ fun FarmerFormScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                     imageVector = Icons.Default.Phone,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1131,7 +1131,7 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier.testTag("contacts_picker_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.ContactPhone,
                                         contentDescription = "Contact Picker",
                                         tint = MaterialTheme.colorScheme.primary
@@ -1217,7 +1217,7 @@ fun FarmerFormScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Layers,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
@@ -1269,7 +1269,7 @@ fun FarmerFormScreen(
                                         onClick = { viewModel.removeVarietyLine(index) },
                                         modifier = Modifier.size(28.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.DeleteOutline,
                                             contentDescription = "Remove Item",
                                             tint = MaterialTheme.colorScheme.error,
@@ -1295,7 +1295,7 @@ fun FarmerFormScreen(
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = if (isImportedRootstocks) Icons.Default.Spa else Icons.Outlined.LocalFlorist,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1331,7 +1331,7 @@ fun FarmerFormScreen(
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
                                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(Icons.Default.Spa, contentDescription = null, tint = Color.White)
+                            ThemedIcon(Icons.Default.Spa, contentDescription = null, tint = Color.White)
                         }
                     },
                                         modifier = Modifier
@@ -1357,7 +1357,7 @@ fun FarmerFormScreen(
                                         ),
                                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(Icons.Default.Nature, contentDescription = null, tint = Color.White)
+                            ThemedIcon(Icons.Default.Nature, contentDescription = null, tint = Color.White)
                         }
                     },
                                         modifier = Modifier
@@ -1395,7 +1395,7 @@ fun FarmerFormScreen(
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = Color.White)
+                            ThemedIcon(Icons.Default.FormatListNumbered, contentDescription = null, tint = Color.White)
                         }
                     },
                                     modifier = Modifier
@@ -1425,7 +1425,7 @@ fun FarmerFormScreen(
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
+                            ThemedIcon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
                         }
                     },
                                     modifier = Modifier
@@ -1468,7 +1468,7 @@ fun FarmerFormScreen(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
@@ -1514,7 +1514,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CalendarToday,
                                     contentDescription = "Select Visit Date",
                                     tint = Color.White,
@@ -1544,7 +1544,7 @@ fun FarmerFormScreen(
                         maxLines = 3,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Landscape,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1572,7 +1572,7 @@ fun FarmerFormScreen(
                         maxLines = 3,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.HealthAndSafety,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1616,7 +1616,7 @@ fun FarmerFormScreen(
                         ),
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1630,7 +1630,7 @@ fun FarmerFormScreen(
                                         MapHelper.openGoogleMaps(context, location)
                                     }
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.OpenInNew,
                                         contentDescription = "Open in Google Maps",
                                         tint = MaterialTheme.colorScheme.primary
@@ -1673,7 +1673,7 @@ fun FarmerFormScreen(
                         ),
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Place,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1687,7 +1687,7 @@ fun FarmerFormScreen(
                                         MapHelper.openGoogleMaps(context, location)
                                     }
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.OpenInNew,
                                         contentDescription = "Open in Google Maps",
                                         tint = MaterialTheme.colorScheme.primary
@@ -1715,7 +1715,7 @@ fun FarmerFormScreen(
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                     imageVector = Icons.Outlined.LocalFlorist,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1751,7 +1751,7 @@ fun FarmerFormScreen(
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Spa,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1779,7 +1779,7 @@ fun FarmerFormScreen(
                                 ),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Nature,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1812,7 +1812,7 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.HourglassTop,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1821,7 +1821,7 @@ fun FarmerFormScreen(
                     },
                                 trailingIcon = {
                                     IconButton(onClick = { saplingAgeMenuExpanded = true }) {
-                                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                        ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                                     }
                                 },
                                 modifier = Modifier
@@ -1874,7 +1874,7 @@ fun FarmerFormScreen(
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Spa,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1902,7 +1902,7 @@ fun FarmerFormScreen(
                                 ),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Nature,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1935,7 +1935,7 @@ fun FarmerFormScreen(
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Public,
                                         contentDescription = null,
                                         tint = Color.White
@@ -1964,7 +1964,7 @@ fun FarmerFormScreen(
                                     singleLine = true,
                                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                             imageVector = Icons.Default.HourglassTop,
                                             contentDescription = null,
                                             tint = Color.White
@@ -1973,7 +1973,7 @@ fun FarmerFormScreen(
                     },
                                     trailingIcon = {
                                         IconButton(onClick = { saplingAgeMenuExpanded = true }) {
-                                            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                            ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                                         }
                                     },
                                     modifier = Modifier
@@ -2021,7 +2021,7 @@ fun FarmerFormScreen(
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                     imageVector = Icons.Default.Spa,
                                     contentDescription = null,
                                     tint = Color.White
@@ -2053,7 +2053,7 @@ fun FarmerFormScreen(
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Public,
                                         contentDescription = null,
                                         tint = Color.White
@@ -2077,7 +2077,7 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Straighten,
                                         contentDescription = null,
                                         tint = Color.White
@@ -2114,7 +2114,7 @@ fun FarmerFormScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Layers,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
@@ -2161,7 +2161,7 @@ fun FarmerFormScreen(
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                             imageVector = Icons.Default.Nature,
                             contentDescription = null,
                             tint = Color.White
@@ -2192,7 +2192,7 @@ fun FarmerFormScreen(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ContentCut,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2201,7 +2201,7 @@ fun FarmerFormScreen(
                     },
                         trailingIcon = {
                             IconButton(onClick = { graftTypeMenuExpanded = true }) {
-                                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Graft Type")
+                                ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Graft Type")
                             }
                         },
                         modifier = Modifier
@@ -2296,7 +2296,7 @@ fun FarmerFormScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Inventory,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
@@ -2368,7 +2368,7 @@ fun FarmerFormScreen(
                             singleLine = true,
                             leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
+                            ThemedIcon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
                         }
                     },
                             modifier = Modifier
@@ -2402,7 +2402,7 @@ fun FarmerFormScreen(
                     singleLine = true,
                     leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.FormatListNumbered,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2459,7 +2459,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CurrencyRupee,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2507,7 +2507,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CurrencyRupee,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2557,7 +2557,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         leadingIcon = {
                             ClayFieldIcon(accentColor = formAccent) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.FormatListNumbered,
                                     contentDescription = null,
                                     tint = Color.White
@@ -2586,7 +2586,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CurrencyRupee,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2643,7 +2643,7 @@ fun FarmerFormScreen(
                 singleLine = true,
                 leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                         imageVector = Icons.Default.Payments,
                         contentDescription = null,
                         tint = Color.White
@@ -2751,7 +2751,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier.size(36.dp).testTag("booking_date_picker_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = "Select Booking Date",
                                 tint = Color.White,
@@ -2801,7 +2801,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier.size(36.dp).testTag("expected_delivery_picker_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.LocalShipping,
                                 contentDescription = "Select Expected Delivery Date",
                                 tint = Color.White,
@@ -2871,7 +2871,7 @@ fun FarmerFormScreen(
                             ),
                             modifier = Modifier.testTag("upload_proof_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.FileUpload,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
@@ -2914,7 +2914,7 @@ fun FarmerFormScreen(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
                         ClayFieldIcon(accentColor = formAccent) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = null,
                                 tint = Color.White
@@ -2932,7 +2932,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier.testTag("notes_voice_input_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Mic,
                                     contentDescription = "Voice Input",
                                     tint = MaterialTheme.colorScheme.primary
@@ -2975,7 +2975,7 @@ fun FarmerFormScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Message,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
@@ -2990,7 +2990,7 @@ fun FarmerFormScreen(
                                     )
                                 }
 
-                                Icon(
+                                ThemedIcon(
                                     imageVector = if (messagePreviewExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                     contentDescription = if (messagePreviewExpanded) "Collapse Message Preview" else "Expand Message Preview",
                                     tint = MaterialTheme.colorScheme.primary,
@@ -3027,7 +3027,7 @@ fun FarmerFormScreen(
                                             shape = CLAY_FIELD_SHAPE,
                                             trailingIcon = {
                                                 IconButton(onClick = { templateMenuExpanded = true }) {
-                                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                                    ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                                                 }
                                             },
                                             modifier = Modifier
@@ -3106,7 +3106,7 @@ fun FarmerFormScreen(
                                                     },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.ContentCopy,
                                                         contentDescription = "Copy Text",
                                                         tint = MaterialTheme.colorScheme.primary,
@@ -3205,7 +3205,7 @@ fun FarmerFormScreen(
                     contentColor = Color.White
                 )
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Save,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
@@ -3246,7 +3246,7 @@ fun FarmerFormScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Send,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
@@ -3284,7 +3284,7 @@ fun FarmerFormScreen(
                         contentColor = Color.White
                     )
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Message,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
@@ -3312,7 +3312,7 @@ fun FarmerFormScreen(
                 shape = RoundedCornerShape(14.dp),
                 border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.ReceiptLong,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
@@ -3466,7 +3466,7 @@ fun FarmerFormScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ContactPhone,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
@@ -3521,7 +3521,7 @@ fun FarmerFormScreen(
                             onClick = { showReceiptDialog = false },
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Close",
                                 tint = MaterialTheme.colorScheme.primary
@@ -3570,7 +3570,7 @@ fun FarmerFormScreen(
                                 contentColor = Color.White
                             )
                         ) {
-                            Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
+                            ThemedIcon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Print Receipt", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -3598,7 +3598,7 @@ fun FarmerFormScreen(
                                 contentColor = Color.White
                             )
                         ) {
-                            Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                            ThemedIcon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Send via WhatsApp", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -3618,7 +3618,7 @@ fun FarmerFormScreen(
                             .testTag("share_receipt_image_button"),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        ThemedIcon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Share Receipt Image", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
@@ -3981,7 +3981,7 @@ fun AppDatePickerDialog(
                                     .size(36.dp)
                                     .testTag("dialog_date_header_pencil")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = if (isManualMode) Icons.Default.DateRange else Icons.Default.Edit,
                                     contentDescription = if (isManualMode) "Switch to Calendar View" else "Edit Date Manually",
                                     tint = Color.White,
@@ -4034,7 +4034,7 @@ fun AppDatePickerDialog(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 leadingIcon = {
                         ClayFieldIcon(accentColor = MaterialTheme.colorScheme.primary) {
-                            Icon(
+                            ThemedIcon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = null,
                                         tint = Color.White
@@ -4064,7 +4064,7 @@ fun AppDatePickerDialog(
                                     viewMonthCalendar = newCal
                                 }
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
+                                ThemedIcon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
                             }
 
                             Text(
@@ -4081,7 +4081,7 @@ fun AppDatePickerDialog(
                                     viewMonthCalendar = newCal
                                 }
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
+                                ThemedIcon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
                             }
                         }
 

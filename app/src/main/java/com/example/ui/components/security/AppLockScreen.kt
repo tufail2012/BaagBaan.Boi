@@ -1,5 +1,7 @@
 package com.example.ui.components.security
 
+
+import com.example.ui.components.ThemedIcon
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -143,7 +145,7 @@ fun AppLockScreen(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Security,
                         contentDescription = "App Lock Icon",
                         tint = Color.White,
@@ -198,7 +200,7 @@ fun AppLockScreen(
                                         contentAlignment = Alignment.Center,
                                         modifier = Modifier.fillMaxSize()
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Fingerprint,
                                             contentDescription = "Fingerprint sensor",
                                             tint = MaterialTheme.colorScheme.primary,
@@ -318,7 +320,7 @@ fun AppLockScreen(
                             DropdownMenuItem(
                                 text = { Text("Fingerprint / Biometric") },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    ThemedIcon(Icons.Default.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 },
                                 onClick = {
                                     showMethodPicker = false
@@ -331,7 +333,7 @@ fun AppLockScreen(
                         DropdownMenuItem(
                             text = { Text("PIN") },
                             leadingIcon = {
-                                Icon(Icons.Default.Pin, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                ThemedIcon(Icons.Default.Pin, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             },
                             onClick = {
                                 showMethodPicker = false
@@ -343,7 +345,7 @@ fun AppLockScreen(
                         DropdownMenuItem(
                             text = { Text("Pattern") },
                             leadingIcon = {
-                                Icon(Icons.Default.Pattern, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                ThemedIcon(Icons.Default.Pattern, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             },
                             onClick = {
                                 showMethodPicker = false
@@ -355,7 +357,7 @@ fun AppLockScreen(
                         DropdownMenuItem(
                             text = { Text("Password") },
                             leadingIcon = {
-                                Icon(Icons.Default.Password, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                ThemedIcon(Icons.Default.Password, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             },
                             onClick = {
                                 showMethodPicker = false

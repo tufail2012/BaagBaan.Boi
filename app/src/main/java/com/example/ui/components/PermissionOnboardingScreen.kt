@@ -274,7 +274,7 @@ fun PermissionOnboardingScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Spa,
                             contentDescription = "Baagbaan Logo",
                             tint = Color.White,
@@ -530,7 +530,7 @@ private fun StepStatusIndicator(
         horizontalArrangement = Arrangement.Center
     ) {
         if (isGranted) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
                 tint = Color(0xFF10B981),
@@ -869,7 +869,7 @@ private fun SummaryStepContent(
                 .border(2.dp, Color(0xFF10B981), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
                 tint = Color(0xFF10B981),
@@ -982,7 +982,7 @@ private fun SummaryRowItem(
                     .background(accentColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
@@ -1008,7 +1008,7 @@ private fun SummaryRowItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = Color(0xFF10B981),
@@ -1061,7 +1061,7 @@ private fun HeroPermissionIcon(
             .border(2.dp, accentColor.copy(alpha = 0.5f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = icon,
             contentDescription = null,
             tint = accentColor,
@@ -1105,7 +1105,7 @@ private fun StatusPillBadge(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = icon,
             contentDescription = null,
             tint = textCol,
@@ -1160,7 +1160,7 @@ private fun RationaleCard(
                             .background(accentColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = point.icon,
                             contentDescription = null,
                             tint = accentColor,
@@ -1204,7 +1204,7 @@ private fun PrivacyAssuranceCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = Icons.Default.Security,
             contentDescription = null,
             tint = Color(0xFF10B981),
@@ -1332,7 +1332,7 @@ private fun BottomActionControls(
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
@@ -1375,7 +1375,7 @@ private fun BottomActionControls(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)

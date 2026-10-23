@@ -129,7 +129,7 @@ private fun FloatingLeafRefreshIndicator(
             },
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = Icons.Default.Eco,
             contentDescription = if (isRefreshing) "Refreshing..." else "Pull down to refresh",
             tint = primaryColor,

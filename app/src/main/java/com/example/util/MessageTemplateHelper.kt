@@ -1,5 +1,7 @@
 package com.example.util
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -192,7 +194,7 @@ fun MessagePreviewComponent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -211,7 +213,7 @@ fun MessagePreviewComponent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = if (isExpanded) "Collapse Message Preview" else "Expand Message Preview",
                         tint = MaterialTheme.colorScheme.primary,
@@ -250,7 +252,7 @@ fun MessagePreviewComponent(
                             shape = pillShape,
                             trailingIcon = {
                                 IconButton(onClick = { templateMenuExpanded = true }) {
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
+                                    ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Dropdown")
                                 }
                             },
                             modifier = Modifier
@@ -343,7 +345,7 @@ fun MessagePreviewComponent(
                                         .size(28.dp)
                                         .testTag("copy_preview_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "Copy Text",
                                         tint = MaterialTheme.colorScheme.primary,

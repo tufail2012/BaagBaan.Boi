@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
@@ -408,7 +410,7 @@ fun ChatsListScreen(
                             .background(accentColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.Chat,
                             contentDescription = null,
                             tint = accentColor,
@@ -443,7 +445,7 @@ fun ChatsListScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                         modifier = Modifier.testTag("empty_state_search_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
@@ -498,7 +500,7 @@ fun ChatsListScreen(
                                     .background(contentColor.copy(alpha = 0.10f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Locked chats",
                                     tint = contentColor,
@@ -535,7 +537,7 @@ fun ChatsListScreen(
                                     .background(contentColor.copy(alpha = 0.10f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Archive,
                                     contentDescription = "Archived",
                                     tint = contentColor,
@@ -692,7 +694,7 @@ internal fun ChatsTopHeaderOverlay(
                             .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
                             .testTag("locked_chats_back_pill")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = contentColor,
@@ -722,7 +724,7 @@ internal fun ChatsTopHeaderOverlay(
                             modifier = Modifier
                                 .padding(0.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.AutoMirrored.Filled.Chat,
                                 contentDescription = null,
                                 tint = contentColor,
@@ -762,7 +764,7 @@ internal fun ChatsTopHeaderOverlay(
                                             .clip(CircleShape)
                                     )
                                 } else {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Person,
                                         contentDescription = "Profile",
                                         tint = contentColor,
@@ -793,7 +795,7 @@ internal fun ChatsTopHeaderOverlay(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.padding(start = 18.dp, end = 18.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = null,
                                     tint = contentColor,
@@ -904,7 +906,7 @@ internal fun ChatSelectionBar(
                     .size(42.dp)
                     .testTag("selection_back_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Clear selection",
                     tint = contentColor,
@@ -932,7 +934,7 @@ internal fun ChatSelectionBar(
                     .size(42.dp)
                     .testTag("selection_pin_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.PushPin,
                     contentDescription = if (allPinned) "Unpin" else "Pin",
                     tint = contentColor,
@@ -967,7 +969,7 @@ internal fun ChatSelectionBar(
                     .size(42.dp)
                     .testTag("selection_delete_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
                     tint = contentColor,
@@ -990,7 +992,7 @@ internal fun ChatSelectionBar(
                     .size(42.dp)
                     .testTag("selection_mute_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = if (allMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
                     contentDescription = if (allMuted) "Unmute" else "Mute",
                     tint = contentColor,
@@ -1013,7 +1015,7 @@ internal fun ChatSelectionBar(
                     .size(42.dp)
                     .testTag("selection_archive_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = if (allArchived) Icons.Default.Unarchive else Icons.Default.Archive,
                     contentDescription = if (allArchived) "Unarchive" else "Archive",
                     tint = contentColor,
@@ -1031,7 +1033,7 @@ internal fun ChatSelectionBar(
                     }
                     .testTag("selection_more_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",
                     tint = contentColor,
@@ -1380,7 +1382,7 @@ internal fun ChatListItemRow(
                             .background(contentColor),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Selected",
                             tint = tickColor,
@@ -1463,7 +1465,7 @@ internal fun ChatListItemRow(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 if (isMuted) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.NotificationsOff,
                                         contentDescription = "Muted",
                                         tint = contentColor,
@@ -1471,7 +1473,7 @@ internal fun ChatListItemRow(
                                     )
                                 }
                                 if (isPinned) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.PushPin,
                                         contentDescription = "Pinned",
                                         tint = contentColor,
@@ -1706,7 +1708,7 @@ private fun ChatFilterRow(
                     .testTag("filter_chip_add_list"),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "New list",
                     tint = contentColor,

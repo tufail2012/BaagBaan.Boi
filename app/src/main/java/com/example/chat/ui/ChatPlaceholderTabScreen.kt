@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,7 +63,7 @@ fun ChatPlaceholderTabScreen(
                 onClick = onBack,
                 modifier = Modifier.testTag("placeholder_${title.lowercase()}_back_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -103,7 +105,7 @@ fun ChatPlaceholderTabScreen(
                             .background(accentColor.copy(alpha = 0.16f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = icon,
                             contentDescription = null,
                             tint = accentColor,

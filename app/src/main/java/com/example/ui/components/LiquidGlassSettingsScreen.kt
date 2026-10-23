@@ -57,6 +57,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -203,7 +204,7 @@ fun LiquidGlassSettingsScreen(
                         .align(Alignment.CenterStart)
                         .testTag("liquid_glass_back_button"),
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = accentColor,
@@ -297,7 +298,7 @@ fun LiquidGlassSettingsScreen(
                             trailing = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         contentDescription = null,
                                         tint = secondaryLabelColor,
@@ -537,7 +538,7 @@ fun LiquidGlassSettingsScreen(
                                         secondaryLabelColor = secondaryLabelColor,
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                         contentDescription = null,
                                         tint = secondaryLabelColor,
@@ -1086,15 +1087,18 @@ private fun SettingsRow(
             modifier = Modifier
                 .size(30.dp)
                 .clip(RoundedCornerShape(7.dp))
-                .background(accentColor),
+                .background(iconTileColor(icon, accentColor, isDark)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(18.dp),
-            )
+            val solidTileState = remember { mutableStateOf<ImageVector?>(icon) }
+            CompositionLocalProvider(LocalSolidIconTileState provides solidTileState) {
+                ThemedIcon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
 
         // 14dp gap before the text column
@@ -1389,7 +1393,7 @@ private fun GlassStyleDialog(
                         color = labelColor,
                     )
                     if (isSelected) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Check,
                             contentDescription = "Selected",
                             tint = accentColor,

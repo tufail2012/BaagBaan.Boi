@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -257,7 +259,7 @@ fun UpdatesTabScreen(
                                     .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "Add status",
                                     tint = Color.White,
@@ -296,7 +298,7 @@ fun UpdatesTabScreen(
                             onClick = onOpenComposer,
                             modifier = Modifier.testTag("my_status_add_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Add another status",
                                 tint = accentColor,
@@ -559,7 +561,7 @@ internal fun UpdatesTopHeaderOverlay(
             modifier = Modifier
                 .padding(0.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Update,
                 contentDescription = null,
                 tint = contentColor,
@@ -595,7 +597,7 @@ internal fun UpdatesTopHeaderOverlay(
                         .clip(CircleShape)
                 )
             } else {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile",
                     tint = contentColor,
@@ -624,7 +626,7 @@ internal fun UpdatesFloatingStatusButton(
             .testTag("updates_fab_button"),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = Icons.Default.Edit,
             contentDescription = "New status update",
             tint = contentColor,
@@ -687,7 +689,7 @@ internal fun TextStatusComposerOverlay(
                     .background(Color.Black.copy(alpha = 0.25f))
                     .testTag("status_composer_close_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Close,
                     contentDescription = "Close",
                     tint = Color.White
@@ -702,7 +704,7 @@ internal fun TextStatusComposerOverlay(
                     .background(Color.Black.copy(alpha = 0.25f))
                     .testTag("status_composer_color_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Palette,
                     contentDescription = "Change background colour",
                     tint = Color.White
@@ -805,7 +807,7 @@ internal fun TextStatusComposerOverlay(
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Post status",
                         tint = Color.White,
@@ -935,7 +937,7 @@ internal fun StatusViewerOverlay(
                     onClick = onDismiss,
                     modifier = Modifier.testTag("status_viewer_back_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = Color.White
@@ -988,7 +990,7 @@ internal fun StatusViewerOverlay(
                         },
                         modifier = Modifier.testTag("status_viewer_delete_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete status",
                             tint = Color.White

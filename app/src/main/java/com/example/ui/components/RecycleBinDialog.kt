@@ -76,7 +76,7 @@ fun RecycleBinDialog(
                             modifier = Modifier.size(40.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.RestoreFromTrash,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
@@ -120,7 +120,7 @@ fun RecycleBinDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = null,
                                 modifier = Modifier.size(56.dp),
@@ -244,7 +244,7 @@ fun RecycleBinDialog(
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                             modifier = Modifier.testTag("restore_item_button_${item.id}")
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Restore,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(16.dp)
@@ -271,7 +271,7 @@ fun RecycleBinDialog(
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                             modifier = Modifier.testTag("delete_permanently_button_${item.id}")
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.DeleteForever,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(16.dp),

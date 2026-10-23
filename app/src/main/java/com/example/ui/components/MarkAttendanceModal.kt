@@ -150,7 +150,7 @@ fun MarkAttendanceModal(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.HowToReg,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -174,7 +174,7 @@ fun MarkAttendanceModal(
                             .size(32.dp)
                             .testTag("close_mark_attendance_modal")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -201,7 +201,7 @@ fun MarkAttendanceModal(
                         }
                     },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     singleLine = true,
                     modifier = Modifier
@@ -218,7 +218,7 @@ fun MarkAttendanceModal(
                     onValueChange = { attendanceDate = it },
                     label = { Text("Date (YYYY-MM-DD) *") },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     singleLine = true,
                     modifier = Modifier
@@ -306,7 +306,7 @@ fun MarkAttendanceModal(
                             },
                             modifier = Modifier.testTag("attendance_notes_voice_input_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Voice Input",
                                 tint = MaterialTheme.colorScheme.primary

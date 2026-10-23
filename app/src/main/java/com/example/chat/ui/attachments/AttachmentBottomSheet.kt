@@ -1,5 +1,7 @@
 package com.example.chat.ui.attachments
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -168,7 +170,7 @@ private fun AttachmentOptionItem(
                 .background(Brush.linearGradient(gradient)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = Color.White,

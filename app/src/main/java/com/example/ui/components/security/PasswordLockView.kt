@@ -1,5 +1,7 @@
 package com.example.ui.components.security
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,7 +64,7 @@ fun PasswordLockView(
                 .testTag("password_input_field"),
             placeholder = { Text("Enter password") },
             leadingIcon = {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary
@@ -71,7 +73,7 @@ fun PasswordLockView(
             trailingIcon = {
                 val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = image,
                         contentDescription = if (passwordVisible) "Hide password" else "Show password",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

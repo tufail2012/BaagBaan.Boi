@@ -178,7 +178,7 @@ fun UserBookingsSection(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.testTag("new_booking_main_button")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("New Booking", fontWeight = FontWeight.Bold, color = Color.White)
             }
@@ -192,7 +192,7 @@ fun UserBookingsSection(
             onValueChange = { viewModel.setSearchQuery(it) },
             placeholder = { Text("Search bookings by name, phone, variety...", fontSize = 13.sp) },
             leadingIcon = {
-                Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                ThemedIcon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
             },
             trailingIcon = {
                 Row(
@@ -201,7 +201,7 @@ fun UserBookingsSection(
                 ) {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.setSearchQuery("") }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                            ThemedIcon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
                         }
                     }
                     VoiceSearchIconButton(
@@ -234,7 +234,7 @@ fun UserBookingsSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.FilterList,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -312,7 +312,7 @@ fun UserBookingsSection(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.EventNote,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -337,7 +337,7 @@ fun UserBookingsSection(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                            ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("New Booking", fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -410,7 +410,7 @@ fun BookingCardItem(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = typeIcon,
                             contentDescription = null,
                             tint = typeColor,
@@ -427,7 +427,7 @@ fun BookingCardItem(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -445,7 +445,7 @@ fun BookingCardItem(
                         onClick = onDelete,
                         modifier = Modifier.size(28.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Delete Booking",
                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
@@ -459,7 +459,7 @@ fun BookingCardItem(
 
             // Farmer Name
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
@@ -496,7 +496,7 @@ fun BookingCardItem(
             if (booking.notes.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.Top) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,

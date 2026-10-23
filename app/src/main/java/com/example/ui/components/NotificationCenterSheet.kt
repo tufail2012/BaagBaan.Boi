@@ -210,7 +210,7 @@ fun NotificationCenterSheet(
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.NotificationsActive,
                             contentDescription = "Notifications",
                             tint = MaterialTheme.colorScheme.primary,
@@ -255,7 +255,7 @@ fun NotificationCenterSheet(
                     onClick = onDismiss,
                     modifier = Modifier.testTag("close_notification_center_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Clear,
                         contentDescription = "Close"
                     )
@@ -277,7 +277,7 @@ fun NotificationCenterSheet(
                         modifier = Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.NotificationsOff,
                             contentDescription = "No Permission",
                             tint = MaterialTheme.colorScheme.onErrorContainer,
@@ -329,7 +329,7 @@ fun NotificationCenterSheet(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("schedule_reminder_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.AddAlert,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -350,7 +350,7 @@ fun NotificationCenterSheet(
                             onClick = onMarkAllAsRead,
                             modifier = Modifier.testTag("mark_all_read_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.DoneAll,
                                 contentDescription = "Mark all as read",
                                 tint = MaterialTheme.colorScheme.primary,
@@ -364,7 +364,7 @@ fun NotificationCenterSheet(
                             onClick = onClearAll,
                             modifier = Modifier.testTag("clear_all_notifications_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.DeleteSweep,
                                 contentDescription = "Clear all notifications",
                                 tint = MaterialTheme.colorScheme.error,
@@ -437,7 +437,7 @@ fun NotificationCenterSheet(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
@@ -537,7 +537,7 @@ fun NotificationCenterSheet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Alarm,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -602,7 +602,7 @@ fun NotificationCenterSheet(
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CalendarToday,
                                 contentDescription = "Select Date",
                                 tint = MaterialTheme.colorScheme.primary,
@@ -627,7 +627,7 @@ fun NotificationCenterSheet(
                             shape = RoundedCornerShape(12.dp),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.AccessTime,
                                 contentDescription = "Select Time",
                                 tint = MaterialTheme.colorScheme.primary,
@@ -688,7 +688,7 @@ fun NotificationCenterSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -841,7 +841,7 @@ fun NotificationItemRow(
                         .background(iconBgColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
@@ -902,7 +902,7 @@ fun NotificationItemRow(
                         .size(32.dp)
                         .testTag("delete_notification_button_${notification.id}")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete notification",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),

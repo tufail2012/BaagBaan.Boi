@@ -125,7 +125,7 @@ fun BusinessInfoDialog(
                                     .size(36.dp)
                                     .testTag("business_info_back_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
                                     tint = MaterialTheme.colorScheme.primary
@@ -200,7 +200,7 @@ fun BusinessInfoDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ErrorOutline,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer
@@ -230,7 +230,7 @@ fun BusinessInfoDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
                                     tint = Color(0xFF2E7D32)
@@ -267,7 +267,7 @@ fun BusinessInfoDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Storefront,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
@@ -365,7 +365,7 @@ fun BusinessInfoDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Phone,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary
@@ -384,7 +384,7 @@ fun BusinessInfoDialog(
                                     },
                                     modifier = Modifier.testTag("business_info_add_contact_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
@@ -435,7 +435,7 @@ fun BusinessInfoDialog(
                                             },
                                             modifier = Modifier.testTag("business_info_remove_phone_$index")
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.DeleteOutline,
                                                 contentDescription = "Remove Phone",
                                                 tint = MaterialTheme.colorScheme.error
@@ -469,7 +469,7 @@ fun BusinessInfoDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.AccountBalance,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
@@ -549,7 +549,7 @@ fun BusinessInfoDialog(
                                 .height(50.dp)
                                 .testTag("business_info_reset_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.RestartAlt,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
@@ -624,7 +624,7 @@ fun BusinessInfoDialog(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                             } else {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Save,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp)

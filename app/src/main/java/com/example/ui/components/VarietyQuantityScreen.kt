@@ -100,7 +100,7 @@ fun VarietyQuantityScreen(
                     onClick = onBack,
                     modifier = Modifier.testTag("variety_quantity_back_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = primaryTextColor

@@ -953,15 +953,16 @@ fun AgriDashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    val assessmentTileColor = iconTileColor(Icons.Default.Assessment, dashboardAccent, isDark)
                                     Box(
                                         modifier = Modifier
                                             .size(30.dp)
                                             .clip(CircleShape)
-                                            .background(dashboardAccent.copy(alpha = 0.16f))
-                                            .border(1.dp, dashboardAccent.copy(alpha = 0.35f), CircleShape),
+                                            .background(assessmentTileColor.copy(alpha = 0.16f))
+                                            .border(1.dp, assessmentTileColor.copy(alpha = 0.35f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Assessment,
                                             contentDescription = null,
                                             tint = dashboardAccent,
@@ -1274,7 +1275,7 @@ fun AgriDashboardScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Dashboard,
                             contentDescription = "Dashboard Icon",
                             tint = dashboardAccent,
@@ -1380,7 +1381,7 @@ private fun AccountBannerCard(
                                 .background(accentColor.copy(alpha = 0.25f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.AccountCircle,
                                 contentDescription = "User Account",
                                 tint = accentColor,
@@ -1518,15 +1519,16 @@ private fun FinancialBreakdownCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val walletTileColor = iconTileColor(Icons.Default.AccountBalanceWallet, accentColor, isDark)
                     Box(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.16f))
-                            .border(1.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                            .background(walletTileColor.copy(alpha = 0.16f))
+                            .border(1.dp, walletTileColor.copy(alpha = 0.35f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.AccountBalanceWallet,
                             contentDescription = null,
                             tint = accentColor,
@@ -1811,7 +1813,7 @@ private fun FinancialMetricBox(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
@@ -1932,7 +1934,7 @@ private fun StatusBadgeCount(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+            ThemedIcon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
         }
         Column {
             Text(
@@ -2019,7 +2021,7 @@ private fun CategorySummaryCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = icon,
                         contentDescription = title,
                         tint = badgeColor,
@@ -2193,15 +2195,16 @@ private fun VarietyDistributionCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    val starTileColor = iconTileColor(Icons.Default.Star, accentColor, isDark)
                     Box(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.16f))
-                            .border(1.dp, accentColor.copy(alpha = 0.35f), CircleShape),
+                            .background(starTileColor.copy(alpha = 0.16f))
+                            .border(1.dp, starTileColor.copy(alpha = 0.35f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Star,
                             contentDescription = null,
                             tint = accentColor,
@@ -2670,15 +2673,16 @@ fun FrostedLiquidModulesSectionHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                val hubTileColor = iconTileColor(Icons.Default.Hub, accentColor, isDark)
                 Box(
                     modifier = Modifier
                         .size(30.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = if (isDark) 0.24f else 0.16f))
-                        .border(1.dp, accentColor.copy(alpha = if (isDark) 0.50f else 0.35f), CircleShape),
+                        .background(hubTileColor.copy(alpha = if (isDark) 0.24f else 0.16f))
+                        .border(1.dp, hubTileColor.copy(alpha = if (isDark) 0.50f else 0.35f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Hub,
                         contentDescription = null,
                         tint = accentColor,
@@ -2888,7 +2892,7 @@ fun FrostedLiquidModuleTile(
                         .border(1.dp, data.iconTint.copy(alpha = if (isDark) 0.45f else 0.30f), RoundedCornerShape(11.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = data.icon,
                         contentDescription = data.title,
                         tint = data.iconTint,
@@ -2896,7 +2900,7 @@ fun FrostedLiquidModuleTile(
                     )
                 }
 
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint = if (isDark) Color.White.copy(alpha = 0.45f) else Color.Black.copy(alpha = 0.35f),
@@ -2992,7 +2996,7 @@ fun FrostedLiquidInventoryCard(
                             .border(1.dp, leafGreen.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Inventory2,
                             contentDescription = "Inventory Management",
                             tint = leafGreen,
@@ -3132,7 +3136,7 @@ fun FrostedLiquidInventoryCard(
                             accentColor = leafGreen
                         )
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ArrowForward,
                         contentDescription = null,
                         tint = leafGreen,
@@ -3208,7 +3212,7 @@ fun FrostedLiquidContractDirectorCard(
                             .border(1.dp, skyBlue.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Contacts,
                             contentDescription = "Contract Director",
                             tint = skyBlue,
@@ -3340,7 +3344,7 @@ fun FrostedLiquidContractDirectorCard(
                             accentColor = skyBlue
                         )
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ArrowForward,
                         contentDescription = null,
                         tint = skyBlue,
@@ -3428,7 +3432,7 @@ fun FrostedLiquidAttendanceCard(
                             .border(1.dp, emeraldLeaf.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.HowToReg,
                             contentDescription = "Attendance",
                             tint = emeraldLeaf,
@@ -3560,7 +3564,7 @@ fun FrostedLiquidAttendanceCard(
                             accentColor = emeraldLeaf
                         )
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ArrowForward,
                         contentDescription = null,
                         tint = emeraldLeaf,
@@ -3634,7 +3638,7 @@ fun FrostedLiquidPaymentReminderCard(
                             .border(1.dp, warningAmber.copy(alpha = if (isDark) 0.60f else 0.40f), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.NotificationsActive,
                             contentDescription = "Payment Reminder",
                             tint = warningAmber,
@@ -3774,7 +3778,7 @@ fun FrostedLiquidPaymentReminderCard(
                             accentColor = warningAmber
                         )
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ArrowForward,
                         contentDescription = null,
                         tint = warningAmber,

@@ -1,5 +1,7 @@
 package com.example.chat.ui.bubbles
 
+
+import com.example.ui.components.ThemedIcon
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -133,7 +135,7 @@ fun ImageVideoMessageBubble(
                             .background(Color.Black.copy(alpha = 0.55f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Play video",
                             tint = Color.White,
@@ -170,7 +172,7 @@ fun ImageVideoMessageBubble(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Retry upload",
                             tint = Color(0xFFEF4444),
@@ -263,14 +265,14 @@ fun DocumentMessageBubble(
                         strokeWidth = 2.dp
                     )
                 } else if (onRetryUpload != null && message.status == "failed") {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Retry",
                         tint = Color(0xFFEF4444),
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Description,
                         contentDescription = "Document",
                         tint = Color(0xFF3B82F6),
@@ -298,7 +300,7 @@ fun DocumentMessageBubble(
                 )
             }
 
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.OpenInNew,
                 contentDescription = "Open file",
                 tint = if (isOwn) Color.White.copy(alpha = 0.70f) else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
@@ -376,14 +378,14 @@ fun VoiceNoteMessageBubble(
                         strokeWidth = 2.dp
                     )
                 } else if (onRetryUpload != null && message.status == "failed") {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Retry",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 } else {
-                    Icon(
+                    ThemedIcon(
                         imageVector = if (isThisPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isThisPlaying) "Pause" else "Play",
                         tint = Color.White,
@@ -440,7 +442,7 @@ fun VoiceNoteMessageBubble(
                         color = if (isOwn) Color.White.copy(alpha = 0.75f) else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
                     )
 
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Mic,
                         contentDescription = null,
                         tint = accentColor,
@@ -496,7 +498,7 @@ fun LocationMessageBubble(
             ) {
                 // Map grid graphics
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = "Location pin",
                         tint = Color(0xFFEF4444),
@@ -519,7 +521,7 @@ fun LocationMessageBubble(
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Map,
                     contentDescription = null,
                     tint = accentColor,
@@ -619,7 +621,7 @@ fun ContactMessageBubble(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.PersonAdd,
                     contentDescription = "Save Contact",
                     tint = accentColor,
@@ -681,7 +683,7 @@ fun FullScreenMediaViewer(
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.5f))
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = Color.White
@@ -702,7 +704,7 @@ fun FullScreenMediaViewer(
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.5f))
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.OpenInNew,
                         contentDescription = "Open in player",
                         tint = Color.White

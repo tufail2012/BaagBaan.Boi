@@ -1,5 +1,7 @@
 package com.example.ui.components.security
 
+
+import com.example.ui.components.ThemedIcon
 import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -150,7 +152,7 @@ fun AppLockSetupSheet(
                         },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurface
@@ -171,7 +173,7 @@ fun AppLockSetupSheet(
                     onClick = onDismiss,
                     modifier = Modifier.size(36.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -454,7 +456,7 @@ fun AppLockSetupSheet(
                                 trailingIcon = {
                                     val image = if (passVisible1) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                     IconButton(onClick = { passVisible1 = !passVisible1 }) {
-                                        Icon(image, contentDescription = null)
+                                        ThemedIcon(image, contentDescription = null)
                                     }
                                 },
                                 visualTransformation = if (passVisible1) VisualTransformation.None else PasswordVisualTransformation(),
@@ -517,7 +519,7 @@ fun AppLockSetupSheet(
                                 trailingIcon = {
                                     val image = if (passVisible2) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                                     IconButton(onClick = { passVisible2 = !passVisible2 }) {
-                                        Icon(image, contentDescription = null)
+                                        ThemedIcon(image, contentDescription = null)
                                     }
                                 },
                                 visualTransformation = if (passVisible2) VisualTransformation.None else PasswordVisualTransformation(),
@@ -616,7 +618,7 @@ private fun MethodOptionCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = iconTint,
@@ -640,7 +642,7 @@ private fun MethodOptionCard(
             }
 
             if (enabled) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,

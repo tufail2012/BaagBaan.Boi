@@ -229,7 +229,7 @@ fun InventoryManagementDialog(
                                     .size(36.dp)
                                     .testTag("close_inventory_dialog_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
                                     tint = inventoryAccent
@@ -243,7 +243,7 @@ fun InventoryManagementDialog(
                                     .background(inventoryAccent.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Inventory2,
                                     contentDescription = "Inventory Icon",
                                     tint = inventoryAccent,
@@ -276,7 +276,7 @@ fun InventoryManagementDialog(
                                 .size(36.dp)
                                 .testTag("close_inventory_header_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -337,7 +337,7 @@ fun InventoryManagementDialog(
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Layers,
                                                 contentDescription = null,
                                                 tint = Color(0xFF3B82F6),
@@ -379,7 +379,7 @@ fun InventoryManagementDialog(
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Warning,
                                                 contentDescription = null,
                                                 tint = if (isDataReady && lowStockCount > 0) Color(0xFFD97706) else textSecondary,
@@ -421,7 +421,7 @@ fun InventoryManagementDialog(
                                         verticalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.ShoppingCart,
                                                 contentDescription = null,
                                                 tint = Color(0xFF10B981),
@@ -460,7 +460,7 @@ fun InventoryManagementDialog(
                                     )
                                 },
                                 leadingIcon = {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Search,
                                         contentDescription = "Search",
                                         tint = textSecondary,
@@ -474,7 +474,7 @@ fun InventoryManagementDialog(
                                     ) {
                                         if (searchQuery.isNotEmpty()) {
                                             IconButton(onClick = { searchQuery = "" }) {
-                                                Icon(
+                                                ThemedIcon(
                                                     imageVector = Icons.Default.Clear,
                                                     contentDescription = "Clear search",
                                                     tint = textSecondary,
@@ -530,7 +530,7 @@ fun InventoryManagementDialog(
                                     border = null,
                                     contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Sync,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp),
@@ -561,7 +561,7 @@ fun InventoryManagementDialog(
                                     ),
                                     contentPadding = PaddingValues(horizontal = 8.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp)
@@ -630,7 +630,7 @@ fun InventoryManagementDialog(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Inventory,
                                             contentDescription = null,
                                             modifier = Modifier.size(56.dp),
@@ -743,7 +743,7 @@ fun InventoryManagementDialog(
                 if (!isRecalculating) showRecalculateConfirmDialog = false
             },
             icon = {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Sync,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
@@ -1035,7 +1035,7 @@ fun InventoryItemCard(
                         onClick = onEdit,
                         modifier = Modifier.testTag("edit_inventory_button_${item.id}")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Item",
                             tint = inventoryAccent,
@@ -1047,7 +1047,7 @@ fun InventoryItemCard(
                         onClick = onDelete,
                         modifier = Modifier.testTag("delete_inventory_button_${item.id}")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Item",
                             tint = Color(0xFFEF4444),

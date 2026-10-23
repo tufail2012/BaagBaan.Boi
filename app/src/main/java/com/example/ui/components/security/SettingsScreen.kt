@@ -2,7 +2,10 @@ package com.example.ui.components.security
 
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import com.example.ui.components.LocalSolidIconTileState
+import com.example.ui.components.ThemedIcon
 import com.example.ui.components.TopHeaderScrollScrim
+import com.example.ui.components.iconTileColor
 import com.example.ui.components.rememberScrollUnderHeaderTopPadding
 import com.example.ui.animation.iosPressable
 import androidx.compose.foundation.layout.PaddingValues
@@ -254,7 +257,7 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = { showLockAfterSheet = false }) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = if (isDarkDialog) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
@@ -299,7 +302,7 @@ fun SettingsScreen(
                                 } else MaterialTheme.colorScheme.onSurface
                             )
                             if (isSelected) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
                                     tint = if (isDarkDialog) Color.White else MaterialTheme.colorScheme.primary,
@@ -757,24 +760,30 @@ fun SettingsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
+                                    val lockIcon = if (isAppLockEnabled) Icons.Default.Lock else Icons.Default.LockOpen
+                                    val lockFallbackBg = if (isAppLockEnabled) {
+                                        val base = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                        else MaterialTheme.colorScheme.primary
+                                        iconTileColor(lockIcon, base, isDark)
+                                    } else MaterialTheme.colorScheme.surfaceVariant
                                     Box(
                                         modifier = Modifier
                                             .size(42.dp)
                                             .clip(CircleShape)
-                                            .background(
-                                                if (isAppLockEnabled) {
-                                                    if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                                                    else MaterialTheme.colorScheme.primary
-                                                } else MaterialTheme.colorScheme.surfaceVariant
-                                            ),
+                                            .background(lockFallbackBg),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            imageVector = if (isAppLockEnabled) Icons.Default.Lock else Icons.Default.LockOpen,
-                                            contentDescription = null,
-                                            tint = masterLockIconTint,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                        val lockSolidState = if (isAppLockEnabled && !isDark) {
+                                            remember { mutableStateOf<androidx.compose.ui.graphics.vector.ImageVector?>(lockIcon) }
+                                        } else null
+                                        CompositionLocalProvider(LocalSolidIconTileState provides lockSolidState) {
+                                            ThemedIcon(
+                                                imageVector = lockIcon,
+                                                contentDescription = null,
+                                                tint = masterLockIconTint,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
                                     }
 
                                     Column {
@@ -942,7 +951,7 @@ fun SettingsScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.LockOpen,
                                                 contentDescription = null,
                                                 modifier = Modifier.size(18.dp)
@@ -1064,7 +1073,7 @@ fun SettingsScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = null,
                             tint = if (isGlassSupported()) glassContentColor() else MaterialTheme.colorScheme.onSurface,
@@ -1100,7 +1109,7 @@ fun SettingsScreen(
                         )
                         .testTag("settings_back_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = if (isGlassSupported()) glassContentColor() else MaterialTheme.colorScheme.onSurface
@@ -1133,8 +1142,9 @@ private fun SettingsNavigationRow(
         if (isDark) MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
         else MaterialTheme.colorScheme.error
     } else {
-        if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        val fallbackBg = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
         else MaterialTheme.colorScheme.primary
+        iconTileColor(icon, fallbackBg, isDark)
     }
     val titleColor = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
 
@@ -1165,12 +1175,17 @@ private fun SettingsNavigationRow(
                         .background(containerBg),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    val solidTileState = if (!isDark) {
+                        remember { mutableStateOf<ImageVector?>(icon) }
+                    } else null
+                    CompositionLocalProvider(LocalSolidIconTileState provides solidTileState) {
+                        ThemedIcon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
                 Column {
@@ -1188,7 +1203,7 @@ private fun SettingsNavigationRow(
                 }
             }
 
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint = if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1218,8 +1233,9 @@ private fun SettingsToggleRow(
         if (isDark) Color.White.copy(alpha = 0.55f) else MaterialTheme.colorScheme.onSurfaceVariant
     }
     val boxBg = if (checked) {
-        if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+        val fallbackBg = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
         else MaterialTheme.colorScheme.primary
+        iconTileColor(icon, fallbackBg, isDark)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
@@ -1243,12 +1259,17 @@ private fun SettingsToggleRow(
                     .background(boxBg),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(18.dp)
-                )
+                val solidTileState = if (checked && !isDark) {
+                    remember { mutableStateOf<ImageVector?>(icon) }
+                } else null
+                CompositionLocalProvider(LocalSolidIconTileState provides solidTileState) {
+                    ThemedIcon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
 
             Column(modifier = Modifier.padding(end = 8.dp)) {
@@ -1306,7 +1327,7 @@ fun CustomBackgroundPickerRow(
             if (t != null) {
                 Image(bitmap = t, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
             } else {
-                Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                ThemedIcon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -1324,7 +1345,7 @@ fun CustomBackgroundPickerRow(
         TextButton(onClick = onPick, modifier = Modifier.testTag(chooseTag)) { Text("Choose") }
         if (hasImage) {
             IconButton(onClick = onRemove, modifier = Modifier.testTag("${testTagPrefix}_remove")) {
-                Icon(Icons.Default.Close, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
+                ThemedIcon(Icons.Default.Close, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

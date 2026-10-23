@@ -1,5 +1,7 @@
 package com.example.ui.components.attendance
 
+
+import com.example.ui.components.ThemedIcon
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -146,7 +148,7 @@ fun WorkerDetailCalendarScreen(
                             .size(36.dp)
                             .testTag("worker_detail_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.primary
@@ -237,7 +239,7 @@ fun WorkerDetailCalendarScreen(
                                 viewModel.setSelectedMonthYear(getPreviousMonth(selectedMonthYear))
                             }
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronLeft,
                                 contentDescription = "Previous Month",
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -259,7 +261,7 @@ fun WorkerDetailCalendarScreen(
                                 viewModel.setSelectedMonthYear(getNextMonth(selectedMonthYear))
                             }
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Next Month",
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -305,7 +307,7 @@ fun WorkerDetailCalendarScreen(
                                         color = Color(0xFF1B5E20)
                                     )
                                     if (selectedMarkMode == AttendanceStatus.PRESENT) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = "Selected",
                                             tint = Color(0xFF2E7D32),
@@ -353,7 +355,7 @@ fun WorkerDetailCalendarScreen(
                                         color = MaterialTheme.colorScheme.error
                                     )
                                     if (selectedMarkMode == AttendanceStatus.ABSENT) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = "Selected",
                                             tint = MaterialTheme.colorScheme.error,
@@ -704,7 +706,7 @@ fun WorkerPayrollSummarySection(
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.AccountBalanceWallet,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -755,7 +757,7 @@ fun WorkerPayrollSummarySection(
                                 .background(MaterialTheme.colorScheme.primary),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ReceiptLong,
                                 contentDescription = "Digital Receipt",
                                 tint = MaterialTheme.colorScheme.onPrimary,
@@ -805,7 +807,7 @@ fun WorkerPayrollSummarySection(
                                 .background(MaterialTheme.colorScheme.secondary),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Wage Rate",
                                 tint = MaterialTheme.colorScheme.onSecondary,
@@ -973,7 +975,7 @@ fun WorkerPayrollSummarySection(
                                     onClick = { showDatePicker() },
                                     modifier = Modifier.size(28.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.DateRange,
                                         contentDescription = "Select Date",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -1063,7 +1065,7 @@ fun WorkerPayrollSummarySection(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.DateRange,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
@@ -1093,7 +1095,7 @@ fun WorkerPayrollSummarySection(
                                                     .size(24.dp)
                                                     .testTag("delete_advance_${payment.paymentId}")
                                             ) {
-                                                Icon(
+                                                ThemedIcon(
                                                     imageVector = Icons.Default.Delete,
                                                     contentDescription = "Delete Advance",
                                                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),

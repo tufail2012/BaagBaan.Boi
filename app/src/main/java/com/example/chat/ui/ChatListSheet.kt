@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -165,7 +167,7 @@ internal fun ChatListSheet(
                         .size(40.dp)
                         .testTag("chat_list_sheet_close_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = contentColor,

@@ -277,7 +277,7 @@ fun BackupRestoreDialog(
         AlertDialog(
             onDismissRequest = { showRestoreConfirmDialog = false },
             icon = {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error,
@@ -327,7 +327,7 @@ fun BackupRestoreDialog(
                         .background(Color(0xFF2E7D32).copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = Color(0xFF2E7D32),
@@ -420,7 +420,7 @@ fun BackupRestoreDialog(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CloudSync,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -445,7 +445,7 @@ fun BackupRestoreDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                        ThemedIcon(imageVector = Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
@@ -473,7 +473,7 @@ fun BackupRestoreDialog(
                         onClick = { selectedTab = 0 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CloudSync,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
@@ -494,7 +494,7 @@ fun BackupRestoreDialog(
                         onClick = { selectedTab = 1 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CloudUpload,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
@@ -515,7 +515,7 @@ fun BackupRestoreDialog(
                         onClick = { selectedTab = 2 },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp),
@@ -554,7 +554,7 @@ fun BackupRestoreDialog(
                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.CloudSync,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
@@ -689,7 +689,7 @@ fun BackupRestoreDialog(
                                         modifier = Modifier.weight(1f),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Sync,
                                             contentDescription = null,
                                             tint = if (isGoogleDriveSyncEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -767,7 +767,7 @@ fun BackupRestoreDialog(
                                     .height(52.dp)
                                     .testTag("sync_google_drive_now_button")
                             ) {
-                                Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
+                                ThemedIcon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Backup Now to Google Drive", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                             }
@@ -789,7 +789,7 @@ fun BackupRestoreDialog(
                                     onClick = { fetchDriveBackups() },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Sync,
                                         contentDescription = "Refresh Backups",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -830,7 +830,7 @@ fun BackupRestoreDialog(
                                             .padding(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.FolderZip,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -871,7 +871,7 @@ fun BackupRestoreDialog(
                                                     modifier = Modifier.weight(1f),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.CloudDownload,
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
@@ -913,7 +913,7 @@ fun BackupRestoreDialog(
                                                     shape = RoundedCornerShape(8.dp),
                                                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                                 ) {
-                                                    Icon(imageVector = Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                                                    ThemedIcon(imageVector = Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text("Restore Data", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                                 }
@@ -938,7 +938,7 @@ fun BackupRestoreDialog(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Storage,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -1031,7 +1031,7 @@ fun BackupRestoreDialog(
                             .height(52.dp)
                             .testTag("export_backup_button")
                     ) {
-                        Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Export to Local Storage (.json)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                     }
@@ -1051,7 +1051,7 @@ fun BackupRestoreDialog(
                                     .padding(16.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
                                         tint = Color(0xFF2E7D32),
@@ -1082,7 +1082,7 @@ fun BackupRestoreDialog(
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                        ThemedIcon(imageVector = Icons.Default.FileDownload, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Save to Device", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
@@ -1109,7 +1109,7 @@ fun BackupRestoreDialog(
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        ThemedIcon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Share File", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
@@ -1130,7 +1130,7 @@ fun BackupRestoreDialog(
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    ThemedIcon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Copy Raw JSON Code", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
@@ -1151,7 +1151,7 @@ fun BackupRestoreDialog(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Warning,
                                 contentDescription = null,
                                 tint = Color(0xFFE65100),
@@ -1189,7 +1189,7 @@ fun BackupRestoreDialog(
                             .height(52.dp)
                             .testTag("pick_restore_file_button")
                     ) {
-                        Icon(imageVector = Icons.Default.FileUpload, contentDescription = null, tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.FileUpload, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Import JSON File from Local Storage", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                     }
@@ -1255,7 +1255,7 @@ fun BackupRestoreDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(imageVector = Icons.Default.Code, contentDescription = null, tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.Code, contentDescription = null, tint = Color.White)
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Restore From Pasted JSON", fontWeight = FontWeight.Bold, color = Color.White)
                     }

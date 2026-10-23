@@ -361,7 +361,7 @@ fun PaymentRemindersDialog(
                                 .size(36.dp)
                                 .testTag("payment_reminders_back_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
                                 tint = paymentAccent
@@ -375,7 +375,7 @@ fun PaymentRemindersDialog(
                                 .background(paymentAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Payment,
                                 contentDescription = "Payment Icon",
                                 tint = paymentAccent,
@@ -449,7 +449,7 @@ fun PaymentRemindersDialog(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Payment,
                                     contentDescription = null,
                                     tint = if (isDark) Color(0xFFEF5350) else Color(0xFFD32F2F),
@@ -497,7 +497,7 @@ fun PaymentRemindersDialog(
                             )
                         },
                         leadingIcon = {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search",
                                 tint = MaterialTheme.colorScheme.primary
@@ -510,7 +510,7 @@ fun PaymentRemindersDialog(
                             ) {
                                 if (searchQuery.isNotEmpty()) {
                                     IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Clear,
                                             contentDescription = "Clear search",
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -639,7 +639,7 @@ fun PaymentRemindersDialog(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = if (serviceTypeDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -740,7 +740,7 @@ fun PaymentRemindersDialog(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = if (paidBandDropdownExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -816,7 +816,7 @@ fun PaymentRemindersDialog(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.HourglassTop,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
@@ -999,7 +999,7 @@ fun PendingPaymentRow(
                             .clickable { onCall() }
                             .padding(horizontal = 8.dp, vertical = 5.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Phone,
                             contentDescription = "Call",
                             tint = MaterialTheme.colorScheme.primary,
@@ -1041,7 +1041,7 @@ fun PendingPaymentRow(
                         .height(38.dp)
                         .testTag("receipt_pdf_button_${item.serialNumber}")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ReceiptLong,
                         contentDescription = "PDF Receipt",
                         tint = MaterialTheme.colorScheme.primary,
@@ -1080,7 +1080,7 @@ fun PendingPaymentRow(
                             .height(38.dp)
                             .testTag("send_whatsapp_reminder_${item.serialNumber}")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Chat,
                             contentDescription = null,
                             tint = Color.White,

@@ -23,16 +23,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Contrast
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Park
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -41,7 +50,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +72,7 @@ import com.example.ui.AppThemeMode
 import com.example.ui.components.glassCardBackground
 import com.example.ui.components.security.CustomBackgroundPickerRow
 import com.example.ui.theme.AppPalette
+import com.example.ui.theme.IconPresetSettings
 import com.example.ui.theme.PredefinedThemePalettes
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -234,7 +247,7 @@ fun ThemeColoursDialog(
                             .size(36.dp)
                             .testTag("theme_colours_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = currentAccentColor
@@ -245,10 +258,10 @@ fun ThemeColoursDialog(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                            .background(iconTileColor(Icons.Default.Palette, currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f), isDark)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = "Theme Icon",
                             tint = currentAccentColor,
@@ -288,7 +301,7 @@ fun ThemeColoursDialog(
                             .size(36.dp)
                             .testTag("theme_colours_close_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = if (isDark) Color.White.copy(alpha = 0.8f) else Color.Black.copy(alpha = 0.6f)
@@ -325,6 +338,90 @@ fun ThemeColoursContent(
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .padding(top = rememberScrollUnderHeaderTopPadding())
     ) {
+        val bgContext = LocalContext.current
+
+        // SECTION 0: Default icon colours Card
+        val iconPresetCardShape = RoundedCornerShape(20.dp)
+        Card(
+            shape = iconPresetCardShape,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(iconPresetCardShape)
+                .liquidGlassNav(shape = iconPresetCardShape, backdrop = backdrop)
+                .then(
+                    if (!isGlassSupported()) {
+                        Modifier.background(MaterialTheme.colorScheme.surface, iconPresetCardShape)
+                    } else Modifier
+                )
+                .glassEdge(iconPresetCardShape)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
+                    Text(
+                        text = "Default icon colours",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Each icon gets its own colour. Palette colours stay on buttons and headers.",
+                        fontSize = 12.sp,
+                        color = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
+                    )
+                    val previewIcons = remember {
+                        listOf(
+                            Icons.Default.Dashboard,
+                            Icons.Default.Inventory2,
+                            Icons.Default.EventAvailable,
+                            Icons.Default.Contacts,
+                            Icons.Default.ReceiptLong,
+                            Icons.Default.Park,
+                            Icons.Default.QrCodeScanner,
+                            Icons.AutoMirrored.Filled.Chat,
+                            Icons.Default.Settings
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        previewIcons.forEach { previewIcon ->
+                            PresetPreviewIcon(
+                                imageVector = previewIcon,
+                                contentDescription = null,
+                                isDark = isDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+                GlassRefractToggle(
+                    checked = IconPresetSettings.enabled,
+                    onCheckedChange = { IconPresetSettings.setEnabled(bgContext, it) },
+                    modifier = Modifier.testTag("icon_preset_switch"),
+                    description = "Default icon colours",
+                    activeColor = currentAccentColor,
+                    backdrop = null
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // SECTION 1: Theme Mode Selection Card
         val themeModeCardShape = RoundedCornerShape(20.dp)
         Card(
@@ -413,10 +510,10 @@ fun ThemeColoursContent(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(CircleShape)
-                            .background(currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f)),
+                            .background(iconTileColor(Icons.Default.Palette, currentAccentColor.copy(alpha = if (isDark) 0.25f else 0.15f), isDark)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Palette,
                             contentDescription = null,
                             tint = currentAccentColor,
@@ -606,24 +703,29 @@ fun ThemeColoursContent(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
+                        val blurTileFallback = if (isDark) currentAccentColor.copy(alpha = 0.35f) else currentAccentColor
+                        val blurTileBg = if (com.example.ui.theme.LiquidGlassPreference.enabled) {
+                            iconTileColor(Icons.Default.BlurOn, blurTileFallback, isDark)
+                        } else if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    if (com.example.ui.theme.LiquidGlassPreference.enabled) {
-                                        if (isDark) currentAccentColor.copy(alpha = 0.35f) else currentAccentColor
-                                    } else if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
-                                ),
+                                .background(blurTileBg),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.BlurOn,
-                                contentDescription = null,
-                                tint = if (com.example.ui.theme.LiquidGlassPreference.enabled) Color.White
-                                       else if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                            val blurSolidTileState = if (com.example.ui.theme.LiquidGlassPreference.enabled && !isDark) {
+                                remember { mutableStateOf<ImageVector?>(Icons.Default.BlurOn) }
+                            } else null
+                            CompositionLocalProvider(LocalSolidIconTileState provides blurSolidTileState) {
+                                ThemedIcon(
+                                    imageVector = Icons.Default.BlurOn,
+                                    contentDescription = null,
+                                    tint = if (com.example.ui.theme.LiquidGlassPreference.enabled) Color.White
+                                           else if (isDark) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                         Column {
                             Text(
@@ -674,7 +776,7 @@ fun ThemeColoursContent(
                         fontWeight = FontWeight.SemiBold,
                         color = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
                         tint = if (isDark) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -779,7 +881,7 @@ fun ThemeColoursContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = Color.White,
@@ -1113,7 +1215,7 @@ private fun LargeThemeCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = option.icon,
                     contentDescription = option.title,
                     tint = if (isSelected) {
@@ -1138,7 +1240,7 @@ private fun LargeThemeCard(
             }
 
             if (isSelected) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Selected",
                     tint = currentAccentColor,

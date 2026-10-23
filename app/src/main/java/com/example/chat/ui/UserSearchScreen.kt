@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -88,7 +90,7 @@ fun UserSearchScreen(
                 onClick = onBack,
                 modifier = Modifier.testTag("user_search_back_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -102,7 +104,7 @@ fun UserSearchScreen(
                     Text("Search by username...", color = if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8), fontSize = 14.sp)
                 },
                 leadingIcon = {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         tint = accentColor,
@@ -112,7 +114,7 @@ fun UserSearchScreen(
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear",
                                 tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -156,7 +158,7 @@ fun UserSearchScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
                         tint = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
@@ -286,7 +288,7 @@ private fun UserSearchResultRow(
                     .background(accentColor.copy(alpha = if (isDark) 0.22f else 0.14f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = "Message",
                     tint = accentColor,

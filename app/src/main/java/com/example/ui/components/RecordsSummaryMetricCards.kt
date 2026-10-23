@@ -248,15 +248,15 @@ private fun SummaryMetricCardItem(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(cardAccent.copy(alpha = if (isDark) 0.22f else 0.14f))
+                    .background(iconTileColor(icon, cardAccent.copy(alpha = if (isDark) 0.22f else 0.14f), isDark))
                     .border(
                         1.dp,
-                        cardAccent.copy(alpha = if (isDark) 0.45f else 0.28f),
+                        iconTileColor(icon, cardAccent.copy(alpha = if (isDark) 0.45f else 0.28f), isDark),
                         CircleShape
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = cardAccent,

@@ -347,7 +347,7 @@ fun QrScannerDialog(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = null,
                             tint = scanQrAccent,
@@ -410,7 +410,7 @@ fun QrScannerDialog(
                             .background(scanQrAccent.copy(alpha = 0.25f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.QrCodeScanner,
                             contentDescription = null,
                             tint = scanQrAccent,
@@ -458,7 +458,7 @@ fun QrScannerDialog(
                             )
                             .testTag("toggle_torch_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = if (isFlashOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
                             contentDescription = "Toggle Torch",
                             tint = if (isFlashOn) Color(0xFFFFD54F) else Color.White,
@@ -479,7 +479,7 @@ fun QrScannerDialog(
                             )
                             .testTag("close_qr_scanner_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close Scanner",
                             tint = Color.White,
@@ -516,7 +516,7 @@ fun QrScannerDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ErrorOutline,
                         contentDescription = null,
                         tint = Color(0xFFFCA5A5)

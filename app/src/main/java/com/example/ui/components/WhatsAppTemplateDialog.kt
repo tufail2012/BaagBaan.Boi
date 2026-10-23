@@ -269,7 +269,7 @@ fun WhatsAppTemplateDialog(
                             .background(WhatsAppGreen),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Chat,
                             contentDescription = "WhatsApp",
                             tint = Color.White,
@@ -294,7 +294,7 @@ fun WhatsAppTemplateDialog(
                 }
 
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                    ThemedIcon(imageVector = Icons.Default.Close, contentDescription = "Close")
                 }
             }
 
@@ -333,7 +333,7 @@ fun WhatsAppTemplateDialog(
                             .padding(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = if (selectedTemplateIndex == 0) WhatsAppDarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -370,7 +370,7 @@ fun WhatsAppTemplateDialog(
                             .padding(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Payment,
                             contentDescription = null,
                             tint = if (selectedTemplateIndex == 1) WhatsAppDarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -407,7 +407,7 @@ fun WhatsAppTemplateDialog(
                             .padding(10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Receipt,
                             contentDescription = null,
                             tint = if (selectedTemplateIndex == 2) WhatsAppDarkGreen else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -448,7 +448,7 @@ fun WhatsAppTemplateDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
                                     tint = WhatsAppDarkGreen,
@@ -510,7 +510,7 @@ fun WhatsAppTemplateDialog(
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.ZoomIn,
                                                 contentDescription = null,
                                                 tint = Color.White,
@@ -672,7 +672,7 @@ fun WhatsAppTemplateDialog(
                                     .height(48.dp)
                                     .testTag("send_whatsapp_receipt_image_button")
                             ) {
-                                Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                ThemedIcon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Send Receipt Document via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                             }
@@ -696,7 +696,7 @@ fun WhatsAppTemplateDialog(
                                         .height(44.dp)
                                         .testTag("print_receipt_action_button")
                                 ) {
-                                    Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    ThemedIcon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Print", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
                                 }
@@ -722,7 +722,7 @@ fun WhatsAppTemplateDialog(
                                         .height(44.dp)
                                         .testTag("share_receipt_file_button")
                                 ) {
-                                    Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    ThemedIcon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Share", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
@@ -741,7 +741,7 @@ fun WhatsAppTemplateDialog(
                                         .height(44.dp)
                                         .testTag("copy_receipt_text_button")
                                 ) {
-                                    Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    ThemedIcon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Copy", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 }
@@ -789,7 +789,7 @@ fun WhatsAppTemplateDialog(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                        ThemedIcon(imageVector = Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Copy", fontWeight = FontWeight.Bold)
                     }
@@ -811,7 +811,7 @@ fun WhatsAppTemplateDialog(
                             .weight(1.5f)
                             .testTag("send_whatsapp_button")
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        ThemedIcon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Send WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -846,7 +846,7 @@ fun WhatsAppTemplateDialog(
                             color = WhatsAppDarkGreen
                         )
                         IconButton(onClick = { showFullScreenReceipt = false }) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                            ThemedIcon(imageVector = Icons.Default.Close, contentDescription = "Close")
                         }
                     }
 
@@ -882,7 +882,7 @@ fun WhatsAppTemplateDialog(
                                 .testTag("print_receipt_fullscreen_button"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Print, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            ThemedIcon(imageVector = Icons.Default.Print, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1)
                         }
@@ -906,7 +906,7 @@ fun WhatsAppTemplateDialog(
                                 .testTag("send_whatsapp_receipt_fullscreen_button"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            ThemedIcon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1)
                         }

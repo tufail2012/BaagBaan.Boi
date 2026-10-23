@@ -50,9 +50,10 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.example.ui.components.ThemedIcon
+import com.example.ui.components.iconTileColor
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
@@ -133,7 +134,7 @@ fun ChatSettingsScreen(
             onDismissRequest = { showEditAboutDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = accentColor, modifier = Modifier.size(22.dp))
+                    ThemedIcon(Icons.Default.Info, contentDescription = null, tint = accentColor, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("About", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -475,7 +476,7 @@ fun ChatSettingsScreen(
             },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Edit, contentDescription = null, tint = accentColor, modifier = Modifier.size(22.dp))
+                    ThemedIcon(Icons.Default.Edit, contentDescription = null, tint = accentColor, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Change Username", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -502,7 +503,7 @@ fun ChatSettingsScreen(
                         },
                         trailingIcon = {
                             if (cleanedNewUsername.isNotEmpty()) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = if (isValidNew) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                                     contentDescription = null,
                                     tint = if (isValidNew) Color(0xFF22C55E) else Color(0xFFEF4444),
@@ -691,14 +692,15 @@ fun ChatSettingsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
+                        val doneAllTileColor = iconTileColor(Icons.Default.DoneAll, contentColor, isDark)
                         Box(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
-                                .background(contentColor.copy(alpha = 0.12f)),
+                                .background(doneAllTileColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.DoneAll,
                                 contentDescription = null,
                                 tint = contentColor,
@@ -766,7 +768,7 @@ fun ChatSettingsScreen(
                 onClick = onBackToApp,
                 modifier = Modifier.testTag("chat_settings_back_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -860,7 +862,7 @@ fun ChatSettingsScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = accentColor),
                     modifier = Modifier.testTag("change_username_button")
                 ) {
-                    Icon(Icons.Default.AlternateEmail, contentDescription = null, modifier = Modifier.size(16.dp))
+                    ThemedIcon(Icons.Default.AlternateEmail, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Change Username")
                 }
@@ -881,7 +883,7 @@ fun ChatSettingsScreen(
                         .padding(horizontal = 8.dp, vertical = 8.dp)
                         .testTag("profile_about_row")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
                         tint = accentColor,
@@ -909,7 +911,7 @@ fun ChatSettingsScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit About",
                         tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -937,14 +939,15 @@ fun ChatSettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
+                val notifTileColor = iconTileColor(Icons.Default.Notifications, accentColor, isDark)
                 Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.15f)),
+                        .background(notifTileColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = null,
                         tint = accentColor,
@@ -1000,14 +1003,15 @@ fun ChatSettingsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
+                val lockTileColor = iconTileColor(Icons.Default.Lock, contentColor, isDark)
                 Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(contentColor.copy(alpha = 0.12f)),
+                        .background(lockTileColor.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
                         tint = contentColor,
@@ -1032,7 +1036,7 @@ fun ChatSettingsScreen(
                     )
                 }
 
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = "Open Privacy",
                     tint = contentColor.copy(alpha = 0.65f),
@@ -1076,7 +1080,7 @@ fun ChatSettingsScreen(
                         .background(Color(0xFF22C55E).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Security,
                         contentDescription = null,
                         tint = Color(0xFF22C55E),
@@ -1137,14 +1141,15 @@ private fun PrivacySelectionRowCard(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
+            val rowTileColor = iconTileColor(icon, contentColor, isDark)
             Box(
                 modifier = Modifier
                     .size(38.dp)
                     .clip(CircleShape)
-                    .background(contentColor.copy(alpha = 0.12f)),
+                    .background(rowTileColor.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = contentColor,
@@ -1173,7 +1178,7 @@ private fun PrivacySelectionRowCard(
 
             Spacer(modifier = Modifier.width(4.dp))
 
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = contentColor.copy(alpha = 0.55f),
@@ -1266,7 +1271,7 @@ private fun BlockedContactsCard(
                         .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Block,
                         contentDescription = null,
                         tint = Color(0xFFEF4444),
@@ -1406,7 +1411,7 @@ internal fun PrivacyTopHeaderOverlay(
                 .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
                 .testTag("privacy_back_button")
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
                 tint = contentColor,

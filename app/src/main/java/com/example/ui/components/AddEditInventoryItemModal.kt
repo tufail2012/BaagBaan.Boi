@@ -97,7 +97,7 @@ fun AddEditInventoryItemModal(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Inventory2,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
@@ -116,7 +116,7 @@ fun AddEditInventoryItemModal(
                         onClick = onDismissRequest,
                         modifier = Modifier.testTag("close_add_inventory_modal")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = textSecondary
@@ -424,7 +424,7 @@ fun AddEditInventoryItemModal(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         } else {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Save,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)

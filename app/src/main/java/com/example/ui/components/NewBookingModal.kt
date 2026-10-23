@@ -168,7 +168,7 @@ fun NewBookingModal(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.PlaylistAddCheck,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -192,7 +192,7 @@ fun NewBookingModal(
                             .size(32.dp)
                             .testTag("close_new_booking_modal")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -228,7 +228,7 @@ fun NewBookingModal(
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ArrowDropDown,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
@@ -282,7 +282,7 @@ fun NewBookingModal(
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ArrowDropDown,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
@@ -336,7 +336,7 @@ fun NewBookingModal(
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ArrowDropDown,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
@@ -399,7 +399,7 @@ fun NewBookingModal(
                         }
                     },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     singleLine = true,
                     modifier = Modifier
@@ -437,7 +437,7 @@ fun NewBookingModal(
                     textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                     label = { Text("Booking Date (YYYY-MM-DD) *") },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     singleLine = true,
                     modifier = Modifier
@@ -469,7 +469,7 @@ fun NewBookingModal(
                             },
                             modifier = Modifier.testTag("booking_notes_voice_input_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Mic,
                                 contentDescription = "Voice Input",
                                 tint = MaterialTheme.colorScheme.primary

@@ -192,7 +192,7 @@ fun GlobalSearchResultsScreen(
                         onClick = onBack,
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.primary
@@ -214,7 +214,7 @@ fun GlobalSearchResultsScreen(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         singleLine = true,
                         leadingIcon = {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -228,7 +228,7 @@ fun GlobalSearchResultsScreen(
                             ) {
                                 if (searchQuery.isNotEmpty()) {
                                     IconButton(onClick = { viewModel.setSearchQuery("") }, modifier = Modifier.size(32.dp)) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Clear,
                                             contentDescription = "Clear search",
                                             tint = if (isDark) Color.White else Color.DarkGray,
@@ -337,7 +337,7 @@ fun GlobalSearchResultsScreen(
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDark) Color.White else Color(0xFF0F172A)
                                     )
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.ArrowDropDown,
                                         contentDescription = "Select Category",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -398,7 +398,7 @@ fun GlobalSearchResultsScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
@@ -612,7 +612,7 @@ private fun SwipeableSearchResultItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isStartToEnd) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Send WhatsApp",
                                 tint = Color.White,
@@ -631,7 +631,7 @@ private fun SwipeableSearchResultItem(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Delete",
                                 tint = Color.White,
@@ -825,7 +825,7 @@ private fun GlobalSearchResultCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = serviceBadgeIcon,
                             contentDescription = null,
                             tint = serviceBadgeText,
@@ -1018,7 +1018,7 @@ private fun GlobalSearchResultCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CalendarToday,
                                     contentDescription = null,
                                     tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -1062,7 +1062,7 @@ private fun GlobalSearchResultCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Chat,
                                 contentDescription = "WhatsApp",
                                 tint = if (isDark) Color(0xFF86EFAC) else Color(0xFF15803D),
@@ -1093,7 +1093,7 @@ private fun GlobalSearchResultCard(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                                 contentDescription = "View Details",
                                 tint = MaterialTheme.colorScheme.primary,
@@ -1110,7 +1110,7 @@ private fun GlobalSearchResultCard(
                                 .clickable { onEdit() },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Record",
                                 tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
@@ -1127,7 +1127,7 @@ private fun GlobalSearchResultCard(
                                 .clickable { showDeleteConfirm = true },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.DeleteOutline,
                                 contentDescription = "Delete Record",
                                 tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFE11D48),

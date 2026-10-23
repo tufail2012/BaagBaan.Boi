@@ -1,5 +1,7 @@
 package com.example.chat.voice
 
+
+import com.example.ui.components.ThemedIcon
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -172,7 +174,7 @@ fun VoiceNoteRecordBar(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.offset { IntOffset(dragOffsetX.roundToInt().coerceAtMost(0), 0) }
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = if (isCancelTriggered) Icons.Default.Delete else Icons.Default.ChevronLeft,
                         contentDescription = "Cancel",
                         tint = if (isCancelTriggered) Color(0xFFEF4444) else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
@@ -244,7 +246,7 @@ fun VoiceNoteRecordBar(
                 },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Mic,
                 contentDescription = "Hold to record voice note",
                 tint = if (isCancelTriggered) Color(0xFFEF4444) else accentColor,

@@ -471,7 +471,7 @@ fun BookingRecordDetailDialog(
                                     },
                                     modifier = Modifier.testTag("edit_record_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = "Edit Record",
                                         tint = sectionAccentColor,
@@ -483,7 +483,7 @@ fun BookingRecordDetailDialog(
                                     onClick = { showDeleteConfirm = true },
                                     modifier = Modifier.testTag("delete_record_button")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = "Delete Record",
                                         tint = MaterialTheme.colorScheme.error,
@@ -495,7 +495,7 @@ fun BookingRecordDetailDialog(
                                     onClick = onDismiss,
                                     modifier = Modifier.testTag("close_detail_dialog")
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "Close View",
                                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
@@ -524,7 +524,7 @@ fun BookingRecordDetailDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
                                 tint = sectionAccentColor,
@@ -590,7 +590,7 @@ fun BookingRecordDetailDialog(
                                         context.startActivity(intent)
                                     }
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Call,
                                         contentDescription = "Call Phone",
                                         tint = sectionAccentColor,
@@ -620,7 +620,7 @@ fun BookingRecordDetailDialog(
                                         }
                                         .padding(vertical = 2.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Place,
                                         contentDescription = "Open in Google Maps",
                                         tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
@@ -666,7 +666,7 @@ fun BookingRecordDetailDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Description,
                                 contentDescription = null,
                                 tint = sectionAccentColor,
@@ -705,7 +705,7 @@ fun BookingRecordDetailDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Place,
                                             contentDescription = "Open in Google Maps",
                                             tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
@@ -864,7 +864,7 @@ fun BookingRecordDetailDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
                                     tint = sectionAccentColor,
@@ -1076,7 +1076,7 @@ fun BookingRecordDetailDialog(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Saving Installment...", fontWeight = FontWeight.Bold, color = Color.White)
                                 } else {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
+                                    ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Record Installment Payment", fontWeight = FontWeight.Bold, color = if (canSave) Color.White else Color(0xFF94A3B8))
                                 }
@@ -1173,7 +1173,7 @@ fun BookingRecordDetailDialog(
                                                     },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.Delete,
                                                         contentDescription = "Delete Installment",
                                                         tint = MaterialTheme.colorScheme.error,
@@ -1209,7 +1209,7 @@ fun BookingRecordDetailDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Send,
                                 contentDescription = null,
                                 tint = sectionAccentColor,
@@ -1298,7 +1298,7 @@ fun BookingRecordDetailDialog(
                             shape = RoundedCornerShape(26.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
                         ) {
-                            Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            ThemedIcon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                         }
@@ -1314,7 +1314,7 @@ fun BookingRecordDetailDialog(
                             shape = RoundedCornerShape(26.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF16A34A) else Color(0xFF22C55E))
                         ) {
-                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            ThemedIcon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Send WhatsApp Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                         }
@@ -1330,7 +1330,7 @@ fun BookingRecordDetailDialog(
                             shape = RoundedCornerShape(26.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
                         ) {
-                            Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                            ThemedIcon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Send SMS Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                         }
@@ -1347,7 +1347,7 @@ fun BookingRecordDetailDialog(
                             border = BorderStroke(1.5.dp, if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDark) Color(0xFF4ADE80) else Color(0xFF22C55E))
                         ) {
-                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
+                            ThemedIcon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
@@ -1384,7 +1384,7 @@ fun BookingRecordDetailDialog(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Saving...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     } else {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
@@ -1419,7 +1419,7 @@ fun BookingRecordDetailDialog(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     } else {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Cancel,
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp)
@@ -1759,7 +1759,7 @@ fun BookingRecordDetailDialog(
                                     contentColor = Color.White
                                 )
                             ) {
-                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                ThemedIcon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             }
@@ -1778,7 +1778,7 @@ fun BookingRecordDetailDialog(
                                     contentColor = Color.White
                                 )
                             ) {
-                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                ThemedIcon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             }

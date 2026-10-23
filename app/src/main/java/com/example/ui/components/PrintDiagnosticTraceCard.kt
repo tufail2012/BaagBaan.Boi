@@ -85,7 +85,7 @@ fun PrintDiagnosticTraceCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
                     tint = headerColor,
@@ -110,7 +110,7 @@ fun PrintDiagnosticTraceCard(
                     },
                     modifier = Modifier.size(28.dp).testTag("copy_print_trace_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.ContentCopy,
                         contentDescription = "Copy Print Trace",
                         tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -122,7 +122,7 @@ fun PrintDiagnosticTraceCard(
                     onClick = { PrintDiagnosticTrace.clear() },
                     modifier = Modifier.size(28.dp).testTag("clear_print_trace_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Clear Trace",
                         tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -130,7 +130,7 @@ fun PrintDiagnosticTraceCard(
                     )
                 }
 
-                Icon(
+                ThemedIcon(
                     imageVector = if (isCollapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                     contentDescription = if (isCollapsed) "Expand" else "Collapse",
                     tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),

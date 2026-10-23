@@ -1,5 +1,7 @@
 package com.example.chat.ui.call
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,7 +77,7 @@ fun MinimizedCallBar(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = if (state.isMicMuted) Icons.Default.MicOff else Icons.Default.Mic,
                     contentDescription = if (state.isMicMuted) "Mic Muted" else "Mic Active",
                     tint = if (state.isMicMuted) Color(0xFFE53935) else accentColor,
@@ -106,7 +108,7 @@ fun MinimizedCallBar(
                     .clip(CircleShape)
                     .background(Color(0xFFE53935))
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.CallEnd,
                     contentDescription = "End Call",
                     tint = Color.White,

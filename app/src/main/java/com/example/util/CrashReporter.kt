@@ -1,5 +1,7 @@
 package com.example.util
 
+
+import com.example.ui.components.ThemedIcon
 import android.app.ActivityManager
 import android.app.ApplicationExitInfo
 import android.content.ClipData
@@ -440,7 +442,7 @@ fun CrashDiagnosticScreen(
                         .background(Color(0xFFEF4444).copy(alpha = 0.18f), shape = RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.BugReport,
                         contentDescription = "Crash Diagnostic",
                         tint = Color(0xFFEF4444),
@@ -519,7 +521,7 @@ fun CrashDiagnosticScreen(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ContentCopy,
                             contentDescription = "Copy",
                             modifier = Modifier.size(16.dp),
@@ -543,7 +545,7 @@ fun CrashDiagnosticScreen(
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Clear Log",
                             modifier = Modifier.size(16.dp),
@@ -566,7 +568,7 @@ fun CrashDiagnosticScreen(
                 ) {
                     Text("CONTINUE TO APP", fontSize = 13.5.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Continue",
                         tint = Color.White,

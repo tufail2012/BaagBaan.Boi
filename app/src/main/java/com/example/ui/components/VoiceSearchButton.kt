@@ -164,7 +164,7 @@ fun VoiceSearchIconButton(
                 .size(buttonSize)
                 .testTag(testTag)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Mic,
                 contentDescription = if (isListening) "Listening for voice search..." else "Voice Search",
                 tint = if (isListening) accentColor else accentColor.copy(alpha = if (isDark) 0.92f else 0.85f),

@@ -154,7 +154,7 @@ fun SeasonalRemindersDialog(
                                     .size(36.dp)
                                     .testTag("seasonal_reminders_close_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
                                     tint = seasonalAccent
@@ -168,7 +168,7 @@ fun SeasonalRemindersDialog(
                                     .background(seasonalAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Park,
                                     contentDescription = null,
                                     tint = seasonalAccent,
@@ -215,7 +215,7 @@ fun SeasonalRemindersDialog(
                                 .padding(end = 4.dp)
                                 .testTag("seasonal_reset_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.RestartAlt,
                                 contentDescription = null,
                                 tint = if (isDark) Color(0xFFE2E8F0) else Color(0xFF334155),
@@ -246,7 +246,7 @@ fun SeasonalRemindersDialog(
                             .height(50.dp)
                             .testTag("seasonal_add_task_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
@@ -287,7 +287,7 @@ fun SeasonalRemindersDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
                                     tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
@@ -556,7 +556,7 @@ private fun SeasonalTaskCard(
                         onClick = onEdit,
                         modifier = Modifier.size(34.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Task",
                             tint = seasonalAccent,
@@ -567,7 +567,7 @@ private fun SeasonalTaskCard(
                         onClick = onDelete,
                         modifier = Modifier.size(34.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Task",
                             tint = if (isDark) Color(0xFFF87171) else Color(0xFFDC2626),
@@ -623,7 +623,7 @@ private fun SeasonalTaskCard(
                         )
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = if (hasDate) Icons.Default.Alarm else Icons.Default.AlarmOff,
                         contentDescription = null,
                         tint = if (hasDate) seasonalAccent else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
@@ -647,7 +647,7 @@ private fun SeasonalTaskCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = 4.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.EventRepeat,
                             contentDescription = "Yearly Recurring",
                             tint = seasonalAccent,
@@ -734,7 +734,7 @@ private fun SeasonalTaskEditDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         IconButton(onClick = onDismiss) {
-                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                            ThemedIcon(imageVector = Icons.Default.Close, contentDescription = "Close")
                         }
                     }
                 }
@@ -823,7 +823,7 @@ private fun SeasonalTaskEditDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CalendarMonth,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
@@ -1059,7 +1059,7 @@ private fun SeasonalTaskEditDialog(
                                 .height(46.dp)
                                 .testTag("seasonal_save_task_button")
                         ) {
-                            Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                            ThemedIcon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Save Task")
                         }

@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -331,7 +333,7 @@ internal fun CallsTopHeaderOverlay(
             modifier = Modifier
                 .padding(0.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Call,
                 contentDescription = null,
                 tint = contentColor,
@@ -360,7 +362,7 @@ internal fun CallsTopHeaderOverlay(
                     .size(40.dp)
                     .testTag("calls_search_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
                     tint = contentColor,
@@ -377,7 +379,7 @@ internal fun CallsTopHeaderOverlay(
                         .size(40.dp)
                         .testTag("calls_more_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "More options",
                         tint = contentColor,
@@ -442,7 +444,7 @@ internal fun CallsFloatingCallButton(
             .testTag("calls_fab_button"),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = Icons.Default.AddIcCall,
             contentDescription = "New call",
             tint = contentColor,
@@ -472,7 +474,7 @@ private fun CallQuickActionCircle(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
@@ -559,7 +561,7 @@ private fun CallHistoryRow(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
+                ThemedIcon(
                     imageVector = if (isCaller) Icons.Default.CallMade else Icons.Default.CallReceived,
                     contentDescription = if (isCaller) "Outgoing" else "Incoming",
                     tint = if (isMissedIncoming) missedRed else contentColor.copy(alpha = 0.65f),
@@ -582,7 +584,7 @@ private fun CallHistoryRow(
             onClick = { onCallClick(otherUid, targetUsername, isVideo) },
             modifier = Modifier.size(42.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = if (isVideo) Icons.Default.Videocam else Icons.Default.Call,
                 contentDescription = if (isVideo) "Video Call" else "Voice Call",
                 tint = contentColor,

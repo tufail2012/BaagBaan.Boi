@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -231,7 +233,7 @@ internal fun GroupsTopHeaderOverlay(
             modifier = Modifier
                 .padding(0.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Groups,
                 contentDescription = null,
                 tint = contentColor,
@@ -266,7 +268,7 @@ internal fun GroupsTopHeaderOverlay(
                         .clip(CircleShape)
                 )
             } else {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile",
                     tint = contentColor,
@@ -295,7 +297,7 @@ internal fun GroupsFloatingCreateButton(
             .testTag("groups_fab_button"),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = Icons.Default.Add,
             contentDescription = "New group",
             tint = contentColor,

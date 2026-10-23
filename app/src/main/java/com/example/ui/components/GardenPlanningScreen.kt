@@ -377,7 +377,7 @@ fun GardenPlanningScreen(
             onDismissRequest = { showProfileDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(imageVector = Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    ThemedIcon(imageVector = Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("User Profile")
                 }
             },
@@ -401,7 +401,7 @@ fun GardenPlanningScreen(
             onDismissRequest = { showNotificationDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    ThemedIcon(imageVector = Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Notifications")
                 }
             },
@@ -959,7 +959,7 @@ fun GardenPlanningFormTab(
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent),
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
                         contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
                         tint = Color.White,
@@ -974,7 +974,7 @@ fun GardenPlanningFormTab(
                                 onClick = { viewModel.lockSerialNumber() },
                                 modifier = Modifier.testTag("save_serial_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Save,
                                     contentDescription = "Save Serial Number",
                                     tint = gardenAccent,
@@ -986,7 +986,7 @@ fun GardenPlanningFormTab(
                             onClick = { viewModel.resetSerialNumber() },
                             modifier = Modifier.testTag("new_serial_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "New Serial",
                                 tint = gardenAccent,
@@ -1025,7 +1025,7 @@ fun GardenPlanningFormTab(
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         tint = Color.White
@@ -1054,7 +1054,7 @@ fun GardenPlanningFormTab(
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = Color.White
@@ -1107,7 +1107,7 @@ fun GardenPlanningFormTab(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = null,
                         tint = Color.White
@@ -1119,7 +1119,7 @@ fun GardenPlanningFormTab(
                         onClick = { launchContactPicker() },
                         modifier = Modifier.testTag("contacts_picker_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ContactPhone,
                             contentDescription = "Contact Picker",
                             tint = gardenAccent
@@ -1185,7 +1185,7 @@ fun GardenPlanningFormTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Layers,
                                 contentDescription = null,
                                 tint = gardenAccent,
@@ -1251,7 +1251,7 @@ fun GardenPlanningFormTab(
                             contentColor = gardenAccent
                         )
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        ThemedIcon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("+ Add Another Variety", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
@@ -1273,7 +1273,7 @@ fun GardenPlanningFormTab(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                                 imageVector = Icons.Outlined.LocalFlorist,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1299,7 +1299,7 @@ fun GardenPlanningFormTab(
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                                 imageVector = Icons.Default.Spa,
                                 contentDescription = null,
                                 tint = Color.White
@@ -1336,7 +1336,7 @@ fun GardenPlanningFormTab(
                             placeholder = { Text("Select Age") },
                             leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                                     imageVector = Icons.Default.HourglassTop,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1345,7 +1345,7 @@ fun GardenPlanningFormTab(
                 },
                             trailingIcon = {
                                 IconButton(onClick = { ageDropdownExpanded = !ageDropdownExpanded }) {
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
+                                    ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Sapling Age")
                                 }
                             },
                             shape = CLAY_FIELD_SHAPE,
@@ -1391,7 +1391,7 @@ fun GardenPlanningFormTab(
                             placeholder = { Text("Select Origin") },
                             leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                                     imageVector = Icons.Default.Yard,
                                     contentDescription = null,
                                     tint = Color.White
@@ -1400,7 +1400,7 @@ fun GardenPlanningFormTab(
                 },
                             trailingIcon = {
                                 IconButton(onClick = { originDropdownExpanded = !originDropdownExpanded }) {
-                                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
+                                    ThemedIcon(imageVector = Icons.Default.ArrowDropDown, contentDescription = "Select Plant Origin")
                                 }
                             },
                             shape = CLAY_FIELD_SHAPE,
@@ -1451,7 +1451,7 @@ fun GardenPlanningFormTab(
                     ),
                     leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Nature,
                             contentDescription = null,
                             tint = Color.White
@@ -1482,7 +1482,7 @@ fun GardenPlanningFormTab(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Layers,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
@@ -1710,7 +1710,7 @@ fun GardenPlanningFormTab(
                     singleLine = true,
                     leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.CurrencyRupee,
                             contentDescription = null,
                             tint = Color.White
@@ -1839,7 +1839,7 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = Icons.Default.Payments,
                         contentDescription = null,
                         tint = Color.White
@@ -1941,7 +1941,7 @@ fun GardenPlanningFormTab(
                             onClick = { openDatePicker(true) },
                             modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.CalendarMonth,
                                 contentDescription = "Select Booking Date",
                                 tint = Color.White,
@@ -1985,7 +1985,7 @@ fun GardenPlanningFormTab(
                             onClick = { openDatePicker(false) },
                             modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.LocalShipping,
                                 contentDescription = "Select Expected Delivery Date",
                                 tint = Color.White,
@@ -2033,7 +2033,7 @@ fun GardenPlanningFormTab(
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
                     ClayFieldIcon(accentColor = gardenAccent) {
-                        Icon(
+                        ThemedIcon(
                         imageVector = Icons.Default.Description,
                         contentDescription = null,
                         tint = Color.White
@@ -2051,7 +2051,7 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier.testTag("garden_notes_voice_input_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Mic,
                             contentDescription = "Voice Input",
                             tint = gardenAccent
@@ -2118,7 +2118,7 @@ fun GardenPlanningFormTab(
                     .height(52.dp)
                     .testTag("garden_save_button")
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Save,
                     contentDescription = null,
                     tint = Color.White,
@@ -2165,7 +2165,7 @@ fun GardenPlanningFormTab(
                         .heightIn(min = 48.dp)
                         .testTag("send_text_via_whatsapp_button")
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    ThemedIcon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Share via WhatsApp", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -2197,7 +2197,7 @@ fun GardenPlanningFormTab(
                         .heightIn(min = 48.dp)
                         .testTag("send_text_via_sms_button")
                 ) {
-                    Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    ThemedIcon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Share via SMS", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -2267,7 +2267,7 @@ fun GardenPlanningFormTab(
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.5.dp, gardenAccent)
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.ReceiptLong,
                     contentDescription = null,
                     tint = gardenAccent,
@@ -2563,7 +2563,7 @@ fun GardenPlanningRecordsTab(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Park,
                                         contentDescription = null,
                                         modifier = Modifier.size(64.dp),
@@ -2724,7 +2724,7 @@ fun GardenPlanningRecordsTab(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(7.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "New Entry",
                                 tint = paletteAccent,
@@ -2804,7 +2804,7 @@ fun GardenPlanningRecordsTab(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Scroll to top",
                         tint = paletteAccent,
@@ -2928,7 +2928,7 @@ private fun SwipeableGardenPlanningItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isStartToEnd) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Send WhatsApp",
                                 tint = Color.White,
@@ -2947,7 +2947,7 @@ private fun SwipeableGardenPlanningItem(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Delete",
                                 tint = Color.White,
@@ -3174,7 +3174,7 @@ private fun GardenPlanningRecordCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -3199,7 +3199,7 @@ private fun GardenPlanningRecordCard(
                         try { context.startActivity(dialIntent) } catch (e: Exception) {}
                     }
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Call,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -3308,7 +3308,7 @@ private fun GardenPlanningRecordCard(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = "WhatsApp",
                         tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
@@ -3351,7 +3351,7 @@ private fun GardenPlanningRecordCard(
                         fontWeight = FontWeight.Bold,
                         color = paletteAccent
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                         contentDescription = "View Details",
                         tint = paletteAccent,
@@ -3383,7 +3383,7 @@ private fun GardenPlanningRecordCard(
                         .clickable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Record",
                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
@@ -3415,7 +3415,7 @@ private fun GardenPlanningRecordCard(
                         .clickable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Delete Record",
                         tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
@@ -3636,7 +3636,7 @@ fun GardenBookingRecordDetailDialog(
                             },
                             modifier = Modifier.testTag("edit_record_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Record",
                                 tint = paletteAccent,
@@ -3648,7 +3648,7 @@ fun GardenBookingRecordDetailDialog(
                             onClick = { showDeleteConfirm = true },
                             modifier = Modifier.testTag("delete_record_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete Record",
                                 tint = MaterialTheme.colorScheme.error,
@@ -3660,7 +3660,7 @@ fun GardenBookingRecordDetailDialog(
                             onClick = onDismiss,
                             modifier = Modifier.testTag("close_detail_dialog")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close View",
                                 tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
@@ -3727,7 +3727,7 @@ fun GardenBookingRecordDetailDialog(
                                         context.startActivity(intent)
                                     }
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Call,
                                         contentDescription = "Call Phone",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -3895,7 +3895,7 @@ fun GardenBookingRecordDetailDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ReceiptLong,
                                     contentDescription = null,
                                     tint = paletteAccent,
@@ -4105,7 +4105,7 @@ fun GardenBookingRecordDetailDialog(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Saving Installment...", fontWeight = FontWeight.Bold, color = Color.White)
                                 } else {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
+                                    ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp), tint = if (canSave) Color.White else Color(0xFF94A3B8))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Record Installment Payment", fontWeight = FontWeight.Bold, color = if (canSave) Color.White else Color(0xFF94A3B8))
                                 }
@@ -4202,7 +4202,7 @@ fun GardenBookingRecordDetailDialog(
                                                     },
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.Delete,
                                                         contentDescription = "Delete Installment",
                                                         tint = MaterialTheme.colorScheme.error,
@@ -4272,7 +4272,7 @@ fun GardenBookingRecordDetailDialog(
                         shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF334155) else Color(0xFF1E293B))
                     ) {
-                        Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Preview & Send Digital Receipt Image", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                     }
@@ -4288,7 +4288,7 @@ fun GardenBookingRecordDetailDialog(
                         shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF16A34A) else Color(0xFF22C55E))
                     ) {
-                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send WhatsApp Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                     }
@@ -4304,7 +4304,7 @@ fun GardenBookingRecordDetailDialog(
                         shape = RoundedCornerShape(26.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF15803D) else Color(0xFF16A34A))
                     ) {
-                        Icon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
+                        ThemedIcon(imageVector = Icons.Default.Message, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send SMS Confirmation", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
                     }
@@ -4320,7 +4320,7 @@ fun GardenBookingRecordDetailDialog(
                         shape = RoundedCornerShape(26.dp),
                         border = BorderStroke(1.5.dp, Color(0xFF25D366))
                     ) {
-                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFF25D366))
+                        ThemedIcon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFF25D366))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Send Tracking Details on WhatsApp", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF25D366))
                     }
@@ -4351,7 +4351,7 @@ fun GardenBookingRecordDetailDialog(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Cancelling...", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             } else {
-                                Icon(imageVector = Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
+                                ThemedIcon(imageVector = Icons.Default.Cancel, contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Cancel Booking", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
@@ -4638,7 +4638,7 @@ fun GardenBookingRecordDetailDialog(
                                     contentColor = Color.White
                                 )
                             ) {
-                                Icon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                ThemedIcon(imageVector = Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Print Receipt", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -4657,7 +4657,7 @@ fun GardenBookingRecordDetailDialog(
                                     contentColor = Color.White
                                 )
                             ) {
-                                Icon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                                ThemedIcon(imageVector = Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Send via WhatsApp", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -4789,7 +4789,7 @@ private fun DetailSectionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                ThemedIcon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                 Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.5.sp)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -4993,7 +4993,7 @@ private fun GardenSummaryCardItem(
                     .background(accentColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
+                ThemedIcon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
@@ -5081,7 +5081,7 @@ fun GardenPlanningVarietyLineCard(
                         onClick = onRemove,
                         modifier = Modifier.size(24.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "Remove Variety Line",
                             tint = MaterialTheme.colorScheme.error,
@@ -5103,7 +5103,7 @@ fun GardenPlanningVarietyLineCard(
                 singleLine = true,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    Icon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    ThemedIcon(Icons.Outlined.LocalFlorist, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -5129,7 +5129,7 @@ fun GardenPlanningVarietyLineCard(
                     singleLine = true,
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
-                        Icon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(Icons.Default.Spa, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     modifier = Modifier
                         .weight(1.1f)
@@ -5153,7 +5153,7 @@ fun GardenPlanningVarietyLineCard(
                         capitalization = KeyboardCapitalization.Characters
                     ),
                     leadingIcon = {
-                        Icon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        ThemedIcon(Icons.Default.Nature, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     modifier = Modifier
                         .weight(0.9f)
@@ -5342,7 +5342,7 @@ fun GardenPlanningVarietyLineCard(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 leadingIcon = {
-                    Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    ThemedIcon(Icons.Default.CurrencyRupee, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

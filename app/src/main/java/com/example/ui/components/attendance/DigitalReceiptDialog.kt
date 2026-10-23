@@ -1,5 +1,7 @@
 package com.example.ui.components.attendance
 
+
+import com.example.ui.components.ThemedIcon
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
@@ -197,7 +199,7 @@ fun DigitalReceiptDialog(
                                 .size(32.dp)
                                 .testTag("close_receipt_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close Receipt",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -245,7 +247,7 @@ fun DigitalReceiptDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Phone,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -434,7 +436,7 @@ fun DigitalReceiptDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
                                 tint = Color.White,

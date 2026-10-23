@@ -97,7 +97,7 @@ fun MessageTemplateManagerScreen(
                             .size(36.dp)
                             .testTag("back_button_templates")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.primary
@@ -135,7 +135,7 @@ fun MessageTemplateManagerScreen(
                 onValueChange = { searchQuery = it },
                 label = { Text("Search templates or placeholders...") },
                 leadingIcon = {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = MaterialTheme.colorScheme.primary
@@ -144,7 +144,7 @@ fun MessageTemplateManagerScreen(
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                            ThemedIcon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                         }
                     }
                 },
@@ -286,7 +286,7 @@ fun MessageTemplateManagerScreen(
                                     onClick = { editingTemplate = template },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Edit,
                                         contentDescription = "Edit Template",
                                         tint = MaterialTheme.colorScheme.primary,
@@ -445,7 +445,7 @@ fun TemplateEditorDialog(
                         onClick = onDismiss,
                         enabled = !isSaving
                     ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close")
+                        ThemedIcon(imageVector = Icons.Default.Close, contentDescription = "Close")
                     }
                 }
 
@@ -498,7 +498,7 @@ fun TemplateEditorDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.AddCircleOutline,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -566,7 +566,7 @@ fun TemplateEditorDialog(
                                 },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.ContentCopy,
                                     contentDescription = "Copy Preview",
                                     tint = MaterialTheme.colorScheme.primary,
@@ -611,7 +611,7 @@ fun TemplateEditorDialog(
                         onClick = { showResetConfirm = true },
                         enabled = !isSaving
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.RestartAlt,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,

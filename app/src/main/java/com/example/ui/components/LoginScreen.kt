@@ -240,7 +240,7 @@ fun LoginScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Email,
                             contentDescription = "Email Verification",
                             tint = MaterialTheme.colorScheme.primary,
@@ -328,7 +328,7 @@ fun LoginScreen(
                         onClick = onContinueAsGuest,
                         modifier = Modifier.testTag("login_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back to Main",
                             tint = MaterialTheme.colorScheme.onSurface
@@ -449,7 +449,7 @@ fun LoginScreen(
                             label = { Text("Email Address") },
                             placeholder = { Text("e.g. farmer@baagbaan.com") },
                             leadingIcon = {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Email,
                                     contentDescription = "Email Icon",
                                     tint = MaterialTheme.colorScheme.primary
@@ -474,7 +474,7 @@ fun LoginScreen(
                             label = { Text("Password") },
                             placeholder = { Text("Enter password") },
                             leadingIcon = {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = "Lock Icon",
                                     tint = MaterialTheme.colorScheme.primary
@@ -482,7 +482,7 @@ fun LoginScreen(
                             },
                             trailingIcon = {
                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                         contentDescription = if (passwordVisible) "Hide password" else "Show password",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -761,7 +761,7 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,

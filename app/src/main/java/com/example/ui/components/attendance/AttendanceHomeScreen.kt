@@ -1,5 +1,7 @@
 package com.example.ui.components.attendance
 
+
+import com.example.ui.components.ThemedIcon
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -230,7 +232,7 @@ fun AttendanceHomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.EventAvailable,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
@@ -250,7 +252,7 @@ fun AttendanceHomeScreen(
                             onClick = { showAddWorkerDialog = true },
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Add First Worker")
                         }
@@ -299,7 +301,7 @@ fun AttendanceHomeScreen(
                             )
 
                             TextButton(onClick = { showAddWorkerDialog = true }) {
-                                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Add Worker", fontWeight = FontWeight.SemiBold)
                             }
@@ -313,7 +315,7 @@ fun AttendanceHomeScreen(
                                 onValueChange = { workerSearchQuery = it },
                                 placeholder = { Text("Search worker by name or phone...", fontSize = 13.sp) },
                                 leadingIcon = {
-                                    Icon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    ThemedIcon(imageVector = Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
                                 },
                                 trailingIcon = {
                                     Row(
@@ -322,7 +324,7 @@ fun AttendanceHomeScreen(
                                     ) {
                                         if (workerSearchQuery.isNotEmpty()) {
                                             IconButton(onClick = { workerSearchQuery = "" }) {
-                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
+                                                ThemedIcon(imageVector = Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(18.dp))
                                             }
                                         }
                                         com.example.ui.components.VoiceSearchIconButton(
@@ -456,7 +458,7 @@ fun AttendanceHomeScreen(
                         ),
                         modifier = Modifier.testTag("daily_marking_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Event,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
@@ -495,7 +497,7 @@ fun AttendanceHomeScreen(
                             },
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronLeft,
                                 contentDescription = "Previous Month",
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -521,7 +523,7 @@ fun AttendanceHomeScreen(
                             },
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.ChevronRight,
                                 contentDescription = "Next Month",
                                 tint = MaterialTheme.colorScheme.onSurface
@@ -545,7 +547,7 @@ fun AttendanceHomeScreen(
                 .pressScale(addWorkerFabInteractionSource)
                 .testTag("add_worker_fab")
         ) {
-            Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "Add Worker")
+            ThemedIcon(imageVector = Icons.Default.PersonAdd, contentDescription = "Add Worker")
         }
     }
 
@@ -646,7 +648,7 @@ fun WorkerSummaryCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Phone,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -724,7 +726,7 @@ fun WorkerSummaryCard(
             }
 
             IconButton(onClick = onEditClick) {
-                Icon(
+                ThemedIcon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit Worker",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -985,7 +987,7 @@ fun EditWorkerDialog(
                                 },
                                 modifier = Modifier.testTag("whatsapp_worker_chat_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Share,
                                     contentDescription = "WhatsApp Chat",
                                     tint = Color(0xFF25D366),

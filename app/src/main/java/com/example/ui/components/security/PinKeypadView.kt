@@ -1,5 +1,7 @@
 package com.example.ui.components.security
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.keyframes
@@ -149,7 +151,7 @@ fun PinKeypadView(
                                     },
                                     testTag = "keypad_delete"
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.AutoMirrored.Filled.Backspace,
                                         contentDescription = "Backspace",
                                         tint = MaterialTheme.colorScheme.onSurface,
@@ -165,7 +167,7 @@ fun PinKeypadView(
                                     },
                                     testTag = "keypad_biometric"
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Fingerprint,
                                         contentDescription = "Biometric Unlock",
                                         tint = MaterialTheme.colorScheme.primary,

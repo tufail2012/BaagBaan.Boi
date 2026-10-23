@@ -564,7 +564,7 @@ fun ContactDirectoryDialog(
                             .pressScale(fabInteractionSource)
                             .testTag("add_contact_fab")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add Contact",
                             modifier = Modifier.size(28.dp)
@@ -619,7 +619,7 @@ fun ContactDirectoryDialog(
                                     .fieldGlass(shape = RoundedCornerShape(percent = 50)),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = contactAccent),
                                 placeholder = { Text("Search farmer name, phone, or address...") },
-                                leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+                                leadingIcon = { ThemedIcon(imageVector = Icons.Default.Search, contentDescription = null) },
                                 trailingIcon = {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
@@ -627,7 +627,7 @@ fun ContactDirectoryDialog(
                                     ) {
                                         if (searchQuery.isNotEmpty()) {
                                             IconButton(onClick = { searchQuery = "" }) {
-                                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
+                                                ThemedIcon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                                             }
                                         }
                                         VoiceSearchIconButton(
@@ -653,7 +653,7 @@ fun ContactDirectoryDialog(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Contacts,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
@@ -736,7 +736,7 @@ fun ContactDirectoryDialog(
                                                 Spacer(modifier = Modifier.height(2.dp))
 
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.Phone,
                                                         contentDescription = null,
                                                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
@@ -754,7 +754,7 @@ fun ContactDirectoryDialog(
 
                                                 if (item.address.isNotEmpty()) {
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        Icon(
+                                                        ThemedIcon(
                                                             imageVector = Icons.Default.LocationOn,
                                                             contentDescription = null,
                                                             tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF475569),
@@ -781,7 +781,7 @@ fun ContactDirectoryDialog(
                                             IconButton(
                                                 onClick = { makePhoneCall(item.phone) }
                                             ) {
-                                                Icon(
+                                                ThemedIcon(
                                                     imageVector = Icons.Default.Call,
                                                     contentDescription = "Call",
                                                     tint = MaterialTheme.colorScheme.primary
@@ -794,7 +794,7 @@ fun ContactDirectoryDialog(
                                                         saveToSystemPhoneContacts(item.name, item.phone, item.address, item.serialNumber)
                                                     }
                                                 ) {
-                                                    Icon(
+                                                    ThemedIcon(
                                                         imageVector = Icons.Default.PersonAdd,
                                                         contentDescription = "Save to device contacts",
                                                         tint = MaterialTheme.colorScheme.secondary
@@ -807,7 +807,7 @@ fun ContactDirectoryDialog(
                                                     contactToDelete = item
                                                 }
                                             ) {
-                                                Icon(
+                                                ThemedIcon(
                                                     imageVector = Icons.Default.Delete,
                                                     contentDescription = "Delete Contact",
                                                     tint = MaterialTheme.colorScheme.error
@@ -856,7 +856,7 @@ fun ContactDirectoryDialog(
                             .size(36.dp)
                             .testTag("contact_directory_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
                             tint = contactAccent
@@ -870,7 +870,7 @@ fun ContactDirectoryDialog(
                             .background(contactAccent.copy(alpha = if (isDark) 0.25f else 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Contacts,
                             contentDescription = "Contacts Icon",
                             tint = contactAccent,
@@ -956,7 +956,7 @@ fun ContactDirectoryDialog(
             onDismissRequest = { contactToDelete = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    ThemedIcon(imageVector = Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "Delete Contact", fontWeight = FontWeight.Bold)
                 }
@@ -1107,7 +1107,7 @@ fun ContactDetailsDialog(
                                     onClick = onDismiss,
                                     modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.ArrowBack,
                                         contentDescription = "Close",
                                         tint = MaterialTheme.colorScheme.primary
@@ -1124,7 +1124,7 @@ fun ContactDetailsDialog(
                                 onClick = onDeleteContact,
                                 modifier = Modifier.size(36.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "Delete Contact",
                                     tint = MaterialTheme.colorScheme.error
@@ -1201,7 +1201,7 @@ fun ContactDetailsDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Phone,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1221,7 +1221,7 @@ fun ContactDetailsDialog(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.Center
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.LocationOn,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1251,7 +1251,7 @@ fun ContactDetailsDialog(
                                             .clip(CircleShape)
                                             .background(MaterialTheme.colorScheme.primaryContainer)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = "Call",
                                             tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -1268,7 +1268,7 @@ fun ContactDetailsDialog(
                                                 .clip(CircleShape)
                                                 .background(MaterialTheme.colorScheme.secondaryContainer)
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.PersonAdd,
                                                 contentDescription = "Save to Phone",
                                                 tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1352,7 +1352,7 @@ fun ContactDetailsDialog(
                                         .padding(24.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.ReceiptLong,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.outline,
@@ -1573,7 +1573,7 @@ fun ManualAddContactModal(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                ThemedIcon(imageVector = Icons.Default.PersonAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "New Contact Details", fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }

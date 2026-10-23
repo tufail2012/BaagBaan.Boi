@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -104,7 +106,7 @@ fun UsernameSetupScreen(
                         onClick = onBack,
                         modifier = Modifier.testTag("username_setup_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -129,7 +131,7 @@ fun UsernameSetupScreen(
                         .background(accentColor.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.AlternateEmail,
                         contentDescription = null,
                         tint = accentColor,
@@ -186,7 +188,7 @@ fun UsernameSetupScreen(
                     },
                     trailingIcon = {
                         if (cleanedInput.isNotEmpty()) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = if (isValid) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                                 contentDescription = null,
                                 tint = if (isValid) Color(0xFF22C55E) else Color(0xFFEF4444),

@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import android.util.Log
 import android.widget.Toast
 import kotlinx.coroutines.delay
@@ -990,7 +992,7 @@ fun ChatScreen(
                             .clickable(onClick = onBack)
                             .testTag("conversation_back_button")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -1170,7 +1172,7 @@ fun ChatScreen(
                                     .size(44.dp)
                                     .testTag("conversation_voice_call_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Call,
                                     contentDescription = "Voice call",
                                     tint = if (isDark) Color.White else Color(0xFF0F172A),
@@ -1188,7 +1190,7 @@ fun ChatScreen(
                                 }
                                 .testTag("conversation_more_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "More options",
                                 tint = if (isDark) Color.White else Color(0xFF0F172A)
@@ -1315,7 +1317,7 @@ fun ChatScreen(
                                 modifier = Modifier.weight(1f)
                             )
                             IconButton(onClick = { viewModel.cancelEditingMessage() }) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel edit", tint = accentColor)
+                                ThemedIcon(Icons.Default.Close, contentDescription = "Cancel edit", tint = accentColor)
                             }
                         }
                     }
@@ -1338,7 +1340,7 @@ fun ChatScreen(
                                     onClick = { showAttachmentSheet = true },
                                     modifier = Modifier.size(56.dp)
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = "Attach",
                                         tint = accentColor
@@ -1414,7 +1416,7 @@ fun ChatScreen(
                                         modifier = Modifier.size(20.dp)
                                     )
                                 } else {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = "Send",
                                         tint = Color.White,
@@ -1710,7 +1712,7 @@ fun ChatScreen(
                                     .size(48.dp)
                                     .testTag("group_info_back_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
                                     tint = primaryTextColor
@@ -2027,7 +2029,7 @@ fun ChatScreen(
                                     .size(48.dp)
                                     .testTag("contact_info_back_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
                                     tint = primaryTextColor
@@ -2063,7 +2065,7 @@ fun ChatScreen(
                                         .testTag("contact_info_avatar"),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
+                                    ThemedIcon(
                                         imageVector = Icons.Default.Person,
                                         contentDescription = null,
                                         tint = accentColor,
@@ -2160,7 +2162,7 @@ fun ChatScreen(
                                         .testTag("contact_info_action_audio")
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = "Audio call",
                                             tint = accentColor,
@@ -2188,7 +2190,7 @@ fun ChatScreen(
                                         .testTag("contact_info_action_mute")
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = if (isCurrentChatMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
                                             contentDescription = if (isCurrentChatMuted) "Muted" else "Mute",
                                             tint = accentColor,
@@ -2216,7 +2218,7 @@ fun ChatScreen(
                                         .testTag("contact_info_action_search")
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Search,
                                             contentDescription = "Search",
                                             tint = accentColor,
@@ -2316,7 +2318,7 @@ fun ChatScreen(
                                                     color = secondaryTextColor
                                                 )
                                             }
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Edit,
                                                 contentDescription = "Edit nickname",
                                                 tint = secondaryTextColor,
@@ -2486,7 +2488,7 @@ fun ChatScreen(
                                             }
                                             Spacer(modifier = Modifier.width(4.dp))
                                         }
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Lock,
                                             contentDescription = "Encryption",
                                             tint = accentColor,
@@ -2709,7 +2711,7 @@ fun ChatScreen(
                                     .clip(CircleShape)
                                     .background(accentColor.copy(alpha = 0.15f))
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Lock,
                                     contentDescription = null,
                                     tint = accentColor,
@@ -2901,7 +2903,7 @@ fun ChatScreen(
                                     .size(48.dp)
                                     .testTag("in_chat_search_back_button")
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back",
                                     tint = primaryTextColor
@@ -2922,7 +2924,7 @@ fun ChatScreen(
                                 trailingIcon = {
                                     if (chatSearchQuery.isNotEmpty()) {
                                         IconButton(onClick = { chatSearchQuery = "" }) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Close,
                                                 contentDescription = "Clear search",
                                                 tint = secondaryTextColor
@@ -3814,7 +3816,7 @@ private fun CallLogBubble(
                     if (isVideo) {
                         VideoCallIcon(tint = iconColor, modifier = Modifier.size(20.dp))
                     } else {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Call,
                             contentDescription = null,
                             tint = iconColor,
@@ -3884,7 +3886,7 @@ fun EncryptionInactiveBanner(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Lock,
                 contentDescription = null,
                 tint = accentColor,

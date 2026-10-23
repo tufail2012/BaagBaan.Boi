@@ -198,7 +198,7 @@ fun PruningSubTabs(
                         scaleY = scale
                     }
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = textColor,
@@ -378,7 +378,7 @@ fun RootstockSubTabs(
                             maxLines = 1
                         )
                         Spacer(modifier = Modifier.width(2.dp))
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Expand Geneva Menu",
                             tint = textColor,
@@ -420,7 +420,7 @@ fun RootstockSubTabs(
                                             color = if (isOptionSelected) accentColor else MaterialTheme.colorScheme.onSurface
                                         )
                                         if (isOptionSelected) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = "Selected",
                                                 tint = accentColor,

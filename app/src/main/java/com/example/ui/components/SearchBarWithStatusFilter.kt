@@ -178,7 +178,7 @@ fun SearchBarWithStatusFilter(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = MaterialTheme.colorScheme.primary,
@@ -220,7 +220,7 @@ fun SearchBarWithStatusFilter(
                             onClick = { onSearchQueryChange("") },
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear Search",
                                 tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF64748B),
@@ -317,7 +317,7 @@ fun SearchBarWithStatusFilter(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.FilterList,
                             contentDescription = "Filter Records",
                             tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155)),
@@ -337,7 +337,7 @@ fun SearchBarWithStatusFilter(
                                 maxLines = 1
                             )
                         }
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
                             tint = if (isFilterActive) MaterialTheme.colorScheme.primary else (if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)),
@@ -386,7 +386,7 @@ fun SearchBarWithStatusFilter(
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.FilterList,
                                     contentDescription = null,
                                     tint = if (isDark) Color.White else MaterialTheme.colorScheme.primary,
@@ -437,7 +437,7 @@ fun SearchBarWithStatusFilter(
                                                 ),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Icon(
+                                            ThemedIcon(
                                                 imageVector = Icons.Default.Check,
                                                 contentDescription = "Selected",
                                                 tint = MaterialTheme.colorScheme.primary,

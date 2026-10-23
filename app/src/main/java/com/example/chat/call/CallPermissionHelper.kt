@@ -1,5 +1,7 @@
 package com.example.chat.call
 
+
+import com.example.ui.components.ThemedIcon
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -55,7 +57,7 @@ fun CallPermissionRationaleDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Call,
                 contentDescription = null,
                 tint = accentColor
@@ -105,7 +107,7 @@ fun ZegoConfigRequiredDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
                 tint = accentColor

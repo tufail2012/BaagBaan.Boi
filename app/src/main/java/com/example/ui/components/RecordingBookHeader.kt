@@ -125,10 +125,10 @@ fun RecordingBookHeader(
                     modifier = Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f)),
+                        .background(iconTileColor(Icons.Default.MenuBook, MaterialTheme.colorScheme.primary.copy(alpha = if (isDark) 0.22f else 0.14f), isDark)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.MenuBook,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,

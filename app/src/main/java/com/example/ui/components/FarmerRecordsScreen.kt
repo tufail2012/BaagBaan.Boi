@@ -372,7 +372,7 @@ fun FarmerRecordsScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = if (selectedService.equals("Rootstocks", ignoreCase = true)) Icons.Default.Spa else Icons.Default.Park,
                                             contentDescription = null,
                                             modifier = Modifier.size(64.dp),
@@ -573,7 +573,7 @@ fun FarmerRecordsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(7.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "New Entry",
                                 tint = paletteColor,
@@ -654,7 +654,7 @@ fun FarmerRecordsScreen(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.KeyboardArrowUp,
                         contentDescription = "Scroll to top",
                         tint = paletteColor,
@@ -962,7 +962,7 @@ private fun FarmerRecordCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.LocationOn,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -994,7 +994,7 @@ private fun FarmerRecordCard(
                             }
                             .padding(vertical = 1.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Place,
                             contentDescription = "Open in Google Maps",
                             tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF1D4ED8),
@@ -1014,7 +1014,7 @@ private fun FarmerRecordCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Place,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
@@ -1039,7 +1039,7 @@ private fun FarmerRecordCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.clickable { onCallFarmer() }
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Call,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -1156,7 +1156,7 @@ private fun FarmerRecordCard(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Chat,
                         contentDescription = "WhatsApp",
                         tint = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A),
@@ -1199,7 +1199,7 @@ private fun FarmerRecordCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Default.KeyboardArrowRight,
                         contentDescription = "View Details",
                         tint = MaterialTheme.colorScheme.primary,
@@ -1231,7 +1231,7 @@ private fun FarmerRecordCard(
                         .iosPressable { onEdit() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Edit Record",
                         tint = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
@@ -1263,7 +1263,7 @@ private fun FarmerRecordCard(
                         .iosPressable { onDelete() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Delete Record",
                         tint = if (isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626),
@@ -1440,7 +1440,7 @@ fun SwipeableRecordItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (isStartToEnd) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Send WhatsApp",
                                 tint = Color.White,
@@ -1459,7 +1459,7 @@ fun SwipeableRecordItem(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "Swipe to Delete",
                                 tint = Color.White,

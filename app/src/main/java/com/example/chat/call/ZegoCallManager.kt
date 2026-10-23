@@ -1,5 +1,7 @@
 package com.example.chat.call
 
+
+import com.example.ui.components.ThemedIcon
 import android.app.Activity
 import android.app.Application
 import android.content.Context
@@ -975,7 +977,7 @@ internal fun OutgoingCallBackArrow(onBack: () -> Unit) {
                 .clickable(onClick = onBack),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ComposeColor.White)
+            ThemedIcon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = ComposeColor.White)
         }
     }
 }

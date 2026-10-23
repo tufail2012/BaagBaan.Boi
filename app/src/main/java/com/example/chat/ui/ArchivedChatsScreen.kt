@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -200,7 +202,7 @@ internal fun ArchivedChatsTopHeaderOverlay(
                         .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
                         .testTag("archived_back_pill")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = contentColor,
@@ -230,7 +232,7 @@ internal fun ArchivedChatsTopHeaderOverlay(
                                 .size(40.dp)
                                 .testTag("archived_more_button")
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "More options",
                                 tint = contentColor,

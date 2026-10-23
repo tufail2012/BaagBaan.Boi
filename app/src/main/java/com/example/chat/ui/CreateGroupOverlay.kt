@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -171,7 +173,7 @@ fun CreateGroupOverlay(
                     onClick = { if (!isCreating) onDismiss() },
                     modifier = Modifier.testTag("create_group_close_button")
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = textColor
@@ -311,7 +313,7 @@ fun CreateGroupOverlay(
                                 maxLines = 1
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Remove $chipName",
                                 tint = subTextColor,
@@ -400,7 +402,7 @@ fun CreateGroupOverlay(
                                 )
                             },
                             leadingIcon = {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.Search,
                                     contentDescription = null,
                                     tint = accentColor,
@@ -410,7 +412,7 @@ fun CreateGroupOverlay(
                             trailingIcon = {
                                 if (searchQuery.isNotEmpty()) {
                                     IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                                        Icon(
+                                        ThemedIcon(
                                             imageVector = Icons.Default.Clear,
                                             contentDescription = "Clear",
                                             tint = subTextColor,

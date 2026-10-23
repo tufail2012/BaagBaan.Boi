@@ -168,7 +168,7 @@ fun UserAttendanceSection(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.testTag("mark_attendance_main_button")
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Mark Attendance", fontWeight = FontWeight.Bold, color = Color.White)
             }
@@ -223,7 +223,7 @@ fun UserAttendanceSection(
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.HowToReg,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
@@ -248,7 +248,7 @@ fun UserAttendanceSection(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                            ThemedIcon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Mark Attendance", fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -272,7 +272,7 @@ fun UserAttendanceSection(
                                     .fillMaxWidth()
                                     .padding(vertical = 4.dp)
                             ) {
-                                Icon(
+                                ThemedIcon(
                                     imageVector = Icons.Default.CalendarToday,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
@@ -344,7 +344,7 @@ fun AttendanceCardItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
@@ -363,7 +363,7 @@ fun AttendanceCardItem(
                 if (record.notes.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -391,7 +391,7 @@ fun AttendanceCardItem(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = statusIcon,
                             contentDescription = null,
                             tint = statusColor,
@@ -413,7 +413,7 @@ fun AttendanceCardItem(
                     onClick = onDelete,
                     modifier = Modifier.size(28.dp)
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "Delete Record",
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),

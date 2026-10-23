@@ -221,7 +221,7 @@ fun LiquidGlassPreview(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = item.icon,
                                 contentDescription = item.title,
                                 tint = itemTint,
@@ -248,7 +248,7 @@ fun LiquidGlassPreview(
                         .navLiquidGlass(shape = pillShape, backdrop = previewBackdrop),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Search,
                         contentDescription = "Search",
                         tint = config.glassTextColor,

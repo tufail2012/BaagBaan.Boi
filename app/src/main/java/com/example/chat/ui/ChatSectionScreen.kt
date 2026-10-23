@@ -1,5 +1,7 @@
 package com.example.chat.ui
 
+
+import com.example.ui.components.ThemedIcon
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -807,7 +809,7 @@ fun ChatSectionScreen(
                                 .background(accentColor.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.AutoMirrored.Filled.Chat,
                                 contentDescription = null,
                                 tint = accentColor,
@@ -839,7 +841,7 @@ fun ChatSectionScreen(
                             onClick = { chatViewModel.dismissInAppBanner() },
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Dismiss",
                                 tint = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),

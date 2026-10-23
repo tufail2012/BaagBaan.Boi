@@ -1092,7 +1092,7 @@ fun PaymentStatusSelector(
                                 "Advance Paid" -> Icons.Default.AccountBalanceWallet
                                 else -> Icons.Default.Lock
                             }
-                            Icon(
+                            ThemedIcon(
                                 imageVector = icon,
                                 contentDescription = "$statusOption selected",
                                 tint = selectedIconColor,
@@ -1354,7 +1354,7 @@ fun FrostedCircleActionButton(
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
+        ThemedIcon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = tint,

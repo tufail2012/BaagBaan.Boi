@@ -123,7 +123,7 @@ fun FarmerPaymentReceiptDialog(
                         onClick = onDismiss,
                         modifier = Modifier.testTag("close_receipt_dialog_btn")
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -209,7 +209,7 @@ fun FarmerPaymentReceiptDialog(
                             contentColor = Color.White
                         )
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.ReceiptLong,
                             contentDescription = null,
                             tint = Color.White,
@@ -246,7 +246,7 @@ fun FarmerPaymentReceiptDialog(
                                 contentColor = MaterialTheme.colorScheme.onSurface
                             )
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
@@ -274,7 +274,7 @@ fun FarmerPaymentReceiptDialog(
                                 contentColor = Color.White
                             )
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Chat,
                                 contentDescription = null,
                                 tint = Color.White,

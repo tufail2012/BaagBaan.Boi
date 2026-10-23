@@ -1,5 +1,7 @@
 package com.example.chat.ui.call
 
+
+import com.example.ui.components.ThemedIcon
 import android.app.Activity
 import android.content.Context
 import android.os.SystemClock
@@ -275,7 +277,7 @@ private fun CallHeaderRow(
             onClick = onMinimize,
             modifier = Modifier.size(48.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "Minimize Call",
                 tint = Color.White,
@@ -309,7 +311,7 @@ private fun CallHeaderRow(
             onClick = onAddPerson,
             modifier = Modifier.size(48.dp)
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = Icons.Default.PersonAdd,
                 contentDescription = "Add Person",
                 tint = Color.White,
@@ -508,7 +510,7 @@ private fun CallRoundButton(
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
+            ThemedIcon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = iconTint,
@@ -573,7 +575,7 @@ private fun CallMoreSheetContent(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
-                    Icon(
+                    ThemedIcon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = Color(0xFF8696A0),
@@ -603,7 +605,7 @@ private fun CallMoreSheetContent(
                             .background(Color(0x3300A884)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.GraphicEq,
                             contentDescription = "Noise Cancellation",
                             tint = Color(0xFF00A884),
@@ -665,7 +667,7 @@ private fun CallMoreSheetContent(
                                 .background(Color(0x3300A884)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
+                            ThemedIcon(
                                 imageVector = Icons.Default.Message,
                                 contentDescription = "Send message",
                                 tint = Color(0xFF00A884),
@@ -757,7 +759,7 @@ private fun CallMoreSheetContent(
                                 if (quickMessageText.isNotBlank()) Color(0xFF00A884) else Color(0x442A3942)
                             )
                     ) {
-                        Icon(
+                        ThemedIcon(
                             imageVector = Icons.Default.Send,
                             contentDescription = "Send",
                             tint = Color.White,
