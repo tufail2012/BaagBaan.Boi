@@ -116,6 +116,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 
 import androidx.compose.material.icons.filled.AccountCircle
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LiquidGlassPreference
 import com.example.ui.theme.LocalLiquidGlassConfig
 import com.example.ui.theme.getSectionAccentColor
 import dev.chrisbanes.haze.HazeState
@@ -1348,9 +1350,10 @@ fun Modifier.profileMenuLiquidGlass(
     shape: CornerBasedShape = RoundedCornerShape(22.dp)
 ): Modifier {
     val config = LocalLiquidGlassConfig.current
+    val blurRadius = config.blurRadius.coerceAtLeast(0f).dp
     val surfaceTintColor = config.surfaceTintColor
-    val popupOpacity = (config.surfaceOpacity * 0.5f).coerceIn(0f, 1f)
-    val popupBlurRadius = config.blurRadius.dp.coerceAtLeast(12.dp)
+    val surfaceOpacity = config.surfaceOpacity.coerceIn(0f, 1f)
+    val glassStyle = config.glassStyle
     val edgeBrush = Brush.verticalGradient(
         colors = listOf(
             Color.White.copy(alpha = 0.25f),
@@ -1358,35 +1361,65 @@ fun Modifier.profileMenuLiquidGlass(
         )
     )
 
-    if (backdrop == null || !isGlassSupported()) {
-        val fallbackStyle = HazeStyle(
-            backgroundColor = Color.Transparent,
-            blurRadius = popupBlurRadius,
-            tints = listOf(
-                HazeTint(
-                    color = surfaceTintColor.copy(alpha = popupOpacity)
-                )
-            ),
-            noiseFactor = 0.04f
-        )
-
+    if (!LiquidGlassPreference.enabled || !isGlassSupported()) {
         return this
             .clip(shape)
-            .then(
+            .background(MaterialTheme.colorScheme.surface, shape)
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = shape
+            )
+    }
+
+    if (backdrop == null) {
+        val baseModifier = this.clip(shape)
+        val styledModifier = when (glassStyle) {
+            GlassStyle.LIQUID -> {
+                val tintColor = surfaceTintColor.copy(alpha = surfaceOpacity)
                 if (hazeState != null) {
-                    Modifier.hazeEffect(
+                    val fallbackStyle = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        blurRadius = blurRadius,
+                        tints = listOf(
+                            HazeTint(
+                                color = tintColor
+                            )
+                        ),
+                        noiseFactor = 0.04f
+                    )
+                    baseModifier.hazeEffect(
                         state = hazeState,
                         style = fallbackStyle
                     )
                 } else {
-                    Modifier
+                    baseModifier.background(tintColor, shape)
                 }
-            )
-            .border(
-                width = 0.5.dp,
-                brush = edgeBrush,
-                shape = shape
-            )
+            }
+            GlassStyle.BLUR -> {
+                if (hazeState != null) {
+                    val fallbackStyle = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        blurRadius = blurRadius,
+                        tints = emptyList(),
+                        noiseFactor = 0.04f
+                    )
+                    baseModifier.hazeEffect(
+                        state = hazeState,
+                        style = fallbackStyle
+                    )
+                } else {
+                    baseModifier
+                }
+            }
+            GlassStyle.TRANSPARENT -> baseModifier
+        }
+
+        return styledModifier.border(
+            width = 0.5.dp,
+            brush = edgeBrush,
+            shape = shape
+        )
     }
 
     return this

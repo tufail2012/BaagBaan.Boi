@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -50,6 +51,8 @@ import androidx.compose.ui.zIndex
 import com.example.ui.animation.IosMotion
 import com.example.ui.components.backdrop.Backdrop
 import com.example.ui.components.profileMenuLiquidGlass
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LiquidGlassPreference
 import com.example.ui.theme.LocalLiquidGlassConfig
 import dev.chrisbanes.haze.HazeState
 import kotlin.math.roundToInt
@@ -445,9 +448,9 @@ private fun MorphPanel(
 
     val isDark = isAppInDarkMode()
     val glassConfig = LocalLiquidGlassConfig.current
-    val popupOpacity = (glassConfig.surfaceOpacity * 0.5f).coerceIn(0f, 1f)
+    val surfaceOpacity = glassConfig.surfaceOpacity.coerceIn(0f, 1f)
     val fallbackFill = if (glassConfig.surfaceTintColor != Color.Unspecified) {
-        glassConfig.surfaceTintColor.copy(alpha = popupOpacity)
+        glassConfig.surfaceTintColor.copy(alpha = surfaceOpacity)
     } else {
         if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF)
     }
@@ -462,12 +465,25 @@ private fun MorphPanel(
     val surfaceModifier = when {
         panelModifier != Modifier -> panelModifier
         glassOn && backdrop != null -> Modifier.navLiquidGlass(shape = panelShape, backdrop = backdrop)
+        !useGlassBackdrop && !LiquidGlassPreference.enabled -> Modifier
+            .clip(panelShape)
+            .background(MaterialTheme.colorScheme.surface, panelShape)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, panelShape)
         !useGlassBackdrop && popupHazeState != null && isGlassSupported() ->
             Modifier.profileMenuLiquidGlass(hazeState = popupHazeState, shape = panelShape)
+        !useGlassBackdrop && isGlassSupported() -> Modifier
+            .clip(panelShape)
+            .then(
+                when (glassConfig.glassStyle) {
+                    GlassStyle.LIQUID -> Modifier.background(fallbackFill, panelShape)
+                    GlassStyle.BLUR, GlassStyle.TRANSPARENT -> Modifier
+                }
+            )
+            .border(0.5.dp, edgeBrush, panelShape)
         !useGlassBackdrop -> Modifier
             .clip(panelShape)
-            .background(fallbackFill)
-            .border(0.5.dp, edgeBrush, panelShape)
+            .background(MaterialTheme.colorScheme.surface, panelShape)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, panelShape)
         else -> Modifier
             .clip(panelShape)
             .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
