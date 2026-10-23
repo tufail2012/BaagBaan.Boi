@@ -129,6 +129,8 @@ import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
 import com.example.data.parseVarietyLines
 import com.example.ui.CropViewModel
+import com.example.util.varietyQuantityRowsForRecords
+import androidx.compose.runtime.saveable.rememberSaveable
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -223,6 +225,8 @@ fun FarmerRecordsScreen(
             else -> "Plants"
         }
     }
+    var showVarietyQuantity by rememberSaveable { mutableStateOf(false) }
+    val varietyRows = remember(records) { varietyQuantityRowsForRecords(records) }
 
     var isInitialLoading by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -339,7 +343,8 @@ fun FarmerRecordsScreen(
                             isDark = isDark,
                             paletteAccent = paletteColor,
                             hazeState = effectiveHazeState,
-                            backdrop = recordsBackdrop
+                            backdrop = recordsBackdrop,
+                            onTotalQuantityClick = { showVarietyQuantity = true }
                         )
                     }
                 }
@@ -656,6 +661,20 @@ fun FarmerRecordsScreen(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            }
+
+            if (showVarietyQuantity) {
+                VarietyQuantityScreen(
+                    title = quantityUnitLabel + " by Variety",
+                    rows = varietyRows,
+                    totalQuantity = totalQuantity,
+                    unitLabel = quantityUnitLabel,
+                    isDark = isDark,
+                    paletteAccent = paletteColor,
+                    backdrop = recordsBackdrop,
+                    hazeState = effectiveHazeState,
+                    onBack = { showVarietyQuantity = false }
+                )
             }
         }
     }

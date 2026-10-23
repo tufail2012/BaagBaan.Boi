@@ -191,7 +191,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.example.util.varietyQuantityRowsForGarden
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -2388,6 +2390,8 @@ fun GardenPlanningRecordsTab(
             }
         }
     }
+    var showVarietyQuantity by rememberSaveable { mutableStateOf(false) }
+    val varietyRows = remember(entries) { varietyQuantityRowsForGarden(entries) }
 
     lazyListState.rememberScrollHapticFeedback()
 
@@ -2536,7 +2540,8 @@ fun GardenPlanningRecordsTab(
                             isDark = isDark,
                             paletteAccent = paletteAccent,
                             hazeState = effectiveHazeState,
-                            backdrop = backdrop
+                            backdrop = backdrop,
+                            onTotalQuantityClick = { showVarietyQuantity = true }
                         )
                     }
                 }
@@ -2806,6 +2811,20 @@ fun GardenPlanningRecordsTab(
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            }
+
+            if (showVarietyQuantity) {
+                VarietyQuantityScreen(
+                    title = "Plants by Variety",
+                    rows = varietyRows,
+                    totalQuantity = totalQuantity,
+                    unitLabel = "Plants",
+                    isDark = isDark,
+                    paletteAccent = paletteAccent,
+                    backdrop = backdrop,
+                    hazeState = effectiveHazeState,
+                    onBack = { showVarietyQuantity = false }
+                )
             }
         }
     }

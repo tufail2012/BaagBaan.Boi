@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,6 +65,7 @@ fun RecordsSummaryMetricCards(
     paletteAccent: Color = MaterialTheme.colorScheme.primary,
     hazeState: HazeState? = null,
     backdrop: Backdrop? = null,
+    onTotalQuantityClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val numberFmt = remember { NumberFormat.getNumberInstance(Locale("en", "IN")) }
@@ -141,6 +143,7 @@ fun RecordsSummaryMetricCards(
                 hazeState = hazeState,
                 backdrop = backdrop,
                 testTag = "metric_card_total_quantity",
+                onClick = onTotalQuantityClick,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -158,6 +161,7 @@ private fun SummaryMetricCardItem(
     hazeState: HazeState?,
     backdrop: Backdrop? = null,
     testTag: String,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val cardShape = RoundedCornerShape(16.dp)
@@ -221,6 +225,13 @@ private fun SummaryMetricCardItem(
                         )
                         .background(cardBgBrush, shape = cardShape)
                         .border(BorderStroke(1.dp, cardBorderBrush), shape = cardShape)
+                }
+            )
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(onClick = onClick)
+                } else {
+                    Modifier
                 }
             )
             .testTag(testTag)
