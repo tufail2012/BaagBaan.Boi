@@ -629,6 +629,7 @@ fun ChatSectionScreen(
                                 pagerState = pagerState,
                                 glassBackdrop = chatNavBackdrop,
                                 hazeState = chatHazeState,
+                                accentColor = effectiveAccentColor,
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .zIndex(10f)

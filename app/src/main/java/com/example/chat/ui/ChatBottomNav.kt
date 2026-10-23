@@ -101,11 +101,6 @@ private val TAB_SPACING = 0.dp
 private val BAR_GUTTER = 16.dp
 private val GESTURE_BAR_FLOOR = 15.dp
 
-/**
- * Theme colours only: black on light theme, white on dark theme.
- */
-private const val USE_SECTION_ACCENT = false
-
 private val navBarInsets: WindowInsets
     @Composable get() = WindowInsets.navigationBars.union(WindowInsets(bottom = GESTURE_BAR_FLOOR))
 
@@ -117,6 +112,7 @@ fun ChatBottomNav(
     pagerState: PagerState?,
     glassBackdrop: NavBackdrop?,
     hazeState: HazeState? = null,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
     val navItems = remember {
@@ -148,12 +144,7 @@ fun ChatBottomNav(
 
     val config = LocalLiquidGlassConfig.current
     val contentColor = glassContentColor()
-    val selectedColor = if (USE_SECTION_ACCENT) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        contentColor
-    }
-    val activeIconColor = config.selectionPillColor
+    val selectedTabColor = accentColor
     val unselectedColor = contentColor.copy(alpha = 0.65f)
     val indicatorColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
 
@@ -263,8 +254,7 @@ fun ChatBottomNav(
                     useGlass = useGlass,
                     tabRow = tabRow,
                     tabShape = tabShape,
-                    selectedColor = selectedColor,
-                    activeIconColor = activeIconColor,
+                    selectedColor = selectedTabColor,
                     unselectedColor = unselectedColor,
                     glassSpec = glassSpec,
                     onRowSize = { rowSize = it },
@@ -347,7 +337,6 @@ private fun NavTabRow(
     tabRow: LayerBackdrop,
     tabShape: Shape,
     selectedColor: Color,
-    activeIconColor: Color,
     unselectedColor: Color,
     glassSpec: AnimationSpec<Float>,
     onRowSize: (IntSize) -> Unit,
@@ -365,7 +354,6 @@ private fun NavTabRow(
         navItems.forEachIndexed { index, item ->
             val isSelected = index == selectedIndex
             val tint = if (isSelected) selectedColor else unselectedColor
-            val iconTint = if (isSelected) activeIconColor else unselectedColor
             val iconScale by animateFloatAsState(
                 targetValue = if (isSelected) 1.08f else 1f,
                 animationSpec = glassSpec,
@@ -397,7 +385,7 @@ private fun NavTabRow(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.tab.title,
-                        tint = iconTint,
+                        tint = tint,
                         modifier = Modifier.size(25.dp)
                     )
                 }
