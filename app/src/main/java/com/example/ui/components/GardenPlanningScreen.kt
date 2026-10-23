@@ -665,6 +665,7 @@ fun GardenPlanningFormTab(
     val floatingControlsHeightDp = with(density) { floatingControlsHeightPx.toDp() }
 
     val gardenAccent = customPaletteColor ?: MaterialTheme.colorScheme.primary
+    val formAccent = gardenAccent
     val isAmoled = themeMode == com.example.ui.AppThemeMode.AMOLED
     val fallbackHaze = remember { HazeState() }
     val effectiveHaze = hazeState ?: LocalAppGlassHazeState.current ?: fallbackHaze
@@ -943,6 +944,8 @@ fun GardenPlanningFormTab(
                 hazeState = effectiveHaze
             )
 
+            val serialIcon = Icons.Default.ConfirmationNumber
+            val serialFieldAccent = iconTileColor(serialIcon, formAccent, isDark)
             TextField(
                 value = serialNumber,
                 onValueChange = { 
@@ -957,14 +960,14 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = serialFieldAccent)
                     .bringIntoViewOnFocus()
                     .testTag("garden_serial_number_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent),
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.ConfirmationNumber) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = serialIcon) {
                         Icon(
-                            imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                            imageVector = if (isSerialLocked) Icons.Default.Lock else serialIcon,
                             contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
@@ -1019,6 +1022,8 @@ fun GardenPlanningFormTab(
             )
 
             // Farmer Name
+            val farmerNameIcon = Icons.Default.Person
+            val farmerNameFieldAccent = iconTileColor(farmerNameIcon, formAccent, isDark)
             TextField(
                 value = farmerName,
                 onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
@@ -1028,9 +1033,9 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Person) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = farmerNameIcon) {
                         Icon(
-                            imageVector = Icons.Default.Person,
+                            imageVector = farmerNameIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -1038,7 +1043,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = farmerNameFieldAccent)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_name_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1047,6 +1052,8 @@ fun GardenPlanningFormTab(
             FormFieldDivider(isDark = isDark)
 
             // Farmer Address
+            val farmerAddressIcon = Icons.Default.LocationOn
+            val farmerAddressFieldAccent = iconTileColor(farmerAddressIcon, formAccent, isDark)
             TextField(
                 value = farmerAddress,
                 onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
@@ -1057,9 +1064,9 @@ fun GardenPlanningFormTab(
                 maxLines = 2,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.LocationOn) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = farmerAddressIcon) {
                         Icon(
-                            imageVector = Icons.Default.LocationOn,
+                            imageVector = farmerAddressIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -1067,7 +1074,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = farmerAddressFieldAccent)
                     .bringIntoViewOnFocus()
                     .testTag("garden_farmer_address_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1076,6 +1083,8 @@ fun GardenPlanningFormTab(
             FormFieldDivider(isDark = isDark)
 
             // Contact Number Field Pattern (+91 Prefix + Contact Picker)
+            val contactIcon = Icons.Default.Phone
+            val contactFieldAccent = iconTileColor(contactIcon, formAccent, isDark)
             TextField(
                 value = contactTextFieldValue,
                 onValueChange = { newValue ->
@@ -1110,9 +1119,9 @@ fun GardenPlanningFormTab(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Phone) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = contactIcon) {
                         Icon(
-                            imageVector = Icons.Default.Phone,
+                            imageVector = contactIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -1132,7 +1141,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = contactFieldAccent)
                     .bringIntoViewOnFocus()
                     .onFocusChanged { focusState ->
                         if (focusState.isFocused) {
@@ -1267,6 +1276,8 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Plant Variety
+                    val plantVarietyIcon = Icons.Outlined.LocalFlorist
+                    val plantVarietyFieldAccent = iconTileColor(plantVarietyIcon, formAccent, isDark)
                     TextField(
                         value = plantVariety,
                         onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
@@ -1276,9 +1287,9 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Outlined.LocalFlorist) {
+                            ClayFieldIcon(accentColor = gardenAccent, icon = plantVarietyIcon) {
                                 Icon(
-                                    imageVector = Icons.Outlined.LocalFlorist,
+                                    imageVector = plantVarietyIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1286,13 +1297,15 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = plantVarietyFieldAccent)
                     .bringIntoViewOnFocus()
                             .testTag("garden_plant_variety_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                     )
 
                     // Rootstock
+                    val rootStockIcon = Icons.Default.Spa
+                    val rootStockFieldAccent = iconTileColor(rootStockIcon, formAccent, isDark)
                     TextField(
                         value = rootStock,
                         onValueChange = { viewModel.rootStock.value = capitalizeWordsNaturally(it) },
@@ -1302,9 +1315,9 @@ fun GardenPlanningFormTab(
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Spa) {
+                            ClayFieldIcon(accentColor = gardenAccent, icon = rootStockIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.Spa,
+                                    imageVector = rootStockIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1312,7 +1325,7 @@ fun GardenPlanningFormTab(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootStockFieldAccent)
                     .bringIntoViewOnFocus()
                             .testTag("garden_root_stock_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1337,6 +1350,8 @@ fun GardenPlanningFormTab(
                             .weight(1f)
                             .onGloballyPositioned { ageAnchorBounds = it.boundsInWindow() }
                     ) {
+                        val saplingAgeIcon = Icons.Default.HourglassTop
+                        val saplingAgeFieldAccent = iconTileColor(saplingAgeIcon, formAccent, isDark)
                         TextField(
                             value = saplingAge,
                             onValueChange = {},
@@ -1344,9 +1359,9 @@ fun GardenPlanningFormTab(
                             label = { Text("Sapling Age", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Age") },
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.HourglassTop) {
+                                ClayFieldIcon(accentColor = gardenAccent, icon = saplingAgeIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.HourglassTop,
+                                        imageVector = saplingAgeIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1362,7 +1377,7 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { ageDropdownExpanded = true }
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = saplingAgeFieldAccent)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1391,6 +1406,8 @@ fun GardenPlanningFormTab(
                             .weight(1f)
                             .onGloballyPositioned { originAnchorBounds = it.boundsInWindow() }
                     ) {
+                        val plantOriginIcon = Icons.Default.Yard
+                        val plantOriginFieldAccent = iconTileColor(plantOriginIcon, formAccent, isDark)
                         TextField(
                             value = plantOrigin,
                             onValueChange = {},
@@ -1398,9 +1415,9 @@ fun GardenPlanningFormTab(
                             label = { Text("Plant Origin", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                             placeholder = { Text("Select Origin") },
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Yard) {
+                                ClayFieldIcon(accentColor = gardenAccent, icon = plantOriginIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.Yard,
+                                        imageVector = plantOriginIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1416,7 +1433,7 @@ fun GardenPlanningFormTab(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { originDropdownExpanded = true }
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = plantOriginFieldAccent)
                     .bringIntoViewOnFocus()
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1440,6 +1457,8 @@ fun GardenPlanningFormTab(
                 }
 
                 // Feathers (Full-Width Standard Text Specification Field)
+                val feathersIcon = Icons.Default.Nature
+                val feathersFieldAccent = iconTileColor(feathersIcon, formAccent, isDark)
                 TextField(
                     value = feathers,
                     onValueChange = { viewModel.feathers.value = it },
@@ -1452,9 +1471,9 @@ fun GardenPlanningFormTab(
                         capitalization = KeyboardCapitalization.Characters
                     ),
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Nature) {
+                        ClayFieldIcon(accentColor = gardenAccent, icon = feathersIcon) {
                             Icon(
-                                imageVector = Icons.Default.Nature,
+                                imageVector = feathersIcon,
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -1462,7 +1481,7 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = feathersFieldAccent)
                     .bringIntoViewOnFocus()
                         .testTag("garden_feathers_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1699,6 +1718,8 @@ fun GardenPlanningFormTab(
                 }
 
                 // Field 4: Unit Price per Plant
+                val costPerPlantIcon = Icons.Default.CurrencyRupee
+                val costPerPlantFieldAccent = iconTileColor(costPerPlantIcon, formAccent, isDark)
                 TextField(
                     value = costPerPlant,
                     onValueChange = { 
@@ -1711,9 +1732,9 @@ fun GardenPlanningFormTab(
                     shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.CurrencyRupee) {
+                        ClayFieldIcon(accentColor = gardenAccent, icon = costPerPlantIcon) {
                             Icon(
-                                imageVector = Icons.Default.CurrencyRupee,
+                                imageVector = costPerPlantIcon,
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -1721,7 +1742,7 @@ fun GardenPlanningFormTab(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = costPerPlantFieldAccent)
                     .bringIntoViewOnFocus()
                         .testTag("garden_cost_per_plant_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1831,6 +1852,8 @@ fun GardenPlanningFormTab(
             )
 
             // Amount Paid Input Field
+            val amountPaidIcon = Icons.Default.Payments
+            val amountPaidFieldAccent = iconTileColor(amountPaidIcon, formAccent, isDark)
             TextField(
                 value = amountPaid,
                 onValueChange = { viewModel.onAmountPaidChanged(it) },
@@ -1840,9 +1863,9 @@ fun GardenPlanningFormTab(
                 shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Payments) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = amountPaidIcon) {
                         Icon(
-                            imageVector = Icons.Default.Payments,
+                            imageVector = amountPaidIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -1850,7 +1873,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = amountPaidFieldAccent)
                     .bringIntoViewOnFocus()
                     .testTag("garden_amount_paid_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -1917,6 +1940,8 @@ fun GardenPlanningFormTab(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val bookingDateIcon = Icons.Default.CalendarMonth
+                val bookingDateFieldAccent = iconTileColor(bookingDateIcon, formAccent, isDark)
                 TextField(
                     value = bookingDateTFV,
                     onValueChange = { newVal ->
@@ -1938,13 +1963,13 @@ fun GardenPlanningFormTab(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.CalendarMonth) {
+                        ClayFieldIcon(accentColor = gardenAccent, icon = bookingDateIcon) {
                             IconButton(
                                 onClick = { openDatePicker(true) },
                                 modifier = Modifier.size(36.dp).testTag("garden_booking_date_picker_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
+                                    imageVector = bookingDateIcon,
                                     contentDescription = "Select Booking Date",
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -1955,12 +1980,14 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = bookingDateFieldAccent)
                     .bringIntoViewOnFocus()
                         .testTag("garden_booking_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                 )
 
+                val expectedDeliveryIcon = Icons.Default.LocalShipping
+                val expectedDeliveryFieldAccent = iconTileColor(expectedDeliveryIcon, formAccent, isDark)
                 TextField(
                     value = expectedDeliveryTFV,
                     onValueChange = { newVal ->
@@ -1982,13 +2009,13 @@ fun GardenPlanningFormTab(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.LocalShipping) {
+                        ClayFieldIcon(accentColor = gardenAccent, icon = expectedDeliveryIcon) {
                             IconButton(
                                 onClick = { openDatePicker(false) },
                                 modifier = Modifier.size(36.dp).testTag("garden_expected_delivery_picker_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.LocalShipping,
+                                    imageVector = expectedDeliveryIcon,
                                     contentDescription = "Select Expected Delivery Date",
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -1999,7 +2026,7 @@ fun GardenPlanningFormTab(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = expectedDeliveryFieldAccent)
                     .bringIntoViewOnFocus()
                         .testTag("garden_expected_delivery_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
@@ -2024,6 +2051,8 @@ fun GardenPlanningFormTab(
             )
 
             // Notes
+            val notesIcon = Icons.Default.Description
+            val notesFieldAccent = iconTileColor(notesIcon, formAccent, isDark)
             TextField(
                 value = notes,
                 onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
@@ -2034,9 +2063,9 @@ fun GardenPlanningFormTab(
                 shape = CLAY_FIELD_SHAPE,
                 keyboardOptions = AppDefaultWordKeyboardOptions,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = gardenAccent, icon = Icons.Default.Description) {
+                    ClayFieldIcon(accentColor = gardenAccent, icon = notesIcon) {
                         Icon(
-                            imageVector = Icons.Default.Description,
+                            imageVector = notesIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -2062,7 +2091,7 @@ fun GardenPlanningFormTab(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = notesFieldAccent)
                     .bringIntoViewOnFocus()
                     .testTag("garden_notes_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)

@@ -1451,14 +1451,22 @@ data class FieldGlassSpec(
 val LocalFieldGlassSpec = staticCompositionLocalOf<FieldGlassSpec?> { null }
 
 @Composable
-fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Modifier {
+fun Modifier.fieldGlass(
+    shape: CornerBasedShape = RoundedCornerShape(18.dp),
+    accent: Color = Color.Unspecified
+): Modifier {
     val spec = LocalFieldGlassSpec.current ?: return this
+    val resolvedAccent = when {
+        accent != Color.Unspecified -> accent
+        spec.accent != Color.Unspecified -> spec.accent
+        else -> MaterialTheme.colorScheme.primary
+    }
     if (spec.flat) {
         return this.fieldFlat(
             shape = shape,
             isDark = spec.isDark,
             isAmoled = spec.isAmoled,
-            accentColor = spec.accent.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary
+            accent = resolvedAccent
         )
     }
     if (!FIELD_GLASS_ENABLED || !isGlassSupported()) return this
@@ -1467,7 +1475,7 @@ fun Modifier.fieldGlass(shape: CornerBasedShape = RoundedCornerShape(18.dp)): Mo
         backdrop = spec.backdrop,
         hazeState = spec.hazeState,
         isDark = spec.isDark,
-        accentColor = MaterialTheme.colorScheme.primary
+        accentColor = resolvedAccent
     )
 }
 
@@ -1491,33 +1499,49 @@ fun flatFieldFill(accent: Color, isDark: Boolean, isAmoled: Boolean): Color {
 @Composable
 fun Modifier.fieldFlat(
     shape: CornerBasedShape = RoundedCornerShape(18.dp),
-    isDark: Boolean,
-    isAmoled: Boolean = false,
-    accentColor: Color
+    isDark: Boolean = LocalFieldGlassSpec.current?.isDark ?: isAppInDarkMode(),
+    isAmoled: Boolean = LocalFieldGlassSpec.current?.isAmoled ?: false,
+    accent: Color = Color.Unspecified,
+    accentColor: Color = Color.Unspecified
 ): Modifier {
+    val spec = LocalFieldGlassSpec.current
+    val resolvedAccent = when {
+        accent != Color.Unspecified -> accent
+        accentColor != Color.Unspecified -> accentColor
+        spec != null && spec.accent != Color.Unspecified -> spec.accent
+        else -> MaterialTheme.colorScheme.primary
+    }
     var isFocused by remember { mutableStateOf(false) }
-    val fill = flatFieldFill(accentColor, isDark, isAmoled)
-    val rim = accentColor.copy(alpha = if (isDark) 0.30f else 0.22f)
+    val fill = flatFieldFill(resolvedAccent, isDark, isAmoled)
+    val rim = resolvedAccent.copy(alpha = if (isDark) 0.30f else 0.22f)
     return this
         .onFocusChanged { isFocused = it.isFocused }
         .clip(shape)
         .background(fill, shape)
         .border(
             width = if (isFocused) 1.5.dp else 1.dp,
-            color = if (isFocused) accentColor.copy(alpha = if (isDark) 0.80f else 0.85f) else rim,
+            color = if (isFocused) resolvedAccent.copy(alpha = if (isDark) 0.80f else 0.85f) else rim,
             shape = shape
         )
 }
 
 @Composable
-fun Modifier.flatSurface(shape: androidx.compose.ui.graphics.Shape, isDark: Boolean): Modifier {
+fun Modifier.flatSurface(
+    shape: androidx.compose.ui.graphics.Shape,
+    isDark: Boolean,
+    accent: Color = Color.Unspecified
+): Modifier {
     val spec = LocalFieldGlassSpec.current
-    val accent = spec?.accent?.takeIf { it != Color.Unspecified } ?: MaterialTheme.colorScheme.primary
-    val fill = flatFieldFill(accent, isDark, spec?.isAmoled ?: false)
+    val resolvedAccent = when {
+        accent != Color.Unspecified -> accent
+        spec != null && spec.accent != Color.Unspecified -> spec.accent
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val fill = flatFieldFill(resolvedAccent, isDark, spec?.isAmoled ?: false)
     return this
         .clip(shape)
         .background(fill, shape)
-        .border(1.dp, accent.copy(alpha = if (isDark) 0.30f else 0.22f), shape)
+        .border(1.dp, resolvedAccent.copy(alpha = if (isDark) 0.30f else 0.22f), shape)
 }
 
 

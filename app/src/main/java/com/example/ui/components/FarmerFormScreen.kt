@@ -932,6 +932,8 @@ fun FarmerFormScreen(
                         accentColor = MaterialTheme.colorScheme.primary
                     )
 
+                    val serialIcon = Icons.Default.ConfirmationNumber
+                    val serialFieldAccent = iconTileColor(serialIcon, formAccent, isDark)
                     TextField(
                         value = serialNumber,
                         onValueChange = { 
@@ -946,14 +948,14 @@ fun FarmerFormScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = serialFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("serial_number_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent),
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.ConfirmationNumber) {
+                            ClayFieldIcon(accentColor = formAccent, icon = serialIcon) {
                                 Icon(
-                                    imageVector = if (isSerialLocked) Icons.Default.Lock else Icons.Default.ConfirmationNumber,
+                                    imageVector = if (isSerialLocked) Icons.Default.Lock else serialIcon,
                                     contentDescription = if (isSerialLocked) "Locked" else "Serial Number",
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -1020,6 +1022,8 @@ fun FarmerFormScreen(
 
                     // Farmer Name
                     val farmerNameField = @Composable {
+                        val farmerNameIcon = Icons.Default.Person
+                        val farmerNameFieldAccent = iconTileColor(farmerNameIcon, formAccent, isDark)
                         TextField(
                             value = farmerName,
                             onValueChange = { viewModel.farmerName.value = capitalizeWordsNaturally(it) },
@@ -1029,9 +1033,9 @@ fun FarmerFormScreen(
                             singleLine = true,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Person) {
+                                ClayFieldIcon(accentColor = formAccent, icon = farmerNameIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.Person,
+                                        imageVector = farmerNameIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1039,7 +1043,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = farmerNameFieldAccent)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_name_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1048,6 +1052,8 @@ fun FarmerFormScreen(
 
                     // Farmer Address
                     val farmerAddressField = @Composable {
+                        val farmerAddressIcon = Icons.Default.LocationOn
+                        val farmerAddressFieldAccent = iconTileColor(farmerAddressIcon, formAccent, isDark)
                         TextField(
                             value = farmerAddress,
                             onValueChange = { viewModel.farmerAddress.value = capitalizeWordsNaturally(it) },
@@ -1058,9 +1064,9 @@ fun FarmerFormScreen(
                             maxLines = 2,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.LocationOn) {
+                                ClayFieldIcon(accentColor = formAccent, icon = farmerAddressIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.LocationOn,
+                                        imageVector = farmerAddressIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1068,7 +1074,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = farmerAddressFieldAccent)
                             .bringIntoViewOnFocus()
                                 .testTag("farmer_address_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1077,6 +1083,8 @@ fun FarmerFormScreen(
 
                     // Contact Number
                     val contactNumberField = @Composable {
+                        val contactIcon = Icons.Default.Phone
+                        val contactFieldAccent = iconTileColor(contactIcon, formAccent, isDark)
                         TextField(
                             value = contactTextFieldValue,
                             onValueChange = { newValue ->
@@ -1114,9 +1122,9 @@ fun FarmerFormScreen(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Phone) {
+                                ClayFieldIcon(accentColor = formAccent, icon = contactIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.Phone,
+                                        imageVector = contactIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1142,7 +1150,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = contactFieldAccent)
                             .bringIntoViewOnFocus()
                                 .onFocusChanged { focusState ->
                                     if (focusState.isFocused) {
@@ -1282,6 +1290,8 @@ fun FarmerFormScreen(
                             }
 
                             // Variety Name
+                            val varietyLineIcon = if (isImportedRootstocks) Icons.Default.Spa else Icons.Outlined.LocalFlorist
+                            val varietyLineFieldAccent = iconTileColor(varietyLineIcon, formAccent, isDark)
                             TextField(
                                 value = line.variety,
                                 onValueChange = { newName ->
@@ -1296,9 +1306,9 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = if (isImportedRootstocks) Icons.Default.Spa else Icons.Outlined.LocalFlorist) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = varietyLineIcon) {
                                         Icon(
-                                            imageVector = if (isImportedRootstocks) Icons.Default.Spa else Icons.Outlined.LocalFlorist,
+                                            imageVector = varietyLineIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1306,7 +1316,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = varietyLineFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("variety_line_name_${index}"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1318,6 +1328,8 @@ fun FarmerFormScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
+                                    val lineRootstockIcon = Icons.Default.Spa
+                                    val lineRootstockFieldAccent = iconTileColor(lineRootstockIcon, formAccent, isDark)
                                     TextField(
                                         value = line.rootstock,
                                         onValueChange = { newRoot ->
@@ -1332,18 +1344,20 @@ fun FarmerFormScreen(
                                         singleLine = true,
                                         keyboardOptions = AppDefaultWordKeyboardOptions,
                                         leadingIcon = {
-                                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Spa) {
-                                                Icon(Icons.Default.Spa, contentDescription = null, tint = Color.White)
+                                            ClayFieldIcon(accentColor = formAccent, icon = lineRootstockIcon) {
+                                                Icon(lineRootstockIcon, contentDescription = null, tint = Color.White)
                                             }
                                         },
                                         modifier = Modifier
                                             .weight(1.1f)
-                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = lineRootstockFieldAccent)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_rootstock_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                     )
 
+                                    val lineFeathersIcon = Icons.Default.Nature
+                                    val lineFeathersFieldAccent = iconTileColor(lineFeathersIcon, formAccent, isDark)
                                     TextField(
                                         value = line.feathers,
                                         onValueChange = { newF ->
@@ -1358,13 +1372,13 @@ fun FarmerFormScreen(
                                             capitalization = KeyboardCapitalization.Characters
                                         ),
                                         leadingIcon = {
-                                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Nature) {
-                                                Icon(Icons.Default.Nature, contentDescription = null, tint = Color.White)
+                                            ClayFieldIcon(accentColor = formAccent, icon = lineFeathersIcon) {
+                                                Icon(lineFeathersIcon, contentDescription = null, tint = Color.White)
                                             }
                                         },
                                         modifier = Modifier
                                             .weight(0.9f)
-                                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = lineFeathersFieldAccent)
                             .bringIntoViewOnFocus()
                                             .testTag("variety_line_feathers_${index}"),
                                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1377,6 +1391,8 @@ fun FarmerFormScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                val lineQtyIcon = Icons.Default.FormatListNumbered
+                                val lineQtyFieldAccent = iconTileColor(lineQtyIcon, formAccent, isDark)
                                 TextField(
                                     value = if (line.quantity == 0) "" else line.quantity.toString(),
                                     onValueChange = { newQ ->
@@ -1396,18 +1412,20 @@ fun FarmerFormScreen(
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     leadingIcon = {
-                                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.FormatListNumbered) {
-                                            Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = Color.White)
+                                        ClayFieldIcon(accentColor = formAccent, icon = lineQtyIcon) {
+                                            Icon(lineQtyIcon, contentDescription = null, tint = Color.White)
                                         }
                                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = lineQtyFieldAccent)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_qty_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
+                                val linePriceIcon = Icons.Default.CurrencyRupee
+                                val linePriceFieldAccent = iconTileColor(linePriceIcon, formAccent, isDark)
                                 TextField(
                                     value = if (line.unitPrice == 0.0) "" else (if (line.unitPrice % 1.0 == 0.0) line.unitPrice.toInt().toString() else line.unitPrice.toString()),
                                     onValueChange = { newP ->
@@ -1426,13 +1444,13 @@ fun FarmerFormScreen(
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     leadingIcon = {
-                                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CurrencyRupee) {
-                                            Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
+                                        ClayFieldIcon(accentColor = formAccent, icon = linePriceIcon) {
+                                            Icon(linePriceIcon, contentDescription = null, tint = Color.White)
                                         }
                                     },
                                     modifier = Modifier
                                         .weight(1f)
-                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = linePriceFieldAccent)
                             .bringIntoViewOnFocus()
                                         .testTag("variety_line_price_${index}"),
                                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1485,6 +1503,8 @@ fun FarmerFormScreen(
             } else {
                 if (isSiteVisit) {
                     // 1. Visit Date
+                    val visitDateIcon = Icons.Default.CalendarToday
+                    val visitDateFieldAccent = iconTileColor(visitDateIcon, formAccent, isDark)
                     TextField(
                         value = visitDateTFV,
                         onValueChange = { newVal ->
@@ -1506,7 +1526,7 @@ fun FarmerFormScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CalendarToday) {
+                            ClayFieldIcon(accentColor = formAccent, icon = visitDateIcon) {
                                 IconButton(
                                     onClick = {
                                         showDatePicker(visitDate) {
@@ -1517,7 +1537,7 @@ fun FarmerFormScreen(
                                     modifier = Modifier.size(36.dp).testTag("visit_date_picker_button")
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.CalendarToday,
+                                        imageVector = visitDateIcon,
                                         contentDescription = "Select Visit Date",
                                         tint = Color.White,
                                         modifier = Modifier.size(20.dp)
@@ -1527,7 +1547,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = visitDateFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("visit_date_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1536,6 +1556,8 @@ fun FarmerFormScreen(
                     FormFieldDivider(isDark = isDark)
 
                     // 2. Soil Health Observations
+                    val soilHealthIcon = Icons.Default.Landscape
+                    val soilHealthFieldAccent = iconTileColor(soilHealthIcon, formAccent, isDark)
                     TextField(
                         value = soilHealthObservations,
                         onValueChange = { viewModel.soilHealthObservations.value = it },
@@ -1545,9 +1567,9 @@ fun FarmerFormScreen(
                         singleLine = false,
                         maxLines = 3,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Landscape) {
+                            ClayFieldIcon(accentColor = formAccent, icon = soilHealthIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.Landscape,
+                                    imageVector = soilHealthIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1555,7 +1577,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = soilHealthFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("soil_health_observations_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1564,6 +1586,8 @@ fun FarmerFormScreen(
                     FormFieldDivider(isDark = isDark)
 
                     // 3. Plant Health Observations
+                    val plantHealthIcon = Icons.Default.HealthAndSafety
+                    val plantHealthFieldAccent = iconTileColor(plantHealthIcon, formAccent, isDark)
                     TextField(
                         value = plantHealthObservations,
                         onValueChange = { viewModel.plantHealthObservations.value = it },
@@ -1573,9 +1597,9 @@ fun FarmerFormScreen(
                         singleLine = false,
                         maxLines = 3,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.HealthAndSafety) {
+                            ClayFieldIcon(accentColor = formAccent, icon = plantHealthIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.HealthAndSafety,
+                                    imageVector = plantHealthIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1583,7 +1607,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = plantHealthFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("plant_health_observations_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1592,6 +1616,8 @@ fun FarmerFormScreen(
                     FormFieldDivider(isDark = isDark)
 
                     // 4. Orchard/Site Location
+                    val siteLocationIcon = Icons.Default.Place
+                    val siteLocationFieldAccent = iconTileColor(siteLocationIcon, formAccent, isDark)
                     TextField(
                         value = location,
                         onValueChange = { input ->
@@ -1617,9 +1643,9 @@ fun FarmerFormScreen(
                             imeAction = ImeAction.Next
                         ),
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Place) {
+                            ClayFieldIcon(accentColor = formAccent, icon = siteLocationIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.Place,
+                                    imageVector = siteLocationIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1642,13 +1668,15 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = siteLocationFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_site_location_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
                 } else if (isPruning) {
                     // Orchard Location (Single field for Pruning Specification)
+                    val orchardLocationIcon = Icons.Default.Place
+                    val orchardLocationFieldAccent = iconTileColor(orchardLocationIcon, formAccent, isDark)
                     TextField(
                         value = location,
                         onValueChange = { input ->
@@ -1674,9 +1702,9 @@ fun FarmerFormScreen(
                             imeAction = ImeAction.Next
                         ),
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Place) {
+                            ClayFieldIcon(accentColor = formAccent, icon = orchardLocationIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.Place,
+                                    imageVector = orchardLocationIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -1699,7 +1727,7 @@ fun FarmerFormScreen(
                         } else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = orchardLocationFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("orchard_location_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1707,6 +1735,8 @@ fun FarmerFormScreen(
                 } else {
                     // 1. Plant Variety (Removed for Imported Rootstocks)
                     if (!isImportedRootstocks) {
+                        val plantVarietyIcon = Icons.Outlined.LocalFlorist
+                        val plantVarietyFieldAccent = iconTileColor(plantVarietyIcon, formAccent, isDark)
                         TextField(
                             value = plantVariety,
                             onValueChange = { viewModel.plantVariety.value = capitalizeWordsNaturally(it) },
@@ -1716,9 +1746,9 @@ fun FarmerFormScreen(
                             singleLine = true,
                             keyboardOptions = AppDefaultWordKeyboardOptions,
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Outlined.LocalFlorist) {
+                                ClayFieldIcon(accentColor = formAccent, icon = plantVarietyIcon) {
                                     Icon(
-                                        imageVector = Icons.Outlined.LocalFlorist,
+                                        imageVector = plantVarietyIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -1726,7 +1756,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = plantVarietyFieldAccent)
                             .bringIntoViewOnFocus()
                                 .testTag("plant_variety_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1743,6 +1773,8 @@ fun FarmerFormScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            val localRootstockIcon = Icons.Default.Spa
+                            val localRootstockFieldAccent = iconTileColor(localRootstockIcon, formAccent, isDark)
                             TextField(
                                 value = rootstock,
                                 onValueChange = { viewModel.rootstock.value = capitalizeWordsNaturally(it) },
@@ -1752,9 +1784,9 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 keyboardOptions = AppDefaultWordKeyboardOptions,
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Spa) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = localRootstockIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Spa,
+                                            imageVector = localRootstockIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1762,12 +1794,14 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1.1f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = localRootstockFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
+                            val localFeathersIcon = Icons.Default.Nature
+                            val localFeathersFieldAccent = iconTileColor(localFeathersIcon, formAccent, isDark)
                             TextField(
                                 value = feathers,
                                 onValueChange = { viewModel.feathers.value = it },
@@ -1780,9 +1814,9 @@ fun FarmerFormScreen(
                                     capitalization = KeyboardCapitalization.Characters
                                 ),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Nature) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = localFeathersIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Nature,
+                                            imageVector = localFeathersIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1790,7 +1824,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(0.9f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = localFeathersFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1806,6 +1840,8 @@ fun FarmerFormScreen(
                                 .fillMaxWidth()
                                 .clickable { saplingAgeMenuExpanded = true }
                         ) {
+                            val localSaplingAgeIcon = Icons.Default.HourglassTop
+                            val localSaplingAgeFieldAccent = iconTileColor(localSaplingAgeIcon, formAccent, isDark)
                             TextField(
                                 value = healthStage.ifBlank { "1 Year" },
                                 onValueChange = {},
@@ -1814,9 +1850,9 @@ fun FarmerFormScreen(
                                 shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.HourglassTop) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = localSaplingAgeIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.HourglassTop,
+                                            imageVector = localSaplingAgeIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1830,7 +1866,7 @@ fun FarmerFormScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .onGloballyPositioned { saplingAgeAnchorBounds = it.boundsInWindow() }
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = localSaplingAgeFieldAccent)
                                     .clickable { saplingAgeMenuExpanded = true }
                                     .testTag("sapling_age_dropdown"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1860,6 +1896,8 @@ fun FarmerFormScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            val importedRootstockIcon = Icons.Default.Spa
+                            val importedRootstockFieldAccent = iconTileColor(importedRootstockIcon, formAccent, isDark)
                             TextField(
                                 value = rootstock,
                                 onValueChange = { viewModel.rootstock.value = it },
@@ -1869,9 +1907,9 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Spa) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = importedRootstockIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Spa,
+                                            imageVector = importedRootstockIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1879,12 +1917,14 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1.1f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = importedRootstockFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("rootstock_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
+                            val importedFeathersIcon = Icons.Default.Nature
+                            val importedFeathersFieldAccent = iconTileColor(importedFeathersIcon, formAccent, isDark)
                             TextField(
                                 value = feathers,
                                 onValueChange = { viewModel.feathers.value = it },
@@ -1897,9 +1937,9 @@ fun FarmerFormScreen(
                                     capitalization = KeyboardCapitalization.Characters
                                 ),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Nature) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = importedFeathersIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Nature,
+                                            imageVector = importedFeathersIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1907,7 +1947,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(0.9f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = importedFeathersFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("feathers_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1921,6 +1961,8 @@ fun FarmerFormScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            val importedCountryIcon = Icons.Default.Public
+                            val importedCountryFieldAccent = iconTileColor(importedCountryIcon, formAccent, isDark)
                             TextField(
                                 value = importCountry,
                                 onValueChange = { viewModel.importCountry.value = it },
@@ -1930,9 +1972,9 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Public) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = importedCountryIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Public,
+                                            imageVector = importedCountryIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -1940,7 +1982,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = importedCountryFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -1953,6 +1995,8 @@ fun FarmerFormScreen(
                                     .onGloballyPositioned { saplingAgeAnchorBounds = it.boundsInWindow() }
                                     .clickable { saplingAgeMenuExpanded = true }
                             ) {
+                                val importedSaplingAgeIcon = Icons.Default.HourglassTop
+                                val importedSaplingAgeFieldAccent = iconTileColor(importedSaplingAgeIcon, formAccent, isDark)
                                 TextField(
                                     value = healthStage.ifBlank { "1 Year" },
                                     onValueChange = {},
@@ -1961,9 +2005,9 @@ fun FarmerFormScreen(
                                     shape = CLAY_FIELD_SHAPE,
                                     singleLine = true,
                                     leadingIcon = {
-                                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.HourglassTop) {
+                                        ClayFieldIcon(accentColor = formAccent, icon = importedSaplingAgeIcon) {
                                             Icon(
-                                                imageVector = Icons.Default.HourglassTop,
+                                                imageVector = importedSaplingAgeIcon,
                                                 contentDescription = null,
                                                 tint = Color.White
                                             )
@@ -1976,7 +2020,7 @@ fun FarmerFormScreen(
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = importedSaplingAgeFieldAccent)
                                         .clickable { saplingAgeMenuExpanded = true }
                                         .testTag("sapling_age_dropdown"),
                                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2001,6 +2045,8 @@ fun FarmerFormScreen(
                         }
                     } else if (isImportedRootstocks) {
                         // Imported Rootstocks: Rootstock (Full Width)
+                        val rootstockOnlyIcon = Icons.Default.Spa
+                        val rootstockOnlyFieldAccent = iconTileColor(rootstockOnlyIcon, formAccent, isDark)
                         TextField(
                             value = rootstock,
                             onValueChange = { viewModel.rootstock.value = it },
@@ -2010,9 +2056,9 @@ fun FarmerFormScreen(
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Spa) {
+                                ClayFieldIcon(accentColor = formAccent, icon = rootstockOnlyIcon) {
                                     Icon(
-                                        imageVector = Icons.Default.Spa,
+                                        imageVector = rootstockOnlyIcon,
                                         contentDescription = null,
                                         tint = Color.White
                                     )
@@ -2020,7 +2066,7 @@ fun FarmerFormScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootstockOnlyFieldAccent)
                             .bringIntoViewOnFocus()
                                 .testTag("rootstock_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2033,6 +2079,8 @@ fun FarmerFormScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            val rootstockCountryIcon = Icons.Default.Public
+                            val rootstockCountryFieldAccent = iconTileColor(rootstockCountryIcon, formAccent, isDark)
                             TextField(
                                 value = importCountry,
                                 onValueChange = { viewModel.importCountry.value = it },
@@ -2042,9 +2090,9 @@ fun FarmerFormScreen(
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Public) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = rootstockCountryIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Public,
+                                            imageVector = rootstockCountryIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -2052,12 +2100,14 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootstockCountryFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("import_country_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
+                            val rootDiaIcon = Icons.Default.Straighten
+                            val rootDiaFieldAccent = iconTileColor(rootDiaIcon, formAccent, isDark)
                             TextField(
                                 value = rootDiameter,
                                 onValueChange = { viewModel.rootDiameter.value = it },
@@ -2066,9 +2116,9 @@ fun FarmerFormScreen(
                                 shape = CLAY_FIELD_SHAPE,
                                 singleLine = true,
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Straighten) {
+                                    ClayFieldIcon(accentColor = formAccent, icon = rootDiaIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Straighten,
+                                            imageVector = rootDiaIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -2076,7 +2126,7 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootDiaFieldAccent)
                             .bringIntoViewOnFocus()
                                     .testTag("root_diameter_input"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2141,6 +2191,8 @@ fun FarmerFormScreen(
                         )
 
                         // Scion Variety (Manual Text Field)
+                val scionIcon = Icons.Default.Nature
+                val scionFieldAccent = iconTileColor(scionIcon, formAccent, isDark)
                 TextField(
                     value = scionVariety,
                     onValueChange = { viewModel.scionVariety.value = capitalizeWordsNaturally(it) },
@@ -2150,9 +2202,9 @@ fun FarmerFormScreen(
                     singleLine = true,
                     keyboardOptions = AppDefaultWordKeyboardOptions,
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Nature) {
+                        ClayFieldIcon(accentColor = formAccent, icon = scionIcon) {
                             Icon(
-                                imageVector = Icons.Default.Nature,
+                                imageVector = scionIcon,
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -2160,7 +2212,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = scionFieldAccent)
                             .bringIntoViewOnFocus()
                         .testTag("scion_variety_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2177,6 +2229,8 @@ fun FarmerFormScreen(
                         .fillMaxWidth()
                         .onGloballyPositioned { graftTypeAnchorBounds = it.boundsInWindow() }
                 ) {
+                    val graftTypeIcon = Icons.Default.ContentCut
+                    val graftTypeFieldAccent = iconTileColor(graftTypeIcon, formAccent, isDark)
                     TextField(
                         value = graftType,
                         onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
@@ -2186,9 +2240,9 @@ fun FarmerFormScreen(
                         singleLine = true,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.ContentCut) {
+                            ClayFieldIcon(accentColor = formAccent, icon = graftTypeIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.ContentCut,
+                                    imageVector = graftTypeIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2201,7 +2255,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = graftTypeFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("graft_type_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2342,6 +2396,8 @@ fun FarmerFormScreen(
                     if (isImportedRootstocks) {
                         FormFieldDivider(isDark = isDark)
 
+                        val multiGraftChargeIcon = Icons.Default.CurrencyRupee
+                        val multiGraftChargeFieldAccent = iconTileColor(multiGraftChargeIcon, formAccent, isDark)
                         TextField(
                             value = perUnitGraftingCharge,
                             onValueChange = { 
@@ -2354,13 +2410,13 @@ fun FarmerFormScreen(
                             shape = CLAY_FIELD_SHAPE,
                             singleLine = true,
                             leadingIcon = {
-                                ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CurrencyRupee) {
-                                    Icon(Icons.Default.CurrencyRupee, contentDescription = null, tint = Color.White)
+                                ClayFieldIcon(accentColor = formAccent, icon = multiGraftChargeIcon) {
+                                    Icon(multiGraftChargeIcon, contentDescription = null, tint = Color.White)
                                 }
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = multiGraftChargeFieldAccent)
                             .bringIntoViewOnFocus()
                                 .testTag("grafting_charges_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2372,6 +2428,8 @@ fun FarmerFormScreen(
                 val isGraftChargeError = perUnitGraftingCharge.isNotBlank() && (perUnitGraftingCharge.toDoubleOrNull() ?: -1.0) < 0.0
 
                 // 1. Quantity (Roots)
+                val rootQtyIcon = Icons.Default.FormatListNumbered
+                val rootQtyFieldAccent = iconTileColor(rootQtyIcon, formAccent, isDark)
                 TextField(
                     value = quantity,
                     onValueChange = { 
@@ -2388,9 +2446,9 @@ fun FarmerFormScreen(
                     shape = CLAY_FIELD_SHAPE,
                     singleLine = true,
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.FormatListNumbered) {
+                        ClayFieldIcon(accentColor = formAccent, icon = rootQtyIcon) {
                             Icon(
-                                imageVector = Icons.Default.FormatListNumbered,
+                                imageVector = rootQtyIcon,
                                 contentDescription = null,
                                 tint = Color.White
                             )
@@ -2398,7 +2456,7 @@ fun FarmerFormScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootQtyFieldAccent)
                             .bringIntoViewOnFocus()
                         .testTag("quantity_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2415,6 +2473,8 @@ fun FarmerFormScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Unit Price
+                    val rootUnitPriceIcon = Icons.Default.CurrencyRupee
+                    val rootUnitPriceFieldAccent = iconTileColor(rootUnitPriceIcon, formAccent, isDark)
                     TextField(
                         value = landAreaAcres,
                         onValueChange = { 
@@ -2445,9 +2505,9 @@ fun FarmerFormScreen(
                         shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CurrencyRupee) {
+                            ClayFieldIcon(accentColor = formAccent, icon = rootUnitPriceIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.CurrencyRupee,
+                                    imageVector = rootUnitPriceIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2456,13 +2516,15 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootUnitPriceFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // Graft Charge / Unit
+                    val rootGraftChargeIcon = Icons.Default.CurrencyRupee
+                    val rootGraftChargeFieldAccent = iconTileColor(rootGraftChargeIcon, formAccent, isDark)
                     TextField(
                         value = perUnitGraftingCharge,
                         onValueChange = { 
@@ -2493,9 +2555,9 @@ fun FarmerFormScreen(
                         shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CurrencyRupee) {
+                            ClayFieldIcon(accentColor = formAccent, icon = rootGraftChargeIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.CurrencyRupee,
+                                    imageVector = rootGraftChargeIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2504,7 +2566,7 @@ fun FarmerFormScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = rootGraftChargeFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("grafting_charges_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2527,6 +2589,8 @@ fun FarmerFormScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // 1. Quantity (Plants / Visits)
+                    val stdQtyIcon = Icons.Default.FormatListNumbered
+                    val stdQtyFieldAccent = iconTileColor(stdQtyIcon, formAccent, isDark)
                     TextField(
                         value = quantity,
                         onValueChange = { 
@@ -2543,9 +2607,9 @@ fun FarmerFormScreen(
                         shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.FormatListNumbered) {
+                            ClayFieldIcon(accentColor = formAccent, icon = stdQtyIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.FormatListNumbered,
+                                    imageVector = stdQtyIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2553,13 +2617,15 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = stdQtyFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("quantity_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
                     // 2. Unit Price / Visit Charge
+                    val stdUnitPriceIcon = Icons.Default.CurrencyRupee
+                    val stdUnitPriceFieldAccent = iconTileColor(stdUnitPriceIcon, formAccent, isDark)
                     TextField(
                         value = landAreaAcres,
                         onValueChange = { 
@@ -2572,9 +2638,9 @@ fun FarmerFormScreen(
                         shape = CLAY_FIELD_SHAPE,
                         singleLine = true,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CurrencyRupee) {
+                            ClayFieldIcon(accentColor = formAccent, icon = stdUnitPriceIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.CurrencyRupee,
+                                    imageVector = stdUnitPriceIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2582,7 +2648,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = stdUnitPriceFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("unit_price_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2620,6 +2686,8 @@ fun FarmerFormScreen(
             FormFieldDivider(isDark = isDark)
 
             // Input Field: Amount Paid (₹)
+            val amountPaidIcon = Icons.Default.Payments
+            val amountPaidFieldAccent = iconTileColor(amountPaidIcon, formAccent, isDark)
             TextField(
                 value = amountPaid,
                 onValueChange = { viewModel.updateAmountPaid(it) },
@@ -2629,9 +2697,9 @@ fun FarmerFormScreen(
                 shape = CLAY_FIELD_SHAPE,
                 singleLine = true,
                 leadingIcon = {
-                    ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Payments) {
+                    ClayFieldIcon(accentColor = formAccent, icon = amountPaidIcon) {
                         Icon(
-                            imageVector = Icons.Default.Payments,
+                            imageVector = amountPaidIcon,
                             contentDescription = null,
                             tint = Color.White
                         )
@@ -2639,7 +2707,7 @@ fun FarmerFormScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = amountPaidFieldAccent)
                             .bringIntoViewOnFocus()
                     .testTag("amount_paid_input"),
                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2707,6 +2775,8 @@ fun FarmerFormScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 1. Booking Date
+                val bookingDateIcon = Icons.Default.CalendarMonth
+                val bookingDateFieldAccent = iconTileColor(bookingDateIcon, formAccent, isDark)
                 TextField(
                     value = bookingDateTFV,
                     onValueChange = { newVal ->
@@ -2728,7 +2798,7 @@ fun FarmerFormScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.CalendarMonth) {
+                        ClayFieldIcon(accentColor = formAccent, icon = bookingDateIcon) {
                             IconButton(
                                 onClick = {
                                     showDatePicker(bookingDate) {
@@ -2739,7 +2809,7 @@ fun FarmerFormScreen(
                                 modifier = Modifier.size(36.dp).testTag("booking_date_picker_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CalendarMonth,
+                                    imageVector = bookingDateIcon,
                                     contentDescription = "Select Booking Date",
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -2750,13 +2820,15 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = bookingDateFieldAccent)
                             .bringIntoViewOnFocus()
                         .testTag("booking_date_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                 )
 
                 // 2. Expected Delivery
+                val expectedDeliveryIcon = Icons.Default.LocalShipping
+                val expectedDeliveryFieldAccent = iconTileColor(expectedDeliveryIcon, formAccent, isDark)
                 TextField(
                     value = expectedDeliveryTFV,
                     onValueChange = { newVal ->
@@ -2778,7 +2850,7 @@ fun FarmerFormScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     leadingIcon = {
-                        ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.LocalShipping) {
+                        ClayFieldIcon(accentColor = formAccent, icon = expectedDeliveryIcon) {
                             IconButton(
                                 onClick = {
                                     showDatePicker(if (expectedDelivery.isBlank()) bookingDate else expectedDelivery) {
@@ -2789,7 +2861,7 @@ fun FarmerFormScreen(
                                 modifier = Modifier.size(36.dp).testTag("expected_delivery_picker_button")
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.LocalShipping,
+                                    imageVector = expectedDeliveryIcon,
                                     contentDescription = "Select Expected Delivery Date",
                                     tint = Color.White,
                                     modifier = Modifier.size(20.dp)
@@ -2800,7 +2872,7 @@ fun FarmerFormScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                        .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = expectedDeliveryFieldAccent)
                             .bringIntoViewOnFocus()
                         .testTag("expected_delivery_input"),
                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -2890,6 +2962,8 @@ fun FarmerFormScreen(
                     )
 
                     // Notes & Special Observations
+                    val notesIcon = Icons.Default.Description
+                    val notesFieldAccent = iconTileColor(notesIcon, formAccent, isDark)
                     TextField(
                         value = notes,
                         onValueChange = { viewModel.notes.value = capitalizeWordsNaturally(it) },
@@ -2900,9 +2974,9 @@ fun FarmerFormScreen(
                         maxLines = 4,
                         keyboardOptions = AppDefaultWordKeyboardOptions,
                         leadingIcon = {
-                            ClayFieldIcon(accentColor = formAccent, icon = Icons.Default.Description) {
+                            ClayFieldIcon(accentColor = formAccent, icon = notesIcon) {
                                 Icon(
-                                    imageVector = Icons.Default.Description,
+                                    imageVector = notesIcon,
                                     contentDescription = null,
                                     tint = Color.White
                                 )
@@ -2928,7 +3002,7 @@ fun FarmerFormScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                            .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = notesFieldAccent)
                             .bringIntoViewOnFocus()
                             .testTag("farmer_notes_input"),
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
@@ -3997,6 +4071,8 @@ fun AppDatePickerDialog(
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            val dialogEditIcon = Icons.Default.Edit
+                            val dialogEditFieldAccent = iconTileColor(dialogEditIcon, MaterialTheme.colorScheme.primary, dialogIsDark)
                             TextField(
                                 value = manualInputTFV,
                                 onValueChange = { newVal ->
@@ -4015,9 +4091,9 @@ fun AppDatePickerDialog(
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 leadingIcon = {
-                                    ClayFieldIcon(accentColor = MaterialTheme.colorScheme.primary, icon = Icons.Default.Edit) {
+                                    ClayFieldIcon(accentColor = MaterialTheme.colorScheme.primary, icon = dialogEditIcon) {
                                         Icon(
-                                            imageVector = Icons.Default.Edit,
+                                            imageVector = dialogEditIcon,
                                             contentDescription = null,
                                             tint = Color.White
                                         )
@@ -4027,7 +4103,7 @@ fun AppDatePickerDialog(
                                 shape = CLAY_FIELD_SHAPE,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .fieldGlass(shape = CLAY_FIELD_SHAPE)
+                                    .fieldGlass(shape = CLAY_FIELD_SHAPE, accent = dialogEditFieldAccent)
                                     .testTag("dialog_manual_date_input")
                             )
                         }
