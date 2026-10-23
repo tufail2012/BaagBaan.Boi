@@ -1448,6 +1448,7 @@ fun ChatScreen(
                     expanded = showMoreMenu,
                     anchorBounds = moreButtonBounds,
                     onDismissRequest = { showMoreMenu = false },
+                    panelModifier = glassModifier(RoundedCornerShape(20.dp)),
                     width = 220.dp
                 ) {
                     if (isGroup) {

@@ -7,6 +7,7 @@ import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.HazeMaterials
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.zIndex
@@ -195,6 +196,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.example.util.countedQuantity
 import com.example.util.varietyQuantityRowsForGarden
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -1365,10 +1367,16 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        MorphPopupMenu(
+                        val ageMenuShape = RoundedCornerShape(16.dp)
+                        MorphDropdownMenu(
                             expanded = ageDropdownExpanded,
-                            anchorBounds = ageAnchorBounds,
-                            onDismissRequest = { ageDropdownExpanded = false }
+                            onDismissRequest = { ageDropdownExpanded = false },
+                            transformOrigin = TransformOrigin(0f, 0f),
+                            shape = ageMenuShape,
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = ageMenuShape)
                         ) {
                             saplingAgeOptions.forEach { age ->
                                 DropdownMenuItem(
@@ -1419,10 +1427,15 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        MorphPopupMenu(
+                        val originMenuShape = RoundedCornerShape(16.dp)
+                        MorphDropdownMenu(
                             expanded = originDropdownExpanded,
-                            anchorBounds = originAnchorBounds,
-                            onDismissRequest = { originDropdownExpanded = false }
+                            onDismissRequest = { originDropdownExpanded = false },
+                            shape = originMenuShape,
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = originMenuShape)
                         ) {
                             plantOriginOptions.forEach { originOption ->
                                 DropdownMenuItem(
@@ -2379,16 +2392,7 @@ fun GardenPlanningRecordsTab(
         entries.sumOf { if (it.paymentStatus.equals("Cancelled", ignoreCase = true)) 0.0 else maxOf(0.0, it.totalCost - it.amountPaid) }
     }
     val totalQuantity = remember(entries) {
-        entries.sumOf { entry ->
-            val vLines = parseVarietyLines(entry.varietyLinesJson)
-            if (vLines.isNotEmpty()) {
-                vLines.sumOf { it.quantity }
-            } else if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) {
-                (entry.totalKanalArea * entry.plantsPerKanal).toInt()
-            } else {
-                0
-            }
-        }
+        entries.sumOf { it.countedQuantity() }
     }
     var showVarietyQuantity by rememberSaveable { mutableStateOf(false) }
     val varietyRows = remember(entries) { varietyQuantityRowsForGarden(entries) }

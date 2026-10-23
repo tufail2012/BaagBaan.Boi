@@ -63,7 +63,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.security.AppLockManager
 import com.example.security.BiometricHelper
 import com.example.security.UnlockMethod
-import com.example.ui.components.MorphPopupMenu
+import com.example.ui.components.MorphDropdownMenu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -318,9 +318,8 @@ fun AppLockScreen(
                         )
                     }
 
-                    MorphPopupMenu(
+                    MorphDropdownMenu(
                         expanded = showMethodPicker,
-                        anchorBounds = methodPickerAnchorBounds,
                         onDismissRequest = { showMethodPicker = false }
                     ) {
                         if (BiometricHelper.isBiometricAvailable(context)) {

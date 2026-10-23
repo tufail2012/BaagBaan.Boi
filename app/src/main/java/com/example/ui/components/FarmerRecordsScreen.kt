@@ -129,6 +129,7 @@ import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
 import com.example.data.parseVarietyLines
 import com.example.ui.CropViewModel
+import com.example.util.countedQuantity
 import com.example.util.varietyQuantityRowsForRecords
 import androidx.compose.runtime.saveable.rememberSaveable
 import java.text.NumberFormat
@@ -209,14 +210,7 @@ fun FarmerRecordsScreen(
         records.sumOf { if (it.isCancelled || it.paymentStatus.equals("Cancelled", ignoreCase = true)) 0.0 else it.calculateRemainingBalance() }
     }
     val totalQuantity = remember(records) {
-        records.sumOf { record ->
-            val lines = parseVarietyLines(record.varietyLinesJson)
-            if (lines.isNotEmpty()) {
-                lines.sumOf { it.effectiveQuantity }
-            } else {
-                record.quantity
-            }
-        }
+        records.sumOf { it.countedQuantity() }
     }
     val quantityUnitLabel = remember(selectedService) {
         when {

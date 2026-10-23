@@ -62,6 +62,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
@@ -652,11 +653,18 @@ fun PaymentRemindersDialog(
                                 }
                             }
 
-                            MorphPopupMenu(
+                            val menuShape = RoundedCornerShape(16.dp)
+                            MorphDropdownMenu(
                                 expanded = serviceTypeDropdownExpanded,
-                                anchorBounds = serviceTypeAnchorBounds,
                                 onDismissRequest = { serviceTypeDropdownExpanded = false },
-                                modifier = Modifier.testTag("payment_reminders_service_type_menu")
+                                transformOrigin = TransformOrigin(0f, 0f),
+                                shape = menuShape,
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp,
+                                shadowElevation = 0.dp,
+                                modifier = Modifier
+                                    .dropdownLiquidGlass(shape = menuShape)
+                                    .testTag("payment_reminders_service_type_menu")
                             ) {
                                 serviceTypeOptions.forEach { type ->
                                     val isChecked = type in selectedServiceTypes
@@ -754,11 +762,17 @@ fun PaymentRemindersDialog(
                                 }
                             }
 
-                            MorphPopupMenu(
+                            val menuShape = RoundedCornerShape(16.dp)
+                            MorphDropdownMenu(
                                 expanded = paidBandDropdownExpanded,
-                                anchorBounds = paidBandAnchorBounds,
                                 onDismissRequest = { paidBandDropdownExpanded = false },
-                                modifier = Modifier.testTag("payment_reminders_paid_band_menu")
+                                shape = menuShape,
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp,
+                                shadowElevation = 0.dp,
+                                modifier = Modifier
+                                    .dropdownLiquidGlass(shape = menuShape)
+                                    .testTag("payment_reminders_paid_band_menu")
                             ) {
                                 paidBandOptions.forEach { band ->
                                     val isChecked = band in selectedPaidBands

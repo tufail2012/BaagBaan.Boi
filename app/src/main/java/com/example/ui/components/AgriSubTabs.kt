@@ -391,10 +391,17 @@ fun RootstockSubTabs(
                         )
                     }
 
-                    MorphPopupMenu(
+                    val menuShape = RoundedCornerShape(20.dp)
+                    MorphDropdownMenu(
                         expanded = genevaMenuExpanded,
-                        anchorBounds = genevaAnchorBounds,
-                        onDismissRequest = { genevaMenuExpanded = false }
+                        onDismissRequest = { genevaMenuExpanded = false },
+                        shape = menuShape,
+                        containerColor = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp,
+                        modifier = Modifier
+                            .widthIn(min = 180.dp)
+                            .dropdownLiquidGlass(hazeState = hazeState, shape = menuShape)
                     ) {
                         Text(
                             text = "Geneva Rootstocks",

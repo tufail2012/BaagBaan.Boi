@@ -351,10 +351,15 @@ fun GlobalSearchResultsScreen(
                                 }
                             }
 
-                            MorphPopupMenu(
+                            val menuShape = RoundedCornerShape(16.dp)
+                            MorphDropdownMenu(
                                 expanded = dropdownExpanded,
-                                anchorBounds = categoryFilterAnchorBounds,
-                                onDismissRequest = { dropdownExpanded = false }
+                                onDismissRequest = { dropdownExpanded = false },
+                                shape = menuShape,
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp,
+                                shadowElevation = 0.dp,
+                                modifier = Modifier.dropdownLiquidGlass(shape = menuShape)
                             ) {
                                 categoryFilterOptions.forEach { cat ->
                                     DropdownMenuItem(

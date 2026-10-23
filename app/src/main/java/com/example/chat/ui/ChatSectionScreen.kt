@@ -893,6 +893,11 @@ private fun ChatsSelectionOverflowMenuOverlay(
         anchorBounds = anchorRect,
         onDismissRequest = onDismiss,
         modifier = modifier.testTag("selection_overflow_glass_menu"),
+        panelModifier = Modifier.chatHeaderGlass(
+            backdrop = if (SELECTION_MENU_REAL_GLASS_ENABLED) backdrop else null,
+            shape = RoundedCornerShape(20.dp),
+            isMenu = true
+        ),
         width = 220.dp
     ) {
         ChatSelectionOverflowMenuItems(

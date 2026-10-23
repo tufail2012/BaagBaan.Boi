@@ -75,6 +75,7 @@ import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import dev.chrisbanes.haze.materials.HazeMaterials
 import com.example.data.InventoryItem
+import com.example.util.countedQuantity
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -1017,7 +1018,7 @@ fun AgriDashboardScreen(
                                 icon = Icons.Default.Spa,
                                 badgeColor = Color(0xFF1E88E5),
                                 recordsCount = importedRecords.size,
-                                totalQuantity = importedRecords.sumOf { it.quantity },
+                                totalQuantity = importedRecords.sumOf { it.countedQuantity() },
                                 unitLabel = "Plants",
                                 totalValue = importedRecords.sumOf { it.calculateTotalAmount() },
                                 remainingBalance = importedRecords.sumOf { it.calculateRemainingBalance() },
@@ -1033,7 +1034,7 @@ fun AgriDashboardScreen(
                                 icon = Icons.Outlined.LocalFlorist,
                                 badgeColor = Color(0xFF43A047),
                                 recordsCount = localRecords.size,
-                                totalQuantity = localRecords.sumOf { it.quantity },
+                                totalQuantity = localRecords.sumOf { it.countedQuantity() },
                                 unitLabel = "Plants",
                                 totalValue = localRecords.sumOf { it.calculateTotalAmount() },
                                 remainingBalance = localRecords.sumOf { it.calculateRemainingBalance() },
@@ -1049,7 +1050,7 @@ fun AgriDashboardScreen(
                                 icon = Icons.Default.TrendingUp,
                                 badgeColor = Color(0xFF8E24AA),
                                 recordsCount = rootstockRecords.size,
-                                totalQuantity = rootstockRecords.sumOf { it.quantity },
+                                totalQuantity = rootstockRecords.sumOf { it.countedQuantity() },
                                 unitLabel = "Rootstocks",
                                 totalValue = rootstockRecords.sumOf { it.calculateTotalAmount() },
                                 remainingBalance = rootstockRecords.sumOf { it.calculateRemainingBalance() },
@@ -1081,7 +1082,7 @@ fun AgriDashboardScreen(
                                 icon = Icons.Default.ContentCut,
                                 badgeColor = Color(0xFFD32F2F),
                                 recordsCount = pruningRecords.size,
-                                totalQuantity = pruningRecords.sumOf { it.quantity },
+                                totalQuantity = pruningRecords.sumOf { it.countedQuantity() },
                                 unitLabel = "Trees / Acres",
                                 totalValue = pruningRecords.sumOf { it.calculateTotalAmount() },
                                 remainingBalance = pruningRecords.sumOf { it.calculateRemainingBalance() },
@@ -1097,7 +1098,7 @@ fun AgriDashboardScreen(
                                 icon = Icons.Default.Park,
                                 badgeColor = Color(0xFF00897B),
                                 recordsCount = gardenEntries.size,
-                                totalQuantity = gardenEntries.sumOf { (it.totalKanalArea * it.plantsPerKanal).toInt() },
+                                totalQuantity = gardenEntries.sumOf { it.countedQuantity() },
                                 unitLabel = "Plants (Calculated)",
                                 totalValue = gardenRevenue,
                                 remainingBalance = gardenRemaining,

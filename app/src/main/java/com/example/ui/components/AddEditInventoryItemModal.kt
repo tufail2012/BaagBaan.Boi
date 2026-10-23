@@ -155,7 +155,6 @@ fun AddEditInventoryItemModal(
                     )
 
                     // Category Dropdown
-                    var categoryAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     ExposedDropdownMenuBox(
                         expanded = categoryExpanded,
                         onExpandedChange = { categoryExpanded = !categoryExpanded }
@@ -169,15 +168,12 @@ fun AddEditInventoryItemModal(
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth()
-                                .onGloballyPositioned { categoryAnchorBounds = it.boundsInWindow() }
                                 .testTag("inventory_category_dropdown"),
                             shape = RoundedCornerShape(12.dp)
                         )
-                        MorphPopupMenu(
+                        ExposedDropdownMenu(
                             expanded = categoryExpanded,
-                            anchorBounds = categoryAnchorBounds,
-                            onDismissRequest = { categoryExpanded = false },
-                            width = 240.dp
+                            onDismissRequest = { categoryExpanded = false }
                         ) {
                             categories.forEach { cat ->
                                 DropdownMenuItem(
@@ -196,7 +192,6 @@ fun AddEditInventoryItemModal(
 
                     // Variety (Dropdown for Rootstock or TextField for Plants)
                     if (selectedCategory == "Imported Rootstock") {
-                        var varietyAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                         ExposedDropdownMenuBox(
                             expanded = varietyExpanded,
                             onExpandedChange = { varietyExpanded = !varietyExpanded }
@@ -209,15 +204,12 @@ fun AddEditInventoryItemModal(
                                 modifier = Modifier
                                     .menuAnchor()
                                     .fillMaxWidth()
-                                    .onGloballyPositioned { varietyAnchorBounds = it.boundsInWindow() }
                                     .testTag("inventory_variety_dropdown"),
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            MorphPopupMenu(
+                            ExposedDropdownMenu(
                                 expanded = varietyExpanded,
-                                anchorBounds = varietyAnchorBounds,
-                                onDismissRequest = { varietyExpanded = false },
-                                width = 240.dp
+                                onDismissRequest = { varietyExpanded = false }
                             ) {
                                 rootstockVarieties.forEach { v ->
                                     DropdownMenuItem(
