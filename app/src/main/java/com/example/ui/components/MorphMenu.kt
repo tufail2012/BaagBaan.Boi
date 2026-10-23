@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -444,6 +445,18 @@ private fun MorphPanel(
 
     val isDark = isAppInDarkMode()
     val glassConfig = LocalLiquidGlassConfig.current
+    val popupOpacity = (glassConfig.surfaceOpacity * 0.5f).coerceIn(0f, 1f)
+    val fallbackFill = if (glassConfig.surfaceTintColor != Color.Unspecified) {
+        glassConfig.surfaceTintColor.copy(alpha = popupOpacity)
+    } else {
+        if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF)
+    }
+    val edgeBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.05f),
+        ),
+    )
     val backdrop = if (useGlassBackdrop) LocalMorphMenuBackdrop.current else null
     val glassOn = useGlassBackdrop && isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
     val surfaceModifier = when {
@@ -453,8 +466,8 @@ private fun MorphPanel(
             Modifier.profileMenuLiquidGlass(hazeState = popupHazeState, shape = panelShape)
         !useGlassBackdrop -> Modifier
             .clip(panelShape)
-            .background(if (isDark) Color(0xFF1E293B) else Color.White)
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), panelShape)
+            .background(fallbackFill)
+            .border(0.5.dp, edgeBrush, panelShape)
         else -> Modifier
             .clip(panelShape)
             .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))

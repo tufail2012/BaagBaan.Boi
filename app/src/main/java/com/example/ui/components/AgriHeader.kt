@@ -1349,15 +1349,22 @@ fun Modifier.profileMenuLiquidGlass(
 ): Modifier {
     val config = LocalLiquidGlassConfig.current
     val surfaceTintColor = config.surfaceTintColor
-    val surfaceOpacity = config.surfaceOpacity
+    val popupOpacity = (config.surfaceOpacity * 0.5f).coerceIn(0f, 1f)
+    val popupBlurRadius = config.blurRadius.dp.coerceAtLeast(12.dp)
+    val edgeBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.05f)
+        )
+    )
 
     if (backdrop == null || !isGlassSupported()) {
         val fallbackStyle = HazeStyle(
             backgroundColor = Color.Transparent,
-            blurRadius = 8.dp,
+            blurRadius = popupBlurRadius,
             tints = listOf(
                 HazeTint(
-                    color = surfaceTintColor.copy(alpha = surfaceOpacity)
+                    color = surfaceTintColor.copy(alpha = popupOpacity)
                 )
             ),
             noiseFactor = 0.04f
@@ -1375,13 +1382,9 @@ fun Modifier.profileMenuLiquidGlass(
                     Modifier
                 }
             )
-            .background(
-                surfaceTintColor.copy(alpha = surfaceOpacity),
-                shape
-            )
             .border(
                 width = 0.5.dp,
-                color = Color.White.copy(alpha = 0.10f),
+                brush = edgeBrush,
                 shape = shape
             )
     }
@@ -1390,7 +1393,7 @@ fun Modifier.profileMenuLiquidGlass(
         .liquidGlassNav(shape = shape, backdrop = backdrop, isMenu = true)
         .border(
             width = 0.5.dp,
-            color = Color.White.copy(alpha = 0.10f),
+            brush = edgeBrush,
             shape = shape
         )
 }
