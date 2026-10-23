@@ -58,6 +58,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -84,16 +86,8 @@ import coil.compose.AsyncImage
 import com.example.chat.data.ChatRepository
 import com.example.chat.model.formatPrivacyVisibilityLabel
 import com.example.chat.model.formatStatusPrivacyLabel
-import com.example.ui.components.GlassRefractToggle
-import com.example.ui.components.PremiumGlassAmbientBackdrop
-import com.example.ui.components.glassContentColor
-import com.example.ui.components.glassEdge
 import com.example.ui.components.isAppInDarkMode
-import com.example.ui.components.isGlassSupported
-import com.example.ui.components.liquidGlassNav
 import com.kyant.backdrop.Backdrop
-import com.kyant.backdrop.backdrops.layerBackdrop
-import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 
 @Composable
 fun ChatSettingsScreen(
@@ -106,7 +100,9 @@ fun ChatSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppInDarkMode()
-    val contentColor = glassContentColor()
+    val contentColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val screenBackground = if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)
+    val cardColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF)
     val currentUser by viewModel.currentUser.collectAsState()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsState()
     val showOnlineStatus by viewModel.showOnlineStatus.collectAsState()
@@ -587,35 +583,11 @@ fun ChatSettingsScreen(
         )
     }
 
-    val glassSupported = isGlassSupported()
-    val settingsWindowBackground = MaterialTheme.colorScheme.surface
-    val settingsPaintBackdrop: androidx.compose.ui.graphics.drawscope.ContentDrawScope.() -> Unit =
-        remember(settingsWindowBackground) {
-            {
-                drawRect(settingsWindowBackground)
-                drawContent()
-            }
-        }
-    val settingsGlassBackdrop = if (glassSupported) {
-        rememberLayerBackdrop(onDraw = settingsPaintBackdrop)
-    } else {
-        null
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        if (settingsGlassBackdrop != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .layerBackdrop(settingsGlassBackdrop)
-            ) {
-                PremiumGlassAmbientBackdrop(
-                    accentColor = accentColor,
-                    isDark = isDark
-                )
-            }
-        }
-
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(screenBackground)
+    ) {
         if (privacyOpen) {
             Column(
                 modifier = Modifier
@@ -641,7 +613,6 @@ fun ChatSettingsScreen(
                     isDark = isDark,
                     contentColor = contentColor,
                     testTag = "privacy_row_last_seen",
-                    backdrop = settingsGlassBackdrop,
                     onClick = { activePrivacyDialog = "lastSeen" }
                 )
 
@@ -654,7 +625,6 @@ fun ChatSettingsScreen(
                     isDark = isDark,
                     contentColor = contentColor,
                     testTag = "privacy_row_profile_photo",
-                    backdrop = settingsGlassBackdrop,
                     onClick = { activePrivacyDialog = "photo" }
                 )
 
@@ -667,7 +637,6 @@ fun ChatSettingsScreen(
                     isDark = isDark,
                     contentColor = contentColor,
                     testTag = "privacy_row_about",
-                    backdrop = settingsGlassBackdrop,
                     onClick = { activePrivacyDialog = "about" }
                 )
 
@@ -680,7 +649,6 @@ fun ChatSettingsScreen(
                     isDark = isDark,
                     contentColor = contentColor,
                     testTag = "privacy_row_status",
-                    backdrop = settingsGlassBackdrop,
                     onClick = {
                         val mode = (currentUser?.statusVisibility ?: "contacts").trim().lowercase()
                             .let { if (it in setOf("contacts", "except", "only")) it else "contacts" }
@@ -703,7 +671,6 @@ fun ChatSettingsScreen(
                     isDark = isDark,
                     contentColor = contentColor,
                     testTag = "privacy_row_groups",
-                    backdrop = settingsGlassBackdrop,
                     onClick = { activePrivacyDialog = "groups" }
                 )
 
@@ -712,21 +679,12 @@ fun ChatSettingsScreen(
                 // 2. Read receipts toggle
                 Surface(
                     shape = RoundedCornerShape(18.dp),
-                    color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-                    tonalElevation = if (glassSupported) 0.dp else 1.dp,
+                    color = cardColor,
+                    tonalElevation = 0.dp,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(18.dp))
-                        .then(
-                            if (glassSupported) {
-                                Modifier
-                                    .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
-                                    .glassEdge(RoundedCornerShape(18.dp))
-                            } else {
-                                Modifier
-                            }
-                        )
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -766,14 +724,16 @@ fun ChatSettingsScreen(
                             )
                         }
 
-                        GlassRefractToggle(
+                        Switch(
                             checked = readReceipts,
                             onCheckedChange = { viewModel.setReadReceipts(it) },
-                            description = "Read receipts",
-                            activeColor = accentColor,
-                            inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
-                            backdrop = settingsGlassBackdrop,
-                            modifier = Modifier.testTag("read_receipts_toggle_switch")
+                            modifier = Modifier.testTag("read_receipts_toggle_switch"),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = accentColor,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
+                            )
                         )
                     }
                 }
@@ -828,9 +788,9 @@ fun ChatSettingsScreen(
 
         // Profile Card
         Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = 1.dp,
+            shape = RoundedCornerShape(18.dp),
+            color = cardColor,
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -967,21 +927,12 @@ fun ChatSettingsScreen(
         // Notifications Section
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = if (glassSupported) 0.dp else 1.dp,
+            color = cardColor,
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .then(
-                    if (glassSupported) {
-                        Modifier
-                            .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
-                            .glassEdge(RoundedCornerShape(18.dp))
-                    } else {
-                        Modifier
-                    }
-                )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1020,14 +971,16 @@ fun ChatSettingsScreen(
                     )
                 }
 
-                GlassRefractToggle(
+                Switch(
                     checked = notificationsEnabled,
                     onCheckedChange = { viewModel.setNotificationsEnabled(it) },
-                    description = "Message Notifications",
-                    activeColor = accentColor,
-                    inactiveColor = if (isDark) Color(0xFF787880).copy(alpha = 0.36f) else Color(0xFF787878).copy(alpha = 0.2f),
-                    backdrop = settingsGlassBackdrop,
-                    modifier = Modifier.testTag("notifications_toggle_switch")
+                    modifier = Modifier.testTag("notifications_toggle_switch"),
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = accentColor,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = if (isDark) Color(0xFF475569) else Color(0xFFCBD5E1),
+                    )
                 )
             }
         }
@@ -1037,21 +990,12 @@ fun ChatSettingsScreen(
         // Privacy Row
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = if (glassSupported) 0.dp else 1.dp,
+            color = cardColor,
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .clip(RoundedCornerShape(18.dp))
-                .then(
-                    if (glassSupported) {
-                        Modifier
-                            .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = settingsGlassBackdrop)
-                            .glassEdge(RoundedCornerShape(18.dp))
-                    } else {
-                        Modifier
-                    }
-                )
                 .clickable { onPrivacyOpenChange(true) }
                 .testTag("privacy_settings_row")
         ) {
@@ -1118,8 +1062,8 @@ fun ChatSettingsScreen(
         // Security Info Card
         Surface(
             shape = RoundedCornerShape(18.dp),
-            color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-            tonalElevation = 1.dp,
+            color = cardColor,
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
@@ -1178,27 +1122,17 @@ private fun PrivacySelectionRowCard(
     isDark: Boolean,
     contentColor: Color,
     testTag: String,
-    backdrop: Backdrop? = null,
     onClick: () -> Unit
 ) {
-    val glassSupported = isGlassSupported() && backdrop != null
+    val cardColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF)
     Surface(
         shape = RoundedCornerShape(18.dp),
-        color = if (glassSupported) Color.Transparent else if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-        tonalElevation = if (glassSupported) 0.dp else 1.dp,
+        color = cardColor,
+        tonalElevation = 0.dp,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(18.dp))
-            .then(
-                if (glassSupported) {
-                    Modifier
-                        .liquidGlassNav(shape = RoundedCornerShape(18.dp), backdrop = backdrop)
-                        .glassEdge(RoundedCornerShape(18.dp))
-                } else {
-                    Modifier
-                }
-            )
             .clickable(onClick = onClick)
             .testTag(testTag)
     ) {
@@ -1313,23 +1247,22 @@ private fun BlockedContactsCard(
     contentColor: Color,
     accentColor: Color
 ) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = if (isDark) Color(0x331E293B) else Color(0x77FFFFFF),
-        tonalElevation = 1.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .testTag("blocked_contacts_section")
-    ) {
-        Column(
+    val cardColor = if (isDark) Color(0xFF1E293B) else Color(0xFFFFFFFF)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            color = cardColor,
+            tonalElevation = 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 16.dp)
+                .testTag("blocked_contacts_section")
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -1366,19 +1299,28 @@ private fun BlockedContactsCard(
                     )
                 }
             }
+        }
 
-            if (blockedContacts.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                blockedContacts.forEach { contact ->
-                    val resolvedName = remember(contact, nicknames) {
-                        viewModel.displayNameFor(contact.uid, contact)
-                    }
+        if (blockedContacts.isNotEmpty()) {
+            blockedContacts.forEach { contact ->
+                Spacer(modifier = Modifier.height(8.dp))
+                val resolvedName = remember(contact, nicknames) {
+                    viewModel.displayNameFor(contact.uid, contact)
+                }
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = cardColor,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .testTag("blocked_contact_row_${contact.uid}")
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .testTag("blocked_contact_row_${contact.uid}")
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
                     ) {
                         if (!contact.photoUrl.isNullOrBlank()) {
                             AsyncImage(
@@ -1442,6 +1384,7 @@ private fun BlockedContactsCard(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 internal fun PrivacyTopHeaderOverlay(
     onBack: () -> Unit,
@@ -1449,7 +1392,8 @@ internal fun PrivacyTopHeaderOverlay(
     onHeaderHeightChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val contentColor = glassContentColor()
+    val isDark = isAppInDarkMode()
+    val contentColor = if (isDark) Color.White else Color(0xFF0F172A)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1462,7 +1406,6 @@ internal fun PrivacyTopHeaderOverlay(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .chatHeaderGlass(backdrop)
                 .clip(RoundedCornerShape(percent = 50))
                 .clickable(onClick = onBack)
                 .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
