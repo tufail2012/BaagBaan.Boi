@@ -696,7 +696,7 @@ fun InventoryManagementDialog(
 
     // Modal Confirmation Dialog for Delete
     if (itemToDelete != null) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { itemToDelete = null },
             title = {
                 Text(
@@ -738,7 +738,7 @@ fun InventoryManagementDialog(
 
     // Modal Confirmation Dialog for Recalculate Stock
     if (showRecalculateConfirmDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = {
                 if (!isRecalculating) showRecalculateConfirmDialog = false
             },

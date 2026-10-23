@@ -379,7 +379,7 @@ fun AgriCropMainScreen(
             },
             customPaletteColor = parsedPaletteColor,
             hazeState = hazeState,
-            backdrop = recordsBackdrop
+            backdrop = null
         )
     }
 

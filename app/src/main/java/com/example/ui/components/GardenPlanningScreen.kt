@@ -375,7 +375,7 @@ fun GardenPlanningScreen(
     }
 
     if (showProfileDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showProfileDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -399,7 +399,7 @@ fun GardenPlanningScreen(
     }
 
     if (showNotificationDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showNotificationDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -3533,7 +3533,7 @@ fun GardenBookingRecordDetailDialog(
     val totalPaidSoFar = installments.sumOf { it.amount }
     val remainingBalance = maxOf(0.0, totalRecordValue - totalPaidSoFar)
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
@@ -4384,7 +4384,7 @@ fun GardenBookingRecordDetailDialog(
     // Delete Installment Confirmation Dialog
     if (installmentToDeleteIndex != null) {
         val idx = installmentToDeleteIndex!!
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { installmentToDeleteIndex = null },
             title = { Text("Delete Installment") },
             text = { Text("Are you sure you want to delete Installment #${idx + 1}?") },
@@ -4427,7 +4427,7 @@ fun GardenBookingRecordDetailDialog(
     if (showWhatsAppConfirm) {
         val cleanPhone = currentEntry.contactNumber.replace("[^0-9]".toRegex(), "")
         val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showWhatsAppConfirm = false },
             title = { Text("Confirm WhatsApp Delivery") },
             text = { Text("Send record details to ${currentEntry.farmerName} ($cleanPhone) via WhatsApp?") },
@@ -4459,7 +4459,7 @@ fun GardenBookingRecordDetailDialog(
     // Confirmation dialog for SMS message
     if (showSmsConfirm) {
         val msg = generateGardenMessageForEntry(currentEntry, selectedTemplate)
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showSmsConfirm = false },
             title = { Text("Confirm SMS Delivery") },
             text = { Text("Send record details to ${currentEntry.farmerName} (${currentEntry.contactNumber}) via SMS?") },
@@ -4491,7 +4491,7 @@ fun GardenBookingRecordDetailDialog(
 
     // Cancel Booking Confirmation Dialog
     if (showCancelConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { 
                 if (!isCancelling) showCancelConfirm = false 
             },
@@ -4554,7 +4554,7 @@ fun GardenBookingRecordDetailDialog(
                 "expectedDelivery" to currentEntry.expectedDelivery.ifBlank { "TBD" }
             )
         )
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showTrackingWaConfirm = false },
             title = { Text("Confirm Tracking Delivery") },
             text = { Text("Send tracking details to ${currentEntry.farmerName} ($cleanPhone) via WhatsApp?") },
@@ -4585,7 +4585,7 @@ fun GardenBookingRecordDetailDialog(
 
     // Receipt Image Preview Dialog
     receiptPreviewBitmap?.let { bmp ->
-        Dialog(onDismissRequest = { receiptPreviewBitmap = null }) {
+        MorphDialog(onDismissRequest = { receiptPreviewBitmap = null }) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = if (isDark) Color(0xFF1E293B) else Color.White,
@@ -4694,7 +4694,7 @@ fun GardenBookingRecordDetailDialog(
 
     // Share Receipt Confirmation Dialog
     if (showShareReceiptConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showShareReceiptConfirm = false },
             title = { Text("Share Digital Receipt", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to share the digital receipt image to ${currentEntry.farmerName} (${currentEntry.contactNumber.ifBlank { "N/A" }}) on WhatsApp?") },

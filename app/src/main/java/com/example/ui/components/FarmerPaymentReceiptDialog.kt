@@ -82,7 +82,7 @@ fun FarmerPaymentReceiptDialog(
         isLoading = false
     }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

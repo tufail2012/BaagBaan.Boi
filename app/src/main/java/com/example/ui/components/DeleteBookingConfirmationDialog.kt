@@ -18,7 +18,7 @@ fun DeleteBookingConfirmationDialog(
     val nameDisplay = farmerName.trim().ifBlank { "Farmer" }
     val idDisplay = if (identifier.isNotBlank()) " (#${identifier.removePrefix("#")})" else ""
 
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(

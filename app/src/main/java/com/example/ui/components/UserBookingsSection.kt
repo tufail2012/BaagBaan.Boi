@@ -108,7 +108,7 @@ fun UserBookingsSection(
     }
 
     bookingToDelete?.let { booking ->
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { bookingToDelete = null },
             title = { Text("Delete Booking", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to delete booking for ${booking.farmerName} (${booking.type})?") },

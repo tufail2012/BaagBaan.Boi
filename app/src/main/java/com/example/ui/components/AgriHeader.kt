@@ -620,7 +620,7 @@ private fun SyncStatusDialog(
         }
     }
 
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(

@@ -120,7 +120,7 @@ fun MarkAttendanceModal(
 
     var workerNameError by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
+    MorphDialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
         Surface(
             modifier = modifier
                 .fillMaxWidth()

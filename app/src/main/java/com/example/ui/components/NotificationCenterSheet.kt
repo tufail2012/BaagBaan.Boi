@@ -530,7 +530,7 @@ fun NotificationCenterSheet(
             )
         }
 
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showCreateReminderDialog = false },
             title = {
                 Row(

@@ -1208,7 +1208,7 @@ private fun GlassValueDialog(
 
     var currentVal by remember { mutableFloatStateOf(snapToStep(initialDisplayValue)) }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
@@ -1340,7 +1340,7 @@ private fun GlassStyleDialog(
     onDismiss: () -> Unit,
     onSelectStyle: (GlassStyle) -> Unit,
 ) {
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {

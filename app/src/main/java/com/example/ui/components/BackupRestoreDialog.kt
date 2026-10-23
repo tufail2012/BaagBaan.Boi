@@ -274,7 +274,7 @@ fun BackupRestoreDialog(
     }
 
     if (showRestoreConfirmDialog && pendingRestoreJson != null) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showRestoreConfirmDialog = false },
             icon = {
                 ThemedIcon(
@@ -317,7 +317,7 @@ fun BackupRestoreDialog(
 
     // Summary Success Dialog
     restoreSummaryResult?.let { summary ->
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { restoreSummaryResult = null },
             icon = {
                 Box(

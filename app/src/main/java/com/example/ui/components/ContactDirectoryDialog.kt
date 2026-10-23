@@ -952,7 +952,7 @@ fun ContactDirectoryDialog(
 
     // Delete Confirmation Dialog
     contactToDelete?.let { target ->
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { contactToDelete = null },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1070,7 +1070,7 @@ fun ContactDetailsDialog(
     val balanceDue = maxOf(0.0, totalAmount - totalPaid)
     val isDark = isSystemInDarkTheme()
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -1569,7 +1569,7 @@ fun ManualAddContactModal(
     var isSavingContact by remember { mutableStateOf(false) }
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {

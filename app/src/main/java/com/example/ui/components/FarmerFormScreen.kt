@@ -3389,7 +3389,7 @@ fun FarmerFormScreen(
 
     // Multiple Phone Numbers Selection Dialog
     if (multiplePhoneNumbers != null) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { multiplePhoneNumbers = null },
             title = {
                 Column {
@@ -3472,7 +3472,7 @@ fun FarmerFormScreen(
 
     // Receipt Image Dialog
     if (showReceiptDialog && generatedReceiptBitmap != null) {
-        Dialog(onDismissRequest = { showReceiptDialog = false }) {
+        MorphDialog(onDismissRequest = { showReceiptDialog = false }) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.Transparent,
@@ -3621,7 +3621,7 @@ fun FarmerFormScreen(
 
     // Confirmation Modal 1: WhatsApp Notification Dialog
     if (showWaFormConfirmDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showWaFormConfirmDialog = false },
             title = { Text("Send WhatsApp Notification", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to send this booking notification message to ${farmerName.ifBlank { "the farmer" }} (${contactNumber}) on WhatsApp?") },
@@ -3649,7 +3649,7 @@ fun FarmerFormScreen(
 
     // Confirmation Modal 2: SMS Notification Dialog
     if (showSmsFormConfirmDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showSmsFormConfirmDialog = false },
             title = { Text("Send SMS Notification", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to send this booking notification message to ${farmerName.ifBlank { "the farmer" }} (${contactNumber}) via SMS?") },
@@ -3700,7 +3700,7 @@ fun FarmerFormScreen(
 
     // Confirmation Modal 3: Share Receipt Image Dialog
     if (showShareFormReceiptConfirmDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showShareFormReceiptConfirmDialog = false },
             title = { Text("Share Digital Receipt", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to share the digital receipt image to ${farmerName.ifBlank { "the farmer" }} (${contactNumber.ifBlank { "N/A" }})?") },
@@ -3734,7 +3734,7 @@ fun FarmerFormScreen(
 
     // Confirmation Modal 4: Send Receipt via WhatsApp Dialog
     if (showWaFormReceiptConfirmDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showWaFormReceiptConfirmDialog = false },
             title = { Text("Send Receipt via WhatsApp", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to send the digital receipt to ${farmerName.ifBlank { "the farmer" }} (${contactNumber}) on WhatsApp?") },
@@ -3774,7 +3774,7 @@ fun FarmerFormScreen(
         var manualDateTFV by remember(manualDateText) {
             mutableStateOf(TextFieldValue(text = manualDateText, selection = TextRange(manualDateText.length)))
         }
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showManualDateDialog = false },
             title = { Text(text = "Enter $manualDateLabel", fontWeight = FontWeight.Bold) },
             text = {
@@ -3887,8 +3887,8 @@ fun AppDatePickerDialog(
     val popupBackdrop = LocalDropdownGlassBackdrop.current
     val glassActive = DROPDOWN_REAL_GLASS_ENABLED && popupBackdrop != null && isGlassSupported()
 
-    Dialog(onDismissRequest = onDismissRequest) {
-        val dialogFieldSpec = FieldGlassSpec(popupBackdrop, null, dialogIsDark)
+    MorphDialog(onDismissRequest = onDismissRequest) {
+        val dialogFieldSpec = FieldGlassSpec(null, null, dialogIsDark)
         CompositionLocalProvider(LocalFieldGlassSpec provides dialogFieldSpec) {
             Surface(
                 shape = dialogShape,

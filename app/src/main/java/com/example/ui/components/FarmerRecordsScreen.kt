@@ -709,7 +709,7 @@ fun FarmerRecordsScreen(
                 viewModel.updateRecordSync(updatedRec)
             },
             hazeState = effectiveHazeState,
-            backdrop = backdrop ?: contentBackdrop
+            backdrop = null
         )
     }
 }

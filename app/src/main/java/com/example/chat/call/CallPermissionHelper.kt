@@ -1,6 +1,7 @@
 package com.example.chat.call
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import android.Manifest
 import android.content.Context
@@ -54,7 +55,7 @@ fun CallPermissionRationaleDialog(
     onConfirm: () -> Unit,
     accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         icon = {
             ThemedIcon(
@@ -104,7 +105,7 @@ fun ZegoConfigRequiredDialog(
     reason: String? = null
 ) {
     val liveReason = reason ?: ZegoCallManager.getConfigurationError() ?: ZegoCallManager.getCredentialsError()
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         icon = {
             ThemedIcon(

@@ -47,7 +47,7 @@ fun RecycleBinDialog(
     val deletedItems by db.recycleBinDao().getAllDeletedItems().collectAsState(initial = emptyList())
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()) }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

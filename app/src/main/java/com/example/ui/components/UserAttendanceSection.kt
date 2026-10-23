@@ -98,7 +98,7 @@ fun UserAttendanceSection(
     }
 
     attendanceToDelete?.let { record ->
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { attendanceToDelete = null },
             title = { Text("Delete Attendance Record", fontWeight = FontWeight.Bold) },
             text = { Text("Delete attendance entry for ${record.workerName} on ${record.date}?") },

@@ -1,6 +1,7 @@
 package com.example.chat.ui
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -401,7 +402,7 @@ internal fun ChatListSheet(
     }
 
     if (showDeleteConfirm && editingList != null) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = {
                 Text(

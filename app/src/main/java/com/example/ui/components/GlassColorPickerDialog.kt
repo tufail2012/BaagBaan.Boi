@@ -151,7 +151,7 @@ fun GlassColorPickerDialog(
         hexText = colorToHex6(color)
     }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {

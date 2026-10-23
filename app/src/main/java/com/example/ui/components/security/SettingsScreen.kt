@@ -3,6 +3,7 @@ package com.example.ui.components.security
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.example.ui.components.LocalSolidIconTileState
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import com.example.ui.components.TopHeaderScrollScrim
 import com.example.ui.components.iconTileColor
@@ -185,7 +186,7 @@ fun SettingsScreen(
 
     // Logout Confirmation Dialog
     if (showLogoutDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = {
                 Text(

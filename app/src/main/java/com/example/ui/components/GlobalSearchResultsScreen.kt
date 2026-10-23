@@ -531,7 +531,7 @@ fun GlobalSearchResultsScreen(
                 selectedDetailCropRecord = updatedRec
                 viewModel.updateRecordSync(updatedRec)
             },
-            backdrop = backdrop
+            backdrop = null
         )
     }
 
@@ -1145,7 +1145,7 @@ private fun GlobalSearchResultCard(
         }
 
     if (showWhatsAppConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showWhatsAppConfirm = false },
             title = { Text("Open WhatsApp Chat", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to open WhatsApp to chat with ${item.farmerName} (${item.contactNumber})?") },

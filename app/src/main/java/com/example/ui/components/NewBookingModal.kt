@@ -140,7 +140,7 @@ fun NewBookingModal(
     var farmerNameError by remember { mutableStateOf<String?>(null) }
     val isDark = isAppInDarkMode()
 
-    Dialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
+    MorphDialog(onDismissRequest = { if (!isSaving) onDismiss() }) {
         Surface(
             modifier = modifier
                 .fillMaxWidth()

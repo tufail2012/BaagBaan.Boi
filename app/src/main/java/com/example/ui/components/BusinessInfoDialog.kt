@@ -81,7 +81,7 @@ fun BusinessInfoDialog(
         onDismiss()
     }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = {
             if (!isSaving) onDismiss()
         },

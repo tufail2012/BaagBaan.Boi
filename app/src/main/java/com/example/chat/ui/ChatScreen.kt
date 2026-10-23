@@ -1,6 +1,7 @@
 package com.example.chat.ui
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import android.util.Log
 import android.widget.Toast
@@ -686,7 +687,7 @@ fun ChatScreen(
 
     selectedMessageForAction?.let { msg ->
         val isOwnMsg = msg.senderId == currentUid
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { selectedMessageForAction = null },
             title = { Text("Message options") },
             text = {
@@ -714,7 +715,7 @@ fun ChatScreen(
     }
 
     selectedCallForAction?.let { msg ->
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { selectedCallForAction = null },
             title = { Text("Call options") },
             text = {
@@ -1576,7 +1577,7 @@ fun ChatScreen(
                     var nameDraft by remember(activeChatSummary?.name, groupTitle) {
                         mutableStateOf(activeChatSummary?.name?.takeIf { it.isNotBlank() } ?: groupTitle)
                     }
-                    AlertDialog(
+                    MorphAlertDialog(
                         onDismissRequest = { showEditGroupNameDialog = false },
                         title = {
                             Text(
@@ -1635,7 +1636,7 @@ fun ChatScreen(
                 }
 
                 if (showDeleteGroupConfirmDialog) {
-                    AlertDialog(
+                    MorphAlertDialog(
                         onDismissRequest = { showDeleteGroupConfirmDialog = false },
                         title = {
                             Text(
@@ -3920,7 +3921,7 @@ fun ClaimDeviceConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(

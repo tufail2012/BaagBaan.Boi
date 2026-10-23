@@ -308,11 +308,11 @@ fun BookingRecordDetailDialog(
     val sectionAccentColor = customPaletteColor ?: MaterialTheme.colorScheme.primary
 
     val internalBackdrop = if (backdrop == null) rememberLayerBackdrop() else null
-    val effectiveBackdrop = backdrop ?: internalBackdrop
+    val effectiveBackdrop: Backdrop? = null
 
     val scrollState = rememberScrollState()
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
@@ -1457,7 +1457,7 @@ fun BookingRecordDetailDialog(
 
     // Cancel Booking Confirmation Dialog
     if (showCancelConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { 
                 if (!isCancelling) showCancelConfirm = false 
             },
@@ -1525,7 +1525,7 @@ fun BookingRecordDetailDialog(
 
     // Mark Booking as Received Confirmation Dialog
     if (showReceivedConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { 
                 if (!isMarkingReceived) showReceivedConfirm = false 
             },
@@ -1611,7 +1611,7 @@ fun BookingRecordDetailDialog(
 
     // SMS Confirmation Dialog
     if (showSmsConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showSmsConfirm = false },
             title = { Text("Send SMS Confirmation", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to send the booking confirmation SMS to ${record.farmerName} (${record.contactNumber})?") },
@@ -1635,7 +1635,7 @@ fun BookingRecordDetailDialog(
 
     // Tracking Details WhatsApp Confirmation Dialog
     if (showTrackingWaConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showTrackingWaConfirm = false },
             title = { Text("Send Tracking Details", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to send the payment installment history and tracking details to ${record.farmerName} (${record.contactNumber}) on WhatsApp?") },
@@ -1661,7 +1661,7 @@ fun BookingRecordDetailDialog(
     installmentToDeleteIndex?.let { idx ->
         val inst = installments.getOrNull(idx)
         if (inst != null) {
-            AlertDialog(
+            MorphAlertDialog(
                 onDismissRequest = { installmentToDeleteIndex = null },
                 title = { Text("Delete Payment Installment", fontWeight = FontWeight.Bold) },
                 text = { Text("Are you sure you want to delete this payment installment of ₹${inst.amount.toInt()} paid on ${inst.date.ifBlank { todayStr }}?") },
@@ -1706,7 +1706,7 @@ fun BookingRecordDetailDialog(
 
     // Receipt Image Preview Dialog
     receiptPreviewBitmap?.let { bmp ->
-        Dialog(onDismissRequest = { receiptPreviewBitmap = null }) {
+        MorphDialog(onDismissRequest = { receiptPreviewBitmap = null }) {
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = if (isDark) Color(0xFF1E293B) else Color.White,
@@ -1815,7 +1815,7 @@ fun BookingRecordDetailDialog(
 
     // Share Receipt Confirmation Dialog
     if (showShareReceiptConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showShareReceiptConfirm = false },
             title = { Text("Share Digital Receipt", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to share the digital receipt to ${record.farmerName} (${record.contactNumber.ifBlank { "N/A" }}) on WhatsApp?") },

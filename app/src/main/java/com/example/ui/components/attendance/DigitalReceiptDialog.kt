@@ -1,6 +1,7 @@
 package com.example.ui.components.attendance
 
 
+import com.example.ui.components.MorphDialog
 import com.example.ui.components.ThemedIcon
 import android.content.Intent
 import android.net.Uri
@@ -129,7 +130,7 @@ fun DigitalReceiptDialog(
         }
     }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

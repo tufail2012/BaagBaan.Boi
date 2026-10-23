@@ -1,6 +1,7 @@
 package com.example.ui.components.attendance
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
@@ -1114,7 +1115,7 @@ fun WorkerPayrollSummarySection(
     }
 
     if (showEditRateDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showEditRateDialog = false },
             title = { Text("Update Per-Day Wage Rate", fontWeight = FontWeight.Bold) },
             text = {

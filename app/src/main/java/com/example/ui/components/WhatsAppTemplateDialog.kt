@@ -822,7 +822,7 @@ fun WhatsAppTemplateDialog(
 
     // Full Screen Receipt Preview Modal
     if (showFullScreenReceipt && receiptBitmap != null) {
-        Dialog(onDismissRequest = { showFullScreenReceipt = false }) {
+        MorphDialog(onDismissRequest = { showFullScreenReceipt = false }) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surface,

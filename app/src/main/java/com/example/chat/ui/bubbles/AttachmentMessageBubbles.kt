@@ -1,6 +1,7 @@
 package com.example.chat.ui.bubbles
 
 
+import com.example.ui.components.MorphDialog
 import com.example.ui.components.ThemedIcon
 import android.content.Context
 import android.content.Intent
@@ -651,7 +652,7 @@ fun FullScreenMediaViewer(
 ) {
     val context = LocalContext.current
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

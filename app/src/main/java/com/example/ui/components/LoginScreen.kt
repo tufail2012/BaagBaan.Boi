@@ -723,7 +723,7 @@ fun LoginScreen(
 
     // Forgot Password Dialog
     if (showForgotPasswordDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = {
                 showForgotPasswordDialog = false
                 forgotSuccessMessage = null

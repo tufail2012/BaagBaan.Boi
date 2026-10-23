@@ -401,7 +401,7 @@ fun TemplateEditorDialog(
         )
     }
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
@@ -677,7 +677,7 @@ fun TemplateEditorDialog(
 
     // Confirmation dialog for Reset Default
     if (showResetConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showResetConfirm = false },
             title = { Text("Reset to Default Template?") },
             text = { Text("This will restore the original system format for '${template.name}'. All customizations will be reset.") },

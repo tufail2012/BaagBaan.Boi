@@ -1,6 +1,7 @@
 package com.example.ui.components.attendance
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -758,7 +759,7 @@ fun AddWorkerDialog(
     var isSavingWorker by remember { mutableStateOf(false) }
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text("Add New Worker", fontWeight = FontWeight.Bold)
@@ -911,7 +912,7 @@ fun EditWorkerDialog(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     if (showConfirmDeactivate) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showConfirmDeactivate = false },
             title = { Text("Deactivate Worker", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to deactivate '${worker.name}'? They will be removed from active daily marking, but their past attendance records will be preserved.") },
@@ -932,7 +933,7 @@ fun EditWorkerDialog(
             }
         )
     } else {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Edit Worker Details", fontWeight = FontWeight.Bold) },
             text = {

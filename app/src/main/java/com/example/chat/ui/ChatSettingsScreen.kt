@@ -52,6 +52,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import com.example.ui.components.iconTileColor
 import androidx.compose.material3.OutlinedTextField
@@ -130,7 +131,7 @@ fun ChatSettingsScreen(
     var statusSelectedIdsDraft by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     if (showEditAboutDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showEditAboutDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -279,7 +280,7 @@ fun ChatSettingsScreen(
             )
         }
         "status" -> {
-            AlertDialog(
+            MorphAlertDialog(
                 onDismissRequest = { activePrivacyDialog = null },
                 title = {
                     Text("Status privacy", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -467,7 +468,7 @@ fun ChatSettingsScreen(
     }
 
     if (showChangeUsernameDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = {
                 if (!isSubmitting) {
                     showChangeUsernameDialog = false
@@ -1198,7 +1199,7 @@ private fun PrivacyOptionsDialog(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    MorphAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)

@@ -1,6 +1,7 @@
 package com.example.chat.ui
 
 
+import com.example.ui.components.MorphAlertDialog
 import com.example.ui.components.ThemedIcon
 import android.app.Activity
 import android.app.KeyguardManager
@@ -1044,7 +1045,7 @@ internal fun ChatSelectionBar(
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = {
                 Text(
@@ -1082,7 +1083,7 @@ internal fun ChatSelectionBar(
     if (showMuteDialog) {
         var selectedOption by remember { mutableIntStateOf(0) }
         val options = listOf("8 hours", "1 week", "Always")
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showMuteDialog = false },
             title = {
                 Text(

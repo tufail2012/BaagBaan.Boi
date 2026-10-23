@@ -394,7 +394,7 @@ fun SeasonalRemindersDialog(
 
     // Delete Confirmation Dialog
     if (taskToDelete != null) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { taskToDelete = null },
             title = { Text("Delete Seasonal Task?") },
             text = { Text("Are you sure you want to remove '${taskToDelete?.title}' from your annual schedule?") },
@@ -426,7 +426,7 @@ fun SeasonalRemindersDialog(
 
     // Reset Confirmation Dialog
     if (showResetConfirm) {
-        AlertDialog(
+        MorphAlertDialog(
             onDismissRequest = { showResetConfirm = false },
             title = { Text("Reset to Default Seeds?") },
             text = { Text("This will restore the 5 default orchard categories (Pruning, Grafting, Spraying, Fertilizing, Harvest). Your current edits will be replaced.") },
@@ -696,7 +696,7 @@ private fun SeasonalTaskEditDialog(
         "Cover Crop"
     )
 
-    Dialog(
+    MorphDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
