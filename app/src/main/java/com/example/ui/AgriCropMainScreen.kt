@@ -318,6 +318,9 @@ fun AgriCropMainScreen(
         }
     }
 
+    CompositionLocalProvider(
+        com.example.ui.components.LocalAppGlassHazeState provides hazeState
+    ) {
     if (showNotificationCenter && notificationViewModel != null) {
         NotificationCenterSheet(
             notifications = notifications,
@@ -1099,6 +1102,7 @@ fun AgriCropMainScreen(
                 modifier = Modifier.fillMaxSize()
             )
         }
+    }
     }
 }
 

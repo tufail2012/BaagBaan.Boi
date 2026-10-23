@@ -40,8 +40,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.example.ui.components.GLASS_EDGE_COLOR
 import com.example.ui.components.GLASS_EDGE_WIDTH
-import com.example.ui.components.MorphDropdownMenu
-import com.example.ui.components.dropdownLiquidGlass
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.liquidGlassNav
 import com.kyant.backdrop.Backdrop
@@ -275,15 +274,10 @@ fun MessagePreviewComponent(
                                 .clickable { templateMenuExpanded = true }
                         )
 
-                        val menuShape = RoundedCornerShape(16.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = templateMenuExpanded,
-                            onDismissRequest = { templateMenuExpanded = false },
-                            shape = menuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(hazeState = hazeState, shape = menuShape)
+                            anchorBounds = templateAnchorBounds,
+                            onDismissRequest = { templateMenuExpanded = false }
                         ) {
                             MessageTemplateHelper.TEMPLATE_OPTIONS.forEach { option ->
                                 DropdownMenuItem(

@@ -240,15 +240,10 @@ fun NewBookingModal(
                         }
                     }
 
-                    val typeMenuShape = RoundedCornerShape(16.dp)
-                    MorphDropdownMenu(
+                    MorphPopupMenu(
                         expanded = typeMenuExpanded,
-                        onDismissRequest = { typeMenuExpanded = false },
-                        shape = typeMenuShape,
-                        containerColor = Color.Transparent,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                        modifier = Modifier.dropdownLiquidGlass(shape = typeMenuShape)
+                        anchorBounds = typeAnchorBounds,
+                        onDismissRequest = { typeMenuExpanded = false }
                     ) {
                         bookingTypes.forEach { type ->
                             DropdownMenuItem(
@@ -301,15 +296,10 @@ fun NewBookingModal(
                             }
                         }
 
-                        val varietyMenuShape = RoundedCornerShape(16.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = varietyMenuExpanded,
-                            onDismissRequest = { varietyMenuExpanded = false },
-                            shape = varietyMenuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(shape = varietyMenuShape)
+                            anchorBounds = varietyAnchorBounds,
+                            onDismissRequest = { varietyMenuExpanded = false }
                         ) {
                             rootstockVarieties.forEach { varName ->
                                 DropdownMenuItem(
@@ -362,15 +352,10 @@ fun NewBookingModal(
                             }
                         }
 
-                        val seasonMenuShape = RoundedCornerShape(16.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = seasonMenuExpanded,
-                            onDismissRequest = { seasonMenuExpanded = false },
-                            shape = seasonMenuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(shape = seasonMenuShape)
+                            anchorBounds = seasonAnchorBounds,
+                            onDismissRequest = { seasonMenuExpanded = false }
                         ) {
                             pruningSeasons.forEach { season ->
                                 DropdownMenuItem(

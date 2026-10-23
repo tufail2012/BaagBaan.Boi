@@ -340,29 +340,22 @@ fun AgriHeader(
                 )
 
                 // Profile Avatar menu button inside search bar header
+                var searchProfileAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                 Box {
                     HeaderProfileAvatar(
                         photoUrl = effectivePhotoUrl,
                         currentUserEmail = currentUserEmail,
                         isDark = isDark,
-                        onClick = { menuExpanded = true }
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.onGloballyPositioned { searchProfileAnchorBounds = it.boundsInWindow() }
                     )
 
-                    val menuShape = RoundedCornerShape(22.dp)
-                    MorphDropdownMenu(
+                    MorphPopupMenu(
                         expanded = menuExpanded,
+                        anchorBounds = searchProfileAnchorBounds,
                         onDismissRequest = { menuExpanded = false },
-                        shape = menuShape,
-                        containerColor = Color.Transparent,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                        modifier = Modifier
-                            .width(270.dp)
-                            .profileMenuLiquidGlass(
-                                backdrop = resolvedProfileBackdrop,
-                                hazeState = hazeState,
-                                shape = menuShape
-                            )
+                        width = 270.dp,
+                        panelShape = RoundedCornerShape(22.dp)
                     ) {
                         OverflowMenuContent(
                             themeMode = themeMode,
@@ -539,30 +532,23 @@ fun AgriHeader(
                             }
 
                             // Profile Avatar Menu containing Theme & Account options
+                            var profileAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                             Box {
                                 HeaderProfileAvatar(
                                     photoUrl = effectivePhotoUrl,
                                     currentUserEmail = currentUserEmail,
                                     isDark = isDark,
                                     onClick = { menuExpanded = true },
-                                    backdrop = backdrop
+                                    backdrop = backdrop,
+                                    modifier = Modifier.onGloballyPositioned { profileAnchorBounds = it.boundsInWindow() }
                                 )
 
-                                val menuShape = RoundedCornerShape(22.dp)
-                                MorphDropdownMenu(
+                                MorphPopupMenu(
                                     expanded = menuExpanded,
+                                    anchorBounds = profileAnchorBounds,
                                     onDismissRequest = { menuExpanded = false },
-                                    shape = menuShape,
-                                    containerColor = Color.Transparent,
-                                    tonalElevation = 0.dp,
-                                    shadowElevation = 0.dp,
-                                    modifier = Modifier
-                                        .width(270.dp)
-                                        .profileMenuLiquidGlass(
-                                            backdrop = resolvedProfileBackdrop,
-                                            hazeState = hazeState,
-                                            shape = menuShape
-                                        )
+                                    width = 270.dp,
+                                    panelShape = RoundedCornerShape(22.dp)
                                 ) {
                                     OverflowMenuContent(
                                         themeMode = themeMode,

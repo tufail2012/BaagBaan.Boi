@@ -1836,15 +1836,10 @@ fun FarmerFormScreen(
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
-                            val ageMenuShape = RoundedCornerShape(16.dp)
-                            MorphDropdownMenu(
+                            MorphPopupMenu(
                                 expanded = saplingAgeMenuExpanded,
-                                onDismissRequest = { saplingAgeMenuExpanded = false },
-                                shape = ageMenuShape,
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp,
-                                shadowElevation = 0.dp,
-                                modifier = Modifier.dropdownLiquidGlass(hazeState = hazeState, shape = ageMenuShape)
+                                anchorBounds = saplingAgeAnchorBounds,
+                                onDismissRequest = { saplingAgeMenuExpanded = false }
                             ) {
                                 saplingAgeOptions.forEach { age ->
                                     DropdownMenuItem(
@@ -1987,15 +1982,10 @@ fun FarmerFormScreen(
                                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
-                                val ageMenuShape = RoundedCornerShape(16.dp)
-                                MorphDropdownMenu(
+                                MorphPopupMenu(
                                     expanded = saplingAgeMenuExpanded,
-                                    onDismissRequest = { saplingAgeMenuExpanded = false },
-                                    shape = ageMenuShape,
-                                    containerColor = Color.Transparent,
-                                    tonalElevation = 0.dp,
-                                    shadowElevation = 0.dp,
-                                    modifier = Modifier.dropdownLiquidGlass(hazeState = hazeState, shape = ageMenuShape)
+                                    anchorBounds = saplingAgeAnchorBounds,
+                                    onDismissRequest = { saplingAgeMenuExpanded = false }
                                 ) {
                                     saplingAgeOptions.forEach { age ->
                                         DropdownMenuItem(
@@ -2217,15 +2207,10 @@ fun FarmerFormScreen(
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
-                    val graftMenuShape = RoundedCornerShape(16.dp)
-                    MorphDropdownMenu(
+                    MorphPopupMenu(
                         expanded = graftTypeMenuExpanded,
-                        onDismissRequest = { graftTypeMenuExpanded = false },
-                        shape = graftMenuShape,
-                        containerColor = Color.Transparent,
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp,
-                        modifier = Modifier.dropdownLiquidGlass(hazeState = hazeState, shape = graftMenuShape)
+                        anchorBounds = graftTypeAnchorBounds,
+                        onDismissRequest = { graftTypeMenuExpanded = false }
                     ) {
                         graftTypeOptions.forEach { typeOption ->
                             DropdownMenuItem(
@@ -3049,15 +3034,10 @@ fun FarmerFormScreen(
                                                 .clickable { templateMenuExpanded = true }
                                         )
 
-                                        val templateMenuShape = RoundedCornerShape(16.dp)
-                                        MorphDropdownMenu(
+                                        MorphPopupMenu(
                                             expanded = templateMenuExpanded,
-                                            onDismissRequest = { templateMenuExpanded = false },
-                                            shape = templateMenuShape,
-                                            containerColor = Color.Transparent,
-                                            tonalElevation = 0.dp,
-                                            shadowElevation = 0.dp,
-                                            modifier = Modifier.dropdownLiquidGlass(hazeState = hazeState, shape = templateMenuShape)
+                                            anchorBounds = templateAnchorBounds,
+                                            onDismissRequest = { templateMenuExpanded = false }
                                         ) {
                                             templateOptions.forEach { option ->
                                                 DropdownMenuItem(

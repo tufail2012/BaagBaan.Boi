@@ -1367,16 +1367,10 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        val ageMenuShape = RoundedCornerShape(16.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = ageDropdownExpanded,
-                            onDismissRequest = { ageDropdownExpanded = false },
-                            transformOrigin = TransformOrigin(0f, 0f),
-                            shape = ageMenuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = ageMenuShape)
+                            anchorBounds = ageAnchorBounds,
+                            onDismissRequest = { ageDropdownExpanded = false }
                         ) {
                             saplingAgeOptions.forEach { age ->
                                 DropdownMenuItem(
@@ -1427,15 +1421,10 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        val originMenuShape = RoundedCornerShape(16.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = originDropdownExpanded,
-                            onDismissRequest = { originDropdownExpanded = false },
-                            shape = originMenuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = originMenuShape)
+                            anchorBounds = originAnchorBounds,
+                            onDismissRequest = { originDropdownExpanded = false }
                         ) {
                             plantOriginOptions.forEach { originOption ->
                                 DropdownMenuItem(

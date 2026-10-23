@@ -350,18 +350,12 @@ fun SearchBarWithStatusFilter(
                     }
                 }
 
-                val menuShape = RoundedCornerShape(20.dp)
-                MorphDropdownMenu(
+                MorphPopupMenu(
                     expanded = dropdownExpanded,
+                    anchorBounds = filterAnchorBounds,
                     onDismissRequest = { dropdownExpanded = false },
-                    shape = menuShape,
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    modifier = Modifier
-                        .widthIn(min = 215.dp, max = 250.dp)
-                        .dropdownLiquidGlass(hazeState = hazeState, shape = menuShape)
-                        .testTag("${testTagPrefix}_filter_menu")
+                    width = 235.dp,
+                    modifier = Modifier.testTag("${testTagPrefix}_filter_menu")
                 ) {
                     // Header Section
                     Row(

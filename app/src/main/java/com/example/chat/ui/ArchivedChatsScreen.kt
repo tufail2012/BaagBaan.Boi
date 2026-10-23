@@ -50,7 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.MorphDropdownMenu
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
@@ -245,21 +245,11 @@ internal fun ArchivedChatsTopHeaderOverlay(
                             )
                         }
 
-                        val menuShape = RoundedCornerShape(20.dp)
-                        MorphDropdownMenu(
+                        MorphPopupMenu(
                             expanded = showOverflowMenu,
+                            anchorBounds = archivedMoreAnchorBounds,
                             onDismissRequest = { showOverflowMenu = false },
-                            shape = menuShape,
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp,
-                            modifier = Modifier
-                                .width(220.dp)
-                                .chatHeaderGlass(
-                                    backdrop = if (SELECTION_MENU_REAL_GLASS_ENABLED) backdrop else null,
-                                    shape = menuShape,
-                                    isMenu = true
-                                )
+                            width = 220.dp
                         ) {
                             SelectionMenuItem(
                                 text = "Select all",

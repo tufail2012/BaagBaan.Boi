@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,9 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -27,12 +25,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -42,14 +40,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.example.ui.animation.IosMotion
 import com.example.ui.components.backdrop.Backdrop
+import com.example.ui.components.profileMenuLiquidGlass
 import com.example.ui.theme.LocalLiquidGlassConfig
+import dev.chrisbanes.haze.HazeState
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -64,110 +65,149 @@ private const val MORPH_BLOB_SCALE = 0.12f
 val LocalMorphMenuBackdrop = compositionLocalOf<Backdrop?> { null }
 
 @Composable
-fun MorphDropdownMenu(
+fun MorphPopupMenu(
     expanded: Boolean,
+    anchorBounds: Rect = Rect.Zero,
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    transformOrigin: TransformOrigin = TransformOrigin(1f, 0f),
-    offset: DpOffset = DpOffset.Zero,
-    shape: Shape = MenuDefaults.shape,
-    containerColor: Color = MenuDefaults.containerColor,
-    tonalElevation: Dp = MenuDefaults.TonalElevation,
-    shadowElevation: Dp = MenuDefaults.ShadowElevation,
-    border: BorderStroke? = null,
+    panelModifier: Modifier = Modifier,
+    width: Dp = 220.dp,
+    panelShape: CornerBasedShape = RoundedCornerShape(20.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val context = LocalContext.current
-    val reduceMotion = remember(context) { IosMotion.isReducedMotion(context) }
+    val density = LocalDensity.current
+    val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
+    val popupHazeState = LocalAppGlassHazeState.current
 
-    var rendered by remember { mutableStateOf(expanded) }
-    if (expanded && !rendered) {
-        rendered = true
+    var isPresent by remember { mutableStateOf(expanded) }
+    var closeRequested by remember { mutableStateOf(false) }
+    var previousExpanded by remember { mutableStateOf(expanded) }
+
+    if (expanded && !previousExpanded) {
+        isPresent = true
+        closeRequested = false
+    }
+    previousExpanded = expanded
+
+    val shouldBeOpen = expanded && !closeRequested
+
+    if (!isPresent) return
+
+    var hostWindowOffset by remember { mutableStateOf(Offset.Zero) }
+    var hostSize by remember { mutableStateOf(IntSize.Zero) }
+    var panelSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val panelWidthPx = if (panelSize.width > 0) {
+        panelSize.width
+    } else {
+        with(density) { width.roundToPx() }
+    }
+    val panelHeightPx = panelSize.height
+    val gapPx = with(density) { 8.dp.toPx() }
+    val marginPx = with(density) { 10.dp.toPx() }
+
+    val hasValidAnchor = anchorBounds.width > 0f && anchorBounds.height > 0f
+    val localAnchor = if (hasValidAnchor) {
+        anchorBounds.translate(-hostWindowOffset.x, -hostWindowOffset.y)
+    } else {
+        Rect.Zero
     }
 
-    val scaleXAnim = remember { Animatable(if (expanded) 1f else MORPH_BLOB_SCALE) }
-    val scaleYAnim = remember { Animatable(if (expanded) 1f else MORPH_BLOB_SCALE) }
-    val alphaAnim = remember { Animatable(if (expanded) 1f else 0f) }
+    val minX = marginPx
+    val maxX = if (hostSize.width > 0) {
+        (hostSize.width - panelWidthPx - marginPx).coerceAtLeast(minX)
+    } else {
+        Float.MAX_VALUE
+    }
+    val panelLeftPx = if (hasValidAnchor) {
+        (localAnchor.right - panelWidthPx).coerceIn(minX, maxX)
+    } else if (hostSize.width > 0) {
+        maxX
+    } else {
+        minX
+    }
 
-    LaunchedEffect(expanded, reduceMotion) {
-        if (expanded) {
-            rendered = true
-            if (reduceMotion) {
-                scaleXAnim.snapTo(1f)
-                scaleYAnim.snapTo(1f)
-                alphaAnim.snapTo(1f)
-            } else {
-                coroutineScope {
-                    launch {
-                        alphaAnim.animateTo(
-                            targetValue = 1f,
-                            animationSpec = tween(durationMillis = 90),
-                        )
-                    }
-                    launch {
-                        scaleXAnim.animateTo(
-                            targetValue = 1f,
-                            animationSpec = spring(dampingRatio = 0.72f, stiffness = 700f),
-                        )
-                    }
-                    launch {
-                        scaleYAnim.animateTo(
-                            targetValue = 1f,
-                            animationSpec = spring(dampingRatio = 0.78f, stiffness = 420f),
-                        )
-                    }
-                }
-            }
-        } else if (rendered) {
-            if (reduceMotion) {
-                scaleXAnim.snapTo(MORPH_BLOB_SCALE)
-                scaleYAnim.snapTo(MORPH_BLOB_SCALE)
-                alphaAnim.snapTo(0f)
-                rendered = false
-            } else {
-                coroutineScope {
-                    launch {
-                        scaleXAnim.animateTo(
-                            targetValue = MORPH_BLOB_SCALE,
-                            animationSpec = spring(dampingRatio = 1f, stiffness = 900f),
-                        )
-                    }
-                    launch {
-                        scaleYAnim.animateTo(
-                            targetValue = MORPH_BLOB_SCALE,
-                            animationSpec = spring(dampingRatio = 1f, stiffness = 900f),
-                        )
-                    }
-                    launch {
-                        alphaAnim.animateTo(
-                            targetValue = 0f,
-                            animationSpec = tween(durationMillis = 140, delayMillis = 40),
-                        )
-                    }
-                }
-                rendered = false
-            }
+    val minY = marginPx
+    val maxY = if (hostSize.height > 0 && panelHeightPx > 0) {
+        (hostSize.height - panelHeightPx - marginPx).coerceAtLeast(minY)
+    } else {
+        Float.MAX_VALUE
+    }
+    val panelTopPx = if (hasValidAnchor) {
+        val belowTop = localAnchor.bottom + gapPx
+        val runsPastBottom = hostSize.height > 0 &&
+            panelHeightPx > 0 &&
+            belowTop + panelHeightPx > hostSize.height - marginPx
+        val desiredTop = if (runsPastBottom) {
+            localAnchor.top - gapPx - panelHeightPx
+        } else {
+            belowTop
         }
+        desiredTop.coerceIn(minY, maxY)
+    } else {
+        minY
     }
 
-    if (rendered) {
-        DropdownMenu(
-            expanded = true,
-            onDismissRequest = onDismissRequest,
-            modifier = modifier.graphicsLayer {
-                scaleX = if (reduceMotion && expanded) 1f else scaleXAnim.value
-                scaleY = if (reduceMotion && expanded) 1f else scaleYAnim.value
-                alpha = if (reduceMotion && expanded) 1f else alphaAnim.value
-                this.transformOrigin = transformOrigin
-            },
-            offset = offset,
-            shape = shape,
-            containerColor = containerColor,
-            tonalElevation = tonalElevation,
-            shadowElevation = shadowElevation,
-            border = border,
-            content = content,
-        )
+    val originX = if (panelWidthPx > 0 && hasValidAnchor) {
+        ((localAnchor.center.x - panelLeftPx) / panelWidthPx.toFloat()).coerceIn(0f, 1f)
+    } else {
+        1f
+    }
+    val originY = if (panelHeightPx > 0 && hasValidAnchor) {
+        ((localAnchor.center.y - panelTopPx) / panelHeightPx.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val menuTransformOrigin = TransformOrigin(originX, originY)
+
+    Popup(
+        alignment = Alignment.TopStart,
+        onDismissRequest = { closeRequested = true },
+        properties = PopupProperties(
+            focusable = true,
+        ),
+    ) {
+        BackHandler(enabled = isPresent && shouldBeOpen) {
+            closeRequested = true
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coords ->
+                    hostWindowOffset = coords.positionInWindow()
+                    hostSize = coords.size
+                },
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { closeRequested = true },
+                    ),
+            )
+
+            MorphPanel(
+                expanded = shouldBeOpen,
+                transformOrigin = menuTransformOrigin,
+                onCloseFinished = {
+                    isPresent = false
+                    closeRequested = false
+                    currentOnDismissRequest()
+                },
+                modifier = modifier
+                    .offset { IntOffset(panelLeftPx.roundToInt(), panelTopPx.roundToInt()) },
+                panelModifier = panelModifier,
+                width = width,
+                useGlassBackdrop = false,
+                popupHazeState = popupHazeState,
+                panelShape = panelShape,
+                onSizeMeasured = { panelSize = it },
+                content = content,
+            )
+        }
     }
 }
 
@@ -315,6 +355,9 @@ private fun MorphPanel(
     modifier: Modifier = Modifier,
     panelModifier: Modifier = Modifier,
     width: Dp = 220.dp,
+    useGlassBackdrop: Boolean = true,
+    popupHazeState: HazeState? = null,
+    panelShape: CornerBasedShape = RoundedCornerShape(20.dp),
     onSizeMeasured: (IntSize) -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -401,16 +444,21 @@ private fun MorphPanel(
 
     val isDark = isAppInDarkMode()
     val glassConfig = LocalLiquidGlassConfig.current
-    val backdrop = LocalMorphMenuBackdrop.current
-    val glassOn = isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
-    val menuShape = RoundedCornerShape(20.dp)
+    val backdrop = if (useGlassBackdrop) LocalMorphMenuBackdrop.current else null
+    val glassOn = useGlassBackdrop && isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
     val surfaceModifier = when {
         panelModifier != Modifier -> panelModifier
-        glassOn && backdrop != null -> Modifier.navLiquidGlass(shape = menuShape, backdrop = backdrop)
+        glassOn && backdrop != null -> Modifier.navLiquidGlass(shape = panelShape, backdrop = backdrop)
+        !useGlassBackdrop && popupHazeState != null && isGlassSupported() ->
+            Modifier.profileMenuLiquidGlass(hazeState = popupHazeState, shape = panelShape)
+        !useGlassBackdrop -> Modifier
+            .clip(panelShape)
+            .background(if (isDark) Color(0xFF1E293B) else Color.White)
+            .border(0.5.dp, Color.White.copy(alpha = 0.10f), panelShape)
         else -> Modifier
-            .clip(menuShape)
+            .clip(panelShape)
             .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), menuShape)
+            .border(0.5.dp, Color.White.copy(alpha = 0.10f), panelShape)
     }
 
     Column(
@@ -444,8 +492,8 @@ private fun MorphPanel(
                 this.transformOrigin = transformOrigin
             }
             .then(surfaceModifier)
-            .border(0.5.dp, Color.White.copy(alpha = 0.15f), menuShape)
-            .clip(menuShape)
+            .border(0.5.dp, Color.White.copy(alpha = 0.15f), panelShape)
+            .clip(panelShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -456,4 +504,5 @@ private fun MorphPanel(
         content = content,
     )
 }
+
 

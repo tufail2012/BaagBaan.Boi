@@ -653,18 +653,11 @@ fun PaymentRemindersDialog(
                                 }
                             }
 
-                            val menuShape = RoundedCornerShape(16.dp)
-                            MorphDropdownMenu(
+                            MorphPopupMenu(
                                 expanded = serviceTypeDropdownExpanded,
+                                anchorBounds = serviceTypeAnchorBounds,
                                 onDismissRequest = { serviceTypeDropdownExpanded = false },
-                                transformOrigin = TransformOrigin(0f, 0f),
-                                shape = menuShape,
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp,
-                                shadowElevation = 0.dp,
-                                modifier = Modifier
-                                    .dropdownLiquidGlass(shape = menuShape)
-                                    .testTag("payment_reminders_service_type_menu")
+                                modifier = Modifier.testTag("payment_reminders_service_type_menu")
                             ) {
                                 serviceTypeOptions.forEach { type ->
                                     val isChecked = type in selectedServiceTypes
@@ -762,17 +755,11 @@ fun PaymentRemindersDialog(
                                 }
                             }
 
-                            val menuShape = RoundedCornerShape(16.dp)
-                            MorphDropdownMenu(
+                            MorphPopupMenu(
                                 expanded = paidBandDropdownExpanded,
+                                anchorBounds = paidBandAnchorBounds,
                                 onDismissRequest = { paidBandDropdownExpanded = false },
-                                shape = menuShape,
-                                containerColor = Color.Transparent,
-                                tonalElevation = 0.dp,
-                                shadowElevation = 0.dp,
-                                modifier = Modifier
-                                    .dropdownLiquidGlass(shape = menuShape)
-                                    .testTag("payment_reminders_paid_band_menu")
+                                modifier = Modifier.testTag("payment_reminders_paid_band_menu")
                             ) {
                                 paidBandOptions.forEach { band ->
                                     val isChecked = band in selectedPaidBands

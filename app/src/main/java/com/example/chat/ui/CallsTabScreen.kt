@@ -76,7 +76,7 @@ import com.example.chat.call.ZegoCallManager
 import com.example.chat.call.ZegoConfigRequiredDialog
 import com.example.chat.model.CallLogItem
 import com.example.chat.model.ChatTab
-import com.example.ui.components.MorphDropdownMenu
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.glassContentColor
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
@@ -392,21 +392,11 @@ internal fun CallsTopHeaderOverlay(
                     )
                 }
 
-                val menuShape = RoundedCornerShape(20.dp)
-                MorphDropdownMenu(
+                MorphPopupMenu(
                     expanded = showOverflowMenu,
+                    anchorBounds = callsMoreAnchorBounds,
                     onDismissRequest = { showOverflowMenu = false },
-                    shape = menuShape,
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    modifier = Modifier
-                        .width(220.dp)
-                        .chatHeaderGlass(
-                            backdrop = if (SELECTION_MENU_REAL_GLASS_ENABLED) backdrop else null,
-                            shape = menuShape,
-                            isMenu = true
-                        )
+                    width = 220.dp
                 ) {
                     CallsMenuItem(
                         text = "Clear call log",
