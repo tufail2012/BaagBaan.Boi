@@ -18,7 +18,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -152,6 +155,7 @@ fun AddEditInventoryItemModal(
                     )
 
                     // Category Dropdown
+                    var categoryAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     ExposedDropdownMenuBox(
                         expanded = categoryExpanded,
                         onExpandedChange = { categoryExpanded = !categoryExpanded }
@@ -165,12 +169,15 @@ fun AddEditInventoryItemModal(
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth()
+                                .onGloballyPositioned { categoryAnchorBounds = it.boundsInWindow() }
                                 .testTag("inventory_category_dropdown"),
                             shape = RoundedCornerShape(12.dp)
                         )
-                        ExposedDropdownMenu(
+                        MorphPopupMenu(
                             expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false }
+                            anchorBounds = categoryAnchorBounds,
+                            onDismissRequest = { categoryExpanded = false },
+                            width = 240.dp
                         ) {
                             categories.forEach { cat ->
                                 DropdownMenuItem(
@@ -189,6 +196,7 @@ fun AddEditInventoryItemModal(
 
                     // Variety (Dropdown for Rootstock or TextField for Plants)
                     if (selectedCategory == "Imported Rootstock") {
+                        var varietyAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                         ExposedDropdownMenuBox(
                             expanded = varietyExpanded,
                             onExpandedChange = { varietyExpanded = !varietyExpanded }
@@ -201,12 +209,15 @@ fun AddEditInventoryItemModal(
                                 modifier = Modifier
                                     .menuAnchor()
                                     .fillMaxWidth()
+                                    .onGloballyPositioned { varietyAnchorBounds = it.boundsInWindow() }
                                     .testTag("inventory_variety_dropdown"),
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            ExposedDropdownMenu(
+                            MorphPopupMenu(
                                 expanded = varietyExpanded,
-                                onDismissRequest = { varietyExpanded = false }
+                                anchorBounds = varietyAnchorBounds,
+                                onDismissRequest = { varietyExpanded = false },
+                                width = 240.dp
                             ) {
                                 rootstockVarieties.forEach { v ->
                                     DropdownMenuItem(

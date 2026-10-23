@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -46,9 +45,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -85,6 +87,7 @@ fun SearchBarWithStatusFilter(
     backdrop: Backdrop? = null
 ) {
     var dropdownExpanded by remember { mutableStateOf(false) }
+    var filterAnchorBounds by remember { mutableStateOf(Rect.Zero) }
     val isFilterActive = selectedFilter != "All Records"
     val capsuleShape = RoundedCornerShape(percent = 50)
     val filterScrollState = rememberScrollState()
@@ -308,6 +311,7 @@ fun SearchBarWithStatusFilter(
                                     )
                             }
                         )
+                        .onGloballyPositioned { filterAnchorBounds = it.boundsInWindow() }
                         .clickable { dropdownExpanded = true }
                         .padding(horizontal = 12.dp)
                         .testTag("${testTagPrefix}_filter_dropdown_btn"),
@@ -346,23 +350,12 @@ fun SearchBarWithStatusFilter(
                     }
                 }
 
-                val dropdownShape = RoundedCornerShape(20.dp)
-                DropdownMenu(
+                MorphPopupMenu(
                     expanded = dropdownExpanded,
+                    anchorBounds = filterAnchorBounds,
                     onDismissRequest = { dropdownExpanded = false },
-                    shape = dropdownShape,
-                    containerColor = Color.Transparent,
-                    border = null,
-                    shadowElevation = 0.dp,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier
-                        .widthIn(min = 210.dp, max = 245.dp)
-                        .padding(vertical = 4.dp)
-                        .dropdownLiquidGlass(
-                            hazeState = hazeState,
-                            shape = dropdownShape
-                        )
-                        .testTag("${testTagPrefix}_filter_menu")
+                    modifier = Modifier.testTag("${testTagPrefix}_filter_menu"),
+                    width = 235.dp
                 ) {
                     // Header Section
                     Row(

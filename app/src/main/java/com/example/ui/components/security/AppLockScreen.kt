@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Pin
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,8 +49,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +63,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.security.AppLockManager
 import com.example.security.BiometricHelper
 import com.example.security.UnlockMethod
+import com.example.ui.components.MorphPopupMenu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -299,10 +302,13 @@ fun AppLockScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Secondary "Use another method" Option
+                var methodPickerAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                 Box {
                     TextButton(
                         onClick = { showMethodPicker = true },
-                        modifier = Modifier.testTag("use_another_method_button")
+                        modifier = Modifier
+                            .onGloballyPositioned { methodPickerAnchorBounds = it.boundsInWindow() }
+                            .testTag("use_another_method_button")
                     ) {
                         Text(
                             text = "Use another method",
@@ -312,8 +318,9 @@ fun AppLockScreen(
                         )
                     }
 
-                    DropdownMenu(
+                    MorphPopupMenu(
                         expanded = showMethodPicker,
+                        anchorBounds = methodPickerAnchorBounds,
                         onDismissRequest = { showMethodPicker = false }
                     ) {
                         if (BiometricHelper.isBiometricAvailable(context)) {

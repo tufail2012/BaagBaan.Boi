@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.PlaylistAddCheck
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,7 +56,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -209,12 +211,14 @@ fun NewBookingModal(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                var typeAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = { typeMenuExpanded = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
+                            .onGloballyPositioned { typeAnchorBounds = it.boundsInWindow() }
                             .testTag("booking_type_dropdown"),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -236,10 +240,11 @@ fun NewBookingModal(
                         }
                     }
 
-                    DropdownMenu(
+                    MorphPopupMenu(
                         expanded = typeMenuExpanded,
+                        anchorBounds = typeAnchorBounds,
                         onDismissRequest = { typeMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth(0.8f)
+                        width = 240.dp
                     ) {
                         bookingTypes.forEach { type ->
                             DropdownMenuItem(
@@ -263,12 +268,14 @@ fun NewBookingModal(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
+                    var varietyAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { varietyMenuExpanded = true },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
+                                .onGloballyPositioned { varietyAnchorBounds = it.boundsInWindow() }
                                 .testTag("rootstock_variety_dropdown"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -290,10 +297,11 @@ fun NewBookingModal(
                             }
                         }
 
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = varietyMenuExpanded,
+                            anchorBounds = varietyAnchorBounds,
                             onDismissRequest = { varietyMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth(0.8f)
+                            width = 240.dp
                         ) {
                             rootstockVarieties.forEach { varName ->
                                 DropdownMenuItem(
@@ -317,12 +325,14 @@ fun NewBookingModal(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
+                    var seasonAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = { seasonMenuExpanded = true },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
+                                .onGloballyPositioned { seasonAnchorBounds = it.boundsInWindow() }
                                 .testTag("pruning_season_dropdown"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -344,10 +354,11 @@ fun NewBookingModal(
                             }
                         }
 
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = seasonMenuExpanded,
+                            anchorBounds = seasonAnchorBounds,
                             onDismissRequest = { seasonMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth(0.8f)
+                            width = 240.dp
                         ) {
                             pruningSeasons.forEach { season ->
                                 DropdownMenuItem(

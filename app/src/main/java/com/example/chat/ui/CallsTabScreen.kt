@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,9 +55,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -74,6 +76,7 @@ import com.example.chat.call.ZegoCallManager
 import com.example.chat.call.ZegoConfigRequiredDialog
 import com.example.chat.model.CallLogItem
 import com.example.chat.model.ChatTab
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.glassContentColor
 import com.google.firebase.Timestamp
 import com.kyant.backdrop.Backdrop
@@ -372,11 +375,13 @@ internal fun CallsTopHeaderOverlay(
 
             Spacer(modifier = Modifier.width(4.dp))
 
+            var callsMoreAnchorBounds by remember { mutableStateOf(Rect.Zero) }
             Box {
                 IconButton(
                     onClick = { showOverflowMenu = true },
                     modifier = Modifier
                         .size(40.dp)
+                        .onGloballyPositioned { callsMoreAnchorBounds = it.boundsInWindow() }
                         .testTag("calls_more_button")
                 ) {
                     ThemedIcon(
@@ -387,39 +392,28 @@ internal fun CallsTopHeaderOverlay(
                     )
                 }
 
-                DropdownMenu(
+                MorphPopupMenu(
                     expanded = showOverflowMenu,
+                    anchorBounds = callsMoreAnchorBounds,
                     onDismissRequest = { showOverflowMenu = false },
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp
+                    width = 220.dp
                 ) {
-                    val menuShape = RoundedCornerShape(20.dp)
-                    Column(
-                        modifier = Modifier
-                            .width(220.dp)
-                            .clip(menuShape)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
-                            .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                            .padding(vertical = 8.dp)
-                    ) {
-                        CallsMenuItem(
-                            text = "Clear call log",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.showToast("Coming soon")
-                            }
-                        )
-                        CallsMenuItem(
-                            text = "Settings",
-                            contentColor = contentColor,
-                            onClick = {
-                                showOverflowMenu = false
-                                viewModel.openSettings()
-                            }
-                        )
-                    }
+                    CallsMenuItem(
+                        text = "Clear call log",
+                        contentColor = contentColor,
+                        onClick = {
+                            showOverflowMenu = false
+                            viewModel.showToast("Coming soon")
+                        }
+                    )
+                    CallsMenuItem(
+                        text = "Settings",
+                        contentColor = contentColor,
+                        onClick = {
+                            showOverflowMenu = false
+                            viewModel.openSettings()
+                        }
+                    )
                 }
             }
         }

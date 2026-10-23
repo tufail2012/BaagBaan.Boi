@@ -44,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -81,6 +82,8 @@ import com.example.chat.model.ChatSubScreen
 import com.example.chat.model.ChatTab
 import com.example.chat.model.ParticipantInfo
 import com.example.chat.model.UserStatusGroup
+import com.example.ui.components.LocalMorphMenuBackdrop
+import com.example.ui.components.MorphMenu
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
@@ -872,15 +875,6 @@ private fun ChatsSelectionOverflowMenuOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val transitionState = remember { MutableTransitionState(false) }
-    LaunchedEffect(visible) {
-        transitionState.targetState = visible
-    }
-
-    if (!transitionState.currentState && !transitionState.targetState) {
-        return
-    }
-
     var cachedSelectedIds by remember { mutableStateOf(selectedChatIds) }
     var cachedAnyUnread by remember { mutableStateOf(anyUnread) }
     var cachedAllFavourite by remember { mutableStateOf(allFavourite) }
@@ -892,123 +886,28 @@ private fun ChatsSelectionOverflowMenuOverlay(
         cachedAllLocked = allLocked
     }
 
-    val density = LocalDensity.current
-    var containerWindowOffset by remember { mutableStateOf(Offset.Zero) }
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    var panelHeightPx by remember { mutableIntStateOf(0) }
-
-    val menuWidthDp = 220.dp
-    val menuWidthPx = with(density) { menuWidthDp.roundToPx() }
-    val gapPx = with(density) { 8.dp.roundToPx() }
-    val edgeMarginPx = with(density) { 8.dp.roundToPx() }
-
-    val anchorRight = (anchorRect.right - containerWindowOffset.x).roundToInt()
-    val anchorBottom = (anchorRect.bottom - containerWindowOffset.y).roundToInt()
-
-    val minX = edgeMarginPx
-    val maxX = if (containerSize.width > 0) {
-        (containerSize.width - menuWidthPx - edgeMarginPx).coerceAtLeast(minX)
-    } else {
-        Int.MAX_VALUE
-    }
-    val xPx = if (anchorRect.width > 0f && containerSize.width > 0) {
-        (anchorRight - menuWidthPx).coerceIn(minX, maxX)
-    } else {
-        minX
-    }
-
-    val minY = edgeMarginPx
-    val maxY = if (panelHeightPx > 0 && containerSize.height > 0) {
-        (containerSize.height - panelHeightPx - edgeMarginPx).coerceAtLeast(minY)
-    } else {
-        Int.MAX_VALUE
-    }
-    val yPx = if (anchorRect.height > 0f) {
-        (anchorBottom + gapPx).coerceIn(minY, maxY)
-    } else {
-        with(density) { 64.dp.roundToPx() }
-    }
-
-    val menuShape = RoundedCornerShape(20.dp)
-    val borderColor = contentColor.copy(alpha = 0.15f)
     val dividerColor = contentColor.copy(alpha = 0.12f)
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .onGloballyPositioned { coords ->
-                containerWindowOffset = coords.positionInWindow()
-                containerSize = coords.size
-            }
+    MorphMenu(
+        expanded = visible,
+        anchorBounds = anchorRect,
+        onDismissRequest = onDismiss,
+        modifier = modifier.testTag("selection_overflow_glass_menu"),
+        width = 220.dp
     ) {
-        // Full-screen transparent clickable box under the panel: no dim, no ripple
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismiss
-                )
-                .testTag("selection_menu_outside_dismiss")
+        ChatSelectionOverflowMenuItems(
+            cachedSelectedIds = cachedSelectedIds,
+            cachedAnyUnread = cachedAnyUnread,
+            cachedAllFavourite = cachedAllFavourite,
+            cachedAllLocked = cachedAllLocked,
+            allSelectableChatIds = allSelectableChatIds,
+            contentColor = contentColor,
+            dividerColor = dividerColor,
+            viewModel = viewModel,
+            onUpdateSelection = onUpdateSelection,
+            onClearSelection = onClearSelection,
+            onDismiss = onDismiss
         )
-
-        AnimatedVisibility(
-            visibleState = transitionState,
-            enter = fadeIn(animationSpec = tween(durationMillis = 150)) +
-                scaleIn(
-                    initialScale = 0.92f,
-                    transformOrigin = TransformOrigin(1f, 0f),
-                    animationSpec = tween(durationMillis = 150)
-                ),
-            exit = fadeOut(animationSpec = tween(durationMillis = 150)) +
-                scaleOut(
-                    targetScale = 0.92f,
-                    transformOrigin = TransformOrigin(1f, 0f),
-                    animationSpec = tween(durationMillis = 150)
-                ),
-            modifier = Modifier.offset { IntOffset(xPx, yPx) }
-        ) {
-            val panelGlassModifier = if (SELECTION_MENU_REAL_GLASS_ENABLED) {
-                Modifier
-                    .chatHeaderGlass(backdrop = backdrop, shape = menuShape, isMenu = true)
-                    .border(0.5.dp, borderColor, menuShape)
-                    .clip(menuShape)
-            } else {
-                Modifier
-                    .clip(menuShape)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
-                    .border(0.5.dp, borderColor, menuShape)
-            }
-
-            Column(
-                modifier = Modifier
-                    .width(menuWidthDp)
-                    .onSizeChanged { panelHeightPx = it.height }
-                    .then(panelGlassModifier)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}
-                    )
-                    .padding(vertical = 8.dp)
-                    .testTag("selection_overflow_glass_menu")
-            ) {
-                ChatSelectionOverflowMenuItems(
-                    cachedSelectedIds = cachedSelectedIds,
-                    cachedAnyUnread = cachedAnyUnread,
-                    cachedAllFavourite = cachedAllFavourite,
-                    cachedAllLocked = cachedAllLocked,
-                    allSelectableChatIds = allSelectableChatIds,
-                    contentColor = contentColor,
-                    dividerColor = dividerColor,
-                    viewModel = viewModel,
-                    onUpdateSelection = onUpdateSelection,
-                    onClearSelection = onClearSelection,
-                    onDismiss = onDismiss
-                )
-            }
-        }
     }
 }
 

@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
@@ -137,7 +138,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -165,6 +165,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -1798,6 +1800,7 @@ fun FarmerFormScreen(
                         FormFieldDivider(isDark = isDark)
 
                         // Sapling Age
+                        var saplingAgeAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1826,24 +1829,17 @@ fun FarmerFormScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .onGloballyPositioned { saplingAgeAnchorBounds = it.boundsInWindow() }
                                     .fieldGlass(shape = CLAY_FIELD_SHAPE)
                                     .clickable { saplingAgeMenuExpanded = true }
                                     .testTag("sapling_age_dropdown"),
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
-                            val saplingAgeDropdownShape = RoundedCornerShape(16.dp)
-                            DropdownMenu(
+                            MorphPopupMenu(
                                 expanded = saplingAgeMenuExpanded,
-                                onDismissRequest = { saplingAgeMenuExpanded = false },
-                                shape = saplingAgeDropdownShape,
-                                containerColor = Color.Transparent,
-                                border = null,
-                                shadowElevation = 0.dp,
-                                tonalElevation = 0.dp,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.9f)
-                                    .dropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape)
+                                anchorBounds = saplingAgeAnchorBounds,
+                                onDismissRequest = { saplingAgeMenuExpanded = false }
                             ) {
                                 saplingAgeOptions.forEach { age ->
                                     DropdownMenuItem(
@@ -1950,9 +1946,11 @@ fun FarmerFormScreen(
                                 colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                             )
 
+                            var saplingAgeAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .onGloballyPositioned { saplingAgeAnchorBounds = it.boundsInWindow() }
                                     .clickable { saplingAgeMenuExpanded = true }
                             ) {
                                 TextField(
@@ -1984,18 +1982,10 @@ fun FarmerFormScreen(
                                     colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                                 )
 
-                                val saplingAgeDropdownShape2 = RoundedCornerShape(16.dp)
-                                DropdownMenu(
+                                MorphPopupMenu(
                                     expanded = saplingAgeMenuExpanded,
-                                    onDismissRequest = { saplingAgeMenuExpanded = false },
-                                    shape = saplingAgeDropdownShape2,
-                                    containerColor = Color.Transparent,
-                                    border = null,
-                                    shadowElevation = 0.dp,
-                                    tonalElevation = 0.dp,
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.9f)
-                                        .dropdownLiquidGlass(hazeState = hazeState, shape = saplingAgeDropdownShape2)
+                                    anchorBounds = saplingAgeAnchorBounds,
+                                    onDismissRequest = { saplingAgeMenuExpanded = false }
                                 ) {
                                     saplingAgeOptions.forEach { age ->
                                         DropdownMenuItem(
@@ -2179,9 +2169,14 @@ fun FarmerFormScreen(
                 FormFieldDivider(isDark = isDark)
 
                 var graftTypeMenuExpanded by remember { mutableStateOf(false) }
+                var graftTypeAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                 val graftTypeOptions = listOf("Bench Grafting", "Tongue Grafting", "T-Budding", "Chip Budding", "Cleft Grafting", "Whip & Tongue", "Bark Grafting")
 
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { graftTypeAnchorBounds = it.boundsInWindow() }
+                ) {
                     TextField(
                         value = graftType,
                         onValueChange = { viewModel.graftType.value = capitalizeWordsNaturally(it) },
@@ -2212,18 +2207,10 @@ fun FarmerFormScreen(
                         colors = elevatedInputFieldColors(isDark = isDark, accentColor = formAccent)
                     )
 
-                    val graftTypeDropdownShape = RoundedCornerShape(16.dp)
-                    DropdownMenu(
+                    MorphPopupMenu(
                         expanded = graftTypeMenuExpanded,
-                        onDismissRequest = { graftTypeMenuExpanded = false },
-                        shape = graftTypeDropdownShape,
-                        containerColor = Color.Transparent,
-                        border = null,
-                        shadowElevation = 0.dp,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier
-                            .fillMaxWidth(0.9f)
-                            .dropdownLiquidGlass(hazeState = hazeState, shape = graftTypeDropdownShape)
+                        anchorBounds = graftTypeAnchorBounds,
+                        onDismissRequest = { graftTypeMenuExpanded = false }
                     ) {
                         graftTypeOptions.forEach { typeOption ->
                             DropdownMenuItem(
@@ -3016,8 +3003,11 @@ fun FarmerFormScreen(
                                     )
 
                                     // Select Template Dropdown
+                                    var templateAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                                     Box(
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .onGloballyPositioned { templateAnchorBounds = it.boundsInWindow() }
                                     ) {
                                         TextField(
                                             value = selectedTemplate,
@@ -3044,18 +3034,11 @@ fun FarmerFormScreen(
                                                 .clickable { templateMenuExpanded = true }
                                         )
 
-                                        val templateDropdownShape = RoundedCornerShape(16.dp)
-                                        DropdownMenu(
+                                        MorphPopupMenu(
                                             expanded = templateMenuExpanded,
+                                            anchorBounds = templateAnchorBounds,
                                             onDismissRequest = { templateMenuExpanded = false },
-                                            shape = templateDropdownShape,
-                                            containerColor = Color.Transparent,
-                                            border = null,
-                                            shadowElevation = 0.dp,
-                                            tonalElevation = 0.dp,
-                                            modifier = Modifier
-                                                .fillMaxWidth(0.9f)
-                                                .dropdownLiquidGlass(hazeState = hazeState, shape = templateDropdownShape)
+                                            width = 240.dp
                                         ) {
                                             templateOptions.forEach { option ->
                                                 DropdownMenuItem(

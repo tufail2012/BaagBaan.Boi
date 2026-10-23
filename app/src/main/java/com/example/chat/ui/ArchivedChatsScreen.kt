@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +39,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInDarkMode
 import com.kyant.backdrop.Backdrop
@@ -225,11 +228,13 @@ internal fun ArchivedChatsTopHeaderOverlay(
                         .chatHeaderGlass(backdrop)
                         .padding(start = 4.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
                 ) {
+                    var archivedMoreAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     Box {
                         IconButton(
                             onClick = { showOverflowMenu = true },
                             modifier = Modifier
                                 .size(40.dp)
+                                .onGloballyPositioned { archivedMoreAnchorBounds = it.boundsInWindow() }
                                 .testTag("archived_more_button")
                         ) {
                             ThemedIcon(
@@ -240,31 +245,20 @@ internal fun ArchivedChatsTopHeaderOverlay(
                             )
                         }
 
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = showOverflowMenu,
+                            anchorBounds = archivedMoreAnchorBounds,
                             onDismissRequest = { showOverflowMenu = false },
-                            containerColor = Color.Transparent,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 0.dp
+                            width = 220.dp
                         ) {
-                            val menuShape = RoundedCornerShape(20.dp)
-                            Column(
-                                modifier = Modifier
-                                    .width(220.dp)
-                                    .clip(menuShape)
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f), menuShape)
-                                    .border(0.5.dp, contentColor.copy(alpha = 0.15f), menuShape)
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                SelectionMenuItem(
-                                    text = "Select all",
-                                    contentColor = contentColor,
-                                    onClick = {
-                                        showOverflowMenu = false
-                                        onUpdateSelection(archivedChats.map { it.chatId }.toSet())
-                                    }
-                                )
-                            }
+                            SelectionMenuItem(
+                                text = "Select all",
+                                contentColor = contentColor,
+                                onClick = {
+                                    showOverflowMenu = false
+                                    onUpdateSelection(archivedChats.map { it.chatId }.toSet())
+                                }
+                            )
                         }
                     }
                 }

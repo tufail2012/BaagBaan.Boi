@@ -66,7 +66,6 @@ import androidx.compose.material.icons.outlined.Assignment
 import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -90,6 +89,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -338,30 +340,21 @@ fun AgriHeader(
                 )
 
                 // Profile Avatar menu button inside search bar header
+                var searchAvatarAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                 Box {
                     HeaderProfileAvatar(
                         photoUrl = effectivePhotoUrl,
                         currentUserEmail = currentUserEmail,
                         isDark = isDark,
-                        onClick = { menuExpanded = true }
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.onGloballyPositioned { searchAvatarAnchorBounds = it.boundsInWindow() }
                     )
 
-                    DropdownMenu(
+                    MorphPopupMenu(
                         expanded = menuExpanded,
+                        anchorBounds = searchAvatarAnchorBounds,
                         onDismissRequest = { menuExpanded = false },
-                        modifier = Modifier
-                            .widthIn(min = 250.dp, max = 310.dp)
-                            .profileMenuLiquidGlass(
-                                backdrop = resolvedProfileBackdrop,
-                                hazeState = hazeState,
-                                shape = RoundedCornerShape(22.dp)
-                            )
-                            .padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        containerColor = Color.Transparent,
-                        border = null,
-                        shadowElevation = 0.dp,
-                        tonalElevation = 0.dp
+                        width = 270.dp
                     ) {
                         OverflowMenuContent(
                             themeMode = themeMode,
@@ -538,6 +531,7 @@ fun AgriHeader(
                             }
 
                             // Profile Avatar Menu containing Theme & Account options
+                            var headerAvatarAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                             Box {
                                 HeaderProfileAvatar(
                                     photoUrl = effectivePhotoUrl,
@@ -545,25 +539,14 @@ fun AgriHeader(
                                     isDark = isDark,
                                     onClick = { menuExpanded = true },
                                     backdrop = backdrop,
-                                    modifier = Modifier
+                                    modifier = Modifier.onGloballyPositioned { headerAvatarAnchorBounds = it.boundsInWindow() }
                                 )
 
-                                DropdownMenu(
+                                MorphPopupMenu(
                                     expanded = menuExpanded,
+                                    anchorBounds = headerAvatarAnchorBounds,
                                     onDismissRequest = { menuExpanded = false },
-                                    modifier = Modifier
-                                        .widthIn(min = 250.dp, max = 310.dp)
-                                        .profileMenuLiquidGlass(
-                                            backdrop = resolvedProfileBackdrop,
-                                            hazeState = hazeState,
-                                            shape = RoundedCornerShape(22.dp)
-                                        )
-                                        .padding(vertical = 4.dp),
-                                    shape = RoundedCornerShape(22.dp),
-                                    containerColor = Color.Transparent,
-                                    border = null,
-                                    shadowElevation = 0.dp,
-                                    tonalElevation = 0.dp
+                                    width = 270.dp
                                 ) {
                                     OverflowMenuContent(
                                         themeMode = themeMode,

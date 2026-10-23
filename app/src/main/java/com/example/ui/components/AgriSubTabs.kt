@@ -33,7 +33,6 @@ import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,11 +48,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -362,13 +364,16 @@ fun RootstockSubTabs(
             tabContent = { index, isSelected, textColor, scale ->
                 if (index == 2) {
                     // Geneva Dropdown tab
+                    var genevaAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                        }
+                        modifier = Modifier
+                            .onGloballyPositioned { genevaAnchorBounds = it.boundsInWindow() }
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            }
                     ) {
                         Text(
                             text = activeGenevaLabel,
@@ -386,16 +391,10 @@ fun RootstockSubTabs(
                         )
                     }
 
-                    val genevaMenuShape = RoundedCornerShape(20.dp)
-                    DropdownMenu(
+                    MorphPopupMenu(
                         expanded = genevaMenuExpanded,
-                        onDismissRequest = { genevaMenuExpanded = false },
-                        shape = genevaMenuShape,
-                        containerColor = Color.Transparent,
-                        border = null,
-                        shadowElevation = 0.dp,
-                        tonalElevation = 0.dp,
-                        modifier = Modifier.widthIn(min = 200.dp).dropdownLiquidGlass(hazeState = hazeState, shape = genevaMenuShape)
+                        anchorBounds = genevaAnchorBounds,
+                        onDismissRequest = { genevaMenuExpanded = false }
                     ) {
                         Text(
                             text = "Geneva Rootstocks",

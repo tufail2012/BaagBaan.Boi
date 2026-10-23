@@ -49,13 +49,15 @@ import androidx.compose.material.icons.outlined.LocalFlorist
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -319,12 +321,15 @@ fun GlobalSearchResultsScreen(
 
                         Spacer(modifier = Modifier.width(6.dp))
 
+                        var categoryFilterAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                         Box {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = if (isDark) Color(0xFF0F172A) else Color.White,
                                 border = BorderStroke(1.dp, if (isDark) Color(0xFF334155) else Color(0xFFCBD5E1)),
-                                modifier = Modifier.clickable { dropdownExpanded = true }
+                                modifier = Modifier
+                                    .onGloballyPositioned { categoryFilterAnchorBounds = it.boundsInWindow() }
+                                    .clickable { dropdownExpanded = true }
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -346,10 +351,10 @@ fun GlobalSearchResultsScreen(
                                 }
                             }
 
-                            DropdownMenu(
+                            MorphPopupMenu(
                                 expanded = dropdownExpanded,
-                                onDismissRequest = { dropdownExpanded = false },
-                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                                anchorBounds = categoryFilterAnchorBounds,
+                                onDismissRequest = { dropdownExpanded = false }
                             ) {
                                 categoryFilterOptions.forEach { cat ->
                                     DropdownMenuItem(

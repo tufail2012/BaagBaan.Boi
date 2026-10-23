@@ -35,8 +35,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.MessageTemplateRepository
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.example.ui.components.GLASS_EDGE_COLOR
 import com.example.ui.components.GLASS_EDGE_WIDTH
+import com.example.ui.components.MorphPopupMenu
 import com.example.ui.components.isGlassSupported
 import com.example.ui.components.liquidGlassNav
 import com.kyant.backdrop.Backdrop
@@ -240,8 +244,11 @@ fun MessagePreviewComponent(
                     )
 
                     // Select Template Dropdown
+                    var templateAnchorBounds by remember { mutableStateOf(Rect.Zero) }
                     Box(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned { templateAnchorBounds = it.boundsInWindow() }
                     ) {
                         OutlinedTextField(
                             value = selectedTemplate,
@@ -267,10 +274,11 @@ fun MessagePreviewComponent(
                                 .clickable { templateMenuExpanded = true }
                         )
 
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = templateMenuExpanded,
+                            anchorBounds = templateAnchorBounds,
                             onDismissRequest = { templateMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth(0.85f)
+                            width = 240.dp
                         ) {
                             MessageTemplateHelper.TEMPLATE_OPTIONS.forEach { option ->
                                 DropdownMenuItem(

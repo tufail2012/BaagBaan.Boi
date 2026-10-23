@@ -14,8 +14,11 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import com.example.ui.components.BrandedPullToRefreshBox
@@ -134,7 +137,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -1327,7 +1329,12 @@ fun GardenPlanningFormTab(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Sapling Age Dropdown
-                    Box(modifier = Modifier.weight(1f)) {
+                    var ageAnchorBounds by remember { mutableStateOf(Rect.Zero) }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { ageAnchorBounds = it.boundsInWindow() }
+                    ) {
                         TextField(
                             value = saplingAge,
                             onValueChange = {},
@@ -1358,16 +1365,10 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_sapling_age_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        val ageDropdownShape = RoundedCornerShape(16.dp)
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = ageDropdownExpanded,
-                            onDismissRequest = { ageDropdownExpanded = false },
-                            shape = ageDropdownShape,
-                            containerColor = Color.Transparent,
-                            border = null,
-                            shadowElevation = 0.dp,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = ageDropdownShape)
+                            anchorBounds = ageAnchorBounds,
+                            onDismissRequest = { ageDropdownExpanded = false }
                         ) {
                             saplingAgeOptions.forEach { age ->
                                 DropdownMenuItem(
@@ -1382,7 +1383,12 @@ fun GardenPlanningFormTab(
                     }
 
                     // Plant Origin Dropdown
-                    Box(modifier = Modifier.weight(1f)) {
+                    var originAnchorBounds by remember { mutableStateOf(Rect.Zero) }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .onGloballyPositioned { originAnchorBounds = it.boundsInWindow() }
+                    ) {
                         TextField(
                             value = plantOrigin,
                             onValueChange = {},
@@ -1413,16 +1419,10 @@ fun GardenPlanningFormTab(
                                 .testTag("garden_plant_origin_input"),
                             colors = elevatedInputFieldColors(isDark = isDark, accentColor = gardenAccent)
                         )
-                        val originDropdownShape = RoundedCornerShape(16.dp)
-                        DropdownMenu(
+                        MorphPopupMenu(
                             expanded = originDropdownExpanded,
-                            onDismissRequest = { originDropdownExpanded = false },
-                            shape = originDropdownShape,
-                            containerColor = Color.Transparent,
-                            border = null,
-                            shadowElevation = 0.dp,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.dropdownLiquidGlass(hazeState = effectiveHaze, shape = originDropdownShape)
+                            anchorBounds = originAnchorBounds,
+                            onDismissRequest = { originDropdownExpanded = false }
                         ) {
                             plantOriginOptions.forEach { originOption ->
                                 DropdownMenuItem(
