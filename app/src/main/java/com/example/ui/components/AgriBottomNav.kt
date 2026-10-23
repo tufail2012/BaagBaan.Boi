@@ -162,6 +162,7 @@ fun AgriBottomNav(
     } else {
         contentColor
     }
+    val activeIconColor = config.selectionPillColor
     val unselectedColor = contentColor.copy(alpha = 0.65f)
     val indicatorColor = config.selectionPillColor.copy(alpha = config.selectionPillOpacity)
 
@@ -274,6 +275,7 @@ fun AgriBottomNav(
                     tabRow = tabRow,
                     tabShape = tabShape,
                     selectedColor = selectedColor,
+                    activeIconColor = activeIconColor,
                     unselectedColor = unselectedColor,
                     glassSpec = glassSpec,
                     onRowSize = { rowSize = it },
@@ -358,6 +360,7 @@ private fun NavTabRow(
     tabRow: com.example.ui.components.backdrop.backdrops.LayerBackdrop,
     tabShape: androidx.compose.ui.graphics.Shape,
     selectedColor: Color,
+    activeIconColor: Color,
     unselectedColor: Color,
     glassSpec: AnimationSpec<Float>,
     onRowSize: (IntSize) -> Unit,
@@ -375,6 +378,7 @@ private fun NavTabRow(
         navItems.forEachIndexed { index, item ->
             val isSelected = index == selectedIndex
             val tint = if (isSelected) selectedColor else unselectedColor
+            val iconTint = if (isSelected) activeIconColor else unselectedColor
             val iconScale by animateFloatAsState(
                 targetValue = if (isSelected) 1.08f else 1f,
                 animationSpec = glassSpec,
@@ -406,7 +410,7 @@ private fun NavTabRow(
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        tint = tint,
+                        tint = iconTint,
                         modifier = Modifier.size(25.dp)
                     )
                 }

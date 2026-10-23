@@ -225,11 +225,11 @@ internal fun GroupsTopHeaderOverlay(
             .onSizeChanged { onHeaderHeightChanged(it.height) }
             .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp)
     ) {
+        // Title row: icon + title, no glass
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .chatHeaderGlass(backdrop)
-                .padding(start = 18.dp, end = 22.dp, top = 8.dp, bottom = 8.dp)
+                .padding(0.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Groups,
