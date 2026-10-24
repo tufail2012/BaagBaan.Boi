@@ -1,8 +1,7 @@
 package com.example.chat.ui.attachments
 
-
-import com.example.ui.components.ThemedIcon
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +21,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
@@ -36,6 +34,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.LocalAppGlassHazeState
+import com.example.ui.components.ThemedIcon
+import com.example.ui.components.isGlassSupported
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LiquidGlassPreference
+import com.example.ui.theme.LocalLiquidGlassConfig
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,101 +56,178 @@ fun AttachmentBottomSheet(
     onPickContact: () -> Unit,
     isDark: Boolean = true
 ) {
+    val sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    val config = LocalLiquidGlassConfig.current
+    val blurRadius = config.blurRadius.coerceAtLeast(0f).dp
+    val surfaceTintColor = config.surfaceTintColor
+    val surfaceOpacity = config.surfaceOpacity.coerceIn(0f, 1f)
+    val glassStyle = config.glassStyle
+    val hazeState = LocalAppGlassHazeState.current
+    val glassOn = LiquidGlassPreference.enabled && isGlassSupported()
+    val solidSheetColor = if (isDark) Color(0xFF1F2C34) else Color.White
+    val edgeBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.05f)
+        )
+    )
+
+    val sheetSurfaceModifier = if (!glassOn) {
+        Modifier
+            .clip(sheetShape)
+            .background(solidSheetColor, sheetShape)
+    } else {
+        val baseModifier = Modifier.clip(sheetShape)
+        val styledModifier = when (glassStyle) {
+            GlassStyle.LIQUID -> {
+                val tintColor = surfaceTintColor.copy(alpha = surfaceOpacity)
+                if (hazeState != null) {
+                    val hazeStyle = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        blurRadius = blurRadius,
+                        tints = listOf(
+                            HazeTint(
+                                color = tintColor
+                            )
+                        ),
+                        noiseFactor = 0.04f
+                    )
+                    baseModifier.hazeEffect(
+                        state = hazeState,
+                        style = hazeStyle
+                    )
+                } else {
+                    baseModifier.background(tintColor, sheetShape)
+                }
+            }
+            GlassStyle.BLUR -> {
+                if (hazeState != null) {
+                    val hazeStyle = HazeStyle(
+                        backgroundColor = Color.Transparent,
+                        blurRadius = blurRadius,
+                        tints = emptyList(),
+                        noiseFactor = 0.04f
+                    )
+                    baseModifier.hazeEffect(
+                        state = hazeState,
+                        style = hazeStyle
+                    )
+                } else {
+                    baseModifier
+                }
+            }
+            GlassStyle.TRANSPARENT -> baseModifier
+        }
+        styledModifier.border(
+            width = 0.5.dp,
+            brush = edgeBrush,
+            shape = sheetShape
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        containerColor = if (isDark) Color(0xFF1F2C34) else Color.White,
-        dragHandle = {
+        shape = sheetShape,
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(sheetSurfaceModifier)
+        ) {
             Box(
                 modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
                     .padding(vertical = 10.dp)
                     .size(width = 36.dp, height = 4.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(if (isDark) Color(0xFF4A5568) else Color(0xFFCBD5E1))
             )
-        }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-                .padding(bottom = 28.dp)
-        ) {
-            Text(
-                text = "Share Content",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
-                modifier = Modifier.padding(bottom = 20.dp, start = 4.dp)
-            )
 
-            // Row 1: Gallery, Camera, Document
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(bottom = 28.dp)
             ) {
-                AttachmentOptionItem(
-                    icon = Icons.Default.PhotoLibrary,
-                    label = "Gallery",
-                    gradient = listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9)),
-                    isDark = isDark,
-                    onClick = {
-                        onDismiss()
-                        onPickGallery()
-                    }
+                Text(
+                    text = "Share Content",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (isDark) Color(0xFFE2E8F0) else Color(0xFF1E293B),
+                    modifier = Modifier.padding(bottom = 20.dp, start = 4.dp)
                 )
-                AttachmentOptionItem(
-                    icon = Icons.Default.CameraAlt,
-                    label = "Camera",
-                    gradient = listOf(Color(0xFFEC4899), Color(0xFFBE185D)),
-                    isDark = isDark,
-                    onClick = {
-                        onDismiss()
-                        onTakePhoto()
-                    }
-                )
-                AttachmentOptionItem(
-                    icon = Icons.Default.Description,
-                    label = "Document",
-                    gradient = listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)),
-                    isDark = isDark,
-                    onClick = {
-                        onDismiss()
-                        onPickDocument()
-                    }
-                )
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                // Row 1: Gallery, Camera, Document
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    AttachmentOptionItem(
+                        icon = Icons.Default.PhotoLibrary,
+                        label = "Gallery",
+                        gradient = listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9)),
+                        isDark = isDark,
+                        onClick = {
+                            onDismiss()
+                            onPickGallery()
+                        }
+                    )
+                    AttachmentOptionItem(
+                        icon = Icons.Default.CameraAlt,
+                        label = "Camera",
+                        gradient = listOf(Color(0xFFEC4899), Color(0xFFBE185D)),
+                        isDark = isDark,
+                        onClick = {
+                            onDismiss()
+                            onTakePhoto()
+                        }
+                    )
+                    AttachmentOptionItem(
+                        icon = Icons.Default.Description,
+                        label = "Document",
+                        gradient = listOf(Color(0xFF3B82F6), Color(0xFF1D4ED8)),
+                        isDark = isDark,
+                        onClick = {
+                            onDismiss()
+                            onPickDocument()
+                        }
+                    )
+                }
 
-            // Row 2: Location, Contact
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                AttachmentOptionItem(
-                    icon = Icons.Default.LocationOn,
-                    label = "Location",
-                    gradient = listOf(Color(0xFF10B981), Color(0xFF047857)),
-                    isDark = isDark,
-                    onClick = {
-                        onDismiss()
-                        onShareLocation()
-                    }
-                )
-                AttachmentOptionItem(
-                    icon = Icons.Default.ContactPhone,
-                    label = "Contact",
-                    gradient = listOf(Color(0xFF06B6D4), Color(0xFF0E7490)),
-                    isDark = isDark,
-                    onClick = {
-                        onDismiss()
-                        onPickContact()
-                    }
-                )
-                // Spacer item to keep grid aligned with Row 1
-                Box(modifier = Modifier.size(72.dp))
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Row 2: Location, Contact
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    AttachmentOptionItem(
+                        icon = Icons.Default.LocationOn,
+                        label = "Location",
+                        gradient = listOf(Color(0xFF10B981), Color(0xFF047857)),
+                        isDark = isDark,
+                        onClick = {
+                            onDismiss()
+                            onShareLocation()
+                        }
+                    )
+                    AttachmentOptionItem(
+                        icon = Icons.Default.ContactPhone,
+                        label = "Contact",
+                        gradient = listOf(Color(0xFF06B6D4), Color(0xFF0E7490)),
+                        isDark = isDark,
+                        onClick = {
+                            onDismiss()
+                            onPickContact()
+                        }
+                    )
+                    // Spacer item to keep grid aligned with Row 1
+                    Box(modifier = Modifier.size(72.dp))
+                }
             }
         }
     }
@@ -174,6 +258,7 @@ private fun AttachmentOptionItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = Color.White,
+                keepTint = true,
                 modifier = Modifier.size(28.dp)
             )
         }

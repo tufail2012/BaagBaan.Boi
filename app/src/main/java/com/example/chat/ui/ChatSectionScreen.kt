@@ -358,6 +358,9 @@ fun ChatSectionScreen(
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.example.ui.components.LocalAppGlassHazeState provides chatHazeState
+    ) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -855,6 +858,7 @@ fun ChatSectionScreen(
                 }
             }
         }
+    }
     }
 }
 

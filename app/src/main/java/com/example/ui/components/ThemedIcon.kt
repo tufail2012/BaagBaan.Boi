@@ -20,14 +20,15 @@ fun ThemedIcon(
     imageVector: ImageVector,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    tint: Color = LocalContentColor.current
+    tint: Color = LocalContentColor.current,
+    keepTint: Boolean = false
 ) {
     val solidTileState = LocalSolidIconTileState.current
     if (solidTileState != null) {
         solidTileState.value = imageVector
     }
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    if (IconPresetSettings.enabled) {
+    if (!keepTint && IconPresetSettings.enabled) {
         Icon(
             imageVector = imageVector,
             contentDescription = contentDescription,

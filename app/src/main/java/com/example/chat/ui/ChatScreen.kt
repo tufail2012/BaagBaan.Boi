@@ -763,6 +763,9 @@ fun ChatScreen(
         )
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.example.ui.components.LocalAppGlassHazeState provides chatHaze
+    ) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -3106,6 +3109,7 @@ fun ChatScreen(
                 isDark = isDark
             )
         }
+    }
     }
 }
 
