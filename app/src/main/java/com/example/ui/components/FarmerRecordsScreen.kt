@@ -21,6 +21,7 @@ import com.example.ui.animation.iosPressable
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -951,30 +952,105 @@ private fun FarmerRecordCard(
             )
 
             // Address & Contact Info
-            if (record.farmerAddress.isNotBlank()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ThemedIcon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    HighlightedText(
-                        text = record.farmerAddress,
-                        query = searchQuery,
-                        fontSize = 12.sp,
-                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        isDark = isDark
-                    )
-                }
+            val isSiteVisit = record.serviceType.equals("Site Visit", ignoreCase = true) ||
+                record.serviceType.equals("Site Visits", ignoreCase = true) ||
+                record.serviceType.equals("SiteVisit", ignoreCase = true)
+            val isRootstock = record.serviceType.equals("Rootstocks", ignoreCase = true) ||
+                record.serviceType.contains("Rootstock", ignoreCase = true)
+            val showBookedChip = !isSiteVisit
+            val parsedVarietyLines = remember(record.varietyLinesJson) {
+                parseVarietyLines(record.varietyLinesJson)
+            }
+            val bookedCount = if (parsedVarietyLines.isNotEmpty()) {
+                parsedVarietyLines.sumOf { it.effectiveQuantity }
+            } else {
+                record.quantity
+            }
+            val formattedBookedCount = remember(bookedCount) {
+                NumberFormat.getNumberInstance(Locale("en", "IN")).format(bookedCount)
+            }
+            val bookedUnit = if (isRootstock) {
+                if (bookedCount == 1) "rootstock" else "rootstocks"
+            } else {
+                "plants"
+            }
+            val isZeroBooked = bookedCount <= 0
+            val bookedChipBg = if (isZeroBooked) {
+                if (isDark) Color(0xFF64748B).copy(alpha = 0.20f) else Color(0xFF64748B).copy(alpha = 0.12f)
+            } else {
+                paletteColor.copy(alpha = if (isDark) 0.20f else 0.12f)
+            }
+            val bookedChipBorder = if (isZeroBooked) {
+                Color(0xFF64748B).copy(alpha = 0.30f)
+            } else {
+                paletteColor.copy(alpha = 0.30f)
+            }
+            val bookedChipTextColor = if (isZeroBooked) {
+                if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+            } else {
+                if (isDark) Color.White else paletteColor
             }
 
-            val isSiteVisit = record.serviceType.equals("Site Visit", ignoreCase = true)
+            if (record.farmerAddress.isNotBlank() || showBookedChip) {
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val fullBookedText = "Booked: $formattedBookedCount $bookedUnit"
+                    val useShortBookedLabel = maxWidth < 240.dp || (fullBookedText.length > 22 && maxWidth < 280.dp)
+                    val bookedChipText = if (useShortBookedLabel) {
+                        "Booked: $formattedBookedCount"
+                    } else {
+                        fullBookedText
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (record.farmerAddress.isNotBlank()) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                ThemedIcon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                HighlightedText(
+                                    text = record.farmerAddress,
+                                    query = searchQuery,
+                                    fontSize = 12.sp,
+                                    color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    isDark = isDark
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+
+                        if (showBookedChip) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = bookedChipBg,
+                                border = BorderStroke(1.dp, bookedChipBorder)
+                            ) {
+                                Text(
+                                    text = bookedChipText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = bookedChipTextColor,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             if (record.location.isNotBlank()) {
                 if (MapHelper.isGoogleMapsUrl(record.location)) {

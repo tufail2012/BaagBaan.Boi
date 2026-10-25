@@ -54,6 +54,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -3190,25 +3191,83 @@ private fun GardenPlanningRecordCard(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
 
+            val parsedLines = if (entry.varietyLinesJson.isNotBlank()) com.example.data.parseVarietyLines(entry.varietyLinesJson) else emptyList()
+            val isMultiVariety = parsedLines.isNotEmpty()
+            val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else entry.totalKanalArea
+            val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+            val formattedBookedPlants = remember(aggregateTotalPlants) {
+                NumberFormat.getNumberInstance(Locale("en", "IN")).format(aggregateTotalPlants)
+            }
+            val isZeroBooked = aggregateTotalPlants <= 0
+            val bookedChipBg = if (isZeroBooked) {
+                if (isDark) Color(0xFF64748B).copy(alpha = 0.20f) else Color(0xFF64748B).copy(alpha = 0.12f)
+            } else {
+                paletteAccent.copy(alpha = if (isDark) 0.20f else 0.12f)
+            }
+            val bookedChipBorder = if (isZeroBooked) {
+                Color(0xFF64748B).copy(alpha = 0.30f)
+            } else {
+                paletteAccent.copy(alpha = 0.30f)
+            }
+            val bookedChipTextColor = if (isZeroBooked) {
+                if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+            } else {
+                if (isDark) Color.White else paletteAccent
+            }
+
             // Address & Contact Info
-            if (entry.farmerAddress.isNotBlank()) {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val fullBookedText = "Booked: $formattedBookedPlants plants"
+                val useShortBookedLabel = maxWidth < 240.dp || (fullBookedText.length > 22 && maxWidth < 280.dp)
+                val bookedChipText = if (useShortBookedLabel) {
+                    "Booked: $formattedBookedPlants"
+                } else {
+                    fullBookedText
+                }
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ThemedIcon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Text(
-                        text = entry.farmerAddress,
-                        fontSize = 12.sp,
-                        color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    if (entry.farmerAddress.isNotBlank()) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            ThemedIcon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Text(
+                                text = entry.farmerAddress,
+                                fontSize = 12.sp,
+                                color = if (isDark) Color(0xFFCBD5E1) else Color(0xFF334155),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = bookedChipBg,
+                        border = BorderStroke(1.dp, bookedChipBorder)
+                    ) {
+                        Text(
+                            text = bookedChipText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = bookedChipTextColor,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
 
@@ -3243,10 +3302,6 @@ private fun GardenPlanningRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val parsedLines = if (entry.varietyLinesJson.isNotBlank()) com.example.data.parseVarietyLines(entry.varietyLinesJson) else emptyList()
-                val isMultiVariety = parsedLines.isNotEmpty()
-                val aggregateKanalArea = if (isMultiVariety) parsedLines.sumOf { it.kanalArea } else entry.totalKanalArea
-                val aggregateTotalPlants = if (isMultiVariety) parsedLines.sumOf { it.effectiveQuantity } else (entry.totalKanalArea * entry.plantsPerKanal).toInt()
                 val displayPlantsPerKanal = if (isMultiVariety && aggregateKanalArea > 0) {
                     Math.round(aggregateTotalPlants / aggregateKanalArea).toInt()
                 } else {
