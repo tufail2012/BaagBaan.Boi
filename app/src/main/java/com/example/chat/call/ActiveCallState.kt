@@ -23,6 +23,8 @@ data class ActiveCallState(
     val isCameraOn: Boolean = false,
     val isSpeakerOn: Boolean = false,
     val isNoiseCancellationOn: Boolean = true,
+    val isSmoothOn: Boolean = false,
+    val smoothStrength: Float = 0.5f,
     val isMinimized: Boolean = false,
     val statusText: String = "Connecting…"
 ) {

@@ -77,6 +77,8 @@ import im.zego.zim.entity.ZIMCallUserStateChangeInfo
 import im.zego.zim.enums.ZIMCallUserState
 import im.zego.zegoexpress.ZegoExpressEngine
 import im.zego.zegoexpress.constants.ZegoANSMode
+import im.zego.zegoexpress.constants.ZegoBeautifyFeature
+import im.zego.zegoexpress.entity.ZegoBeautifyOption
 import java.lang.ref.WeakReference
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
@@ -306,10 +308,11 @@ object ZegoCallManager {
                             } else {
                                 callInvitationData.inviter
                             }
+                            val prevState = _activeCallState.value
                             val isOutgoing = (callInvitationData.inviter?.userID == currentUserId)
-                            val targetUid = otherUser?.userID ?: (_activeCallState.value?.targetUid ?: "")
-                            val targetName = otherUser?.userName ?: (_activeCallState.value?.targetName ?: "Member")
-                            val photoUrl = avatarUrlCache[targetUid] ?: _activeCallState.value?.targetPhotoUrl
+                            val targetUid = otherUser?.userID ?: (prevState?.targetUid ?: "")
+                            val targetName = otherUser?.userName ?: (prevState?.targetName ?: "Member")
+                            val photoUrl = avatarUrlCache[targetUid] ?: prevState?.targetPhotoUrl
                             val isVideo = (callInvitationData.type == 1)
 
                             _activeCallState.value = ActiveCallState(
@@ -322,7 +325,9 @@ object ZegoCallManager {
                                 callerId = callInvitationData.inviter?.userID ?: currentUserId.orEmpty(),
                                 calleeId = if (isOutgoing) targetUid else currentUserId.orEmpty(),
                                 statusText = if (isOutgoing) "Calling…" else "Incoming call…",
-                                isNoiseCancellationOn = true
+                                isNoiseCancellationOn = prevState?.isNoiseCancellationOn ?: true,
+                                isSmoothOn = prevState?.isSmoothOn ?: false,
+                                smoothStrength = prevState?.smoothStrength ?: 0.5f
                             )
 
                             // WhatsApp PIP layout style
@@ -585,6 +590,9 @@ object ZegoCallManager {
     private fun onCallConnected() {
         _callDurationSeconds.value = 0L
         _activeCallState.update { it?.copy(isConnected = true, statusText = "00:00") }
+        _activeCallState.value?.let { current ->
+            setSmoothing(current.isSmoothOn, current.smoothStrength)
+        }
         // Keep ongoing notification alive throughout connected call using system chronometer
         applicationContext?.let { ctx ->
             val call = _activeCallState.value
@@ -754,6 +762,34 @@ object ZegoCallManager {
             Log.w(TAG, "Could not toggle ANS: ${e.message}")
         }
         _activeCallState.update { it?.copy(isNoiseCancellationOn = enable) }
+    }
+
+    fun setSmoothing(enabled: Boolean, strength: Float) {
+        val clampedStrength = strength.coerceIn(0f, 1f)
+        try {
+            val engine = ZegoExpressEngine.getEngine()
+            val option = ZegoBeautifyOption().apply {
+                polishStep = if (enabled) clampedStrength.toDouble() else 0.0
+                whitenFactor = if (enabled) 0.2 else 0.0
+                sharpenFactor = 0.0
+            }
+            engine?.enableBeautify(
+                if (enabled) {
+                    ZegoBeautifyFeature.POLISH.value() or ZegoBeautifyFeature.WHITEN.value()
+                } else {
+                    ZegoBeautifyFeature.NONE.value()
+                }
+            )
+            engine?.setBeautifyOption(option)
+        } catch (e: Throwable) {
+            Log.w(TAG, "setSmoothing failed: ${e.message}", e)
+        }
+        _activeCallState.update {
+            it?.copy(
+                isSmoothOn = enabled,
+                smoothStrength = clampedStrength
+            )
+        }
     }
 
     fun minimizeCall(activity: Activity) {

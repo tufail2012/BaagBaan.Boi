@@ -39,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FaceRetouchingNatural
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Message
@@ -57,9 +58,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.example.ui.components.GlassRefractToggle
+import kotlin.math.roundToInt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -643,6 +647,107 @@ private fun CallMoreSheetContent(
                     inactiveColor = Color(0xFF111B21),
                     backdrop = null
                 )
+            }
+
+            // SMOOTH FACE TOGGLE & STRENGTH SLIDER
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF2A3942))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0x3300A884)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ThemedIcon(
+                                imageVector = Icons.Default.FaceRetouchingNatural,
+                                contentDescription = "Smooth face",
+                                tint = Color(0xFF00A884),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Smooth face",
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Built-in video beautify effect",
+                                color = Color(0xFF8696A0),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    GlassRefractToggle(
+                        checked = state.isSmoothOn,
+                        onCheckedChange = { isChecked ->
+                            ZegoCallManager.setSmoothing(isChecked, state.smoothStrength)
+                        },
+                        description = "Smooth face",
+                        activeColor = Color(0xFF00A884),
+                        inactiveColor = Color(0xFF111B21),
+                        backdrop = null
+                    )
+                }
+
+                if (state.isSmoothOn) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Strength",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "${(state.smoothStrength * 100f).roundToInt()}",
+                                color = Color(0xFF8696A0),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Slider(
+                            value = (state.smoothStrength * 100f).coerceIn(0f, 100f),
+                            onValueChange = { sliderValue ->
+                                ZegoCallManager.setSmoothing(true, sliderValue / 100f)
+                            },
+                            valueRange = 0f..100f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFF00A884),
+                                activeTrackColor = Color(0xFF00A884),
+                                inactiveTrackColor = Color(0xFF111B21)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
 
             // SEND MESSAGE (Quick chat or return to chat)
