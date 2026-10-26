@@ -2411,7 +2411,13 @@ fun GardenPlanningRecordsTab(
         entries.sumOf { if (it.paymentStatus.equals("Cancelled", ignoreCase = true)) 0.0 else maxOf(0.0, it.totalCost - it.amountPaid) }
     }
     val totalQuantity = remember(entries) {
-        entries.sumOf { it.countedQuantity() }
+        calculateGardenTotalPlants(entries)
+    }
+    val totalKanal = remember(entries) {
+        calculateGardenTotalKanal(entries)
+    }
+    val totalKanalSubtitle = remember(totalKanal) {
+        formatGardenTotalKanal(totalKanal)
     }
     var showVarietyQuantity by rememberSaveable { mutableStateOf(false) }
     val varietyRows = remember(entries) { varietyQuantityRowsForGarden(entries) }
@@ -2560,6 +2566,7 @@ fun GardenPlanningRecordsTab(
                             pendingPayment = pendingPayment,
                             totalQuantity = totalQuantity,
                             quantityLabel = "Plants",
+                            quantitySubtitle = totalKanalSubtitle,
                             isDark = isDark,
                             paletteAccent = paletteAccent,
                             hazeState = effectiveHazeState,
@@ -4949,18 +4956,50 @@ private fun generateGardenMessageForEntry(entry: GardenPlanningEntry, template: 
     }
 }
 
+fun calculateGardenRecordPlants(entry: GardenPlanningEntry): Int {
+    val kanal = entry.totalKanalArea
+    val rate = entry.plantsPerKanal
+    if (kanal <= 0.0 || kanal.isNaN() || kanal.isInfinite() || rate <= 0) return 0
+    return (kanal * rate).roundToInt()
+}
+
+fun calculateGardenRecordKanal(entry: GardenPlanningEntry): Double {
+    val kanal = entry.totalKanalArea
+    val rate = entry.plantsPerKanal
+    if (kanal <= 0.0 || kanal.isNaN() || kanal.isInfinite() || rate <= 0) return 0.0
+    return kanal
+}
+
+fun calculateGardenTotalPlants(entries: List<GardenPlanningEntry>): Int {
+    return entries.sumOf { calculateGardenRecordPlants(it) }
+}
+
+fun calculateGardenTotalKanal(entries: List<GardenPlanningEntry>): Double {
+    return entries.sumOf { calculateGardenRecordKanal(it) }
+}
+
+fun formatGardenTotalKanal(totalKanal: Double): String {
+    val kanalFormat = NumberFormat.getNumberInstance(Locale("en", "IN")).apply {
+        minimumFractionDigits = 2
+        maximumFractionDigits = 2
+    }
+    return "${kanalFormat.format(totalKanal)} Kanal"
+}
+
 @Composable
 private fun GardenRecordSummaryCards(
     totalPayment: Double,
     receivedPayment: Double,
     pendingPayment: Double,
     totalQuantity: Int,
+    totalKanal: Double = 0.0,
     isDark: Boolean,
     paletteAccent: Color = MaterialTheme.colorScheme.primary,
     backdrop: Backdrop? = null,
     hazeState: HazeState? = null
 ) {
     val numberFmt = NumberFormat.getNumberInstance(Locale("en", "IN"))
+    val kanalSubtitle = remember(totalKanal) { formatGardenTotalKanal(totalKanal) }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -5015,6 +5054,7 @@ private fun GardenRecordSummaryCards(
             GardenSummaryCardItem(
                 title = "Total Quantity",
                 value = "${numberFmt.format(totalQuantity)} Plants",
+                subtitle = kanalSubtitle,
                 icon = Icons.Default.Inventory2,
                 accentColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF0288D1),
                 isDark = isDark,
@@ -5034,6 +5074,7 @@ private fun GardenSummaryCardItem(
     accentColor: Color,
     isDark: Boolean,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     backdrop: Backdrop? = null,
     hazeState: HazeState? = null
 ) {
@@ -5077,6 +5118,7 @@ private fun GardenSummaryCardItem(
                     modifier = Modifier.size(18.dp)
                 )
             }
+            val hasSubtitle = !subtitle.isNullOrBlank()
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -5084,6 +5126,7 @@ private fun GardenSummaryCardItem(
                 Text(
                     text = title,
                     fontSize = 10.sp,
+                    lineHeight = if (hasSubtitle) 12.sp else 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
                     maxLines = 1,
@@ -5091,12 +5134,24 @@ private fun GardenSummaryCardItem(
                 )
                 Text(
                     text = value,
-                    fontSize = 13.sp,
+                    fontSize = if (hasSubtitle) 12.sp else 13.sp,
+                    lineHeight = if (hasSubtitle) 14.sp else 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (hasSubtitle) {
+                    Text(
+                        text = subtitle!!,
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

@@ -61,6 +61,7 @@ fun RecordsSummaryMetricCards(
     pendingPayment: Double,
     totalQuantity: Int,
     quantityLabel: String = "Plants",
+    quantitySubtitle: String? = null,
     isDark: Boolean,
     paletteAccent: Color = MaterialTheme.colorScheme.primary,
     hazeState: HazeState? = null,
@@ -136,6 +137,7 @@ fun RecordsSummaryMetricCards(
             SummaryMetricCardItem(
                 title = "Total Quantity",
                 value = "${numberFmt.format(totalQuantity)} $quantityLabel",
+                subtitle = quantitySubtitle,
                 icon = Icons.Default.Inventory2,
                 cardAccent = quantityColor,
                 isDark = isDark,
@@ -154,6 +156,7 @@ fun RecordsSummaryMetricCards(
 private fun SummaryMetricCardItem(
     title: String,
     value: String,
+    subtitle: String? = null,
     icon: ImageVector,
     cardAccent: Color,
     isDark: Boolean,
@@ -265,6 +268,7 @@ private fun SummaryMetricCardItem(
             }
 
             // Labels & Metrics Column
+            val hasSubtitle = !subtitle.isNullOrBlank()
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -272,6 +276,7 @@ private fun SummaryMetricCardItem(
                 Text(
                     text = title,
                     fontSize = 10.sp,
+                    lineHeight = if (hasSubtitle) 12.sp else 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (isDark) Color(0xFF94A3B8) else Color(0xFF475569),
                     maxLines = 1,
@@ -279,12 +284,24 @@ private fun SummaryMetricCardItem(
                 )
                 Text(
                     text = value,
-                    fontSize = 13.sp,
+                    fontSize = if (hasSubtitle) 12.sp else 13.sp,
+                    lineHeight = if (hasSubtitle) 14.sp else 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = cardAccent,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (hasSubtitle) {
+                    Text(
+                        text = subtitle!!,
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

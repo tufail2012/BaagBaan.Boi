@@ -4,6 +4,8 @@ import com.example.data.CropRecord
 import com.example.data.GardenPlanningEntry
 import com.example.data.parseVarietyLines
 
+import kotlin.math.roundToInt
+
 data class VarietyQuantityRow(
     val variety: String,
     val quantity: Int
@@ -31,7 +33,7 @@ fun GardenPlanningEntry.countedQuantity(): Int {
     return if (lines.isNotEmpty()) {
         lines.sumOf { it.quantity }
     } else if (totalKanalArea > 0 && plantsPerKanal > 0) {
-        (totalKanalArea * plantsPerKanal).toInt()
+        (totalKanalArea * plantsPerKanal).roundToInt()
     } else {
         0
     }
@@ -68,7 +70,7 @@ fun varietyQuantityRowsForGarden(entries: List<GardenPlanningEntry>): List<Varie
             }
         } else {
             val qty = if (entry.totalKanalArea > 0 && entry.plantsPerKanal > 0) {
-                (entry.totalKanalArea * entry.plantsPerKanal).toInt()
+                (entry.totalKanalArea * entry.plantsPerKanal).roundToInt()
             } else {
                 0
             }
