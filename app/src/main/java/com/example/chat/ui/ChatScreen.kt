@@ -101,7 +101,7 @@ import androidx.compose.ui.text.style.TextAlign
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.material3.AlertDialog
+import com.example.ui.components.rememberPopupBackdrop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -691,6 +691,10 @@ fun ChatScreen(
         recipient?.displayName?.ifBlank { recipient?.username } ?: "Member"
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.example.ui.components.LocalAppGlassHazeState provides chatHaze,
+        LocalMorphMenuBackdrop provides rememberPopupBackdrop(chatGlass)
+    ) {
     selectedMessageForAction?.let { msg ->
         val isOwnMsg = msg.senderId == currentUid
         MorphAlertDialog(
@@ -763,9 +767,6 @@ fun ChatScreen(
         )
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(
-        com.example.ui.components.LocalAppGlassHazeState provides chatHaze
-    ) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -3106,7 +3107,8 @@ fun ChatScreen(
                     val contactIntent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
                     contactPickerLauncher.launch(contactIntent)
                 },
-                isDark = isDark
+                isDark = isDark,
+                panelModifier = glassModifier(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             )
         }
     }

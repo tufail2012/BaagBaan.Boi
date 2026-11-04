@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +33,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.TransformOrigin
@@ -39,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.ui.animation.IosMotion
+import com.example.ui.theme.GlassStyle
+import com.example.ui.theme.LocalLiquidGlassConfig
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -184,6 +192,65 @@ fun MorphAlertDialog(
     tonalElevation: Dp = AlertDialogDefaults.TonalElevation,
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
 ) {
+    val isDark = isAppInDarkMode()
+    val glassConfig = LocalLiquidGlassConfig.current
+    val backdrop = LocalMorphMenuBackdrop.current
+    val cornerShape: CornerBasedShape = (shape as? CornerBasedShape) ?: RoundedCornerShape(28.dp)
+    val glassEnabled = isGlassSupported() && glassConfig.chatGlassEnabled
+    val glassOn = glassEnabled && backdrop != null
+
+    val surfaceOpacity = glassConfig.surfaceOpacity.coerceIn(0f, 1f)
+    val fallbackFill = if (glassConfig.surfaceTintColor != Color.Unspecified) {
+        glassConfig.surfaceTintColor.copy(alpha = surfaceOpacity)
+    } else {
+        if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF)
+    }
+    val edgeBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.25f),
+            Color.White.copy(alpha = 0.05f),
+        ),
+    )
+
+    val dialogGlassModifier = when {
+        glassOn && backdrop != null -> Modifier
+            .navLiquidGlass(shape = cornerShape, backdrop = backdrop)
+            .border(0.5.dp, Color.White.copy(alpha = 0.15f), cornerShape)
+            .clip(cornerShape)
+        glassEnabled -> Modifier
+            .clip(cornerShape)
+            .then(
+                when (glassConfig.glassStyle) {
+                    GlassStyle.LIQUID -> Modifier.background(fallbackFill, cornerShape)
+                    GlassStyle.BLUR, GlassStyle.TRANSPARENT -> Modifier
+                }
+            )
+            .border(0.5.dp, edgeBrush, cornerShape)
+        else -> Modifier
+            .clip(cornerShape)
+            .background(containerColor, cornerShape)
+            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, cornerShape)
+    }
+
+    val effectiveContainerColor = if (glassOn || glassEnabled) Color.Transparent else containerColor
+    val effectiveTonalElevation = if (glassOn || glassEnabled) 0.dp else tonalElevation
+
+    val iconColor = if (glassOn || glassEnabled) {
+        if (isDark) Color.White else Color(0xFF111827)
+    } else {
+        AlertDialogDefaults.iconContentColor
+    }
+    val titleColor = if (glassOn || glassEnabled) {
+        if (isDark) Color.White else Color(0xFF111827)
+    } else {
+        AlertDialogDefaults.titleContentColor
+    }
+    val bodyColor = if (glassOn || glassEnabled) {
+        if (isDark) Color.White else Color(0xFF1F2937)
+    } else {
+        AlertDialogDefaults.textContentColor
+    }
+
     MorphDialog(
         onDismissRequest = onDismissRequest,
         properties = properties,
@@ -192,10 +259,11 @@ fun MorphAlertDialog(
             modifier = modifier
                 .padding(horizontal = 24.dp)
                 .widthIn(min = 280.dp, max = 560.dp)
-                .fillMaxWidth(),
-            shape = shape,
-            color = containerColor,
-            tonalElevation = tonalElevation,
+                .fillMaxWidth()
+                .then(dialogGlassModifier),
+            shape = cornerShape,
+            color = effectiveContainerColor,
+            tonalElevation = effectiveTonalElevation,
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -206,7 +274,7 @@ fun MorphAlertDialog(
                             .align(Alignment.CenterHorizontally)
                             .padding(bottom = 16.dp),
                     ) {
-                        CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.iconContentColor) {
+                        CompositionLocalProvider(LocalContentColor provides iconColor) {
                             icon()
                         }
                     }
@@ -217,7 +285,7 @@ fun MorphAlertDialog(
                             .align(if (icon == null) Alignment.Start else Alignment.CenterHorizontally)
                             .padding(bottom = 16.dp),
                     ) {
-                        CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.titleContentColor) {
+                        CompositionLocalProvider(LocalContentColor provides titleColor) {
                             ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
                                 title()
                             }
@@ -231,7 +299,7 @@ fun MorphAlertDialog(
                             .padding(bottom = 24.dp)
                             .align(Alignment.Start),
                     ) {
-                        CompositionLocalProvider(LocalContentColor provides AlertDialogDefaults.textContentColor) {
+                        CompositionLocalProvider(LocalContentColor provides bodyColor) {
                             ProvideTextStyle(MaterialTheme.typography.bodyMedium) {
                                 text()
                             }

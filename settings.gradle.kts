@@ -21,6 +21,7 @@ dependencyResolutionManagement {
     mavenCentral()
     maven { url = uri("https://storage.zego.im/maven") }
     maven { url = uri("https://jitpack.io") }
+    maven { url = uri("https://download.agora.io/maven/") }
   }
 }
 

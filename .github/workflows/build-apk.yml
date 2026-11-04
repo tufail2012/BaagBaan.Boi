@@ -146,6 +146,7 @@ jobs:
         if: steps.validate.outputs.signing_ready == 'true'
         env:
           ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          AGORA_APP_ID: ${{ secrets.AGORA_APP_ID }}
           ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: |
           echo "ZEGO_APP_ID length: ${#ZEGO_APP_ID}"
@@ -158,6 +159,7 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'agricrop-release' }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'AgriCropReleasePass2026' }}
           ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          AGORA_APP_ID: ${{ secrets.AGORA_APP_ID }}
           ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: gradle :app:clean :app:assembleRelease --stacktrace --no-daemon
 
@@ -205,6 +207,7 @@ jobs:
         if: steps.validate.outputs.signing_ready == 'false'
         env:
           ZEGO_APP_ID: ${{ secrets.ZEGO_APP_ID }}
+          AGORA_APP_ID: ${{ secrets.AGORA_APP_ID }}
           ZEGO_APP_SIGN: ${{ secrets.ZEGO_APP_SIGN }}
         run: |
           echo "::warning::Release signing secrets missing. Building DEBUG test APK instead. Not for release."

@@ -141,6 +141,53 @@ class PopupBackdrop(
     }
 }
 
+class VendoredPopupBackdrop(
+    private val source: com.example.ui.components.backdrop.Backdrop,
+    private val sourceCoordinatesProvider: (() -> LayoutCoordinates?)? = null
+) : com.example.ui.components.backdrop.Backdrop {
+
+    override val isCoordinatesDependent: Boolean
+        get() = true
+
+    override fun DrawScope.drawBackdrop(
+        density: Density,
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?
+    ) {
+        if (coordinates == null || !coordinates.isAttached) return
+
+        val vendoredLayerBackdrop = source as? com.example.ui.components.backdrop.backdrops.LayerBackdrop
+        if (vendoredLayerBackdrop != null) {
+            if (vendoredLayerBackdrop.isRecording) return
+            val layerCoordinates = sourceCoordinatesProvider?.invoke() ?: vendoredLayerBackdrop.layerCoordinates
+            if (layerCoordinates == null || !layerCoordinates.isAttached) {
+                return
+            }
+            val graphicsLayer = vendoredLayerBackdrop.graphicsLayer
+            drawContext.canvas.save()
+            val offset: Offset = try {
+                val popupOnScreen = coordinates.positionOnScreen()
+                val sourceOnScreen = layerCoordinates.positionOnScreen()
+                popupOnScreen - sourceOnScreen
+            } catch (_: Exception) {
+                try {
+                    layerCoordinates.localPositionOf(coordinates, Offset.Zero)
+                } catch (_: Exception) {
+                    Offset.Zero
+                }
+            }
+            drawContext.transform.translate(-offset.x, -offset.y)
+            drawLayer(graphicsLayer)
+            drawContext.canvas.restore()
+            return
+        }
+
+        with(source) {
+            drawBackdrop(density, coordinates, layerBlock)
+        }
+    }
+}
+
 /**
  * Remembers a [PopupBackdrop] wrapping this [Backdrop], ensuring accurate cross-window
  * screen coordinate sampling for popup menus without modifying the underlying renderer.
@@ -153,5 +200,17 @@ fun rememberPopupBackdrop(
     if (backdrop == null) return null
     return remember(backdrop, sourceCoordinatesProvider) {
         if (backdrop is PopupBackdrop) backdrop else PopupBackdrop(backdrop, sourceCoordinatesProvider)
+    }
+}
+
+@Composable
+@JvmName("rememberVendoredPopupBackdrop")
+fun rememberPopupBackdrop(
+    backdrop: com.example.ui.components.backdrop.Backdrop?,
+    sourceCoordinatesProvider: (() -> LayoutCoordinates?)? = null
+): com.example.ui.components.backdrop.Backdrop? {
+    if (backdrop == null) return null
+    return remember(backdrop, sourceCoordinatesProvider) {
+        if (backdrop is VendoredPopupBackdrop) backdrop else VendoredPopupBackdrop(backdrop, sourceCoordinatesProvider)
     }
 }

@@ -87,6 +87,7 @@ import com.example.ui.components.MorphMenu
 import com.example.ui.components.glassContentColor
 import com.example.ui.components.isAppInAmoledMode
 import com.example.ui.components.isAppInDarkMode
+import com.example.ui.components.rememberPopupBackdrop
 import kotlin.math.roundToInt
 import com.example.ui.theme.getAppDimBackgroundBrush
 import com.kyant.backdrop.Backdrop
@@ -358,8 +359,19 @@ fun ChatSectionScreen(
         }
     }
 
+    val popupChatBackdrop = rememberPopupBackdrop(chatBackdrop)
     androidx.compose.runtime.CompositionLocalProvider(
-        com.example.ui.components.LocalAppGlassHazeState provides chatHazeState
+        com.example.ui.components.LocalAppGlassHazeState provides chatHazeState,
+        LocalMorphMenuBackdrop provides remember(popupChatBackdrop) { popupChatBackdrop?.run { com.example.ui.components.VendoredPopupBackdrop(object : com.example.ui.components.backdrop.Backdrop {
+            override val isCoordinatesDependent: Boolean get() = popupChatBackdrop.isCoordinatesDependent
+            override fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBackdrop(
+                density: androidx.compose.ui.unit.Density,
+                coordinates: androidx.compose.ui.layout.LayoutCoordinates?,
+                layerBlock: (androidx.compose.ui.graphics.GraphicsLayerScope.() -> Unit)?
+            ) {
+                with(popupChatBackdrop) { drawBackdrop(density, coordinates, layerBlock) }
+            }
+        }) } }
     ) {
     Box(
         modifier = modifier

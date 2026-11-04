@@ -50,6 +50,15 @@ android {
 
     buildConfigField("String", "ZEGO_APP_ID", "\"$zegoAppIdProp\"")
     buildConfigField("String", "ZEGO_APP_SIGN", "\"$zegoAppSignProp\"")
+
+    val agoraAppIdProp = ((project.findProperty("AGORA_APP_ID") as? String)
+        ?: (project.findProperty("agora.app.id") as? String)
+        ?: localEnvProps.getProperty("AGORA_APP_ID")
+        ?: localEnvProps.getProperty("agora.app.id")
+        ?: System.getenv("AGORA_APP_ID")
+        ?: "").replace("\\s+".toRegex(), "").trim()
+
+    buildConfigField("String", "AGORA_APP_ID", "\"$agoraAppIdProp\"")
   }
 
   signingConfigs {
@@ -88,6 +97,12 @@ android {
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
+
+  packaging {
+    jniLibs {
+      pickFirsts += "**/libc++_shared.so"
+    }
+  }
 }
 
 val androidComponents = extensions.getByType(com.android.build.api.variant.ApplicationAndroidComponentsExtension::class.java)
@@ -154,6 +169,7 @@ dependencies {
 
   // ZegoCloud Call Kit with Invitation
   implementation("im.zego:zego_uikit_prebuilt_call_android:3.0.3")
+  implementation("io.agora.rtc:full-sdk:4.7.0")
   implementation("androidx.appcompat:appcompat:1.7.0")
   implementation("com.google.android.material:material:1.12.0")
 

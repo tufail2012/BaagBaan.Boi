@@ -34,15 +34,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.LocalAppGlassHazeState
+import com.example.ui.components.LocalMorphMenuBackdrop
 import com.example.ui.components.ThemedIcon
 import com.example.ui.components.isGlassSupported
+import com.example.ui.components.navLiquidGlass
 import com.example.ui.theme.GlassStyle
-import com.example.ui.theme.LiquidGlassPreference
 import com.example.ui.theme.LocalLiquidGlassConfig
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
-import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,17 +51,19 @@ fun AttachmentBottomSheet(
     onPickDocument: () -> Unit,
     onShareLocation: () -> Unit,
     onPickContact: () -> Unit,
-    isDark: Boolean = true
+    isDark: Boolean = true,
+    panelModifier: Modifier = Modifier
 ) {
     val sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     val config = LocalLiquidGlassConfig.current
-    val blurRadius = config.blurRadius.coerceAtLeast(0f).dp
-    val surfaceTintColor = config.surfaceTintColor
+    val backdrop = LocalMorphMenuBackdrop.current
+    val glassOn = isGlassSupported() && config.chatGlassEnabled
     val surfaceOpacity = config.surfaceOpacity.coerceIn(0f, 1f)
-    val glassStyle = config.glassStyle
-    val hazeState = LocalAppGlassHazeState.current
-    val glassOn = LiquidGlassPreference.enabled && isGlassSupported()
-    val solidSheetColor = if (isDark) Color(0xFF1F2C34) else Color.White
+    val fallbackFill = if (config.surfaceTintColor != Color.Unspecified) {
+        config.surfaceTintColor.copy(alpha = surfaceOpacity)
+    } else {
+        if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF)
+    }
     val edgeBrush = Brush.verticalGradient(
         colors = listOf(
             Color.White.copy(alpha = 0.25f),
@@ -72,57 +71,25 @@ fun AttachmentBottomSheet(
         )
     )
 
-    val sheetSurfaceModifier = if (!glassOn) {
-        Modifier
+    val sheetSurfaceModifier = when {
+        panelModifier != Modifier -> panelModifier
+        glassOn && backdrop != null -> Modifier
+            .navLiquidGlass(shape = sheetShape, backdrop = backdrop)
+            .border(0.5.dp, edgeBrush, sheetShape)
             .clip(sheetShape)
-            .background(solidSheetColor, sheetShape)
-    } else {
-        val baseModifier = Modifier.clip(sheetShape)
-        val styledModifier = when (glassStyle) {
-            GlassStyle.LIQUID -> {
-                val tintColor = surfaceTintColor.copy(alpha = surfaceOpacity)
-                if (hazeState != null) {
-                    val hazeStyle = HazeStyle(
-                        backgroundColor = Color.Transparent,
-                        blurRadius = blurRadius,
-                        tints = listOf(
-                            HazeTint(
-                                color = tintColor
-                            )
-                        ),
-                        noiseFactor = 0.04f
-                    )
-                    baseModifier.hazeEffect(
-                        state = hazeState,
-                        style = hazeStyle
-                    )
-                } else {
-                    baseModifier.background(tintColor, sheetShape)
+        glassOn -> Modifier
+            .clip(sheetShape)
+            .then(
+                when (config.glassStyle) {
+                    GlassStyle.LIQUID -> Modifier.background(fallbackFill, sheetShape)
+                    GlassStyle.BLUR, GlassStyle.TRANSPARENT -> Modifier
                 }
-            }
-            GlassStyle.BLUR -> {
-                if (hazeState != null) {
-                    val hazeStyle = HazeStyle(
-                        backgroundColor = Color.Transparent,
-                        blurRadius = blurRadius,
-                        tints = emptyList(),
-                        noiseFactor = 0.04f
-                    )
-                    baseModifier.hazeEffect(
-                        state = hazeState,
-                        style = hazeStyle
-                    )
-                } else {
-                    baseModifier
-                }
-            }
-            GlassStyle.TRANSPARENT -> baseModifier
-        }
-        styledModifier.border(
-            width = 0.5.dp,
-            brush = edgeBrush,
-            shape = sheetShape
-        )
+            )
+            .border(0.5.dp, edgeBrush, sheetShape)
+        else -> Modifier
+            .clip(sheetShape)
+            .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF), sheetShape)
+            .border(0.5.dp, Color.White.copy(alpha = 0.10f), sheetShape)
     }
 
     ModalBottomSheet(

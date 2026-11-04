@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.unit.Density
 import com.example.ui.components.backdrop.Backdrop
 import com.example.ui.components.backdrop.internal.InverseLayerScope
@@ -70,8 +71,11 @@ class LayerBackdrop internal constructor(
                 try {
                     layerCoordinates.localPositionOf(coordinates)
                 } catch (_: Exception) {
-                    // TODO: outer transformations lead to wrong position calculation
-                    coordinates.positionInWindow() - layerCoordinates.positionInWindow()
+                    try {
+                        coordinates.positionOnScreen() - layerCoordinates.positionOnScreen()
+                    } catch (_: Exception) {
+                        coordinates.positionInWindow() - layerCoordinates.positionInWindow()
+                    }
                 }
             translate(-offset.x, -offset.y)
         }) {

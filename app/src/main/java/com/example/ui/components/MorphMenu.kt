@@ -81,7 +81,6 @@ fun MorphPopupMenu(
 ) {
     val density = LocalDensity.current
     val currentOnDismissRequest by rememberUpdatedState(onDismissRequest)
-    val popupHazeState = LocalAppGlassHazeState.current
 
     var isPresent by remember { mutableStateOf(expanded) }
     var closeRequested by remember { mutableStateOf(false) }
@@ -206,7 +205,6 @@ fun MorphPopupMenu(
                 panelModifier = panelModifier,
                 width = width,
                 useGlassBackdrop = false,
-                popupHazeState = popupHazeState,
                 panelShape = panelShape,
                 onSizeMeasured = { panelSize = it },
                 content = content,
@@ -460,8 +458,8 @@ private fun MorphPanel(
             Color.White.copy(alpha = 0.05f),
         ),
     )
-    val backdrop = if (useGlassBackdrop) LocalMorphMenuBackdrop.current else null
-    val glassOn = useGlassBackdrop && isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
+    val backdrop = LocalMorphMenuBackdrop.current
+    val glassOn = isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
     val surfaceModifier = when {
         panelModifier != Modifier -> panelModifier
         glassOn && backdrop != null -> Modifier.navLiquidGlass(shape = panelShape, backdrop = backdrop)
