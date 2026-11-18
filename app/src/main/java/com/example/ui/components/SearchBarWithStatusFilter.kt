@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -57,6 +58,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.util.RootstockFilter
+import com.example.util.RootstockFilterOption
 import com.kyant.backdrop.Backdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -464,3 +467,261 @@ fun SearchBarWithStatusFilter(
         }
     }
 }
+
+/**
+ * Compact capsule dropdown filter for Rootstock families (M9, MM, Other, Not Specified).
+ * Matches the shape, colours, and dark/light/AMOLED handling of the filter button in SearchBarWithStatusFilter
+ * without adding any Haze, blur, backdrop, or glass effect.
+ */
+@Composable
+fun RootstockFilterDropdown(
+    selectedFilter: RootstockFilter,
+    options: List<RootstockFilterOption>,
+    onFilterSelected: (RootstockFilter) -> Unit,
+    modifier: Modifier = Modifier,
+    isDark: Boolean = isAppInDarkMode(),
+    isAmoled: Boolean = isAppInAmoledMode(),
+    testTagPrefix: String = "rootstock_filter"
+) {
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    val effectiveDark = isDark || isAmoled
+    val isFilterActive = selectedFilter != RootstockFilter.All
+    val filterButtonShape = RoundedCornerShape(percent = 50)
+
+    val inactiveBgBrush = when {
+        isAmoled -> Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                Color(0xFF000000).copy(alpha = 0.85f)
+            )
+        )
+        effectiveDark -> Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                Color(0xFF0F172A).copy(alpha = 0.55f)
+            )
+        )
+        else -> Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                Color.White.copy(alpha = 0.25f),
+                Color.White.copy(alpha = 0.20f)
+            )
+        )
+    }
+
+    val rimBrush = Brush.verticalGradient(
+        listOf(
+            Color.White.copy(alpha = if (effectiveDark) 0.35f else 0.45f),
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.20f),
+            Color.White.copy(alpha = 0.15f)
+        )
+    )
+
+    val filterButtonBgBrush = if (isFilterActive) {
+        Brush.verticalGradient(
+            listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = if (effectiveDark) 0.35f else 0.25f),
+                MaterialTheme.colorScheme.primary.copy(alpha = if (effectiveDark) 0.22f else 0.15f)
+            )
+        )
+    } else {
+        inactiveBgBrush
+    }
+
+    val menuContainerColor = when {
+        isAmoled -> Color(0xFF050505)
+        effectiveDark -> Color(0xFF0F172A)
+        else -> Color(0xFFF8FAFC)
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Start
+    ) {
+        Box {
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = filterButtonShape,
+                        spotColor = Color.Black.copy(alpha = 0.05f),
+                        ambientColor = Color.Black.copy(alpha = 0.02f)
+                    )
+                    .clip(filterButtonShape)
+                    .background(filterButtonBgBrush, shape = filterButtonShape)
+                    .border(
+                        if (isFilterActive) {
+                            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+                        } else {
+                            BorderStroke(1.dp, rimBrush)
+                        },
+                        shape = filterButtonShape
+                    )
+                    .clickable { dropdownExpanded = true }
+                    .padding(horizontal = 12.dp)
+                    .testTag("${testTagPrefix}_dropdown_btn"),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    ThemedIcon(
+                        imageVector = Icons.Default.FilterList,
+                        contentDescription = "Filter by Rootstock",
+                        tint = if (isFilterActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+                        },
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = selectedFilter.buttonLabel(options),
+                        fontSize = 12.sp,
+                        fontWeight = if (isFilterActive) FontWeight.Bold else FontWeight.SemiBold,
+                        color = if (isFilterActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            if (effectiveDark) Color(0xFFCBD5E1) else Color(0xFF334155)
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    ThemedIcon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = if (isFilterActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            if (effectiveDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+                        },
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+
+            DropdownMenu(
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = menuContainerColor,
+                tonalElevation = 4.dp,
+                shadowElevation = 8.dp,
+                border = BorderStroke(
+                    1.dp,
+                    if (effectiveDark) Color.White.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.08f)
+                ),
+                modifier = Modifier
+                    .width(235.dp)
+                    .testTag("${testTagPrefix}_menu")
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = if (effectiveDark) 0.22f else 0.14f),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ThemedIcon(
+                                imageVector = Icons.Default.FilterList,
+                                contentDescription = null,
+                                tint = if (effectiveDark) Color.White else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Text(
+                            text = "Filter by Rootstock",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (effectiveDark) Color.White.copy(alpha = 0.95f) else Color(0xFF0F172A)
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    color = if (effectiveDark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.10f),
+                    thickness = 0.8.dp,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp)
+                )
+
+                options.forEach { option ->
+                    val isSelected = selectedFilter == option.filter
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = option.dropdownLabel,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        if (effectiveDark) Color.White.copy(alpha = 0.90f) else Color(0xFF0F172A)
+                                    }
+                                )
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = if (effectiveDark) 0.25f else 0.18f)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        ThemedIcon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onClick = {
+                            onFilterSelected(option.filter)
+                            dropdownExpanded = false
+                        },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .then(
+                                if (isSelected) {
+                                    Modifier.background(
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = if (effectiveDark) 0.18f else 0.10f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                } else Modifier
+                            )
+                            .testTag("${testTagPrefix}_option_${option.shortLabel.lowercase().replace(" ", "_")}")
+                    )
+                }
+            }
+        }
+    }
+}
+

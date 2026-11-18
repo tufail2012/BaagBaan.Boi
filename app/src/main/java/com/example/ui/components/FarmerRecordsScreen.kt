@@ -130,6 +130,7 @@ import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
 import com.example.data.parseVarietyLines
 import com.example.ui.CropViewModel
+import com.example.util.RootstockFilter
 import com.example.util.countedQuantity
 import com.example.util.varietyQuantityRowsForRecords
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -156,6 +157,8 @@ fun FarmerRecordsScreen(
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
+    val selectedRootstockFilter by viewModel.selectedRootstockFilter.collectAsState()
+    val rootstockFilterOptions by viewModel.rootstockFilterOptions.collectAsState()
     val selectedService by viewModel.selectedService.collectAsState()
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
@@ -165,7 +168,7 @@ fun FarmerRecordsScreen(
 
     listState.rememberScrollHapticFeedback()
 
-    LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption, selectedPaymentFilter) {
+    LaunchedEffect(selectedService, selectedPruningSubTab, selectedRootstockSubTab, selectedGenevaOption, selectedPaymentFilter, selectedRootstockFilter) {
         listState.scrollToItem(0)
     }
 
@@ -198,7 +201,7 @@ fun FarmerRecordsScreen(
             ?: Color(0xFF10B981)
     }
 
-    val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
+    val animatedItemIds = remember(bookTitle, selectedPaymentFilter, searchQuery, selectedRootstockFilter) { mutableSetOf<Any>() }
 
     // Dynamic Computation of 4 Summary Metrics across records (respecting active filters/search)
     val totalPayment = remember(records) {
@@ -327,6 +330,18 @@ fun FarmerRecordsScreen(
                             hazeState = effectiveHazeState,
                             backdrop = recordsBackdrop
                         )
+                        val showRootstockFilter = selectedService.equals("Local Plants", ignoreCase = true) ||
+                            selectedService.equals("Imported", ignoreCase = true)
+                        if (showRootstockFilter) {
+                            RootstockFilterDropdown(
+                                selectedFilter = selectedRootstockFilter,
+                                options = rootstockFilterOptions,
+                                onFilterSelected = { viewModel.setRootstockFilter(it) },
+                                isDark = isDark,
+                                isAmoled = isAmoled,
+                                testTagPrefix = "crop_rootstock_filter"
+                            )
+                        }
                         // 2x2 Metric Grid Component placed directly below Search Bar
                         android.util.Log.d("RECORDS_DEBUG", "Rendering Records SummaryMetricCards")
                         RecordsSummaryMetricCards(
@@ -380,10 +395,14 @@ fun FarmerRecordsScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
-                                                "No records in $bookTitleName match your search/filter criteria."
-                                            else
-                                                "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here.",
+                                            text = when {
+                                                showRootstockFilter && selectedRootstockFilter != RootstockFilter.All ->
+                                                    "No records in $bookTitleName match the selected rootstock (${selectedRootstockFilter.displayName(rootstockFilterOptions)})."
+                                                searchQuery.isNotBlank() || selectedPaymentFilter != "All Records" ->
+                                                    "No records in $bookTitleName match your search/filter criteria."
+                                                else ->
+                                                    "No entries saved in the $bookTitleName Recording Book yet. Create a new entry under $bookTitleName to add it here."
+                                            },
                                             fontSize = 14.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )

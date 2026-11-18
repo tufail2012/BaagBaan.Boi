@@ -17,13 +17,19 @@ import com.example.data.serializeVarietyLines
 import com.example.data.calculateTotalAmountMultiVariety
 import com.example.data.isPaymentCleared
 import com.example.ui.components.BookingConfirmationState
+import com.example.util.RootstockFilter
+import com.example.util.RootstockFilterOption
 import com.example.util.SerialNumberUtils
+import com.example.util.buildRootstockFilterOptions
+import com.example.util.classifyCropRecord
+import com.example.util.matchesRootstockFilter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -299,6 +305,14 @@ class CropViewModel(
     private val _selectedPaymentFilter = MutableStateFlow("All Records")
     val selectedPaymentFilter: StateFlow<String> = _selectedPaymentFilter.asStateFlow()
 
+    // Rootstock family filter (used on Local Plants and Imported Plants records views)
+    private val _selectedRootstockFilter = MutableStateFlow<RootstockFilter>(RootstockFilter.All)
+    val selectedRootstockFilter: StateFlow<RootstockFilter> = _selectedRootstockFilter.asStateFlow()
+
+    fun setRootstockFilter(filter: RootstockFilter) {
+        _selectedRootstockFilter.value = filter
+    }
+
     private val _recordSearchFilter = MutableStateFlow("All")
     val recordSearchFilter: StateFlow<String> = _recordSearchFilter.asStateFlow()
 
@@ -526,17 +540,56 @@ class CropViewModel(
         return norm(svc1) == norm(svc2)
     }
 
+    private data class ClassifiedCropRecord(
+        val record: CropRecord,
+        val rootstockClassifications: Set<RootstockFilter>
+    )
+
+    private val classifiedAllRecords: StateFlow<List<ClassifiedCropRecord>> = repository.allRecords
+        .map { records ->
+            records.map { rec ->
+                ClassifiedCropRecord(
+                    record = rec,
+                    rootstockClassifications = classifyCropRecord(rec)
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val rootstockFilterOptions: StateFlow<List<RootstockFilterOption>> = combine(
+        classifiedAllRecords,
+        _selectedService
+    ) { classifiedRecords, selectedSvc ->
+        val isRootstockFilterApplicable = selectedSvc.equals("Local Plants", ignoreCase = true) ||
+            selectedSvc.equals("Imported", ignoreCase = true)
+        if (!isRootstockFilterApplicable) {
+            emptyList()
+        } else {
+            val serviceSets = classifiedRecords.asSequence()
+                .filter { (rec, _) ->
+                    rec.serialNumber !in automaticSerials && isSameCategory(rec.serviceType, selectedSvc)
+                }
+                .map { it.rootstockClassifications }
+                .toList()
+            buildRootstockFilterOptions(serviceSets)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val filteredRecords: StateFlow<List<CropRecord>> = combine(
-        repository.allRecords,
+        classifiedAllRecords,
         _recordsSearchQuery,
         _selectedService,
-        combine(_selectedPaymentFilter, _recordSearchFilter) { pf, sf -> Pair(pf, sf) },
+        combine(_selectedPaymentFilter, _recordSearchFilter, _selectedRootstockFilter) { pf, sf, rf ->
+            Triple(pf, sf, rf)
+        },
         combine(_selectedPruningSubTab, _selectedRootstockSubTab, _selectedGenevaSubOption) { p, r, g ->
             Triple(p, r, g)
         }
-    ) { records, query, selectedSvc, (paymentFilter, searchFilterMode), (pruningTab, rootstockTab, genevaOpt) ->
+    ) { classifiedRecords, query, selectedSvc, (paymentFilter, searchFilterMode, rootstockFilter), (pruningTab, rootstockTab, genevaOpt) ->
         val trimmedQuery = query.trim()
-        records.filter { rec ->
+        val isRootstockFilterApplicable = selectedSvc.equals("Local Plants", ignoreCase = true) ||
+            selectedSvc.equals("Imported", ignoreCase = true)
+        classifiedRecords.asSequence().filter { (rec, rootstockClassifications) ->
             val isManualBooking = rec.serialNumber !in automaticSerials
             val matchesCategory = isSameCategory(rec.serviceType, selectedSvc)
 
@@ -591,8 +644,14 @@ class CropViewModel(
                 else -> true
             }
 
-            isManualBooking && matchesCategory && matchesSubTab && matchesQuery && matchesPayment
-        }.sortedWith(SerialNumberUtils.cropRecordComparator)
+            val matchesRootstock = if (isRootstockFilterApplicable) {
+                matchesRootstockFilter(rootstockClassifications, rootstockFilter)
+            } else {
+                true
+            }
+
+            isManualBooking && matchesCategory && matchesSubTab && matchesQuery && matchesPayment && matchesRootstock
+        }.map { it.record }.toList().sortedWith(SerialNumberUtils.cropRecordComparator)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Global Search Flow across all services & sub-categories (Farmer Name, Serial No, Contact No)
@@ -638,6 +697,7 @@ class CropViewModel(
         saveCurrentTabState()
         _selectedService.value = service
         _recordsSearchQuery.value = ""
+        _selectedRootstockFilter.value = RootstockFilter.All
         _viewMode.value = 0
         serviceType.value = service
         _recordsFilterService.value = service

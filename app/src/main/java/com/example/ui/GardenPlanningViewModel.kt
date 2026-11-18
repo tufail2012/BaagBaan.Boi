@@ -10,13 +10,19 @@ import com.example.data.parseVarietyLines
 import com.example.data.serializeVarietyLines
 import com.example.data.calculateTotalAmountMultiVariety
 import com.example.util.MessageTemplateHelper
+import com.example.util.RootstockFilter
+import com.example.util.RootstockFilterOption
 import com.example.util.SerialNumberUtils
+import com.example.util.buildRootstockFilterOptions
+import com.example.util.classifyGardenEntry
+import com.example.util.matchesRootstockFilter
 import com.example.ui.components.BookingConfirmationState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -38,26 +44,63 @@ class GardenPlanningViewModel(
     private val _selectedPaymentFilter = MutableStateFlow("All Records")
     val selectedPaymentFilter: StateFlow<String> = _selectedPaymentFilter.asStateFlow()
 
-    val filteredEntries: StateFlow<List<GardenPlanningEntry>> = combine(allEntries, _searchQuery, _selectedPaymentFilter) { entries, query, paymentFilter ->
-        var result = entries
+    private val _selectedRootstockFilter = MutableStateFlow<RootstockFilter>(RootstockFilter.All)
+    val selectedRootstockFilter: StateFlow<RootstockFilter> = _selectedRootstockFilter.asStateFlow()
+
+    fun setRootstockFilter(filter: RootstockFilter) {
+        _selectedRootstockFilter.value = filter
+    }
+
+    private data class ClassifiedGardenEntry(
+        val entry: GardenPlanningEntry,
+        val rootstockClassifications: Set<RootstockFilter>
+    )
+
+    private val classifiedAllEntries: StateFlow<List<ClassifiedGardenEntry>> = allEntries
+        .map { entries ->
+            entries.map { entry ->
+                ClassifiedGardenEntry(
+                    entry = entry,
+                    rootstockClassifications = classifyGardenEntry(entry)
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val rootstockFilterOptions: StateFlow<List<RootstockFilterOption>> = classifiedAllEntries
+        .map { classified ->
+            buildRootstockFilterOptions(classified.map { it.rootstockClassifications })
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val filteredEntries: StateFlow<List<GardenPlanningEntry>> = combine(
+        classifiedAllEntries,
+        _searchQuery,
+        _selectedPaymentFilter,
+        _selectedRootstockFilter
+    ) { classifiedEntries, query, paymentFilter, rootstockFilter ->
+        var result = classifiedEntries
         if (query.isNotBlank()) {
             val q = query.lowercase(Locale.getDefault())
-            result = result.filter {
+            result = result.filter { (it, _) ->
                 it.farmerName.lowercase(Locale.getDefault()).contains(q) ||
                         it.serialNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.contactNumber.lowercase(Locale.getDefault()).contains(q) ||
                         it.farmerAddress.lowercase(Locale.getDefault()).contains(q)
             }
         }
-        val filtered = when (paymentFilter) {
-            "Pending" -> result.filter { it.paymentStatus == "Pending" || it.paymentStatus == "Unpaid" }
-            "Advance Paid" -> result.filter { it.paymentStatus == "Advance Paid" }
-            "Fully Paid" -> result.filter { it.paymentStatus == "Fully Paid" }
-            "Payments Cleared" -> result.filter { it.paymentStatus == "Fully Paid" }
-            "Payments Pending" -> result.filter { it.paymentStatus != "Fully Paid" }
+        val paymentFiltered = when (paymentFilter) {
+            "Pending" -> result.filter { (it, _) -> it.paymentStatus == "Pending" || it.paymentStatus == "Unpaid" }
+            "Advance Paid" -> result.filter { (it, _) -> it.paymentStatus == "Advance Paid" }
+            "Fully Paid" -> result.filter { (it, _) -> it.paymentStatus == "Fully Paid" }
+            "Payments Cleared" -> result.filter { (it, _) -> it.paymentStatus == "Fully Paid" }
+            "Payments Pending" -> result.filter { (it, _) -> it.paymentStatus != "Fully Paid" }
             else -> result
         }
-        filtered.sortedWith(SerialNumberUtils.gardenEntryComparator)
+        val rootstockFiltered = paymentFiltered.filter { (_, classifications) ->
+            matchesRootstockFilter(classifications, rootstockFilter)
+        }
+        rootstockFiltered.map { it.entry }.sortedWith(SerialNumberUtils.gardenEntryComparator)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setPaymentFilter(filter: String) {

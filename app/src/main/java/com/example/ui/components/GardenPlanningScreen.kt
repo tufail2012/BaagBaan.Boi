@@ -2396,6 +2396,8 @@ fun GardenPlanningRecordsTab(
     val context = LocalContext.current
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
+    val selectedRootstockFilter by viewModel.selectedRootstockFilter.collectAsState()
+    val rootstockFilterOptions by viewModel.rootstockFilterOptions.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("en", "IN"))
 
     val fallbackHazeState = remember { HazeState() }
@@ -2480,7 +2482,7 @@ fun GardenPlanningRecordsTab(
         )
     }
 
-    val animatedItemIds = remember(selectedPaymentFilter, searchQuery) { mutableSetOf<Any>() }
+    val animatedItemIds = remember(selectedPaymentFilter, searchQuery, selectedRootstockFilter) { mutableSetOf<Any>() }
     val isAmoled = isAppInAmoledMode()
 
     BrandedPullToRefreshBox(
@@ -2559,6 +2561,14 @@ fun GardenPlanningRecordsTab(
                             hazeState = effectiveHazeState,
                             backdrop = backdrop
                         )
+                        RootstockFilterDropdown(
+                            selectedFilter = selectedRootstockFilter,
+                            options = rootstockFilterOptions,
+                            onFilterSelected = { viewModel.setRootstockFilter(it) },
+                            isDark = isDark,
+                            isAmoled = isAmoled,
+                            testTagPrefix = "garden_rootstock_filter"
+                        )
                         // 2x2 Metric Grid Component placed directly below Search Bar
                         RecordsSummaryMetricCards(
                             totalPayment = totalPayment,
@@ -2606,10 +2616,14 @@ fun GardenPlanningRecordsTab(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = if (searchQuery.isNotBlank() || selectedPaymentFilter != "All Records")
-                                            "No garden planning records match your search or filter criteria."
-                                        else
-                                            "No entries saved in the Garden Planning Recording Book yet. Create a new entry under Garden Planning to add it here.",
+                                        text = when {
+                                            selectedRootstockFilter != com.example.util.RootstockFilter.All ->
+                                                "No garden planning records match the selected rootstock (${selectedRootstockFilter.displayName(rootstockFilterOptions)})."
+                                            searchQuery.isNotBlank() || selectedPaymentFilter != "All Records" ->
+                                                "No garden planning records match your search or filter criteria."
+                                            else ->
+                                                "No entries saved in the Garden Planning Recording Book yet. Create a new entry under Garden Planning to add it here."
+                                        },
                                         fontSize = 14.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
@@ -2673,7 +2687,7 @@ fun GardenPlanningRecordsTab(
                     onModeSelected = { viewModel.selectedTabIndex.value = it },
                     hazeState = effectiveHazeState,
                     newEntryLabel = if (isEditing) "Edit Entry" else "New Entry",
-                    recordsLabel = "Records (${allEntriesList.size})",
+                    recordsLabel = "Records (${entries.size})",
                     accentColor = paletteAccent,
                     backdrop = backdrop,
                     modifier = Modifier.fillMaxWidth()
