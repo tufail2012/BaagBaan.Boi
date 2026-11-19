@@ -157,9 +157,11 @@ fun FarmerRecordsScreen(
     val records by viewModel.filteredRecords.collectAsState()
     val searchQuery by viewModel.recordsSearchQuery.collectAsState()
     val selectedPaymentFilter by viewModel.selectedPaymentFilter.collectAsState()
-    val selectedRootstockFilter by viewModel.selectedRootstockFilter.collectAsState()
-    val rootstockFilterOptions by viewModel.rootstockFilterOptions.collectAsState()
     val selectedService by viewModel.selectedService.collectAsState()
+    val selectedRootstockFilter by viewModel.selectedRootstockFilter.collectAsState()
+    val showRootstockFilter = selectedService.equals("Local Plants", ignoreCase = true) ||
+        selectedService.equals("Imported", ignoreCase = true)
+    val rootstockFilterOptions by viewModel.rootstockFilterOptions.collectAsState()
     val selectedPruningSubTab by viewModel.selectedPruningSubTab.collectAsState()
     val selectedRootstockSubTab by viewModel.selectedRootstockSubTab.collectAsState()
     val selectedGenevaOption by viewModel.selectedGenevaOption.collectAsState()
@@ -330,8 +332,6 @@ fun FarmerRecordsScreen(
                             hazeState = effectiveHazeState,
                             backdrop = recordsBackdrop
                         )
-                        val showRootstockFilter = selectedService.equals("Local Plants", ignoreCase = true) ||
-                            selectedService.equals("Imported", ignoreCase = true)
                         if (showRootstockFilter) {
                             RootstockFilterDropdown(
                                 selectedFilter = selectedRootstockFilter,
