@@ -429,6 +429,7 @@ fun AttendanceHomeScreen(
                 onManualSync = onManualSync,
                 onBack = onNavigateBack,
                 hazeState = hazeState,
+                backdrop = attendanceBackdrop,
                 isScrolling = attendanceHomeListState.canScrollBackward
             )
 

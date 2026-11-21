@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.example.ui.components.AgriSegmentedControl
 import com.example.ui.components.LocalDropdownGlassBackdrop
+import com.example.ui.components.LocalMorphMenuBackdrop
 import com.example.ui.components.asKyantBackdrop
 import com.example.ui.components.FarmerFormScreen
 import com.example.ui.components.FarmerRecordsScreen
@@ -225,9 +226,14 @@ fun AgriCropMainScreen(
     )
 
     val navBackdropCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val navBackdropCoordinatesProvider = remember { { navBackdropCoordinates.value } }
     val profileMenuBackdrop = rememberPopupBackdrop(
         backdrop = navBackdrop,
-        sourceCoordinatesProvider = { navBackdropCoordinates.value }
+        sourceCoordinatesProvider = navBackdropCoordinatesProvider
+    )
+    val navPopupBackdrop = rememberPopupBackdrop(
+        backdrop = navGlassBackdrop,
+        sourceCoordinatesProvider = navBackdropCoordinatesProvider
     )
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -750,7 +756,9 @@ fun AgriCropMainScreen(
                 }
 
                 CompositionLocalProvider(
-                    com.example.ui.components.LocalAppGlassHazeState provides hazeState
+                    com.example.ui.components.LocalAppGlassHazeState provides hazeState,
+                    LocalMorphMenuBackdrop provides navPopupBackdrop,
+                    LocalDropdownGlassBackdrop provides profileMenuBackdrop
                 ) {
                     var isHeaderBlurActive by remember { mutableStateOf(false) }
                     var activeHeaderScrollOffset by remember { mutableStateOf(0f) }

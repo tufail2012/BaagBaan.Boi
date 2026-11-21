@@ -77,6 +77,8 @@ fun MorphPopupMenu(
     panelModifier: Modifier = Modifier,
     width: Dp = 220.dp,
     panelShape: CornerBasedShape = RoundedCornerShape(20.dp),
+    backdrop: Backdrop? = null,
+    hazeState: HazeState? = LocalAppGlassHazeState.current,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val density = LocalDensity.current
@@ -204,7 +206,10 @@ fun MorphPopupMenu(
                     .offset { IntOffset(panelLeftPx.roundToInt(), panelTopPx.roundToInt()) },
                 panelModifier = panelModifier,
                 width = width,
-                useGlassBackdrop = false,
+                useGlassBackdrop = true,
+                requireChatGlass = false,
+                explicitBackdrop = backdrop,
+                popupHazeState = hazeState,
                 panelShape = panelShape,
                 onSizeMeasured = { panelSize = it },
                 content = content,
@@ -358,6 +363,8 @@ private fun MorphPanel(
     panelModifier: Modifier = Modifier,
     width: Dp = 220.dp,
     useGlassBackdrop: Boolean = true,
+    requireChatGlass: Boolean = true,
+    explicitBackdrop: Backdrop? = null,
     popupHazeState: HazeState? = null,
     panelShape: CornerBasedShape = RoundedCornerShape(20.dp),
     onSizeMeasured: (IntSize) -> Unit = {},
@@ -458,18 +465,26 @@ private fun MorphPanel(
             Color.White.copy(alpha = 0.05f),
         ),
     )
-    val backdrop = LocalMorphMenuBackdrop.current
-    val glassOn = isGlassSupported() && glassConfig.chatGlassEnabled && backdrop != null
+    val dropdownBackdrop = LocalDropdownGlassBackdrop.current
+    val resolvedDropdownBackdrop = remember(dropdownBackdrop) { dropdownBackdrop?.asVendoredBackdrop() }
+    val backdrop = explicitBackdrop ?: LocalMorphMenuBackdrop.current ?: resolvedDropdownBackdrop
+    val effectiveHazeState = popupHazeState ?: LocalAppGlassHazeState.current
+    val glassAllowed = if (requireChatGlass) glassConfig.chatGlassEnabled else true
+    val glassOn = useGlassBackdrop && isGlassSupported() && glassAllowed && backdrop != null
     val surfaceModifier = when {
         panelModifier != Modifier -> panelModifier
-        glassOn && backdrop != null -> Modifier.navLiquidGlass(shape = panelShape, backdrop = backdrop)
-        !useGlassBackdrop && !LiquidGlassPreference.enabled -> Modifier
+        glassOn && backdrop != null -> Modifier.navLiquidGlass(
+            shape = panelShape,
+            backdrop = backdrop,
+            isMenu = true,
+        )
+        !LiquidGlassPreference.enabled || !isGlassSupported() -> Modifier
             .clip(panelShape)
             .background(MaterialTheme.colorScheme.surface, panelShape)
             .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, panelShape)
-        !useGlassBackdrop && popupHazeState != null && isGlassSupported() ->
-            Modifier.profileMenuLiquidGlass(hazeState = popupHazeState, shape = panelShape)
-        !useGlassBackdrop && isGlassSupported() -> Modifier
+        effectiveHazeState != null ->
+            Modifier.profileMenuLiquidGlass(hazeState = effectiveHazeState, shape = panelShape)
+        else -> Modifier
             .clip(panelShape)
             .then(
                 when (glassConfig.glassStyle) {
@@ -478,14 +493,6 @@ private fun MorphPanel(
                 }
             )
             .border(0.5.dp, edgeBrush, panelShape)
-        !useGlassBackdrop -> Modifier
-            .clip(panelShape)
-            .background(MaterialTheme.colorScheme.surface, panelShape)
-            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, panelShape)
-        else -> Modifier
-            .clip(panelShape)
-            .background(if (isDark) Color(0x991E293B) else Color(0xB3FFFFFF))
-            .border(0.5.dp, Color.White.copy(alpha = 0.10f), panelShape)
     }
 
     Column(
@@ -519,7 +526,6 @@ private fun MorphPanel(
                 this.transformOrigin = transformOrigin
             }
             .then(surfaceModifier)
-            .border(0.5.dp, Color.White.copy(alpha = 0.15f), panelShape)
             .clip(panelShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

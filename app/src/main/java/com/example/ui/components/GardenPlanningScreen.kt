@@ -471,6 +471,7 @@ fun GardenPlanningScreen(
                     onNavigateToSettings = onNavigateToSettings,
                     onBack = null,
                     hazeState = effectiveHazeState,
+                    backdrop = backdrop,
                     isScrolling = formListState.canScrollBackward || recordsListState.canScrollBackward
                 )
                 }

@@ -222,6 +222,9 @@ fun AgriHeader(
 
     val headerShape = RoundedCornerShape(percent = 50)
     val resolvedProfileBackdrop = rememberPopupBackdrop(profileBackdrop ?: backdrop)
+    val resolvedProfileVendoredBackdrop = remember(resolvedProfileBackdrop) {
+        resolvedProfileBackdrop?.asVendoredBackdrop()
+    }
 
     Box(
         modifier = modifier
@@ -357,7 +360,9 @@ fun AgriHeader(
                         anchorBounds = searchProfileAnchorBounds,
                         onDismissRequest = { menuExpanded = false },
                         width = 270.dp,
-                        panelShape = RoundedCornerShape(22.dp)
+                        panelShape = RoundedCornerShape(22.dp),
+                        backdrop = resolvedProfileVendoredBackdrop,
+                        hazeState = hazeState
                     ) {
                         OverflowMenuContent(
                             themeMode = themeMode,
@@ -550,7 +555,9 @@ fun AgriHeader(
                                     anchorBounds = profileAnchorBounds,
                                     onDismissRequest = { menuExpanded = false },
                                     width = 270.dp,
-                                    panelShape = RoundedCornerShape(22.dp)
+                                    panelShape = RoundedCornerShape(22.dp),
+                                    backdrop = resolvedProfileVendoredBackdrop,
+                                    hazeState = hazeState
                                 ) {
                                     OverflowMenuContent(
                                         themeMode = themeMode,
